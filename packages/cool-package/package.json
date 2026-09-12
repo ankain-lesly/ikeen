@@ -1,0 +1,17 @@
+{
+  "name": "@repo/cool-package",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./index": "./index.ts",
+    "./add": "./src/add.ts"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*"
+  },
+  "peerDependencies": {
+    "typescript": "latest"
+  }
+}
