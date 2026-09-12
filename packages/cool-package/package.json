@@ -6,9 +6,18 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
-    ".": "./index.ts",
-    "./index": "./index.ts",
-    "./add": "./src/add.ts"
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./index": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./add": {
+      "types": "./src/add.ts",
+      "default": "./src/add.ts"
+    }
   },
   "scripts": {
     "check-types": "tsc --noEmit"

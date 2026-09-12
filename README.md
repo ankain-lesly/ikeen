@@ -1,3 +1,11 @@
+# iKen- (Personal Chat Assistant / Notes Taking)
+
+iKeen / ikeen — Personal declaration ("I am keen") + intelligent companion.
+
+
+---
+
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.

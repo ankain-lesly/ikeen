@@ -45,5 +45,6 @@ yarn-error.log*
 .expo/
 *.tsbuildinfo
 .metro-health-check*
-apps/mobile/ios/
-apps/mobile/android/
+# apps/mobile/ios/
+# apps/mobile/android/
+apps/mobile
