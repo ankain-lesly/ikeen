@@ -3,15 +3,19 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
   "exports": {
+    ".": "./index.ts",
     "./index": "./index.ts",
     "./add": "./src/add.ts"
   },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
   "devDependencies": {
     "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*"
-  },
-  "peerDependencies": {
-    "typescript": "latest"
+    "@repo/typescript-config": "*",
+    "typescript": "7.0.2"
   }
 }
