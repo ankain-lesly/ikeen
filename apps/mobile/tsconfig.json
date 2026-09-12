@@ -1,6 +1,5 @@
 {
   "extends": "expo/tsconfig.base",
-  "key": "value",
   "compilerOptions": {
     "strict": true,
     "paths": {
