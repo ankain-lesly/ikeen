@@ -1,3 +1,3 @@
 export const coolApp = (num: number = 2): string => {
-  return `${num} is cool from Bun!!`;
+  return `${num} is cool from BUNN!!`;
 }
