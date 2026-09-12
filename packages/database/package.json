@@ -1,0 +1,25 @@
+{
+  "name": "@repo/db",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+    "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "prisma": "7.10.0"
+  },
+  "scripts": {
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:validate": "prisma validate"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.0"
+  }
+}
