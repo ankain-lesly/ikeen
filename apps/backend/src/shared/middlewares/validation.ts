@@ -17,7 +17,7 @@ export function validate(schema: ZodSchema) {
     } catch (error: any) {
       if (error instanceof ZodError) {
         // log(error);
-        const validationErrors = error.errors || [];
+        const validationErrors = error.issues || [];
         const message = validationErrors
           .map((err: any) => err.message)
           .join(", ");

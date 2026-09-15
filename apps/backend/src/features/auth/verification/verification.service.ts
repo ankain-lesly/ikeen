@@ -1,9 +1,9 @@
-import prisma from "../../../shared/config/db";
+import { prisma } from "@repo/db";
 import {
   VerificationType,
   VerificationStatus,
   Prisma,
-} from "../../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 import { VerificationTokenService } from "./verification-token.service";
 import { VerificationNotificationService } from "./verification-notification.service";
 import { createError } from "../../../shared/http/app-error";

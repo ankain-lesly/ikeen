@@ -2,8 +2,6 @@
 // Reusable HTML wrapper for all transactional emails
 
 import env from "../../config/env";
-import { Order } from "../../../../prisma/generated/client";
-import { fmt } from "./utils";
 
 interface LayoutOptions {
   preheader?: string;
@@ -98,29 +96,4 @@ export function infoRows(rows: Array<[string, string]>): string {
     )
     .join("");
 }
-
-type BaseOrder = Pick<Order, "subtotal"> & {
-  items: Array<{
-    quantity: number;
-    productName: string;
-    price: number;
-  }>;
-}
-
-// Helper to build order items table
-export function orderItemsTable(o: BaseOrder): string {
-  const { items, subtotal, } = o;
-  const rows = items
-    .map(
-      (i) =>
-        `<tr><td>${i.quantity}x ${i.productName}</td><td style="text-align:right;">${fmt.currency(Number(i.price) * i.quantity)}</td></tr>`,
-    )
-    .join("");
-  return `<table class="items-table">
-    <thead><tr><th>Item</th><th style="text-align:right;">Price</th></tr></thead>
-    <tbody>
-      ${rows}
-      <tr class="total-row"><td>Total</td><td style="text-align:right;">${fmt.currency(subtotal)}</td></tr>
-    </tbody>
-  </table>`;
-}
+ 

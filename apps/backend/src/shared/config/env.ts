@@ -8,7 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "preview"])
     .default("development"),
-  PORT: z.string().transform(Number).default("8383"),
+  PORT: z.string().transform(Number).default(8383),
   CORS_ORIGINS: z.string().default("*"),
 
   // Database
@@ -23,7 +23,7 @@ const envSchema = z.object({
 
   // Email
   EMAIL_SMTP_HOST: z.string().min(1),
-  EMAIL_SMTP_PORT: z.string().transform(Number).default("3434"),
+  EMAIL_SMTP_PORT: z.string().transform(Number).default(3434),
   EMAIL_SMTP_USERNAME: z.string().min(1),
   EMAIL_SMTP_PASSWORD: z.string().min(1),
   EMAIL_FROM: z.string().min(1),

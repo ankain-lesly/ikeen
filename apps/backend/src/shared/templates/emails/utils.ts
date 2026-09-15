@@ -1,4 +1,4 @@
-import { Decimal } from "../../../../prisma/generated/client/internal/prismaNamespace";
+import { Decimal } from "@repo/db/generated/prisma/internal/prismaNamespace";
 import { formatDate } from "../../lib/date-utils";
 
 export interface EmailTemplate {

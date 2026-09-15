@@ -3,7 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import * as TokenService from "../../features/auth/token.service";
 import type { TokenPayload } from "../types/auth";
 import { log } from "../lib/utils";
-import { UserType } from "../../../prisma/generated/client";
+import { UserType } from "@repo/db/generated/prisma/client";
 
 /**
  * Authentication Chain Builder
@@ -239,33 +239,9 @@ class AuthChain {
 
       // Load merchant data
       // if (this.options.loadMerchantData && req.user.type === USER_TYPE.VENDOR) {
-      if ((["merchant", "staff"] as UserType[]).includes(req.user.type)) {
-        // const merchant = await prisma.merchant.findUnique({
-        //   where: { id: this.tokenPayload?.merchantId },
-        //   select: {
-        //     id: true,
-        //     name: true,
-        //     email: true,
-        //     phone: true,
-        //   },
-        // });
-        // if (!merchant) throw createError.notFound("Merchant not found");
-        req.merchant = this.tokenPayload!.merchant;
-
-        // if (req.user.type === "merchant") {
-        //   const merchantContext = await AuthService.selectMerchantOwnerContext(
-        //     merchant as Merchant
-        //   );
-        //   req.user.merchantContext = merchantContext;
-        // } else {
-        //   // Auto-select single merchant
-        //   const { merchantContext } = await AuthService.selectStaffMerchantContext(
-        //     req.user.id,
-        //     merchant.id
-        //   );
-        //   req.user.merchantContext = merchantContext;
-        // }
-      }
+      // if ((["merchant", "staff"] as UserType[]).includes(req.user.type)) {
+      //   req.merchant = this.tokenPayload!.merchant;
+      // }
 
       next();
     } catch (error) {
@@ -451,11 +427,11 @@ class AuthChain {
   /**
    * Load merchant-specific data
    */
-  merchant(): AuthChain {
-    this.options.userTypes.push("merchant");
-    this.options.loadMerchantData = true;
-    return this;
-  }
+  // merchant(): AuthChain {
+  //   this.options.userTypes.push("merchant");
+  //   this.options.loadMerchantData = true;
+  //   return this;
+  // }
 
   /**
    * Admin access only
@@ -572,17 +548,17 @@ export const AUTH = {
   admin: authenticate().admin().execute(),
 
   // Merchant with data
-  merchant: authenticate().merchant().withUser().execute(),
+  // merchant: authenticate().merchant().withUser().execute(),
 
   // Merchant admin access
-  merchantAdmin: authenticate()
-    .allow("merchant", "admin")
-    .withUser()
-    .execute(),
+  // merchantAdmin: authenticate()
+  //   .allow("merchant", "admin")
+  //   .withUser()
+  //   .execute(),
 
   // All authenticated users
   allUsers: authenticate()
-    .allow("admin", "customer", "merchant")
+    .allow("admin", "user")
     .withUser()
     .execute(),
 
@@ -608,13 +584,13 @@ export const AUTH = {
  */
 export const auth = {
   basic: () => authenticate().withUser(),
-  merchant: () => authenticate().merchant().withUser(),
-  merchantAdmin: () =>
-    authenticate().allow("merchant", "admin").withUser(),
+  // merchant: () => authenticate().merchant().withUser(),
+  // merchantAdmin: () =>
+  //   authenticate().allow("merchant", "admin").withUser(),
   admin: () => authenticate().admin(),
   allUsers: () =>
     authenticate()
-      .allow("admin", "customer", "merchant")
+      .allow("admin", "user")
       .withUser(),
 };
 

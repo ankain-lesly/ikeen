@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { NotifyPlatformType } from "../../../prisma/generated/client";
+import { NotifyPlatformType } from "@repo/db/generated/prisma/enums";
 
 export const updateProfileSchema = z.object({
   body: z.object({

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { PrismaClient } from "../../../prisma/generated/client";
+import { PrismaClient } from "@repo/db/generated/prisma/client";
 import { PaginationOptions, PaginationResult } from "../types";
 
 // Generates a username

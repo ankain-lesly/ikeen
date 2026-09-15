@@ -3,7 +3,7 @@ import {
   VerificationType,
   VerificationMethod,
   IdentifierType,
-} from "../../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 
 const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
@@ -14,16 +14,14 @@ export const RequestVerificationSchema = z
   .object({
     body: z.object({
       identifier: z.string().trim().min(1, "Identifier is required"),
-      identifierType: z.nativeEnum(IdentifierType, {
-        errorMap: () => ({
-          message: "Invalid identifier type. Must be 'email' or 'phone'",
-        }),
+      identifierType: z.enum(IdentifierType, {
+        message: "Invalid identifier type. Must be 'email' or 'phone'",
       }),
-      type: z.nativeEnum(VerificationType, {
-        errorMap: () => ({ message: "Invalid verification type" }),
+      type: z.enum(VerificationType, {
+        message: "Invalid verification type",
       }),
       method: z
-        .nativeEnum(VerificationMethod)
+        .enum(VerificationMethod)
         .default(VerificationMethod.code)
         .optional(),
     }),
@@ -56,9 +54,9 @@ export const RequestVerificationSchema = z
 export const VerifyTokenSchema = z.object({
   body: z.object({
     identifier: z.string().trim().min(1, "Identifier is required"),
-    identifierType: z.nativeEnum(IdentifierType),
+    identifierType: z.enum(IdentifierType),
     token: z.string().trim().min(1, "Verification token is required"),
-    type: z.nativeEnum(VerificationType),
+    type: z.enum(VerificationType),
   }),
 });
 
@@ -68,8 +66,8 @@ export const VerifyTokenSchema = z.object({
 export const ResendVerificationSchema = z.object({
   body: z.object({
     identifier: z.string().trim().min(1, "Identifier is required"),
-    identifierType: z.nativeEnum(IdentifierType),
-    type: z.nativeEnum(VerificationType),
+    identifierType: z.enum(IdentifierType),
+    type: z.enum(VerificationType),
   }),
 });
 
@@ -82,7 +80,7 @@ export const VerificationStatusSchema = z.object({
   }),
   headers: z
     .object({
-      identifiertype: z.nativeEnum(IdentifierType).optional(), // Express headers are lowercase
+      identifiertype: z.enum(IdentifierType).optional(), // Express headers are lowercase
     })
     .passthrough(),
 });

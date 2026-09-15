@@ -5,17 +5,307 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "./generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+// Auth Model - Handles authentication and credentials
+model Auth {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  type       AuthType @default(password)
+  provider   String   @default("self") @db.VarChar(50)
+  providerId String?  @db.VarChar(255)
+
+  password String? @db.VarChar(255)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lastLogin DateTime? @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth")
+}
+
+enum AuthType {
+  password
+  phone
+  magicLink
+}
+
+// User related models
 model User {
-  id String @id @default(uuid())
-  email String @unique
-  password String
+  id        String   @id @default(uuid())
+  firstName String   @db.VarChar(100)
+  lastName  String   @db.VarChar(100)
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
+  type      UserType @default(user)
+
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+  avatarUrl String? @db.VarChar(500)
+  lastLogin   DateTime? @default(now())
+  dateOfBirth DateTime?
+  gender      String?   @db.VarChar(20)
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  status    ModelStatus @default(active)
+  
+  currency  String   @default("XAF") @db.VarChar(4)
+
+  // Relations
+  auth                Auth?
+  verificationTokens  VerificationToken[]
+  pushTokens          PushToken[]
+  auditLogs           AuditLog[]
+  @@map("users")
+}
+
+enum UserType {
+  user
+  admin
+}
+
+enum VerificationMethod {
+  token
+  otp
+  code
+  link
+}
+
+enum VerificationType {
+  email_verification
+  phone_verification
+  password_reset
+  two_factor_auth
+  passwordless_login
+  email_change
+  account_deletion
+  subscription_confirmation
+}
+
+enum IdentifierType {
+  email
+  phone
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  expired
+  cancelled
+}
+
+model VerificationToken {
+  id String @id @default(cuid())
+
+  userId String?
+
+  identifier     String
+  identifierType IdentifierType
+
+  type   VerificationType
+  method VerificationMethod @default(code)
+
+  status VerificationStatus @default(pending)
+
+  tokenHash String
+  attempts Int @default(0)
+  ipAddress String?
+  userAgent String?
+  device    String?
+
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  cancelledAt DateTime?
+  lastSentAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier, type])
+  @@index([identifier, status])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+
+
+// =====================================
+// AUDIT LOG MODEL
+// =====================================
+
+
+// ============= AUDIT LOG SYSTEM =============
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  // Universal user tracking (works for ALL user types)
+  userId String?
+  //userType UserType?
+
+  // Context-specific IDs (optional based on action)
+  merchantId String?
+
+  // Action details
+  action   String
+  severity AuditSeverity @default(INFO)
+  isSystem Boolean       @default(false)
+
+  // Resource tracking
+  resourceType String?
+  resourceId   String?
+
+  // Change tracking
+  metadata Json?
+  changes  Json?
+  details  String?
+
+  // Request context
+  ipAddress     String? @db.VarChar(45)
+  userAgent     String? @db.Text
+  requestPath   String?
+  requestMethod String?
+
+  // Status
+  success      Boolean @default(true)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Indexes
+  @@index([userId, createdAt])
+  @@index([merchantId, createdAt])
+  @@index([action, severity])
+  @@index([resourceType, resourceId])
+  @@index([merchantId, action, createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditSeverity {
+  INFO // Regular operations (view, list)
+  WARN // Important changes (update, delete)
+  ERROR // Failed operations
+  CRITICAL // Security-relevant actions (permission changes, staff removal)
+}
+
+// =====================================
+// NOTIFICATION MODEL
+// =====================================
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+
+  userType UserType
+
+  isSystem Boolean @default(false)
+
+  // Content
+  title    String
+  message  String
+  type     NotificationType @default(general)
+  priority NotificationPriority @default(default)
+  platform NotifyPlatformType   @default(web)
+
+  // Delivery channels
+  channel NotificationChannel @default(default)
+  sentAt  DateTime?
+
+  // Status
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // Metadata
+  data      Json? // Additional context data
+  link      String? // Deep link or action url
+  linkLabel String? // Deep link or action url
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([userId, userType])
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model PushToken {
+  id     String @id @default(cuid())
+  userId String
+
+  // Device Type
+  platform NotifyPlatformType // web or mobile
+
+  token String @unique
+
+  // Device Metadata
+  deviceName   String?
+  deviceId     String? // Device identifier for tracking
+  osVersion    String? // OS version
+  appVersion   String? // App version
+  manufacturer String? // Device manufacturer (e.g., Apple, Samsung)
+  model        String? // Device model (e.g., iPhone 14, Galaxy S23)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@map("push_tokens")
+}
+
+enum NotificationChannel {
+  default
+  email
+  push
+  sms
+}
+
+// Notification types for different events in the system
+enum NotificationType {
+  order
+  delivery
+  payment
+  general
+  // ... more types can be added here
+}
+
+enum NotificationPriority {
+  default
+  normal
+  high
+}
+
+enum NotifyPlatformType {
+  web
+  ios
+  android
+}
+
+// ENUMS
+// =====================================
+enum ModelStatus {
+  pending
+  inactive
+  active
+  deleted
+  achieved
 }

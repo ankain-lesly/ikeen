@@ -1,6 +1,5 @@
 import { resend } from "../../../shared/lib/resend";
-import { twilio } from "../../../shared/lib/twilio";
-import { VerificationType } from "../../../../prisma/generated/client";
+import { VerificationType } from "@repo/db/generated/prisma/client";
 
 export class VerificationNotificationService {
   /**
@@ -41,7 +40,7 @@ export class VerificationNotificationService {
     value: string,
   ): Promise<void> {
     const message = this.getSmsTemplate(type, value);
-    await twilio.sendSms({ to, body: message });
+    // await twilio.sendSms({ to, body: message });
   }
 
   /**

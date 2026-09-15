@@ -1,10 +1,42 @@
 {
   "name": "@repo/db",
-  "module": "index.ts",
   "type": "module",
   "private": true,
-    "exports": {
-    ".": "./src/index.ts"
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
+    },
+    "./generated/prisma": {
+      "types": "./generated/prisma/client.ts",
+      "default": "./generated/prisma/client.ts"
+    },
+    "./generated/prisma/client": {
+      "types": "./generated/prisma/client.ts",
+      "default": "./generated/prisma/client.ts"
+    },
+    "./generated/prisma/enums": {
+      "types": "./generated/prisma/enums.ts",
+      "default": "./generated/prisma/enums.ts"
+    },
+    "./generated/prisma/*": {
+      "types": "./generated/prisma/*.ts",
+      "default": "./generated/prisma/*.ts"
+    },
+    "./generated/prisma/*.ts": {
+      "types": "./generated/prisma/*.ts",
+      "default": "./generated/prisma/*.ts"
+    },
+    "./generated/enums": {
+      "types": "./generated/prisma/enums.ts",
+      "default": "./generated/prisma/enums.ts"
+    }
   },
   "devDependencies": {
     "prisma": "7.10.0"

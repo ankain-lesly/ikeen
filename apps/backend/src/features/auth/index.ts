@@ -5,7 +5,7 @@ export * as AuthController from "./auth.controller";
 export * as AuthService from "./auth.service";
 
 // Routes
-export * as AuthRoutes from "./auth.routes";
+export { default as authRoutes } from "./auth.routes";
 
 // Token Service
 export * as TokenService from "./token.service";

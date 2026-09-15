@@ -3,9 +3,8 @@ import { ZodError } from "zod";
 import { createError, CUSTOM_ERROR_NAME } from "../http/app-error";
 import { log } from "../lib/utils";
 import { IS_DEV, IS_PROD } from "../config/env";
-import { PrismaClientKnownRequestError } from "../../../prisma/generated/client/internal/prismaNamespace";
 import { logger } from "../lib";
-import { CallbackVerificationError } from "../lib/payments/pawapay/verify-callback";
+import { PrismaClientKnownRequestError } from "@repo/db/generated/prisma/internal/prismaNamespace";
 
 function formatZodError(error: ZodError): string {
   return error.issues.map((issue) => issue.message).join(", ");
@@ -117,8 +116,8 @@ export default function globalErrorHandler(
     err = createError.badRequest(`Invalid ${err.path}: ${err.value}`);
   } else if (err instanceof ZodError) {
     err = createError.validationError(formatZodError(err));
-  } else if (err instanceof CallbackVerificationError) {
-    err = createError.unauthorized(err.message);
+  // } else if (err instanceof CallbackVerificationError) {
+  //   err = createError.unauthorized(err.message);
   } else if (err.name === CUSTOM_ERROR_NAME) {
     // err = erro
   }

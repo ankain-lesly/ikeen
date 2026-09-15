@@ -1,12 +1,12 @@
 import crypto from "crypto";
-import prisma from "../../../shared/config/db";
+import { prisma } from "@repo/db";
 import {
   VerificationToken,
   VerificationType,
   VerificationMethod,
   VerificationStatus,
   IdentifierType,
-} from "../../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 import { log } from "../../../shared/lib";
 
 export interface CreateTokenData {

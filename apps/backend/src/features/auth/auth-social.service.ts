@@ -1,11 +1,11 @@
-import { Prisma, User } from "../../../prisma/generated/client";
+import { Prisma, User } from "@repo/db/generated/prisma/client";
 import { generateFirstAndLastName } from "../../shared/lib/utils";
 import {
   registerSocialSigninUser,
   USER_AUTH_SELECT_DATA,
 } from "./auth.service";
 import { createError } from "../../shared/http/app-error";
-import prisma from "../../shared/config/db";
+import { prisma } from "@repo/db";
 import { SocialSigninInput, SocialSigninValidateInput } from "./auth.validator";
 
 /**

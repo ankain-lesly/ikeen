@@ -2,10 +2,8 @@ import {
   VerificationType,
   User,
   Auth,
-  Merchant,
-} from "../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 import bcrypt from "bcrypt";
-import type { MerchantContext } from "../../shared/types/auth";
 // import * as EmailService from "../../shared/emails/main";
 import { createError } from "../../shared/http/app-error";
 import {
@@ -13,8 +11,8 @@ import {
   generateUsername,
 } from "../../shared/lib/utils";
 import TokenService from "./verification/verification-token.service";
-import prisma from "../../shared/config/db";
-import { Prisma } from "../../../prisma/generated/client";
+import { prisma } from "@repo/db";
+import { Prisma } from "@repo/db/generated/prisma/client";
 import {
   ForgotPasswordInput,
   LoginInput,
@@ -34,21 +32,6 @@ export const USER_AUTH_SELECT_DATA: Prisma.UserSelect = {
   phone: true,
   avatarUrl: true,
   currency: true,
-};
-
-export const AGENT_VENDOR_DATA: Prisma.MerchantSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  userId: true,
-
-  // role: {
-  //   include: {
-  //     permissions: {
-  //       select: { name: true },
-  //     },
-  //   },
-  // },
 };
 
 type RegisterMode = "return_if_exists" | "others";
@@ -180,9 +163,6 @@ export const forgotPassword = async (data: ForgotPasswordInput) => {
   }
 
   // Check Request Type
-  if (data.type === "merchant" && !["merchant", "staff"].includes(user.type))
-    throw createError.badRequest("Invalid merchant request origin");
-
   const result = await VerificationService.requestVerification({
     identifier: user.email,
     identifierType: "email",
@@ -235,14 +215,6 @@ export const getAuthUser = async (userId: string) => {
     throw createError.notFound();
   }
 
-  // CODE: Include Agent in Auth Session
-  if (user.type === "merchant") {
-    user.merchant = await prisma.merchant.findFirst({
-      where: { userId: user.id },
-      select: AGENT_VENDOR_DATA,
-    });
-  }
-
   return user;
 };
 
@@ -265,17 +237,6 @@ export const updateLastLogin = async (userId: string) => {
     where: { id: userId },
     data: { lastLogin: new Date() },
   });
-};
-
-// Select default merchant owner context
-export const selectMerchantOwnerContext = async (merchant: Merchant) => {
-  return {
-    merchantId: merchant.id,
-    staffId: merchant.userId,
-    status: merchant.status,
-    roles: ["merchant_owner"],
-    permissions: ["*"],
-  };
 };
 
 /**

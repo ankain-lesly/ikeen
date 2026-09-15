@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { catchErrorAsync } from "../../shared/http/app-error";
+import { catchErrorAsync, createError } from "../../shared/http/app-error";
 import { sendSuccess } from "../../shared/http/response";
 import * as Service from "./users.service";
 import { pushTokenSchema, updateProfileSchema } from "./users.validator";
@@ -8,7 +8,7 @@ import { pushTokenSchema, updateProfileSchema } from "./users.validator";
 // user account, so use req.user.id directly. (userContextResolved resolves to
 // the merchant id for merchant sessions, which is the wallet owner, not the user.)
 export const getMe = catchErrorAsync(async (req: Request, res: Response) => {
-  const profile = await Service.getProfileWithWallet(req.user.id);
+  const profile = await Service.getUserProfile(req.user.id);
   sendSuccess(res, "Profile retrieved successfully", profile);
 });
 
@@ -21,7 +21,8 @@ export const patchMe = catchErrorAsync(async (req: Request, res: Response) => {
 export const registerPushToken = catchErrorAsync(
   async (req: Request, res: Response) => {
     const { body } = pushTokenSchema.parse(req);
-    const token = await Service.registerUserPushToken(req.user.id, body);
-    sendSuccess(res, "Push token registered successfully", token);
+    throw createError.serverError("Not implemented");
+    // const token = await Service.registerUserPushToken(req.user.id, body);
+    // sendSuccess(res, "Push token registered successfully", token);
   },
 );

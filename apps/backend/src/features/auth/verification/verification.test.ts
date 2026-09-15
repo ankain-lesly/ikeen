@@ -2,14 +2,14 @@
  * Verification System Test Script (Updated)
  */
 
-import prisma from "../../../shared/config/db";
+import { prisma } from "@repo/db";
 import * as VerificationService from "./verification.service";
 import { VerificationNotificationService } from "./verification-notification.service";
 import {
   IdentifierType,
   VerificationType,
   VerificationStatus,
-} from "../../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 
 const testEmailPhoneNumber = ""
 // Global to capture tokens sent via mock

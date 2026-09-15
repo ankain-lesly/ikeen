@@ -1,4 +1,4 @@
-import { UserType } from "../../../prisma/generated/client";
+import { UserType } from "@repo/db/generated/prisma/client";
 import { z } from "zod";
 
 // Register schema

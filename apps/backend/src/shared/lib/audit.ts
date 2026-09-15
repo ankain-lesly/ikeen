@@ -1,6 +1,6 @@
 import { Request } from "express";
-import { UserType } from "../../../prisma/generated/client";
-import prisma from "../config/db";
+import { UserType } from "@repo/db/generated/prisma/client";
+import { prisma } from "@repo/db";
 
 export interface AuditLogUserParams {
   // Override user context (optional)
@@ -132,21 +132,11 @@ type ContextParams = { merchantId?: string | null };
  * @param params
  * @returns
  */
-export function userTypeResolved(
-  params: ContextParams,
-): { userId: string; userType: UserType } | null {
-  if (params.merchantId)
-    return {
-      userId: params.merchantId,
-      userType: "merchant",
-    };
-
-  // return null
-  // if(throwError)
-  //   throw createError.badRequest("Invalid context reference");
-  // else
-  return null;
-}
+// export function userTypeResolved(
+//   params: ContextParams,
+// ): { userId: string; userType: UserType } | null {
+//   return null;
+// }
 
 // TODO: Verify and Validate Context
 export function userContextResolved(req: Request): ResolvedUser {
@@ -209,14 +199,14 @@ export function trackChanges<T extends Record<string, any>>(
  * @param param
  * @returns
  */
-export const checkModerator = (param: UserType | Request) => {
-  const role = typeof param === "object" ? param?.user?.type : param; 
+// export const checkModerator = (param: UserType | Request) => {
+//   const role = typeof param === "object" ? param?.user?.type : param; 
   
-  const moderators: UserType[] = [
-    // Admin
-    "admin",
+//   const moderators: UserType[] = [
+//     // Admin
+//     "admin",
 
-  ];
+//   ];
 
-  return moderators.includes(role);
-};
+//   return moderators.includes(role);
+// };

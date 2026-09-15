@@ -8,7 +8,7 @@ import {
   ResendVerificationSchema,
   VerificationStatusSchema,
 } from "./verification.validator";
-import { IdentifierType } from "../../../../prisma/generated/client";
+import { IdentifierType } from "@repo/db/generated/prisma/client";
 
 /**
  * Handle request for a new verification token

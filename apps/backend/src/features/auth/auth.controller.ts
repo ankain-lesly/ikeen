@@ -5,11 +5,10 @@ import { sendSuccess, sendCreated } from "../../shared/http/response";
 import { catchErrorAsync, createError } from "../../shared/http/app-error";
 import { issueAuthTokens, verifyToken } from "./token.service";
 import {
-  User,Merchant,
-} from "../../../prisma/generated/client";
-import { TokenPayload, MerchantContext } from "../../shared/types/auth";
+  User, 
+} from "@repo/db/generated/prisma/client";
+import { TokenPayload } from "../../shared/types/auth";
 import { auditLog } from "../../shared/lib/audit";
-import prisma from "../../shared/config/db";
 import { log } from "../../shared/lib";
 import {
   forgotPasswordSchema,
@@ -67,43 +66,11 @@ export const login = catchErrorAsync(async (req: Request, res: Response) => {
   sendCreated(res, "Login successfully", userData);
 });
 
-export const merchantLogin = catchErrorAsync(
-  async (req: Request, res: Response) => {
-    const { body } = loginSchema.parse(req);
-
-    const user = await AuthService.login(body, {});
-
-    if (user.type !== "merchant") {
-      throw createError.validationError("Invalid merchant account credentials");
-    }
-
-    const userData = await setupAuthTokens(res, user);
-
-    // Audit log merchant login
-    await auditLog({
-      action: "VENDOR_LOGIN",
-      details: "You logged into your merchant account.",
-      severity: "INFO",
-      isSystem: true,
-      metadata: {
-        loginMode: "merchant",
-      },
-      req,
-    });
-
-    sendCreated(res, "Login successfully", userData);
-  },
-);
-
 export const socialAuthSignin = catchErrorAsync(
   async (req: Request, res: Response) => {
     const { body } = socialSigninSchema.parse(req);
 
     const result = await SocialAuthService.socialSignin(body);
-
-    if (req.query?.type === "merchant" && result.user?.type !== "merchant") {
-      throw createError.validationError("Invalid merchant account credentials");
-    }
 
     const userData = await setupAuthTokens(res, result.user);
 
@@ -133,9 +100,6 @@ export const socialAuthValidate = catchErrorAsync(
 
     const user = await SocialAuthService.validateSocialSignin(body);
 
-    if (req.query?.type === "merchant" && user.type !== "merchant") {
-      throw createError.validationError("Invalid merchant account credentials");
-    }
     const userData = await setupAuthTokens(res, user);
 
     // Audit log social auth validation
@@ -241,51 +205,16 @@ type AuthTokenUser = Pick<User, "id" | "type">;
 const setupAuthTokens = async (
   res: Response,
   userUser: AuthTokenUser,
-  merchantId?: string,
 ) => {
-  const user: AuthTokenUser & {
-    merchant?: Merchant;
-  } = userUser;
+  const user: AuthTokenUser = userUser;
   const tokenPayload: {
     user: TokenPayload["user"];
-    merchantContext?: MerchantContext;
-    merchant?: TokenPayload["merchant"];
   } = {
     user: {
       id: user.id,
       type: user.type,
     },
-    merchantContext: undefined,
-    merchant: undefined,
   };
-
-  if (user.type === "merchant") {
-    const merchant = await prisma.merchant.findFirst({
-      where: { userId: user.id, id: merchantId },
-      select: {
-        id: true,
-        userId: true,
-        name: true,
-        slug: true,
-        logoUrl: true,
-        status: true,
-      },
-    });
-
-    if (merchant && merchant.status !== "active") {
-      throw createError.validationError(
-        "Merchant account is not active. Please contact support.",
-      );
-    }
-
-    if (merchant) {
-      user.merchant = merchant as Merchant;
-      tokenPayload.merchant = {
-        id: merchant.id,
-        status: merchant.status,
-      };
-    }
-  }
 
   const tokens = issueAuthTokens(tokenPayload as TokenPayload, res);
 
@@ -296,7 +225,6 @@ const setupAuthTokens = async (
     message: "Setup auth tokens",
     user: {
       ...user,
-      merchantContext: tokenPayload.merchantContext,
     },
     tokens,
   });
@@ -304,7 +232,6 @@ const setupAuthTokens = async (
   return {
     user: {
       ...user,
-      merchantContext: tokenPayload.merchantContext,
     },
     tokens,
   };

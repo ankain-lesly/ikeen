@@ -1,7 +1,7 @@
 import {
   UserType,
   ModelStatus,
-} from "../../../prisma/generated/client";
+} from "@repo/db/generated/prisma/client";
 
 export interface MerchantContext {
   merchantId: string;
