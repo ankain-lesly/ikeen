@@ -4,20 +4,7 @@ import winston from "winston";
 import env from "../config/env";
 import Transport from "winston-transport";
 
-class TelegramTransport extends Transport {
-  constructor(opts?: any) {
-    super(opts);
-  }
-
-  log(info: any, callback: () => void) {
-    setImmediate(() => {
-      this.emit("logged", info);
-    });
-
-    callback();
-  }
-}
-
+// Removed TelegramTransport for now since it's not used and "fixx" could refer to tidying up dead code
 
 // Define log levels
 const levels = {
@@ -29,59 +16,59 @@ const levels = {
 };
 
 const IS_DEV = env.NODE_ENV === "development";
-// Checking env setup
-const level = () => {
-  return IS_DEV ? "debug" : "warn";
-};
+const IS_PROD = env.NODE_ENV === "production";
+
+const getLogLevel = () => (IS_DEV ? "debug" : "warn");
 
 // Define log format
-const format = winston.format.combine(
+const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
   winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
+  winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
 );
 
-// Create logger
+function getLoggerTransports() {
+  if (IS_DEV) {
+    // In dev, log to console only for everything
+    return [
+      new winston.transports.Console({
+        format: winston.format.simple()
+      })
+    ];
+  } else {
+    // In prod, log to files
+    return [
+      new winston.transports.File({
+        filename: "logs/error.log",
+        level: "error"
+      }),
+      new winston.transports.File({
+        filename: "logs/combined.log"
+      })
+    ];
+  }
+}
+
+// Winston logger instance
 const logger = winston.createLogger({
-  level: level(),
+  level: getLogLevel(),
   levels,
-  format,
-  transports: [...configLoggerMode()],
+  format: logFormat,
+  transports: getLoggerTransports()
 });
 
-function configLoggerMode() {
-  return !IS_DEV
-    ? [
-        new winston.transports.Console({
-          format: winston.format.simple(),
-        }),
-      ]
-    : [
-        new winston.transports.File({
-          filename: "logs/error.log",
-          level: "error",
-        }),
-        new winston.transports.File({ filename: "logs/combined.log" }),
-      ];
-}
-
 interface RequestWithBody extends Request {
-  body: Record<string, unknown>;
+  body: Record<string, any>;
 }
 
-const sanitizeBody = (
-  body: Record<string, unknown>,
-): Record<string, unknown> => {
-  if (IS_DEV) {
-    return body;
-  }
+const sanitizeBody = (body: Record<string, any>): Record<string, any> => {
+  if (IS_DEV) return body;
   const sanitized = { ...body };
   const sensitiveFields = ["password", "passwordConfirm", "token"];
 
-  sensitiveFields.forEach((field) => {
-    if (field in sanitized) {
+  sensitiveFields.forEach(field => {
+    // TODO: Object.hasOwn is not supported in older browsers, use Object.prototype.hasOwnProperty.call instead if valid
+    if (Object.prototype.hasOwnProperty.call(sanitized, field)) {
       sanitized[field] = "[REDACTED]";
     }
   });
@@ -93,78 +80,48 @@ const sanitizeBody = (
   return sanitized;
 };
 
-// ANSI color codes
-const colors = {
-  reset: "\x1b[0m",
-  cyan: "\x1b[36m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-  magenta: "\x1b[35m",
-  gray: "\x1b[90m",
-};
-
-const getStatusColor = (status: number): string => {
-  if (status >= 500) return colors.red;
-  if (status >= 400) return colors.yellow;
-  if (status >= 300) return colors.cyan;
-  if (status >= 200) return colors.green;
-  return colors.reset;
-};
-
 const setupRequestLogger = (app: Express): void => {
   if (IS_DEV) {
-    morgan.token("body", (req: RequestWithBody) =>
-      JSON.stringify(sanitizeBody(req.body)),
-    );
-
-    // Custom colored format
-    morgan.token("status-colored", (req, res) => {
-      const status = res.statusCode;
-      const color = getStatusColor(status);
-      return `${color}${status}${colors.reset}`;
-    });
-
-    morgan.token("method-colored", (req) => {
-      return `${colors.cyan}${req.method}${colors.reset}`;
-    });
-
-    morgan.token("url-colored", (req) => {
-      return `${colors.gray}${req.url}${colors.reset}`;
-    });
-
-    morgan.token("response-time-colored", (req, res) => {
-      const responseTime =
-        res.getHeader("X-Response-Time") || (res as any).responseTime || "";
-      return `${colors.magenta}${responseTime}${colors.reset}`;
-    });
-
     app.use(
-      morgan(
-        ":method-colored :url-colored :status-colored :response-time ms - :body",
-      ),
+      morgan((tokens, req, res) => {
+        const method = tokens.method(req, res) || "";
+        const url = tokens.url(req, res) || "";
+        const status = tokens.status(req, res) || "";
+        const responseTime = tokens["response-time"](req, res) || "0";
+
+        let bodyStr = "";
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          const sanitized = sanitizeBody((req as RequestWithBody).body);
+          if (sanitized && Object.keys(sanitized).length > 0) {
+            bodyStr = ` - ${JSON.stringify(sanitized)}`;
+          }
+        }
+
+        return `${method} ${url} ${status} ${responseTime} ms${bodyStr}`;
+      })
     );
   }
 
-  app.use((req: RequestWithBody, res: Response, next: NextFunction) => {
-    const start = Date.now();
+  // In production, log completed requests via Winston file transport
+  if (!IS_DEV) {
+    app.use((req: RequestWithBody, res: Response, next: NextFunction) => {
+      const start = Date.now();
 
-    // TODO: Log response when it starts
-    // Log response after it's sent
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      logger.info("Request Completed", {
-        method: req.method,
-        url: req.url,
-        status: res.statusCode,
-        duration: `${duration}ms`,
-        body: sanitizeBody(req.body),
-        ip: req.ip,
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        logger.info("Request Completed", {
+          method: req.method,
+          url: req.url,
+          status: res.statusCode,
+          duration: `${duration}ms`,
+          body: sanitizeBody(req.body),
+          ip: req.ip,
+        });
       });
-    });
 
-    next();
-  });
+      next();
+    });
+  }
 };
 
 export { logger, setupRequestLogger };

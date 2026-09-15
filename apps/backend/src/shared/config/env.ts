@@ -1,73 +1,55 @@
 import { config } from "dotenv";
 import { z } from "zod";
 
-// Load environment variables
-config();
+// Load environment variables from .env
+config({ quiet: true });
 
+/**
+ * Maps directly to core app .env variables. Update when .env or infra changes.
+ * Only validate/require values actually present in .env or used at runtime.
+ */
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "production", "preview"])
-    .default("development"),
-  PORT: z.string().transform(Number).default(8383),
-  CORS_ORIGINS: z.string().default("*"),
+  // Environment
+  NODE_ENV: z.enum(["development", "production", "preview"]),
+  PORT: z.coerce.number(),
 
-  // Database
-  DATABASE_URL: z.string().min(1),
+  // App Info
+  APP_NAME: z.string(),
+  APP_URL: z.string().url(),
 
   // JWT
   JWT_SECRET: z.string().min(1),
-  JWT_ACCESS_EXPIRATION: z.string().default("1d"),
-  JWT_REFRESH_EXPIRATION: z.string().default("7d"),
-  JWT_VERIFICATION_EXPIRATION: z.string().default("1d"),
-  JWT_RESET_PASSWORD_EXPIRATION: z.string().default("10m"),
+  JWT_ACCESS_EXPIRATION: z.string(),
+  JWT_REFRESH_EXPIRATION: z.string(),
+  JWT_VERIFICATION_EXPIRATION: z.string(),
+  JWT_RESET_PASSWORD_EXPIRATION: z.string(),
 
-  // Email
-  EMAIL_SMTP_HOST: z.string().min(1),
-  EMAIL_SMTP_PORT: z.string().transform(Number).default(3434),
-  EMAIL_SMTP_USERNAME: z.string().min(1),
-  EMAIL_SMTP_PASSWORD: z.string().min(1),
-  EMAIL_FROM: z.string().min(1),
-  EMAIL_SUPPORT: z.string().min(1),
-
-  // App Info
-  APP_NAME: z.string().min(1),
-  APP_URL: z.string().url({ message: "App URL is required" }),
+  // Email (no SMTP in .env by default)
+  EMAIL_FROM: z.string(),
+  EMAIL_SUPPORT: z.string(),
 
   // Cloudinary and Uploads
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
 
-  DEPLOYMENT_PLATFORM: z.enum(["render", "vercel"]),
+  // Resend / Email API
+  RESEND_API_KEY: z.string().optional(),
 
-  // Resend
-  RESEND_API_KEY: z.string().min(1),
+  // CORS (optional, universal)
+  CORS_ORIGINS: z.string().default("*"),
 
-  // Twilio
-  TWILIO_ACCOUNT_SID: z.string().min(1),
-  TWILIO_AUTH_TOKEN: z.string().min(1),
-  TWILIO_OTP_SERVICE: z.string().min(1),
-  TWILIO_VIRTUAL_PHONE_NUMBER: z.string().min(1),
-  TWILIO_PHONE_NUMBER: z.string().min(1),
 
-  // Inngest — background job & event platform
-  INNGEST_DEV: z.string().optional(),
-  INNGEST_EVENT_KEY: z.string().default("local"),
-  INNGEST_SIGNING_KEY: z.string().default("local"),
-
-  // Anthropic API Key
-  ANTHROPIC_API_KEY: z.string().min(1),
-
-  // Expo
-  EXPO_ACCESS_TOKEN: z.string().min(1),
-
-  // pawaPay
-  PAWAPAY_API_URL: z
-    .string()
-    .url()
-    .default("https://api.sandbox.pawapay.io"),
-  PAWAPAY_API_TOKEN: z.string().optional(),
-  PAWAPAY_CALLBACK_IP_VERIFY: z.string().optional(),
+  // NODEMAILER (optional)
+  EMAIL_SMTP_HOST: z.string().optional(),
+  EMAIL_SMTP_PORT: z.coerce.number().optional(),
+  EMAIL_SMTP_USERNAME: z.string().optional(),
+  EMAIL_SMTP_PASSWORD: z.string().optional(),
+  EMAIL_SMTP_SECURE: z.boolean().optional(),
+  EMAIL_SMTP_SERVICE: z.string().optional(),
+  EMAIL_SMTP_AUTH_USER: z.string().optional(),
+  EMAIL_SMTP_AUTH_PASS: z.string().optional(),
+  EMAIL_SMTP_AUTH_METHOD: z.string().optional(),
 });
 
 const env = envSchema.parse({

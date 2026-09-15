@@ -29,7 +29,7 @@ export const configureServerRoutes = (app: Express): void => {
   }
 
   // 404 handler
-  app.use("*", notFoundHandler);
+  app.use(notFoundHandler);
 };
 
 // ==================================

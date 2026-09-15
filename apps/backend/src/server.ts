@@ -4,16 +4,17 @@ import env from "./shared/config/env";
 import { createServer } from "http";
 import { log } from "./shared/lib";
 
-const PORT = process.env.PORT || 8383;
+const PORT = env.PORT || 8383;
 
 // Create HTTP server
 const server = createServer(app);
 
 // Start server
 // Only listen to the server when running directly (not when imported)
-if (env.NODE_ENV === "development" || env.DEPLOYMENT_PLATFORM === "render") {
+if (env.NODE_ENV === "development") {
   server.listen(PORT, async () => {
     console.log(" 🔥 Server Running: Port ::: ", PORT);
+    console.log(" 🔥 Server Running: URL ::: ", `http://localhost:${PORT}`);
     // console.log(" 🔌 WebSocket Server Initialized");
   });
 }

@@ -64,10 +64,11 @@ export const configureServerMiddlewares = (app: Express): void => {
   });
 
   /**
-   * Files and Uploads
+   * Static Files and Public Assets
    */
-  // Serve static files from the uploads directory
-  app.use("/", express.static(path.join(__dirname, "../../assets")));
+  const publicPath = path.resolve(__dirname, "../../../public");
+  app.use(express.static(publicPath));
+  app.use("/public", express.static(publicPath));
 };
 
 /**
