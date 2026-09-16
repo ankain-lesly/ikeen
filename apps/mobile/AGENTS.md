@@ -34,6 +34,17 @@ Run lint and typecheck before declaring any task done.
 Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
 Docs: https://docs.expo.dev/eas/index.md
 
+## Styling with Uniwind (Tailwind CSS v4)
+
+Styling uses Tailwind CSS v4 via `uniwind`. Uniwind compiles `className` into React Native styles at build time.
+- **Always use semantic design tokens**: `bg-background`, `bg-background-element`, `bg-background-selected`, `text-text`, `text-text-secondary`, `bg-primary`, `border-border`.
+- **Avoid `StyleSheet.create` regressions**: Where properties can be expressed via Tailwind classes, use `className`.
+- **Uniwind constraints**:
+  - `Switch`: `className?: never`. Must use props (`thumbColorClassName`, `trackColorOnClassName`, etc.) or `style`.
+  - `ActivityIndicator` & `Button`: No `className`. Use `colorClassName` (or `Pressable` for buttons).
+  - `ScrollView` / `FlatList`: Inner container must use `contentContainerClassName` or `contentContainerStyle`.
+  - Third-party/Expo primitives (`NativeTabs`, `SymbolView`, `expo-image`, Reanimated worklets, SVG shapes): Do not take `className`. Use typed props or `style`.
+
 ## Rules
 
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.

@@ -1,165 +1,169 @@
-# Full-Stack Monorepo Starter Template
+# iKen- (Personal Chat Assistant / Notes Taking)
 
-A production-grade, full-stack TypeScript monorepo combining **Expo (React Native)**, **Next.js 16**, and an **Express Backend**, orchestrated by **Turborepo v2** and powered by **Bun**.
+iKeen / ikeen — Personal declaration ("I am keen") + intelligent companion.
 
----
+Eye-Keen
 
-## Tech Stack Overview
-
-| Layer | Technology | Description |
-| :--- | :--- | :--- |
-| **Package Manager** | [Bun](https://bun.sh/) `1.3.x` | Blazingly fast package manager, test runner, and runtime |
-| **Monorepo Engine** | [Turborepo v2](https://turbo.build/repo) | High-performance build system with remote caching and task orchestration |
-| **Mobile** | [Expo SDK 57](https://expo.dev/) | React Native `0.86`, Expo Router v57, React 19, New Architecture |
-| **Web** | [Next.js 16.3](https://nextjs.org/) | App Router, Turbopack, React 19, Tailwind CSS v4 |
-| **Backend** | [Express 5](https://expressjs.com/) | REST API & serverless handlers, Prisma 7, PostgreSQL |
-| **Database** | [Prisma 7](https://www.prisma.io/) | Type-safe ORM with PostgreSQL adapter |
-| **Tooling** | TypeScript 5, ESLint 9, Prettier | Unified typing, linting, and formatting rules |
 
 ---
 
-## Monorepo Layout
 
-```text
-├── apps/
-│   ├── mobile/             # Expo SDK 57 / React Native 0.86 / Expo Router
-│   ├── web/                # Next.js 16 (App Router + Turbopack + Tailwind v4)
-│   └── backend/            # Express 5 API server with Prisma client
-│
-├── packages/
-│   ├── database/           # @repo/db: Prisma schema, migrations, generated client
-│   ├── ui/                 # @repo/ui: Shared universal UI components
-│   ├── eslint-config/      # @repo/eslint-config: Shared ESLint configurations
-│   └── typescript-config/  # @repo/typescript-config: Shared tsconfig base files
-│
-├── package.json            # Root workspace configuration
-├── turbo.json              # Turborepo task pipeline definitions
-└── LOCAL_FIRST_GUIDE.md    # Local-first mobile architecture & sync specification
+# Turborepo starter
+
+This Turborepo starter is maintained by the Turborepo core team.
+
+## Using this example
+
+Run the following command:
+
+```sh
+npx create-turbo@latest
 ```
 
----
+## What's inside?
 
-## Prerequisites
+This Turborepo includes the following packages/apps:
 
-- **[Bun](https://bun.sh/)** `^1.3.0` (required)
-- **Node.js** `^20.18.0` or `^22.0.0`
-- **PostgreSQL** database (local or cloud instance like Supabase / Neon)
-- **Expo CLI / EAS CLI** (optional for mobile builds)
+### Apps and Packages
 
----
+- `docs`: a [Next.js](https://nextjs.org/) app
+- `web`: another [Next.js](https://nextjs.org/) app
+- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
+- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
-## Getting Started
+Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
-### 1. Clone & Install Dependencies
+### Utilities
 
-```bash
-git clone <your-repo-url> my-monorepo
-cd my-monorepo
+This Turborepo has some additional tools already setup for you:
 
-# Install all workspace dependencies
-bun install
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
+
+### Build
+
+To build all apps and packages, run the following command:
+
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+
+```sh
+cd my-turborepo
+turbo build
 ```
 
-### 2. Configure Environment Variables
+Without global `turbo`, use your package manager:
 
-Create `.env` files in the respective application directories:
-
-```bash
-# Backend (apps/backend/.env)
-DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
-PORT=5000
-JWT_SECRET="your-secret-key"
-
-# Mobile (apps/mobile/.env)
-EXPO_PUBLIC_API_URL="http://localhost:5000"
-
-# Web (apps/web/.env.local)
-NEXT_PUBLIC_API_URL="http://localhost:5000"
+```sh
+cd my-turborepo
+npx turbo build
+bun exec turbo build
+bun exec turbo build
 ```
 
-### 3. Initialize the Database
+You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
 
-Generate Prisma client and run migrations from the root:
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
 
-```bash
-# Push schema changes or run migrations
-bun run --filter=@repo/db db:migrate
-
-# Generate Prisma client
-bun run --filter=@repo/db db:generate
+```sh
+turbo build --filter=docs
 ```
 
----
+Without global `turbo`:
 
-## Available Scripts
-
-Run commands from the root using Bun and Turborepo:
-
-### Development
-
-```bash
-# Start all applications concurrently
-bun run dev
-
-# Start specific applications
-bun run dev:mobile          # Starts Expo Metro bundler
-bun run dev:web             # Starts Next.js dev server with Turbopack
-bun run --filter=ikeen-backend dev # Starts Express backend
+```sh
+npx turbo build --filter=docs
+bun exec turbo build --filter=docs
+bun exec turbo build --filter=docs
 ```
 
-### Quality & Type Checking
+### Develop
 
-```bash
-# Typecheck all apps and packages in parallel
-bun run check-types
+To develop all apps and packages, run the following command:
 
-# Lint all code across the monorepo
-bun run lint
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+
+```sh
+cd my-turborepo
+turbo dev
 ```
 
-### Building
+Without global `turbo`, use your package manager:
 
-```bash
-# Build all apps and packages
-bun run build
-
-# Build a single target
-bun run --filter=web build
-bun run --filter=@repo/mobile build
-bun run --filter=ikeen-backend build
+```sh
+cd my-turborepo
+npx turbo dev
+bun exec turbo dev
+bun exec turbo dev
 ```
 
----
+You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
 
-## Workspace Package Guidelines
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
 
-All shared internal packages are scoped under `@repo/*` and live inside `packages/`:
-
-- **Consuming Packages**: Add to `dependencies` using the workspace protocol:
-  ```json
-  "@repo/db": "workspace:*",
-  "@repo/ui": "workspace:*"
-  ```
-- **Just-In-Time (JIT) Transpilation**: Shared logic packages export raw TypeScript from `src/index.ts`. No internal `dist/` compilation is needed—bundlers (Next.js, Metro, Bun) transpile on the fly.
-- **Universal UI Rules**: Shared UI components must keep `react` and `react-native` as `peerDependencies` to avoid duplicate runtime instances.
-- **Cross-Platform Isolation**: Never import Node.js APIs (`fs`, `path`) or DOM globals (`window`, `document`) directly into shared packages consumed by mobile.
-
----
-
-## Adding New Packages or Dependencies
-
-```bash
-# Add a third-party package to a specific workspace
-bun add <package-name> --filter=@repo/mobile
-bun add <package-name> --filter=web
-bun add <package-name> --filter=ikeen-backend
-
-# Add an internal workspace package
-bun add @repo/ui --filter=@repo/mobile
+```sh
+turbo dev --filter=web
 ```
 
----
+Without global `turbo`:
 
-## License
+```sh
+npx turbo dev --filter=web
+bun exec turbo dev --filter=web
+bun exec turbo dev --filter=web
+```
 
-MIT
+### Remote Caching
+
+> [!TIP]
+> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+
+Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+
+By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+
+```sh
+cd my-turborepo
+turbo login
+```
+
+Without global `turbo`, use your package manager:
+
+```sh
+cd my-turborepo
+npx turbo login
+bun exec turbo login
+bun exec turbo login
+```
+
+This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+
+Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+
+With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+
+```sh
+turbo link
+```
+
+Without global `turbo`:
+
+```sh
+npx turbo link
+bun exec turbo link
+bun exec turbo link
+```
+
+## Useful Links
+
+Learn more about the power of Turborepo:
+
+- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
+- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
+- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
+- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
+- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
+- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)

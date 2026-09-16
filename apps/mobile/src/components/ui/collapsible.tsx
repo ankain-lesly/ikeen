@@ -1,11 +1,9 @@
+import { useState, type PropsWithChildren } from 'react';
+import { Pressable, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import { PropsWithChildren, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
@@ -13,11 +11,11 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
   const theme = useTheme();
 
   return (
-    <ThemedView>
+    <View className="w-full">
       <Pressable
-        style={({ pressed }) => [styles.heading, pressed && styles.pressedHeading]}
+        className="flex-row items-center gap-2 min-h-11 active:opacity-70"
         onPress={() => setIsOpen((value) => !value)}>
-        <ThemedView type="backgroundElement" style={styles.button}>
+        <View className="w-6 h-6 rounded-xl justify-center items-center bg-background-element">
           <SymbolView
             name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
             size={14}
@@ -25,41 +23,20 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
             tintColor={theme.text}
             style={{ transform: [{ rotate: isOpen ? '-90deg' : '90deg' }] }}
           />
-        </ThemedView>
+        </View>
 
-        <ThemedText type="small">{title}</ThemedText>
+        <ThemedText type="small" className="text-text">
+          {title}
+        </ThemedText>
       </Pressable>
+
       {isOpen && (
         <Animated.View entering={FadeIn.duration(200)}>
-          <ThemedView type="backgroundElement" style={styles.content}>
+          <View className="mt-3 ml-4 p-4 rounded-2xl bg-background-element gap-2 border border-border">
             {children}
-          </ThemedView>
+          </View>
         </Animated.View>
       )}
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  pressedHeading: {
-    opacity: 0.7,
-  },
-  button: {
-    width: Spacing.four,
-    height: Spacing.four,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    marginTop: Spacing.three,
-    borderRadius: Spacing.three,
-    marginLeft: Spacing.four,
-    padding: Spacing.four,
-  },
-});
