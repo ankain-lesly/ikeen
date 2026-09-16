@@ -5,6 +5,15 @@
 
 import { Platform } from 'react-native';
 
+export type ThemeColor =
+  | 'text'
+  | 'textSecondary'
+  | 'primary'
+  | 'border'
+  | 'background'
+  | 'backgroundElement'
+  | 'backgroundSelected';
+
 export const Fonts = Platform.select({
 
   ios: {

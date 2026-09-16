@@ -19,3 +19,15 @@ declare module "*.svg" {
 //   };
 //   export default migrations;
 // }
+
+
+/**
+ * Global Log File
+ */
+declare global {
+  var log: (...args: any[]) => void;
+}
+
+export { };
+
+

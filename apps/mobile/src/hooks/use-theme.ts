@@ -1,4 +1,3 @@
-import { useColorScheme } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 
 /**
@@ -6,8 +5,6 @@ import { useCSSVariable } from 'uniwind';
  * Automatically updates when switching between light and dark modes.
  */
 export function useTheme() {
-  const scheme = useColorScheme();
-
   const [
     background,
     foreground,
@@ -32,7 +29,7 @@ export function useTheme() {
     '--color-card',
   ]);
 
-  const colors = {
+  return {
     background: background as string,
     foreground: foreground as string,
     text: text as string,
@@ -44,6 +41,4 @@ export function useTheme() {
     border: border as string,
     card: card as string,
   };
-
-  return { colors, scheme };
 }

@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { colors } = useTheme();
+  const colors = useTheme();
 
   return (
     <View className="w-full">
