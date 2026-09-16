@@ -31,5 +31,8 @@
   ],
   "overrides": {
     "@babel/core": "^7.26.0"
+  },
+  "dependencies": {
+    "babel-plugin-inline-import": "^3.0.0"
   }
 }
