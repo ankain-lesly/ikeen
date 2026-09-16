@@ -2,5 +2,8 @@
   "typescript.suggest.autoImports": true,
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "javascript.suggest.autoImports": true,
-  "javascript.preferences.includePackageJsonAutoImports": "on"
+  "javascript.preferences.includePackageJsonAutoImports": "on",
+  "cSpell.words": [
+    "ikeen"
+  ]
 }

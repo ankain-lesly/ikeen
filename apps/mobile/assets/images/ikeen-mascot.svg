@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Background glow gradient -->
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#208AEF" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#0a7ea4" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0a7ea4" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Visor primary gradient -->
+    <linearGradient id="visorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141E30"/>
+      <stop offset="45%" stop-color="#243B55"/>
+      <stop offset="85%" stop-color="#0a7ea4"/>
+      <stop offset="100%" stop-color="#00F2FE"/>
+    </linearGradient>
+
+    <!-- Helmet outer rim gradient -->
+    <linearGradient id="helmetGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#EDF2F7"/>
+      <stop offset="100%" stop-color="#CBD5E0"/>
+    </linearGradient>
+
+    <!-- Accent cyan gradient -->
+    <linearGradient id="cyanAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="100%" stop-color="#4FACFE"/>
+    </linearGradient>
+
+    <!-- Ear/Side Pod Gradient -->
+    <linearGradient id="podGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#208AEF"/>
+      <stop offset="100%" stop-color="#0a7ea4"/>
+    </linearGradient>
+
+    <!-- Sparkle filter/glow -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Outer ambient halo -->
+  <circle cx="100" cy="100" r="92" fill="url(#haloGlow)"/>
+
+  <!-- Antenna Base & Stem -->
+  <rect x="96" y="24" width="8" height="20" rx="4" fill="#A0AEC0"/>
+  <circle cx="100" cy="20" r="10" fill="url(#cyanAccent)" filter="url(#softGlow)"/>
+  <circle cx="100" cy="20" r="5" fill="#FFFFFF"/>
+
+  <!-- Side Ear Pods / Comm Units -->
+  <!-- Left Ear Pod -->
+  <rect x="26" y="82" width="18" height="42" rx="9" fill="url(#podGrad)"/>
+  <rect x="29" y="89" width="12" height="28" rx="6" fill="#1A202C"/>
+  <circle cx="35" cy="103" r="3" fill="#00F2FE"/>
+
+  <!-- Right Ear Pod -->
+  <rect x="156" y="82" width="18" height="42" rx="9" fill="url(#podGrad)"/>
+  <rect x="159" y="89" width="12" height="28" rx="6" fill="#1A202C"/>
+  <circle cx="165" cy="103" r="3" fill="#00F2FE"/>
+
+  <!-- Helmet Body / Suit Base -->
+  <!-- Neck / Chest Collar -->
+  <path d="M62 148 Q100 162 138 148 L146 172 Q100 186 54 172 Z" fill="#E2E8F0"/>
+  <path d="M74 154 Q100 165 126 154 L129 168 Q100 178 71 168 Z" fill="url(#cyanAccent)"/>
+
+  <!-- Helmet Main Spherical Head -->
+  <circle cx="100" cy="102" r="66" fill="url(#helmetGrad)"/>
+  <circle cx="100" cy="102" r="65" fill="none" stroke="#CBD5E0" stroke-width="1.5"/>
+
+  <!-- Dark Visor Frame -->
+  <rect x="42" y="60" width="116" height="82" rx="40" fill="#0F172A"/>
+  <rect x="44" y="62" width="112" height="78" rx="38" fill="url(#visorGrad)"/>
+
+  <!-- Visor Glass Reflection Curve -->
+  <path d="M52 74 Q100 56 144 74 Q100 66 52 74 Z" fill="#FFFFFF" opacity="0.35"/>
+  <ellipse cx="64" cy="80" rx="10" ry="4" transform="rotate(-25 64 80)" fill="#FFFFFF" opacity="0.45"/>
+
+  <!-- Mascot Keen Eyes (Glow) -->
+  <!-- Left Eye -->
+  <ellipse cx="76" cy="104" rx="12" ry="15" fill="#00F2FE" filter="url(#softGlow)"/>
+  <ellipse cx="76" cy="104" rx="8" ry="11" fill="#FFFFFF"/>
+  <circle cx="79" cy="99" r="3.5" fill="#FFFFFF"/>
+  <circle cx="73" cy="108" r="1.5" fill="#FFFFFF"/>
+
+  <!-- Right Eye -->
+  <ellipse cx="124" cy="104" rx="12" ry="15" fill="#00F2FE" filter="url(#softGlow)"/>
+  <ellipse cx="124" cy="104" rx="8" ry="11" fill="#FFFFFF"/>
+  <circle cx="127" cy="99" r="3.5" fill="#FFFFFF"/>
+  <circle cx="121" cy="108" r="1.5" fill="#FFFFFF"/>
+
+  <!-- Friendly Smile Curve inside visor -->
+  <path d="M92 118 Q100 126 108 118" fill="none" stroke="#00F2FE" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)"/>
+
+  <!-- Cute Cheek Glows -->
+  <circle cx="60" cy="115" r="5" fill="#FF7AC6" opacity="0.4" filter="url(#softGlow)"/>
+  <circle cx="140" cy="115" r="5" fill="#FF7AC6" opacity="0.4" filter="url(#softGlow)"/>
+
+  <!-- Floating Sparkles around Mascot -->
+  <path d="M168 44 Q170 50 176 52 Q170 54 168 60 Q166 54 160 52 Q166 50 168 44 Z" fill="#00F2FE"/>
+  <path d="M36 50 Q38 54 42 56 Q38 58 36 62 Q34 58 30 56 Q34 54 36 50 Z" fill="#208AEF" opacity="0.8"/>
+  <circle cx="158" cy="152" r="2.5" fill="#00F2FE" opacity="0.7"/>
+</svg>

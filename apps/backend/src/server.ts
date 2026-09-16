@@ -13,9 +13,12 @@ const server = createServer(app);
 // Only listen to the server when running directly (not when imported)
 if (env.NODE_ENV === "development") {
   server.listen(PORT, async () => {
-    console.log(" 🔥 Server Running: Port ::: ", PORT);
-    console.log(" 🔥 Server Running: URL ::: ", `http://localhost:${PORT}`);
-    // console.log(" 🔌 WebSocket Server Initialized");
+    console.log(
+      `🔥 NODE_ENV: ${env.NODE_ENV}\n` +
+      `🔥 PORT: ${PORT}\n` +
+      `🔥 URL: http://localhost:${PORT}\n` +
+      `🔥 WEBSOCKET_PORT: Not implemented`
+    );
   });
 }
 

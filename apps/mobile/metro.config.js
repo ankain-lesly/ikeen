@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
+const { withUniwindConfig } = require("uniwind/metro");
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, "../..");
@@ -7,8 +8,6 @@ const monorepoRoot = path.resolve(projectRoot, "../..");
 const config = getDefaultConfig(projectRoot);
 
 // 1. Only watch the mobile project and shared packages in the monorepo.
-// DO NOT watch monorepoRoot on Windows, as the watcher will attempt to recursively
-// traverse root node_modules/.bun and .git, causing "Failed to start watch mode".
 config.watchFolders = [
   projectRoot,
   path.resolve(monorepoRoot, "packages"),
@@ -20,4 +19,18 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-module.exports = config;
+// 3. Configure SVG transformer for direct .svg file imports
+config.transformer = {
+  ...config.transformer,
+  babelTransformerPath: require.resolve("react-native-svg-transformer"),
+};
+// Accept and Transform SVG Images
+config.resolver.assetExts = config.resolver.assetExts.filter(
+  (ext) => ext !== "svg",
+);
+config.resolver.sourceExts = [...config.resolver.sourceExts, "svg"];
+
+module.exports = withUniwindConfig(config, {
+  cssEntryFile: "./src/global.css",
+  dtsFile: "./src/uniwind-types.d.ts",
+});

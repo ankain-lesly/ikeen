@@ -8,8 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { coolApp } from '@repo/cool-package';
-import { API_URL } from '@repo/shared';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -54,16 +52,6 @@ export default function HomeScreen() {
           <HintRow
             title="Fresh start"
             hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-
-          {/* Trying Packages */}
-          <HintRow
-            title="1.Cool Package"
-            hint={<ThemedText type="code">{coolApp(1)}</ThemedText>}
-          />
-          <HintRow
-            title="1.Shared Package"
-            hint={<ThemedText type="code">{API_URL}</ThemedText>}
           />
         </ThemedView>
 

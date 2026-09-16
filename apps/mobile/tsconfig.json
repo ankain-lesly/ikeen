@@ -8,18 +8,6 @@
       ],
       "@/assets/*": [
         "./assets/*"
-      ],
-      "@repo/shared": [
-        "../../packages/shared/src/index.ts"
-      ],
-      "@repo/shared/*": [
-        "../../packages/shared/src/*"
-      ],
-      "@repo/cool-package": [
-        "../../packages/cool-package/index.ts"
-      ],
-      "@repo/cool-package/*": [
-        "../../packages/cool-package/src/*"
       ]
     }
   },
@@ -27,6 +15,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
+    "./src/uniwind-types.d.ts",
     "expo-env.d.ts",
     "../../packages/*/src/**/*",
     "../../packages/*/index.ts"
