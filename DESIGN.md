@@ -76,14 +76,17 @@ Typography must balance readability, density, and clear typographic hierarchy:
   - Visual: `active:opacity-70` or `active:scale-[0.98]`.
   - Haptic: Trigger `expo-haptics` (`Haptics.selectionAsync()` or `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)`) on tap.
 
-### B. Safe Area & Tab Bar Insets
-- Always wrap screen scroll views with dynamic safe area handling:
+### B. Safe Area & Inset Handling (Uniwind Safe Utilities)
+- **Eliminate `SafeAreaView` with `p-safe`**: Uniwind provides native safe area utilities (`p-safe`, `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `m-safe`, etc.) that automatically adapt to hardware notches and home indicators at runtime. Always prefer:
   ```tsx
-  const insets = useSafeAreaInsets();
-  // Bottom padding must account for floating tabs and home indicator
-  const bottomPadding = insets.bottom + BottomTabInset + Spacing.three;
+  <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-[800px] mx-auto">
   ```
-- Apply insets to `contentContainerStyle` or `contentContainerClassName` so the scroll track extends edge-to-edge behind translucent bars.
+  over wrapping layouts in `SafeAreaView`.
+- **Bottom Tab Bar Clearance**:
+  When floating tab bars or bottom navigation are present, clearance for scrollable tracks is passed via:
+  ```tsx
+  contentContainerStyle={{ paddingBottom: BottomTabInset + 76 }}
+  ```
 
 ### C. Desktop & Tablet Constraints
 - Never allow mobile interfaces to stretch unbounded across wide monitors:

@@ -6,6 +6,7 @@ import { HintRow } from '@/components/ui/hint-row';
 import { ThemedText } from '@/components/ui/themed-text';
 import { WebBadge } from '@/components/ui/web-badge';
 import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Redirect } from 'expo-router';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -27,18 +28,21 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+
+  return <Redirect href="/(tabs)/notes" />
+
   return (
     <View className="flex-1 bg-background flex-row justify-center">
       <SafeAreaView
-        className="flex-1 px-6 items-center gap-4 w-full max-w-200 mx-auto"
-        style={{ paddingBottom: BottomTabInset + Spacing.three }}>
+        className="flex-1 px-6 items-center w-full max-w-200 mx-auto"
+        style={{ paddingBottom: BottomTabInset + Spacing.three, gap: Spacing.four }}>
         <View className="flex-1 items-center justify-center px-6 gap-6">
           <ThemedText type="title" className="text-center">
             Welcome to&nbsp;Expo
           </ThemedText>
         </View>
 
-        <ThemedText type="code" className="uppercase tracking-wider">
+        <ThemedText type="code" className="uppercase tracking-wider text-center">
           get started
         </ThemedText>
 

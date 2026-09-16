@@ -44,13 +44,16 @@ Always style using the established Uniwind semantic tokens defined in `src/globa
    - All interactive touch targets must be at least 44x44pt (`min-h-[44px]`).
    - Every pressable element must provide instant visual feedback (`active:opacity-70` or `active:scale-[0.98]`).
    - Trigger native haptics (`expo-haptics`) on key user decisions.
-3. **Safe Area & Inset Handling**:
-   - Scrollable containers must incorporate safe area insets and tab bar clearance:
+3. **Safe Area & Inset Handling (Uniwind Safe Utilities)**:
+   - **Eliminate `SafeAreaView`**: Use Uniwind's built-in safe area utilities (`p-safe`, `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `m-safe`, etc.) directly on standard `<View>` components instead of importing `SafeAreaView` from `react-native-safe-area-context`.
+   - Scrollable containers or root views can use `pt-safe` for status bar notches and `pb-safe` for home indicators:
      ```tsx
-     const insets = useSafeAreaInsets();
-     const bottomInset = insets.bottom + BottomTabInset + Spacing.three;
+     <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-[800px] mx-auto">
      ```
-   - Inset padding must be passed to `contentContainerStyle` or `contentContainerClassName`.
+   - For bottom tab bar clearance combined with home indicator:
+     ```tsx
+     contentContainerStyle={{ paddingBottom: BottomTabInset + 76 }}
+     ```
 4. **Empty & Error States**:
    - Never render a blank screen when lists are empty. Provide an intentional empty state with a clear icon, explanatory text, and an action button to recover.
 
