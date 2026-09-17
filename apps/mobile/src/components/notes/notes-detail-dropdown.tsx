@@ -4,7 +4,7 @@ import {
   DropdownMenuItem,
   Text,
 } from "@expo/ui/jetpack-compose";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 
 import {
@@ -19,16 +19,25 @@ import { RNHostView } from "@expo/ui";
 import { Pressable } from "react-native";
 
 type NotesDetailDropdownProps = {
+  isExpanded?: boolean;
   isPinned: boolean;
   isArchived: boolean;
+  iconStyle?: {
+    className?: string;
+    size?: number;
+  };
   onTogglePin: () => void;
   onToggleArchive: () => void;
   onDelete: () => void;
   onShare: () => void;
-  onShowInfo: () => void;
+  setIsExpanded?: (a: boolean) => void;
+  onShowInfo?: () => void;
+  customTrigger?: React.ReactNode;
 };
 
 export default function NotesDetailDropdown({
+  isExpanded,
+  setIsExpanded,
   isPinned,
   isArchived,
   onTogglePin,
@@ -36,21 +45,39 @@ export default function NotesDetailDropdown({
   onDelete,
   onShare,
   onShowInfo,
+  customTrigger,
+  iconStyle = {},
 }: NotesDetailDropdownProps) {
   const colors = useTheme();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isLocalExpanded, setIsLocalExpanded] = useState(false);
+
+  const localExpanded = useMemo(
+    () => (isExpanded !== undefined ? isExpanded : isLocalExpanded),
+    [isExpanded, isLocalExpanded],
+  );
+
+
+  const { className = "p-4", size = 20 } = iconStyle;
 
   return (
     <Host matchContents>
       <DropdownMenu
-        expanded={isExpanded}
-        onDismissRequest={() => setIsExpanded(false)}>
+        expanded={localExpanded}
+        onDismissRequest={() => {
+          setIsExpanded?.(false);
+          setIsLocalExpanded?.(false);
+        }}>
         <DropdownMenu.Trigger>
           <RNHostView matchContents>
             <Pressable
-              onPress={() => setIsExpanded(true)}
-              className="rounded-full p-4">
-              <MoreVertical size={20} color={colors.textSecondary} />
+              onPress={() => {
+                setIsExpanded?.(true);
+                setIsLocalExpanded?.(true);
+              }}
+              className={`rounded-full ${className}`}>
+              {customTrigger || (
+                <MoreVertical size={size} color={colors.textSecondary} />
+              )}
             </Pressable>
           </RNHostView>
         </DropdownMenu.Trigger>
@@ -59,7 +86,6 @@ export default function NotesDetailDropdown({
           <DropdownMenuItem
             onClick={() => {
               onTogglePin();
-              setIsExpanded(false);
             }}>
             <DropdownMenuItem.LeadingIcon>
               <Pin
@@ -69,14 +95,15 @@ export default function NotesDetailDropdown({
               />
             </DropdownMenuItem.LeadingIcon>
             <DropdownMenuItem.Text>
-              <Text color={colors.text}>{isPinned ? "Unpin" : "Pin"}</Text>
+              <Text color={colors.text}>
+                {isPinned ? "Unpin Note" : "Pin Note"}
+              </Text>
             </DropdownMenuItem.Text>
           </DropdownMenuItem>
           {/* Archive/Unarchive */}
           <DropdownMenuItem
             onClick={() => {
               onToggleArchive();
-              setIsExpanded(false);
             }}>
             <DropdownMenuItem.LeadingIcon>
               <Archive
@@ -94,7 +121,6 @@ export default function NotesDetailDropdown({
           <DropdownMenuItem
             onClick={() => {
               onShare();
-              setIsExpanded(false);
             }}>
             <DropdownMenuItem.LeadingIcon>
               <Share2 size={20} color={colors.textSecondary} />
@@ -104,23 +130,23 @@ export default function NotesDetailDropdown({
             </DropdownMenuItem.Text>
           </DropdownMenuItem>
           {/* Info/Details */}
-          <DropdownMenuItem
-            onClick={() => {
-              onShowInfo();
-              setIsExpanded(false);
-            }}>
-            <DropdownMenuItem.LeadingIcon>
-              <Info size={20} color={colors.textSecondary} />
-            </DropdownMenuItem.LeadingIcon>
-            <DropdownMenuItem.Text>
-              <Text color={colors.text}>View Notes Info</Text>
-            </DropdownMenuItem.Text>
-          </DropdownMenuItem>
+          {onShowInfo && (
+            <DropdownMenuItem
+              onClick={() => {
+                onShowInfo();
+              }}>
+              <DropdownMenuItem.LeadingIcon>
+                <Info size={20} color={colors.textSecondary} />
+              </DropdownMenuItem.LeadingIcon>
+              <DropdownMenuItem.Text>
+                <Text color={colors.text}>View Notes Info</Text>
+              </DropdownMenuItem.Text>
+            </DropdownMenuItem>
+          )}
           {/* Delete */}
           <DropdownMenuItem
             onClick={() => {
               onDelete();
-              setIsExpanded(false);
             }}>
             <DropdownMenuItem.LeadingIcon>
               <Trash2 size={20} color="#ef4444" />

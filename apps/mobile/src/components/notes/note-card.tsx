@@ -1,19 +1,13 @@
-import React, { useMemo } from 'react';
-import {
-  Pressable,
-  Share,
-  Text,
-  View,
-} from 'react-native';
-import { Link } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import {
-  Pin,
-} from 'lucide-react-native';
+import React, { useMemo, useState } from "react";
+import { Pressable, Share, Text, View } from "react-native";
+import { Link } from "expo-router";
+import * as Haptics from "expo-haptics";
+import { Pin } from "lucide-react-native";
 
-import { ThemedText } from '@/components/ui/themed-text';
-import { useTheme } from '@/hooks/use-theme';
-import type { Note } from '@/lib/types/notes';
+import { ThemedText } from "@/components/ui/themed-text";
+import type { Note } from "@/lib/types/notes";
+import { useTheme } from "@/hooks/use-theme";
+import NotesDetailDropdown from "./notes-detail-dropdown";
 
 interface NoteCardProps {
   note: Note;
@@ -33,7 +27,10 @@ function formatRelativeDate(isoDate: string): string {
       date.getFullYear() === now.getFullYear();
 
     if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
 
     const yesterday = new Date(now);
@@ -44,16 +41,20 @@ function formatRelativeDate(isoDate: string): string {
       date.getFullYear() === yesterday.getFullYear();
 
     if (isYesterday) {
-      return 'Yesterday';
+      return "Yesterday";
     }
 
     if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
     }
 
-    return date.toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' });
+    return date.toLocaleDateString([], {
+      month: "numeric",
+      day: "numeric",
+      year: "2-digit",
+    });
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -65,18 +66,19 @@ export const NoteCard = React.memo(function NoteCard({
   onDelete,
 }: NoteCardProps) {
   const colors = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const parsedTags = useMemo(() => {
     try {
-      const parsed = JSON.parse(note.tags || '[]');
+      const parsed = JSON.parse(note.tags || "[]");
       return Array.isArray(parsed) ? (parsed as string[]) : [];
     } catch {
       return [];
     }
   }, [note.tags]);
 
-  const displayTitle = note.title.trim() || 'Untitled Note';
-  const displaySnippet = note.content.trim() || 'No additional text';
+  const displayTitle = note.title.trim() || "Untitled Note";
+  const displaySnippet = note.content.trim() || "No additional text";
   const formattedDate = formatRelativeDate(note.updatedAt);
 
   const handleShare = async () => {
@@ -105,92 +107,119 @@ export const NoteCard = React.memo(function NoteCard({
     onDelete(note.id);
   };
 
+  const handleLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsMenuOpen(true)
+  };
+
   return (
-    <Link
-      href={{
-        pathname: '/notes/[id]',
-        params: { id: note.id },
-      }}
-      className={className}
-      asChild>
-      <Link.Trigger>
-        <Pressable className="p-3.5 rounded-2xl border border-border bg-card my-1 shadow-sm active:opacity-90 active:scale-[0.99]">
-          {/* Header Row: Title & Pin/Date */}
-          <View className="flex-row items-center justify-between gap-2 mb-1 border-b border-border pb-1">
-            <View className="flex-1 flex-row items-center gap-1.5">
-              {note.isPinned && (
-                <Pin
-                  size={14}
-                  color={colors.primary}
-                  fill={colors.primary}
-                  // style={{ transform: [{ rotate: '45deg' }] }}
-                />
-              )}
-              <ThemedText
-                numberOfLines={2}
-                className="font-semibold text-base text-text flex-1">
-                {displayTitle}
-              </ThemedText>
-            </View>
-
-            <Text className="text-xs font-mono text-text-secondary">
-              {formattedDate}
-            </Text>
-          </View>
-
-          {/* Snippet Row */}
-          <ThemedText
-            numberOfLines={2}
-            className="text-[13px] leading-5 text-text-secondary mb-2.5">
-            {displaySnippet}
-          </ThemedText>
-
-          {/* Footer: Tags List */}
-          {parsedTags.length > 0 && (
-            <View className="flex-row flex-wrap items-center gap-1.5 mt-0.5">
-              {parsedTags.slice(0, 3).map((tag, index) => (
-                <View
-                  key={`${tag}-${index}`}
-                  className="px-2 py-0.5 rounded-full border border-border bg-background-element">
-                  <Text className="text-[11px] font-medium text-text-secondary">
-                    #{tag}
+    <>
+      <Link
+        href={{
+          pathname: "/notes/[id]",
+          params: { id: note.id },
+        }}
+        onLongPress={handleLongPress}
+        className={className}
+        asChild>
+        <Link.Trigger>
+          <Pressable className="p-3.5 rounded-2xl border border-border bg-card my-1 shadow-sm active:opacity-90 active:scale-[0.99] gap-1">
+            {/* Header Row: Title & Pin/Date */}
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="gap-1.5">
+                <View className="flex-row items-center justify-right gap-1 w-full">
+                  <Text className="text-[10px] inline-block mr-auto font-mono text-text-secondary">
+                    {formattedDate}
                   </Text>
-                </View>
-              ))}
-              {parsedTags.length > 3 && (
-                <Text className="text-[11px] font-medium text-text-secondary self-center">
-                  +{parsedTags.length - 3}
-                </Text>
-              )}
-            </View>
-          )}
-        </Pressable>
-      </Link.Trigger>
+                  {note.isPinned && (
+                    <Pin
+                      size={12}
+                      color={colors.primary}
+                      fill={colors.primary}
+                      // style={{ transform: [{ rotate: '45deg' }] }}
+                    />
+                  )}
 
-      {/* Native Context Menu on iOS / Fallback */}
-      <Link.Menu>
-        <Link.MenuAction
-          title={note.isPinned ? 'Unpin Note' : 'Pin Note'}
-          icon={note.isPinned ? 'pin.slash' : 'pin'}
-          onPress={handlePinPress}
-        />
-        <Link.MenuAction
-          title={note.isArchived ? 'Unarchive Note' : 'Archive Note'}
-          icon={note.isArchived ? 'archivebox.fill' : 'archivebox'}
-          onPress={handleArchivePress}
-        />
-        <Link.MenuAction
-          title="Share Note"
-          icon="square.and.arrow.up"
-          onPress={handleShare}
-        />
-        <Link.MenuAction
-          title="Delete Note"
-          icon="trash"
-          destructive
-          onPress={handleDeletePress}
-        />
-      </Link.Menu>
-    </Link>
+                  {/*  Menu Context */}
+                  <NotesDetailDropdown
+                    isExpanded={isMenuOpen}
+                    setIsExpanded={(a) => setIsMenuOpen(a)}
+                    // customTrigger={
+                    //   <MoreVertical size={14} color={colors.textSecondary} />
+                    // }
+                    iconStyle={{ size: 14, className: "pl-2" }}
+                    isPinned={note.isPinned}
+                    isArchived={note.isArchived}
+                    onTogglePin={handlePinPress}
+                    onToggleArchive={handleArchivePress}
+                    onDelete={handleDeletePress}
+                    onShare={handleShare}
+                  />
+                </View>
+
+                <ThemedText
+                  numberOfLines={2}
+                  className="font-semibold text-base text-text flex-1">
+                  {displayTitle}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Footer: Tags List */}
+            {/* TODO: Only list */}
+            {parsedTags.length > 0 && (
+              <View className="flex-row overflow-hidden__flex-wrap items-center gap-1.5 mt-0.5">
+                {parsedTags.slice(0, 2).map((tag, index) => (
+                  <View
+                    key={`${tag}-${index}`}
+                    className="px-2 py-0.5 rounded-full border border-border bg-background-element">
+                    <Text className="text-[11px] font-medium text-text-secondary">
+                      #{tag}
+                    </Text>
+                  </View>
+                ))}
+                {parsedTags.length > 2 && (
+                  <Text className="text-[11px] font-bold text-text-secondary self-center">
+                    +{parsedTags.length - 2}
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Snippet Row */}
+            <ThemedText
+              numberOfLines={2}
+              className="text-[13px] leading-5 text-text-secondary mb-2.5">
+              {displaySnippet}
+            </ThemedText>
+          </Pressable>
+        </Link.Trigger>
+
+        {/* Native Context Menu on iOS / Fallback */}
+        <Link.Menu>
+          <Link.MenuAction
+            title={note.isPinned ? "Unpin Note" : "Pin Note"}
+            icon={note.isPinned ? "pin.slash" : "pin"}
+            onPress={handlePinPress}
+          />
+          <Link.MenuAction
+            title={note.isArchived ? "Unarchive Note" : "Archive Note"}
+            icon={note.isArchived ? "archivebox.fill" : "archivebox"}
+            onPress={handleArchivePress}
+          />
+          <Link.MenuAction
+            title="Share Note"
+            icon="square.and.arrow.up"
+            onPress={handleShare}
+          />
+          <Link.MenuAction
+            title="Delete Note"
+            icon="trash"
+            destructive
+            onPress={handleDeletePress}
+          />
+        </Link.Menu>
+      </Link>
+    </>
   );
 });

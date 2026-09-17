@@ -201,7 +201,7 @@ export default function SearchScreen() {
       </Stack>
       <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-200 mx-auto">
         {/* Search Header Bar */}
-        <View className="px-4 pt-2 pb-3 border-b border-border">
+        <View className="px-4 pt-2 pb-3">
           <View className="flex-row items-center gap-2">
             {/* Back Navigation Button */}
             <Pressable

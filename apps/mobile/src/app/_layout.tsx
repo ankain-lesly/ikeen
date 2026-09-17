@@ -12,13 +12,55 @@ import { db } from "@/db/client";
 import { seedDefaultNotes } from "@/db/seed";
 import migrations from "../../drizzle/migrations";
 import { useTheme } from "@/hooks/use-theme";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "@/lib/toast";
+
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
+// import { KeyboardProvider } from "react-native-keyboard-controller";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
-  const { success, error } = useMigrations(db, migrations);
   const scheme = useColorScheme();
   const colors = useTheme();
+
+  const Theme = scheme === "dark" ? DarkTheme : DefaultTheme;
+
+  const MyTheme = {
+    ...Theme,
+    colors: {
+      ...Theme.colors,
+      background: colors.background, // View backgrounds
+      primary: colors.primary, // Brand color
+      card: colors.card, // Card backgrounds
+      text: colors.foreground, // Primary text
+      border: colors.border,
+      notification: colors.backgroundSelected,
+    },
+    fonts: {
+      ...Theme.fonts,
+    },
+  };
+
+  return (
+    <GestureHandlerRootView>
+      <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
+        <ThemeProvider value={MyTheme}>
+          <View className="bg-background flex-1">
+            {/* Root App */}
+            <RootApp />
+            <Toast config={toastConfig} position="top" topOffset={50} />
+          </View>
+        </ThemeProvider>
+      </SafeAreaListener>
+    </GestureHandlerRootView>
+  );
+}
+
+function RootApp() {
+  const { success, error } = useMigrations(db, migrations);
+
   useEffect(() => {
     if (success) {
       seedDefaultNotes(db)
@@ -31,7 +73,7 @@ export default function TabLayout() {
 
   if (error) {
     return (
-      <View className="flex-1 justify-center items-center p-6">
+      <View className="flex-1 justify-center items-center p-6 p-safe">
         <Text className="text-lg font-bold text-red-600 mb-2">
           Migration Failed
         </Text>
@@ -44,7 +86,7 @@ export default function TabLayout() {
 
   if (!success) {
     return (
-      <View className="flex-1 justify-center items-center p-6">
+      <View className="flex-1 justify-center items-center p-6 p-safe">
         <ActivityIndicator size="large" />
         <Text className="mt-3 text-sm text-gray-500">
           Initializing database...
@@ -53,30 +95,5 @@ export default function TabLayout() {
     );
   }
 
-  const Theme = scheme === "dark" ? DarkTheme : DefaultTheme;
-
-    const MyTheme = {
-      ...Theme,
-      colors: {
-        ...Theme.colors,
-        background: colors.background, // View backgrounds
-        primary: colors.primary, // Brand color
-        card: colors.card, // Card backgrounds
-        text: colors.foreground, // Primary text
-        border: colors.border, // Card borders
-        notification: colors.backgroundSelected, // Fallback or use a semantic/error from you>
-      },
-      fonts: {
-        ...Theme.fonts,
-      },
-    };
-  return (
-    <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
-      <View className="bg-background flex-1">
-        <ThemeProvider value={MyTheme}>
-          <Stack screenOptions={{ headerShown: false }} />
-        </ThemeProvider>
-      </View>
-    </SafeAreaListener>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

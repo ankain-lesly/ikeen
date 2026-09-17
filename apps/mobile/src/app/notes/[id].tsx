@@ -29,7 +29,9 @@ import {
 import { NoteAccessoryBar } from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
+import { toast } from "@/lib/toast";
 import {
+  hardDeleteNote,
   softDeleteNote,
   toggleArchiveNote,
   togglePinNote,
@@ -100,18 +102,33 @@ function NoteEditor({
   const contentInputRef = useRef<TextInput>(null);
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
+  const isDeletedRef = useRef(false);
 
   // Keep latest values in ref for unmount save
   useEffect(() => {
     latestNoteRef.current = { title, content, tags };
   }, [title, content, tags]);
 
-  // Save changes on unmount
+  // Save changes on unmount or clean up empty draft note
   useEffect(() => {
     return () => {
+      if (isDeletedRef.current) return;
+
+      const { title: finalTitle, content: finalContent, tags: finalTags } =
+        latestNoteRef.current;
+      const isEmpty =
+        finalTitle.trim().length === 0 &&
+        finalContent.trim().length === 0 &&
+        finalTags.length === 0;
+
+      if (isEmpty) {
+        hardDeleteNote(id).catch((err) => {
+          console.error("Failed to delete empty note on unmount:", err);
+        });
+        return;
+      }
+
       if (hasEditedRef.current) {
-        const { title: finalTitle, content: finalContent, tags: finalTags } =
-          latestNoteRef.current;
         updateNote(id, {
           title: finalTitle,
           content: finalContent,
@@ -119,6 +136,8 @@ function NoteEditor({
         }).catch((err) => {
           console.error("Failed to save note on unmount:", err);
         });
+
+        toast.success("Note saved");
       }
     };
   }, [id]);
@@ -186,11 +205,13 @@ function NoteEditor({
         style: "destructive",
         onPress: async () => {
           if (!id) return;
+          isDeletedRef.current = true;
           try {
             await softDeleteNote(id);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            toast.info("Note deleted");
             router.back();
           } catch {
+            isDeletedRef.current = false;
             Alert.alert("Error", "Could not delete note");
           }
         },
@@ -248,9 +269,9 @@ function NoteEditor({
           </Pressable>
 
           {/* Center Save Indicator */}
-          <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
+          {/* <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
             {isSaving ? "Saving..." : "Saved"}
-          </Text>
+          </Text> */}
 
           {/* Right Header Action Icons */}
           <View className="flex-row items-center gap-2">
@@ -268,7 +289,16 @@ function NoteEditor({
             {/* Save */}
             <Pressable
               className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
-              onPress={async () => await saveNote(title, content, tags)}>
+              onPress={async () => {
+                const trimmedTitle = title.trim();
+                const trimmedContent = content.trim();
+                if (!trimmedTitle && !trimmedContent && tags.length === 0) {
+                  toast.warning("Cannot save an empty note");
+                  return;
+                }
+                await saveNote(title, content, tags);
+                toast.success("Note saved");
+              }}>
               <Text className="text-base font-bold text-primary">Save</Text>
             </Pressable>
             {/* Dropdown */}
@@ -303,7 +333,7 @@ function NoteEditor({
           {/* Title Input */}
           <TextInput
             className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
-            placeholder="Title"
+            placeholder="Untitled note"
             placeholderTextColor={colors.textSecondary}
             value={title}
             onChangeText={handleTitleChange}
