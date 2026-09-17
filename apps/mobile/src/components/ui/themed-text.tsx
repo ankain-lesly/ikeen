@@ -10,8 +10,8 @@ export type ThemedTextProps = TextProps & {
 
 const TYPE_CLASSES: Record<NonNullable<ThemedTextProps['type']>, string> = {
   default: 'text-base leading-6 font-normal',
-  title: 'text-[32px] leading-[44px] font-semibold',
-  subtitle: 'text-2xl leading-8 font-bold',
+  title: 'text-2xl leading-8 font-semibold',
+  subtitle: 'text-xl leading-6 font-bold',
   small: 'text-sm leading-5 font-medium',
   smallBold: 'text-sm leading-5 font-bold',
   code: 'font-mono text-xs leading-4 font-medium',

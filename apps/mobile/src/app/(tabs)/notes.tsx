@@ -1,22 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import {
-  FileText,
-  Pin,
-  Search,
-  SlidersHorizontal,
-  SquarePen,
-  X,
-} from "lucide-react-native";
+import { FileText, SquarePen } from "lucide-react-native";
 
 import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
@@ -29,39 +15,57 @@ import {
   togglePinNote,
   useLiveNotes,
 } from "@/lib/queries/notes";
-import type { Note } from "@/lib/types/notes";
-
-type FilterMode = "all" | "pinned" | "archived";
+import type { ListNotesOptions, Note } from "@/lib/types/notes";
+import { NotesHeader } from "@/components/notes/notes-header";
+import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
 
 export default function NotesScreen() {
   const colors = useTheme();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
-  const [sortOrder, setSortOrder] = useState<
-    "updatedAt" | "createdAt" | "title"
-  >("updatedAt");
+  const [filter, setFilter] = useState<ListNotesOptions>({});
+
+  const [isFilterSheetPresented, setIsFilterSheetPresented] = useState(false);
 
   // Query SQLite reactively
   const { data: rawNotes = [] } = useLiveNotes({
-    search: searchQuery.trim() || undefined,
-    includeArchived: filterMode === "archived",
-    pinnedFirst: true,
-    orderBy: sortOrder,
-    orderDirection: sortOrder === "title" ? "asc" : "desc",
+    ...filter,
   });
+
+  // Extract unique available tags from notes
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    (rawNotes ?? []).forEach((n) => {
+      try {
+        const parsed = JSON.parse(n.tags || "[]");
+        if (Array.isArray(parsed)) {
+          parsed.forEach((t) => {
+            const clean = String(t).trim().toLowerCase().replace(/^#/, "");
+            if (clean) set.add(clean);
+          });
+        }
+      } catch {}
+    });
+    return Array.from(set).sort();
+  }, [rawNotes]);
+
+  // Determine if any non-default filters or sorts are active
+  const hasActiveFilters = useMemo(() => {
+    return Object.keys(filter).some((key) =>
+      Boolean(filter[key as keyof ListNotesOptions]),
+    );
+  }, [filter]);
 
   // Filter notes in memory if necessary
   const notes = useMemo(() => {
     const list = rawNotes ?? [];
-    if (filterMode === "pinned") {
+    if (filter.pinnedFirst) {
       return list.filter((n) => n.isPinned && !n.isArchived);
     }
-    if (filterMode === "archived") {
+    if (filter.includeArchived) {
       return list.filter((n) => n.isArchived);
     }
     return list.filter((n) => !n.isArchived);
-  }, [rawNotes, filterMode]);
+  }, [rawNotes, filter]);
 
   // Handlers
   const handleTogglePin = useCallback(async (id: string) => {
@@ -117,167 +121,94 @@ export default function NotesScreen() {
     }
   };
 
-  const handleFilterChange = (mode: FilterMode) => {
-    Haptics.selectionAsync();
-    setFilterMode(mode);
+  const handleApplyFilters = (filter: ListNotesOptions) => {
+    setFilter(filter);
+    setIsFilterSheetPresented(false);
   };
-
-  const handleSortCycle = () => {
-    Haptics.selectionAsync();
-    setSortOrder((prev) => {
-      if (prev === "updatedAt") return "createdAt";
-      if (prev === "createdAt") return "title";
-      return "updatedAt";
-    });
-  };
-
-  const sortLabel = useMemo(() => {
-    if (sortOrder === "updatedAt") return "Modified";
-    if (sortOrder === "createdAt") return "Created";
-    return "Title";
-  }, [sortOrder]);
 
   const renderNoteItem = useCallback(
     ({ item }: { item: Note }) => (
-      <NoteCard
-        note={item}
-        onTogglePin={handleTogglePin}
-        onToggleArchive={handleToggleArchive}
-        onDelete={handleDelete}
-      />
+      <View className="w-1/2 relative">
+        <NoteCard
+          note={item}
+          onTogglePin={handleTogglePin}
+          onToggleArchive={handleToggleArchive}
+          onDelete={handleDelete}
+        />
+      </View>
     ),
     [handleTogglePin, handleToggleArchive, handleDelete],
   );
 
+  // TODO: Implement a Masonry layout for the notes list
   return (
-    <View className="flex-1 bg-background pt-safe w-full max-w-[800px] mx-auto">
-        {/* Top Header */}
-        <View className="flex-row items-center justify-between px-4.5 pt-2 pb-1">
-          <ThemedText type="title">Notes</ThemedText>
+    <View className="flex-1 bg-background pt-safe">
+      {/* Top Header */}
+      <NotesHeader
+        filter={filter}
+        onOpenFilter={() => setIsFilterSheetPresented(true)}
+        hasActiveFilters={hasActiveFilters}
+        updateFilter={(filter) => setFilter(filter)}
+      />
 
-          {/* Sort Cycle Button */}
-          <Pressable
-            className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border bg-background-element active:opacity-70"
-            onPress={handleSortCycle}>
-            <SlidersHorizontal size={14} color={colors.textSecondary} />
-            <Text className="text-xs font-medium text-text-secondary">
-              {sortLabel}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Search Bar */}
-        <View className="px-4 py-2">
-          <View className="flex-row items-center gap-2 px-3 h-10 rounded-2xl border border-border bg-background-element">
-            <Search size={16} color={colors.textSecondary} />
-            <TextInput
-              className="flex-1 text-sm py-0 text-text"
-              placeholder="Search notes and tags..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-              clearButtonMode="never"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable
-                onPress={() => setSearchQuery("")}
-                hitSlop={8}
-                className="p-1 rounded-full active:opacity-60">
-                <X size={16} color={colors.textSecondary} />
-              </Pressable>
-            )}
-          </View>
-        </View>
-
-        {/* Segmented Filter Pills */}
-        <View className="flex-row gap-2 px-4 pb-2.5">
-          {(["all", "pinned", "archived"] as const).map((mode) => {
-            const isActive = filterMode === mode;
-            const label =
-              mode === "all"
-                ? "All Notes"
-                : mode === "pinned"
-                  ? "Pinned"
-                  : "Archived";
-            return (
-              <Pressable
-                key={mode}
-                className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl border active:opacity-80 ${
-                  isActive
-                    ? "bg-background-selected border-primary"
-                    : "bg-background-element border-border"
-                }`}
-                onPress={() => handleFilterChange(mode)}>
-                {mode === "pinned" && (
-                  <Pin
-                    size={12}
-                    color={isActive ? colors.primary : colors.textSecondary}
-                    style={{ transform: [{ rotate: "45deg" }] }}
-                  />
-                )}
-                <Text
-                  className={`text-xs ${
-                    isActive
-                      ? "text-text font-semibold"
-                      : "text-text-secondary font-normal"
-                  }`}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Note List */}
-        <FlatList
-          data={notes}
-          renderItem={renderNoteItem}
-          keyExtractor={(item) => item.id}
-          className="flex-1"
-          contentContainerClassName="pt-1 px-4"
-          contentContainerStyle={{
-            paddingBottom: BottomTabInset + 76,
-          }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View className="items-center justify-center py-16 px-8">
-              <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-                <FileText size={32} color={colors.textSecondary} />
-              </View>
-              <ThemedText className="font-semibold text-base text-text text-center">
-                {searchQuery.trim().length > 0
-                  ? "No matching notes"
-                  : filterMode === "pinned"
-                    ? "No pinned notes"
-                    : filterMode === "archived"
-                      ? "No archived notes"
-                      : "No notes yet"}
-              </ThemedText>
-              <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-                {searchQuery.trim().length > 0
-                  ? "Try searching for a different keyword or tag."
-                  : "Capture your thoughts, ideas, and architecture notes."}
-              </Text>
+      {/* Note List */}
+      <FlatList
+        data={notes}
+        numColumns={2}
+        columnWrapperStyle={{
+          rowGap: 12,
+          columnGap: 8,
+        }}
+        renderItem={renderNoteItem}
+        keyExtractor={(item) => item.id}
+        className="flex-1"
+        contentContainerClassName="pt-1 px-2"
+        contentContainerStyle={{
+          paddingBottom: BottomTabInset + 76,
+        }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View className="items-center justify-center py-16 px-8">
+            <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
+              <FileText size={32} color={colors.textSecondary} />
             </View>
-          }
-        />
+            <ThemedText className="font-semibold text-base text-text text-center">
+              {Object.keys(filter).length > 0
+                ? "No matching notes"
+                : "No notes yet"}
+            </ThemedText>
+            <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
+              {Object.keys(filter).length > 0
+                ? "Try searching for a different keyword or tag."
+                : "Capture your thoughts, ideas, and architecture notes."}
+            </Text>
+          </View>
+        }
+      />
 
-        {/* Floating Bottom Action Bar */}
-        <View
-          // style={{ bottom: BottomTabInset + 12 }}
-          className="absolute bottom-safe left-5 right-5 h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5">
-          <Text className="text-xs font-medium text-text-secondary font-mono">
-            {notes.length} {notes.length === 1 ? "Note" : "Notes"}
-          </Text>
+      {/* Floating Bottom Action Bar */}
+      <View
+        // style={{ bottom: BottomTabInset + 12 }}
+        className="absolute bottom-safe left-5 right-5 h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5">
+        <Text className="text-xs font-medium text-text-secondary font-mono">
+          {notes.length} {notes.length === 1 ? "Note" : "Notes"}
+        </Text>
 
-          <Pressable
-            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary active:opacity-90 active:scale-[0.98]"
-            onPress={handleNewNote}>
-            <SquarePen size={17} color="#ffffff" />
-            <Text className="text-white text-sm font-semibold">New Note</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary active:opacity-90 active:scale-[0.98]"
+          onPress={handleNewNote}>
+          <SquarePen size={17} color="#ffffff" />
+          <Text className="text-white text-sm font-semibold">New Note</Text>
+        </Pressable>
+      </View>
+
+      {/* Notes Filter Sheet */}
+      <NotesFilterSheet
+        isPresented={isFilterSheetPresented}
+        onDismiss={() => setIsFilterSheetPresented(false)}
+        availableTags={availableTags}
+        handleApplyFilters={handleApplyFilters}
+      />
     </View>
   );
 }

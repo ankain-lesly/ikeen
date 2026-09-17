@@ -123,11 +123,11 @@ export const NoteCard = React.memo(function NoteCard({
                   size={14}
                   color={colors.primary}
                   fill={colors.primary}
-                  style={{ transform: [{ rotate: '45deg' }] }}
+                  // style={{ transform: [{ rotate: '45deg' }] }}
                 />
               )}
               <ThemedText
-                numberOfLines={1}
+                numberOfLines={2}
                 className="font-semibold text-base text-text flex-1">
                 {displayTitle}
               </ThemedText>

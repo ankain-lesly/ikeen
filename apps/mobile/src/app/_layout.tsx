@@ -11,13 +11,14 @@ import { Uniwind } from "uniwind";
 import { db } from "@/db/client";
 import { seedDefaultNotes } from "@/db/seed";
 import migrations from "../../drizzle/migrations";
+import { useTheme } from "@/hooks/use-theme";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
   const { success, error } = useMigrations(db, migrations);
   const scheme = useColorScheme();
-
+  const colors = useTheme();
   useEffect(() => {
     if (success) {
       seedDefaultNotes(db)
@@ -52,10 +53,27 @@ export default function TabLayout() {
     );
   }
 
+  const Theme = scheme === "dark" ? DarkTheme : DefaultTheme;
+
+    const MyTheme = {
+      ...Theme,
+      colors: {
+        ...Theme.colors,
+        background: colors.background, // View backgrounds
+        primary: colors.primary, // Brand color
+        card: colors.card, // Card backgrounds
+        text: colors.foreground, // Primary text
+        border: colors.border, // Card borders
+        notification: colors.backgroundSelected, // Fallback or use a semantic/error from you>
+      },
+      fonts: {
+        ...Theme.fonts,
+      },
+    };
   return (
     <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
       <View className="bg-background flex-1">
-        <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={MyTheme}>
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
       </View>

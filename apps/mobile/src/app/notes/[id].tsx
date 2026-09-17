@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,128 +16,142 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+} from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
-  ArrowLeft,
-  Info,
+  ChevronLeft,
   Pin,
   Plus,
-  Share2,
-  Trash2,
   X,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 
-import { NoteAccessoryBar } from '@/components/notes/note-accessory-bar';
-import { NoteInfoSheet } from '@/components/notes/note-info-sheet';
-import { useTheme } from '@/hooks/use-theme';
+import { NoteAccessoryBar } from "@/components/notes/note-accessory-bar";
+import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
+import { useTheme } from "@/hooks/use-theme";
 import {
   softDeleteNote,
+  toggleArchiveNote,
   togglePinNote,
   updateNote,
   useLiveNote,
-} from '@/lib/queries/notes';
+} from "@/lib/queries/notes";
+import type { Note } from "@/lib/types/notes";
+import NotesDetailDropdown from "@/components/notes/notes-detail-dropdown";
 
 function formatEditTime(isoDate?: string): string {
-  if (!isoDate) return '';
+  if (!isoDate) return "";
   try {
     const date = new Date(isoDate);
     return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
-    return '';
+    return "";
   }
 }
 
 export default function NoteDetailScreen() {
   const colors = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-
   const { data: note } = useLiveNote(id as string);
 
-  // Local state for snappy, lag-free typing
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [isPinned, setIsPinned] = useState(false);
-  const [isArchived, setIsArchived] = useState(false);
+  if (!note) {
+    return (
+      <View className="flex-1 bg-background pt-safe pb-safe justify-center items-center">
+        <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return <NoteEditor key={note.id} note={note} colors={colors} />;
+}
+
+function NoteEditor({
+  note,
+  colors,
+}: {
+  note: Note;
+  colors: ReturnType<typeof useTheme>;
+}) {
+  const id = note.id;
+
+  // Local state initialized directly from loaded note - no effect or cascading renders
+  const [title, setTitle] = useState(note.title);
+  const [content, setContent] = useState(note.content);
+  const [tags, setTags] = useState<string[]>(() => {
+    try {
+      const parsed = JSON.parse(note.tags || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isPinned, setIsPinned] = useState(note.isPinned);
+  const [isArchived, setIsArchived] = useState(note.isArchived);
   const [isSaving, setIsSaving] = useState(false);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
-  const [newTagText, setNewTagText] = useState('');
+  const [newTagText, setNewTagText] = useState("");
 
-  const hasInitialized = useRef(false);
   const contentInputRef = useRef<TextInput>(null);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestNoteRef = useRef({ title, content, tags });
+  const hasEditedRef = useRef(false);
 
-  // Initialize state once from loaded SQLite note
+  // Keep latest values in ref for unmount save
   useEffect(() => {
-    if (note && !hasInitialized.current) {
-      setTitle(note.title);
-      setContent(note.content);
-      setIsPinned(note.isPinned);
-      setIsArchived(note.isArchived);
+    latestNoteRef.current = { title, content, tags };
+  }, [title, content, tags]);
 
-      try {
-        const parsed = JSON.parse(note.tags || '[]');
-        if (Array.isArray(parsed)) setTags(parsed);
-      } catch {
-        setTags([]);
-      }
-
-      hasInitialized.current = true;
-    }
-  }, [note]);
-
-  // Debounced auto-save function
-  const triggerAutoSave = useCallback(
-    (newTitle: string, newContent: string, newTags: string[]) => {
-      if (!id) return;
-      setIsSaving(true);
-
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-
-      saveTimeoutRef.current = setTimeout(async () => {
-        try {
-          await updateNote(id, {
-            title: newTitle,
-            content: newContent,
-            tags: newTags,
-          });
-        } catch {
-          // Non-blocking auto-save error
-        } finally {
-          setIsSaving(false);
-        }
-      }, 400);
-    },
-    [id]
-  );
-
-  // Clean up debounce on unmount
+  // Save changes on unmount
   useEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+      if (hasEditedRef.current) {
+        const { title: finalTitle, content: finalContent, tags: finalTags } =
+          latestNoteRef.current;
+        updateNote(id, {
+          title: finalTitle,
+          content: finalContent,
+          tags: finalTags,
+        }).catch((err) => {
+          console.error("Failed to save note on unmount:", err);
+        });
       }
     };
-  }, []);
+  }, [id]);
+
+  // Explicit save function (called by Save button & tag updates)
+  const saveNote = useCallback(
+    async (newTitle: string, newContent: string, newTags: string[]) => {
+      if (!id) return;
+      setIsSaving(true);
+      try {
+        await updateNote(id, {
+          title: newTitle,
+          content: newContent,
+          tags: newTags,
+        });
+        hasEditedRef.current = false;
+      } catch {
+        // Non-blocking save error
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [id],
+  );
 
   const handleTitleChange = (newTitle: string) => {
+    hasEditedRef.current = true;
     setTitle(newTitle);
-    triggerAutoSave(newTitle, content, tags);
   };
 
   const handleContentChange = (newContent: string) => {
+    hasEditedRef.current = true;
     setContent(newContent);
-    triggerAutoSave(title, newContent, tags);
   };
 
   const handleTogglePin = async () => {
@@ -150,7 +170,7 @@ export default function NoteDetailScreen() {
   const handleShare = async () => {
     try {
       await Share.share({
-        title: title.trim() || 'Untitled Note',
+        title: title.trim() || "Untitled Note",
         message: `${title}\n\n${content}`,
       });
     } catch {
@@ -159,11 +179,11 @@ export default function NoteDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Delete',
-        style: 'destructive',
+        text: "Delete",
+        style: "destructive",
         onPress: async () => {
           if (!id) return;
           try {
@@ -171,7 +191,7 @@ export default function NoteDetailScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.back();
           } catch {
-            Alert.alert('Error', 'Could not delete note');
+            Alert.alert("Error", "Could not delete note");
           }
         },
       },
@@ -179,17 +199,17 @@ export default function NoteDetailScreen() {
   };
 
   const handleAddTag = () => {
-    const trimmed = newTagText.trim().toLowerCase().replace(/^#/, '');
+    const trimmed = newTagText.trim().toLowerCase().replace(/^#/, "");
     if (trimmed && !tags.includes(trimmed)) {
       const updatedTags = [...tags, trimmed];
       setTags(updatedTags);
-      setNewTagText('');
+      setNewTagText("");
       setNewTagInputVisible(false);
-      triggerAutoSave(title, content, updatedTags);
+      saveNote(title, content, updatedTags);
       Haptics.selectionAsync();
     } else {
       setNewTagInputVisible(false);
-      setNewTagText('');
+      setNewTagText("");
     }
   };
 
@@ -197,15 +217,12 @@ export default function NoteDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const updatedTags = tags.filter((t) => t !== tagToRemove);
     setTags(updatedTags);
-    triggerAutoSave(title, content, updatedTags);
+    saveNote(title, content, updatedTags);
   };
 
   const handleInsertSnippet = (snippet: string) => {
-    setContent((prev) => {
-      const updated = prev + snippet;
-      triggerAutoSave(title, updated, tags);
-      return updated;
-    });
+    hasEditedRef.current = true;
+    setContent((prev) => prev + snippet);
     contentInputRef.current?.focus();
   };
 
@@ -214,83 +231,70 @@ export default function NoteDetailScreen() {
     return trimmed ? trimmed.split(/\s+/).length : 0;
   }, [content]);
 
-  if (!note && !hasInitialized.current) {
-    return (
-      <View className="flex-1 bg-background pt-safe pb-safe justify-center items-center">
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
-    <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-[800px] mx-auto">
+    <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-200 mx-auto">
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {/* Navigation Bar */}
-        <View className="h-12 flex-row items-center justify-between px-3.5 border-b border-border bg-background">
+        <View className="h-12 flex-row items-center justify-between px-3.5">
           {/* Back Button */}
           <Pressable
-            className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-[36px] min-w-[36px]"
+            className="p-1.5 flex-row rounded-lg justify-center items-center active:opacity-70 min-h-9 gap-2"
             onPress={() => router.back()}
             hitSlop={8}>
-            <ArrowLeft size={20} color={colors.text} />
+            <ChevronLeft size={20} color={colors.text} />
+            <Text className="text-text">Notes</Text>
           </Pressable>
 
           {/* Center Save Indicator */}
           <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
-            {isSaving ? 'Saving...' : 'Saved'}
+            {isSaving ? "Saving..." : "Saved"}
           </Text>
 
           {/* Right Header Action Icons */}
           <View className="flex-row items-center gap-2">
-            {/* Pin Toggle */}
+            {/* Pin */}
             <Pressable
-              className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-[36px] min-w-[36px]"
-              onPress={handleTogglePin}
-              hitSlop={8}>
+              className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+              onPress={handleTogglePin}>
               <Pin
                 size={18}
-                color={isPinned ? colors.primary : colors.textSecondary}
-                fill={isPinned ? colors.primary : 'transparent'}
-                style={{ transform: [{ rotate: '45deg' }] }}
+                color={isPinned ? colors.primary : colors.text}
+                fill={isPinned ? colors.primary : undefined}
               />
             </Pressable>
 
-            {/* Share */}
+            {/* Save */}
             <Pressable
-              className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-[36px] min-w-[36px]"
-              onPress={handleShare}
-              hitSlop={8}>
-              <Share2 size={18} color={colors.textSecondary} />
+              className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+              onPress={async () => await saveNote(title, content, tags)}>
+              <Text className="text-base font-bold text-primary">Save</Text>
             </Pressable>
-
-            {/* Details / Info Sheet */}
-            <Pressable
-              className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-[36px] min-w-[36px]"
-              onPress={() => {
-                Haptics.selectionAsync();
-                setInfoSheetVisible(true);
+            {/* Dropdown */}
+            <NotesDetailDropdown
+              isPinned={isPinned}
+              onTogglePin={handleTogglePin}
+              isArchived={isArchived}
+              onToggleArchive={async () => {
+                setIsArchived(!isArchived);
+                if (id) {
+                  try {
+                    await toggleArchiveNote(id);
+                  } catch {
+                    setIsArchived(!isArchived);
+                  }
+                }
               }}
-              hitSlop={8}>
-              <Info size={18} color={colors.textSecondary} />
-            </Pressable>
-
-            {/* Delete */}
-            <Pressable
-              className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-[36px] min-w-[36px]"
-              onPress={handleDelete}
-              hitSlop={8}>
-              <Trash2 size={18} color="#ef4444" />
-            </Pressable>
+              onDelete={handleDelete}
+              onShare={handleShare}
+              onShowInfo={() => setInfoSheetVisible(true)}
+            />
           </View>
         </View>
 
-        {/* Note Writing Canvas */}
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="px-5 pt-4 pb-10"
-          keyboardShouldPersistTaps="handled">
+        {/* Metadata and Title */}
+        <View className="px-5 pt-4">
           {/* Metadata Row: Last edit date and word count */}
           <Text className="text-xs font-mono mb-2 text-text-secondary">
             {formatEditTime(note?.updatedAt)} · {wordCount} words
@@ -315,9 +319,7 @@ export default function NoteDetailScreen() {
                 key={tag}
                 className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80"
                 onPress={() => handleRemoveTag(tag)}>
-                <Text className="text-xs font-medium text-text">
-                  #{tag}
-                </Text>
+                <Text className="text-xs font-medium text-text">#{tag}</Text>
                 <X size={12} color={colors.textSecondary} />
               </Pressable>
             ))}
@@ -326,7 +328,7 @@ export default function NoteDetailScreen() {
               <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
                 <Text className="text-xs text-text-secondary">#</Text>
                 <TextInput
-                  className="text-xs py-0 px-0.5 min-w-[40px] text-text"
+                  className="text-xs py-0 px-0.5 min-w-10 text-text"
                   placeholder="tag"
                   placeholderTextColor={colors.textSecondary}
                   value={newTagText}
@@ -352,11 +354,17 @@ export default function NoteDetailScreen() {
               </Pressable>
             )}
           </View>
+        </View>
 
+        {/* Note Writing Canvas */}
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-5 pt-4 pb-10"
+          keyboardShouldPersistTaps="handled">
           {/* Body Content Input */}
           <TextInput
             ref={contentInputRef}
-            className="text-base leading-6 min-h-[240px] py-0 text-text"
+            className="text-base leading-6 min-h-60 py-0 text-text"
             placeholder="Start typing..."
             placeholderTextColor={colors.textSecondary}
             value={content}
@@ -371,6 +379,9 @@ export default function NoteDetailScreen() {
         <NoteAccessoryBar
           onInsertSnippet={handleInsertSnippet}
           onOpenTagPrompt={() => setNewTagInputVisible(true)}
+          onDismiss={() => {
+            console.log("Exit Live Editing mode > View Mode");
+          }}
         />
 
         {/* Note Info Details Modal Sheet */}

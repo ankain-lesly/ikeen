@@ -3,9 +3,9 @@
  *
  * Development Only Testing LOGs
  */
-global.log = (...data: unknown[]) => {
-  log(data);
-};
+// global.log = (...data: unknown[]) => {
+//   log(data);
+// };
 
 // Improved Pretty Console Log for Debug/Tests
 export function log(...data: unknown[]) {
