@@ -45,15 +45,18 @@ export function dateResultFormat(date: Date, pattern: string): string {
   const yyyy = String(date.getFullYear());
   const yy = yyyy.slice(-2);
 
-  return pattern
-    .replace("MMM", MMM)
-    .replace("EEE", EEE)
-    .replace("yyyy", yyyy)
-    .replace("yy", yy)
-    .replace("dd", dd)
-    .replace("hh", hh)
-    .replace("mm", mm)
-    .replace("a", a);
+  const tokens: Record<string, string> = {
+    yyyy,
+    yy,
+    MMM,
+    EEE,
+    dd,
+    hh,
+    mm,
+    a,
+  };
+
+  return pattern.replace(/yyyy|yy|MMM|EEE|dd|hh|mm|\ba\b/g, (match) => tokens[match] ?? match);
 }
 
 /**
@@ -186,6 +189,22 @@ export function formatEditTime(input: DateInput, fallback = ""): string {
   return d.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Formats full timestamp for detail dialogs and note info sheets:
+ * - e.g. "October 14, 2026, 10:30 AM"
+ */
+export function formatFullDate(input: DateInput, fallback = "—"): string {
+  const d = parseDate(input);
+  if (!d) return fallback;
+  return d.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });

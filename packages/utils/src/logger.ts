@@ -1,4 +1,5 @@
 declare const __DEV__: boolean | undefined;
+declare const process: { env?: { NODE_ENV?: string } } | undefined;
 
 /**
  * Improved Pretty Console Log for Debug/Tests.

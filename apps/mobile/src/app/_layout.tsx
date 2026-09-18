@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { ActivityIndicator, Text, View, useColorScheme } from "react-native";
+import { ActivityIndicator, StatusBar, Text, View, useColorScheme } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -51,6 +51,7 @@ export default function TabLayout() {
             {/* Root App */}
             <RootApp />
             <Toast config={toastConfig} position="top" topOffset={50} />
+            <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} />
           </View>
         </ThemeProvider>
       </SafeAreaListener>

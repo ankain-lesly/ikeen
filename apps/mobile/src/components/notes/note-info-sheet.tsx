@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import {
   Calendar,
   Clock,
+  Folder,
   Hash,
   X,
 } from 'lucide-react-native';
@@ -16,43 +17,31 @@ import {
 import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { Note } from '@/lib/types/notes';
+import { formatFullDate } from '@repo/utils/date';
+import { calculateReadingTime, countWords } from '@repo/utils/string';
 
 interface NoteInfoSheetProps {
   note: Note | null;
   visible: boolean;
+  folderName?: string | null;
   onClose: () => void;
-}
-
-function formatFullDate(isoString?: string): string {
-  if (!isoString) return '—';
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleDateString(undefined, {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return isoString;
-  }
+  onOpenMoveToFolder?: () => void;
 }
 
 export const NoteInfoSheet = React.memo(function NoteInfoSheet({
   note,
   visible,
+  folderName,
   onClose,
+  onOpenMoveToFolder,
 }: NoteInfoSheetProps) {
   const colors = useTheme();
 
   if (!note) return null;
 
-  const wordCount = note.content.trim()
-    ? note.content.trim().split(/\s+/).length
-    : 0;
+  const wordCount = countWords(note.content);
   const charCount = note.content.length;
-  const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
+  const readingTimeMinutes = calculateReadingTime(note.content);
 
   let tags: string[] = [];
   try {
@@ -147,6 +136,33 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
               <Text className="text-sm font-medium text-text">
                 {formatFullDate(note.updatedAt)}
               </Text>
+            </View>
+
+            {/* Folder Row */}
+            <View className="flex-row items-center justify-between pt-2 border-t border-border/50">
+              <View className="flex-row items-center gap-2">
+                <Folder size={15} color={colors.textSecondary} />
+                <Text className="text-sm text-text-secondary">
+                  Folder
+                </Text>
+              </View>
+              {onOpenMoveToFolder ? (
+                <Pressable
+                  onPress={() => {
+                    handleClose();
+                    onOpenMoveToFolder();
+                  }}
+                  className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background-element active:opacity-70">
+                  <Text className="text-sm font-semibold text-primary">
+                    {folderName || 'Unorganized'}
+                  </Text>
+                  <Text className="text-xs text-text-secondary">Change</Text>
+                </Pressable>
+              ) : (
+                <Text className="text-sm font-medium text-text">
+                  {folderName || 'Unorganized'}
+                </Text>
+              )}
             </View>
           </View>
 

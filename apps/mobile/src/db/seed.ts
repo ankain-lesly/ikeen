@@ -1,15 +1,65 @@
 import { count } from 'drizzle-orm';
 import type { ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
-import { notes } from './schema';
+import { folders, notes } from './schema';
 import * as schema from './schema';
 
 /**
- * Seeds initial onboarding notes into the SQLite database if empty.
+ * Seeds initial onboarding folders and notes into SQLite database if empty.
  * Idempotent: safe to call on every app startup.
  */
 export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): Promise<void> {
   try {
-    // await db.delete(notes);
+    const now = new Date().toISOString();
+
+    // 1. Seed Folders if empty
+    const folderResult = await db.select({ total: count() }).from(folders);
+    const totalFolders = folderResult[0]?.total ?? 0;
+
+    if (totalFolders === 0) {
+      await db.insert(folders).values([
+        {
+          id: 'project-re',
+          name: 'Project ;re',
+          color: '#2563eb', // Blue
+          icon: 'folder',
+          isLocked: false,
+          sortOrder: 0,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'food-recipes',
+          name: 'Food recipes',
+          color: '#16a34a', // Green
+          icon: 'folder',
+          isLocked: false,
+          sortOrder: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'referral-code',
+          name: 'Referral code',
+          color: '#9333ea', // Purple
+          icon: 'folder',
+          isLocked: false,
+          sortOrder: 2,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'secret-files',
+          name: 'Secret files',
+          color: '#ef4444', // Red
+          icon: 'lock',
+          isLocked: true,
+          pinCode: '1234',
+          sortOrder: 3,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+    }
 
     const result = await db.select({ total: count() }).from(notes);
     const totalNotes = result[0]?.total ?? 0;
@@ -18,11 +68,10 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       return;
     }
 
-    const now = new Date().toISOString();
-
     await db.insert(notes).values([
       {
         id: 'welcome-note',
+        folderId: 'project-re',
         title: 'Welcome to iKeen ✨',
         content:
           'iKeen is a fast, local-first notes and thinking space.\n\n' +
@@ -39,6 +88,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'quick-tips-note',
+        folderId: 'project-re',
         title: 'Quick Tips & Markdown 🚀',
         content:
           'A few helpful tips to get the most out of iKeen:\n\n' +
@@ -54,6 +104,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'project-ideas-note',
+        folderId: 'project-re',
         title: 'App Architecture & Brainstorming 💡',
         content:
           'Key ideas for upcoming features:\n\n' +
@@ -70,6 +121,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'markdown-demo-note',
+        folderId: 'food-recipes',
         title: 'Markdown Demo 📒',
         content:
           'iKeen supports basic Markdown formatting:\n\n' +
@@ -89,6 +141,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'your-first-task-list-note',
+        folderId: 'food-recipes',
         title: 'Your First Task List ✅',
         content:
           'You can use task lists for rapid checklists:\n\n' +
@@ -106,6 +159,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'archive-note-demo',
+        folderId: 'referral-code',
         title: 'Archiving Notes 🗄️',
         content:
           'You can archive notes to clear your workspace without deleting anything.\n\n' +
@@ -121,6 +175,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'tagging-organization-note',
+        folderId: 'referral-code',
         title: 'Organize with Tags 🏷️',
         content:
           'Tags make finding, filtering, and organizing your thoughts effortless.\n\n' +
@@ -136,6 +191,7 @@ export async function seedDefaultNotes(db: ExpoSQLiteDatabase<typeof schema>): P
       },
       {
         id: 'local-offline-note',
+        folderId: 'secret-files',
         title: 'Works 100% Offline 🌐',
         content:
           'Never lose a thought due to spotty Wi-Fi! All your notes are always available—even on flights, subways, or in airplane mode.\n\n' +

@@ -8,6 +8,7 @@ import { ThemedText } from "@/components/ui/themed-text";
 import type { Note } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
 import NotesDetailDropdown from "./notes-detail-dropdown";
+import { formatTimeAgo } from "@repo/utils/date";
 
 interface NoteCardProps {
   note: Note;
@@ -15,47 +16,6 @@ interface NoteCardProps {
   onToggleArchive: (id: string) => void;
   onDelete: (id: string) => void;
   className?: string;
-}
-
-function formatRelativeDate(isoDate: string): string {
-  try {
-    const date = new Date(isoDate);
-    const now = new Date();
-    const isToday =
-      date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear();
-
-    if (isToday) {
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday =
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear();
-
-    if (isYesterday) {
-      return "Yesterday";
-    }
-
-    if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString([], { month: "short", day: "numeric" });
-    }
-
-    return date.toLocaleDateString([], {
-      month: "numeric",
-      day: "numeric",
-      year: "2-digit",
-    });
-  } catch {
-    return "";
-  }
 }
 
 export const NoteCard = React.memo(function NoteCard({
@@ -79,7 +39,7 @@ export const NoteCard = React.memo(function NoteCard({
 
   const displayTitle = note.title.trim() || "Untitled Note";
   const displaySnippet = note.content.trim() || "No additional text";
-  const formattedDate = formatRelativeDate(note.updatedAt);
+  const formattedDate = formatTimeAgo(note.updatedAt);
 
   const handleShare = async () => {
     try {

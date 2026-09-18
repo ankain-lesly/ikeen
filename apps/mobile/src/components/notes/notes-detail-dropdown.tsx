@@ -14,6 +14,7 @@ import {
   Trash2,
   Archive,
   MoreVertical,
+  FolderInput,
 } from "lucide-react-native";
 import { RNHostView } from "@expo/ui";
 import { Pressable } from "react-native";
@@ -32,6 +33,7 @@ type NotesDetailDropdownProps = {
   onShare: () => void;
   setIsExpanded?: (a: boolean) => void;
   onShowInfo?: () => void;
+  onMoveToFolder?: () => void;
   customTrigger?: React.ReactNode;
 };
 
@@ -45,6 +47,7 @@ export default function NotesDetailDropdown({
   onDelete,
   onShare,
   onShowInfo,
+  onMoveToFolder,
   customTrigger,
   iconStyle = {},
 }: NotesDetailDropdownProps) {
@@ -70,7 +73,8 @@ export default function NotesDetailDropdown({
         <DropdownMenu.Trigger>
           <RNHostView matchContents>
             <Pressable
-              onPress={() => {
+              onPress={(e) => {
+                e?.stopPropagation?.();
                 setIsExpanded?.(true);
                 setIsLocalExpanded?.(true);
               }}
@@ -88,11 +92,13 @@ export default function NotesDetailDropdown({
               onTogglePin();
             }}>
             <DropdownMenuItem.LeadingIcon>
-              <Pin
-                size={20}
-                color={isPinned ? colors.primary : colors.textSecondary}
-                fill={isPinned ? colors.primary : "transparent"}
-              />
+              <RNHostView matchContents>
+                <Pin
+                  size={20}
+                  color={isPinned ? colors.primary : colors.textSecondary}
+                  fill={isPinned ? colors.primary : "transparent"}
+                />
+              </RNHostView>
             </DropdownMenuItem.LeadingIcon>
             <DropdownMenuItem.Text>
               <Text color={colors.text}>
@@ -106,10 +112,12 @@ export default function NotesDetailDropdown({
               onToggleArchive();
             }}>
             <DropdownMenuItem.LeadingIcon>
-              <Archive
-                size={20}
-                color={isArchived ? colors.primary : colors.textSecondary}
-              />
+              <RNHostView matchContents>
+                <Archive
+                  size={20}
+                  color={isArchived ? colors.primary : colors.textSecondary}
+                />
+              </RNHostView>
             </DropdownMenuItem.LeadingIcon>
             <DropdownMenuItem.Text>
               <Text color={colors.text}>
@@ -123,12 +131,30 @@ export default function NotesDetailDropdown({
               onShare();
             }}>
             <DropdownMenuItem.LeadingIcon>
-              <Share2 size={20} color={colors.textSecondary} />
+              <RNHostView matchContents>
+                <Share2 size={20} color={colors.textSecondary} />
+              </RNHostView>
             </DropdownMenuItem.LeadingIcon>
             <DropdownMenuItem.Text>
               <Text color={colors.text}>Share</Text>
             </DropdownMenuItem.Text>
           </DropdownMenuItem>
+          {/* Move to Folder */}
+          {onMoveToFolder && (
+            <DropdownMenuItem
+              onClick={() => {
+                onMoveToFolder();
+              }}>
+              <DropdownMenuItem.LeadingIcon>
+                <RNHostView matchContents>
+                  <FolderInput size={20} color={colors.textSecondary} />
+                </RNHostView>
+              </DropdownMenuItem.LeadingIcon>
+              <DropdownMenuItem.Text>
+                <Text color={colors.text}>Move to Folder</Text>
+              </DropdownMenuItem.Text>
+            </DropdownMenuItem>
+          )}
           {/* Info/Details */}
           {onShowInfo && (
             <DropdownMenuItem
@@ -136,7 +162,9 @@ export default function NotesDetailDropdown({
                 onShowInfo();
               }}>
               <DropdownMenuItem.LeadingIcon>
-                <Info size={20} color={colors.textSecondary} />
+                <RNHostView matchContents>
+                  <Info size={20} color={colors.textSecondary} />
+                </RNHostView>
               </DropdownMenuItem.LeadingIcon>
               <DropdownMenuItem.Text>
                 <Text color={colors.text}>View Notes Info</Text>
@@ -149,7 +177,9 @@ export default function NotesDetailDropdown({
               onDelete();
             }}>
             <DropdownMenuItem.LeadingIcon>
-              <Trash2 size={20} color="#ef4444" />
+              <RNHostView matchContents>
+                <Trash2 size={20} color="#ef4444" />
+              </RNHostView>
             </DropdownMenuItem.LeadingIcon>
             <DropdownMenuItem.Text>
               <Text color="#ef4444">Delete</Text>

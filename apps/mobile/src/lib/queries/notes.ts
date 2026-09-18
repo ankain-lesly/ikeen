@@ -26,6 +26,14 @@ function buildNotesQuery(options: ListNotesOptions = {}) {
     conditions.push(eq(notes.isArchived, false));
   }
 
+  if (options.folderId !== undefined) {
+    if (options.folderId === null) {
+      conditions.push(isNull(notes.folderId));
+    } else {
+      conditions.push(eq(notes.folderId, options.folderId));
+    }
+  }
+
   if (options.tag) {
     conditions.push(like(notes.tags, `%"${options.tag}"%`));
   }
@@ -79,6 +87,7 @@ function buildNotesQuery(options: ListNotesOptions = {}) {
 export function useLiveNotes(options: ListNotesOptions = {}) {
   const query = buildNotesQuery(options);
   return useLiveQuery(query, [
+    options.folderId,
     options.includeDeleted,
     options.includeArchived,
     options.tag,
@@ -161,6 +170,7 @@ export async function createNote(input: CreateNoteInput = {}): Promise<Note> {
     .insert(notes)
     .values({
       id,
+      folderId: input.folderId ?? null,
       title: input.title ?? '',
       content: input.content ?? '',
       tags,
@@ -188,6 +198,7 @@ export async function updateNote(
     updatedAt: now,
   };
 
+  if (input.folderId !== undefined) valuesToUpdate.folderId = input.folderId;
   if (input.title !== undefined) valuesToUpdate.title = input.title;
   if (input.content !== undefined) valuesToUpdate.content = input.content;
   if (input.tags !== undefined) valuesToUpdate.tags = JSON.stringify(input.tags);
@@ -207,6 +218,16 @@ export async function updateNote(
   }
 
   return updated;
+}
+
+/**
+ * Moves a note to a folder (or removes it from a folder by passing null).
+ */
+export async function moveNoteToFolder(
+  id: string,
+  folderId: string | null
+): Promise<Note> {
+  return await updateNote(id, { folderId });
 }
 
 /**

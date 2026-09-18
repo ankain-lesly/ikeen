@@ -33,7 +33,7 @@ export function NotesHeader({
   const isAllActive = !(filter?.pinnedFirst || filter?.includeArchived);
 
   return (
-    <View className="border-b border-border bg-background pb-3">
+    <View className="border-b border-border/50 bg-background pb-3">
       {/* TOp Header */}
       <View className="flex-row items-center justify-between px-4">
         {/* Title */}

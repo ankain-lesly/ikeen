@@ -1,17 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import {
-  Host,
-  BottomSheet,
-  Column,
-  RNHostView,
-  Switch,
-  Checkbox,
-  Row,
-  Text as ExpoText,
-} from "@expo/ui";
+import { Pressable, Switch, Text, View } from "react-native";
+import { BottomSheet, Host, RNHostView } from "@expo/ui";
 import * as Haptics from "expo-haptics";
 import {
+  Archive,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
   Check,
@@ -24,7 +16,6 @@ import {
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { ListNotesOptions } from "@/lib/types/notes";
-import { toggleable } from "@expo/ui/jetpack-compose/modifiers";
 
 export interface NotesFilterSheetProps {
   isPresented: boolean;
@@ -82,15 +73,9 @@ export function NotesFilterSheet({
           onDismiss={() => onDismiss()}
           showDragIndicator
           snapPoints={["half", "full"]}
-          // showDragHandle
-          // skipPartiallyExpanded
           containerColor={colors.card}>
-          <Column
-          // verticalArrangement={{ spacedBy: 16 }}
-          // modifiers={[padding(16, 16, 16, 16)]}
-          >
-            <RNHostView>
-              <View className="flex-1 pt-2 pb-8 w-full p-4">
+          <RNHostView>
+            <View className="flex-1 pt-2 pb-8 w-full p-4">
                 {/* Header: Title + Reset Action + Close Button */}
                 <View className="flex-row items-center justify-between pb-3.5 border-b border-border">
                   <View className="flex-row items-center gap-2">
@@ -214,88 +199,42 @@ export function NotesFilterSheet({
                           </Text>
                         </View>
                       </View>
-                      <Host matchContents>
-                        <Switch
-                          // modifiers={}
-                          value={!!filter.pinnedFirst}
-                          onValueChange={(value) =>
-                            updateFilter("pinnedFirst", value)
-                          }
-                        />
-                      </Host>
+                      <Switch
+                        value={!!filter.pinnedFirst}
+                        onValueChange={(value) =>
+                          updateFilter("pinnedFirst", value)
+                        }
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                        thumbColor="#ffffff"
+                      />
                     </View>
                   </View>
 
                   {/* Section 3: Status / View Filter */}
                   <View className="gap-2.5 pt-2 border-t border-border">
-                    <Text className="text-xs font-semibold tracking-wider text-text-secondary">
-                      Note Status
-                    </Text>
-
-                    <Host matchContents>
-                      <Column>
-                        <Row
-                          // verticalAlignment="center"
-                          alignment="center"
-                          modifiers={[
-                            toggleable(
-                              !!filter.pinnedFirst,
-                              () =>
-                                updateFilter(
-                                  "pinnedFirst",
-                                  !filter.pinnedFirst,
-                                ),
-                              {
-                                role: "checkbox",
-                              },
-                            ),
-                          ]}>
-                          <Checkbox
-                            value={!!filter.pinnedFirst}
-                            onValueChange={(checked) =>
-                              updateFilter("pinnedFirst", checked)
-                            }
-                          />
-                          <ExpoText
-                            textStyle={{
-                              color: colors.text,
-                              fontWeight: "600",
-                            }}>
-                            Pinned First
-                          </ExpoText>
-                        </Row>
-                        <Row
-                          // verticalAlignment="center"
-                          alignment="center"
-                          modifiers={[
-                            toggleable(
-                              !!filter.includeArchived,
-                              () =>
-                                updateFilter(
-                                  "includeArchived",
-                                  !filter.includeArchived,
-                                ),
-                              {
-                                role: "checkbox",
-                              },
-                            ),
-                          ]}>
-                          <Checkbox
-                            value={!!filter.includeArchived}
-                            onValueChange={(checked) =>
-                              updateFilter("includeArchived", checked)
-                            }
-                          />
-                          <ExpoText
-                            textStyle={{
-                              color: colors.text,
-                              fontWeight: "600",
-                            }}>
-                            Include Archived
-                          </ExpoText>
-                        </Row>
-                      </Column>
-                    </Host>
+                    <View className="flex-row items-center justify-between py-1">
+                      <View className="flex-row items-center gap-2.5">
+                        <View className="h-8 w-8 items-center justify-center rounded-lg bg-background-element">
+                          <Archive size={15} color={colors.primary} />
+                        </View>
+                        <View>
+                          <Text className="text-sm font-semibold text-text">
+                            Include Archived Notes
+                          </Text>
+                          <Text className="text-xs text-text-secondary mt-0.5">
+                            Show archived notes in list results
+                          </Text>
+                        </View>
+                      </View>
+                      <Switch
+                        value={!!filter.includeArchived}
+                        onValueChange={(value) =>
+                          updateFilter("includeArchived", value)
+                        }
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                        thumbColor="#ffffff"
+                      />
+                    </View>
                   </View>
 
                   {/* Section 4: Tags Filter */}
@@ -383,7 +322,6 @@ export function NotesFilterSheet({
                 </Pressable>
               </View>
             </RNHostView>
-          </Column>
         </BottomSheet>
       )}
     </Host>

@@ -4,6 +4,7 @@ export type { Note, InsertNote };
 
 export interface CreateNoteInput {
   id?: string;
+  folderId?: string | null;
   title?: string;
   content?: string;
   tags?: string[];
@@ -13,6 +14,7 @@ export interface CreateNoteInput {
 }
 
 export interface UpdateNoteInput {
+  folderId?: string | null;
   title?: string;
   content?: string;
   tags?: string[];
@@ -22,6 +24,7 @@ export interface UpdateNoteInput {
 }
 
 export interface ListNotesOptions {
+  folderId?: string | null;
   includeArchived?: boolean;
   includeDeleted?: boolean;
   pinnedFirst?: boolean;

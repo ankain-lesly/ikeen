@@ -30,7 +30,8 @@ function getDevMenuHint() {
 export default function HomeScreen() {
 
   // TODO: Onboard Session
-  return <Redirect href="/(tabs)/home" />
+  return <Redirect href="/(tabs)/notes" />
+  // return <Redirect href="/(tabs)/home" />
   // return <Redirect href="/notes/e28bbd22-1d33-44ed-aa4b-b5ab2537d5df" />;
 
   return (

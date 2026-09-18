@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,12 +14,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import {
-  ChevronLeft,
-  Pin,
-  Plus,
-  X,
-} from "lucide-react-native";
+import { ChevronLeft, Folder, Pin, Plus, X } from "lucide-react-native";
 import {
   NoteAccessoryBar,
   NoteMinimalToolbar,
@@ -35,20 +24,25 @@ import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/lib/toast";
 import {
   hardDeleteNote,
+  moveNoteToFolder,
   softDeleteNote,
   toggleArchiveNote,
   togglePinNote,
   updateNote,
   useLiveNote,
 } from "@/lib/queries/notes";
+import { useLiveFolder } from "@/lib/queries/folders";
 import type { Note } from "@/lib/types/notes";
 import NotesDetailDropdown from "@/components/notes/notes-detail-dropdown";
+import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
 import { formatDate } from "@repo/utils/date";
 import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
 } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { scheduleOnRN } from "react-native-worklets";
 
 export default function NoteDetailScreen() {
   const colors = useTheme();
@@ -90,9 +84,12 @@ function NoteEditor({
   const [isArchived, setIsArchived] = useState(note.isArchived);
   const [isSaving, setIsSaving] = useState(false);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
-  const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] = useState(false);
+  const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
+    useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [newTagText, setNewTagText] = useState("");
+
+  const { data: currentFolder } = useLiveFolder(note.folderId || "");
 
   const isNewDraft = !note.title && !note.content;
   const [isEditing, setIsEditing] = useState(isNewDraft);
@@ -102,7 +99,6 @@ function NoteEditor({
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
   const isDeletedRef = useRef(false);
-  const lastTapRef = useRef<number>(0);
 
   // Keep latest values in ref for unmount save
   useEffect(() => {
@@ -114,8 +110,11 @@ function NoteEditor({
     return () => {
       if (isDeletedRef.current) return;
 
-      const { title: finalTitle, content: finalContent, tags: finalTags } =
-        latestNoteRef.current;
+      const {
+        title: finalTitle,
+        content: finalContent,
+        tags: finalTags,
+      } = latestNoteRef.current;
       const isEmpty =
         finalTitle.trim().length === 0 &&
         finalContent.trim().length === 0 &&
@@ -163,27 +162,31 @@ function NoteEditor({
     [id],
   );
 
-  const startEditing = useCallback((focusTarget: "title" | "content" = "content") => {
-    setIsEditing(true);
-    setTimeout(() => {
-      if (focusTarget === "title") {
-        titleInputRef.current?.focus();
-      } else {
-        contentInputRef.current?.focus();
-      }
-    }, 50);
-  }, []);
+  const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
+    null,
+  );
 
-  const handleCanvasDoubleTap = useCallback(() => {
-    if (isEditing) return;
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      startEditing("content");
+  const startEditing = useCallback(
+    (target: "title" | "content" = "content") => {
+      setFocusTarget(target);
+      setIsEditing(true);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (isEditing && focusTarget) {
+      const timer = setTimeout(() => {
+        if (focusTarget === "title") {
+          titleInputRef.current?.focus();
+        } else {
+          contentInputRef.current?.focus();
+        }
+        setFocusTarget(null);
+      }, 50);
+      return () => clearTimeout(timer);
     }
-    lastTapRef.current = now;
-  }, [isEditing, startEditing]);
+  }, [isEditing, focusTarget]);
 
   const handleDoneEditing = useCallback(async () => {
     Keyboard.dismiss();
@@ -283,6 +286,19 @@ function NoteEditor({
     return trimmed ? trimmed.split(/\s+/).length : 0;
   }, [content]);
 
+  // Handle Tap Gestures
+  const combinedGestures = useMemo(() => {
+    const singleTap = Gesture.Tap();
+    const doubleTap = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd(() => {
+        "worklet";
+        scheduleOnRN(startEditing, "content");
+      });
+
+    return Gesture.Exclusive(doubleTap, singleTap);
+  }, [startEditing]);
+
   return (
     <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-200 mx-auto">
       <KeyboardAvoidingView
@@ -351,6 +367,7 @@ function NoteEditor({
               onDelete={handleDelete}
               onShare={handleShare}
               onShowInfo={() => setInfoSheetVisible(true)}
+              onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
             />
           </View>
         </View>
@@ -362,16 +379,29 @@ function NoteEditor({
             <Text className="text-xs font-mono text-text-secondary">
               {formatDate(note?.updatedAt)} · {wordCount} words
             </Text>
+            <Pressable
+              onPress={() => setIsMoveFolderSheetVisible(true)}
+              hitSlop={4}
+              className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element border border-border active:opacity-70">
+              <Folder
+                size={11}
+                color={currentFolder?.color || colors.textSecondary}
+              />
+              <Text
+                className="text-[11px] font-semibold"
+                style={{ color: currentFolder?.color || colors.textSecondary }}>
+                {currentFolder ? currentFolder.name : "Unorganized"}
+              </Text>
+            </Pressable>
           </View>
 
           {/* Title Input */}
-          <Pressable onPress={handleCanvasDoubleTap}>
+          {/* <Pressable onPress={handleCanvasDoubleTap}> */}
+          {isEditing ? (
             <TextInput
               ref={titleInputRef}
               className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
-              placeholder={
-                isEditing ? "Untitled note" : title || "Untitled note"
-              }
+              placeholder={"Untitled note"}
               placeholderTextColor={colors.textSecondary}
               value={title}
               onChangeText={handleTitleChange}
@@ -381,7 +411,16 @@ function NoteEditor({
               editable={isEditing}
               pointerEvents={isEditing ? "auto" : "none"}
             />
-          </Pressable>
+          ) : (
+            <GestureDetector gesture={combinedGestures}>
+              <Text
+                className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
+                // selectable
+              >
+                {title}
+              </Text>
+            </GestureDetector>
+          )}
 
           {/* Tags Row */}
           {tags.length > 0 || isEditing ? (
@@ -447,10 +486,12 @@ function NoteEditor({
           className="flex-1"
           contentContainerClassName="px-5 pt-4 pb-24"
           keyboardShouldPersistTaps="handled">
-          <Pressable
+          {/* <Pressable
             onPress={handleCanvasDoubleTap}
-            className="flex-1 min-h-60">
-            {/* Body Content Input */}
+            className="flex-1 min-h-60"> */}
+          {/* Body Content Input */}
+
+          {isEditing ? (
             <TextInput
               ref={contentInputRef}
               className="text-base leading-6 min-h-60 py-0 text-text"
@@ -464,11 +505,19 @@ function NoteEditor({
               editable={isEditing}
               pointerEvents={isEditing ? "auto" : "none"}
             />
-          </Pressable>
+          ) : (
+            <GestureDetector gesture={combinedGestures}>
+              <Text
+                className="text-base leading-6 min-h-60 py-0 text-text"
+                // selectable
+              >
+                {content}
+              </Text>
+            </GestureDetector>
+          )}
         </ScrollView>
 
         {/* Accessory / Toolbar depending on mode */}
-        
         {isEditing ? (
           <Animated.View
             key="editing"
@@ -501,7 +550,25 @@ function NoteEditor({
         <NoteInfoSheet
           note={note ?? null}
           visible={infoSheetVisible}
+          folderName={currentFolder?.name}
           onClose={() => setInfoSheetVisible(false)}
+          onOpenMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+        />
+
+        {/* Move to Folder Selector Sheet */}
+        <MoveToFolderSheet
+          isPresented={isMoveFolderSheetVisible}
+          onDismiss={() => setIsMoveFolderSheetVisible(false)}
+          currentFolderId={note.folderId}
+          onSelectFolder={async (newFolderId) => {
+            if (!id) return;
+            try {
+              await moveNoteToFolder(id, newFolderId);
+              toast.success("Folder updated");
+            } catch {
+              toast.error("Failed to move note");
+            }
+          }}
         />
       </KeyboardAvoidingView>
     </View>
