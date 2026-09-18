@@ -8,6 +8,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,8 +26,10 @@ import {
   Plus,
   X,
 } from "lucide-react-native";
-
-import { NoteAccessoryBar } from "@/components/notes/note-accessory-bar";
+import {
+  NoteAccessoryBar,
+  NoteMinimalToolbar,
+} from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/lib/toast";
@@ -40,21 +43,12 @@ import {
 } from "@/lib/queries/notes";
 import type { Note } from "@/lib/types/notes";
 import NotesDetailDropdown from "@/components/notes/notes-detail-dropdown";
-
-function formatEditTime(isoDate?: string): string {
-  if (!isoDate) return "";
-  try {
-    const date = new Date(isoDate);
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
+import { formatDate } from "@repo/utils/date";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 
 export default function NoteDetailScreen() {
   const colors = useTheme();
@@ -96,13 +90,19 @@ function NoteEditor({
   const [isArchived, setIsArchived] = useState(note.isArchived);
   const [isSaving, setIsSaving] = useState(false);
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
+  const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] = useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [newTagText, setNewTagText] = useState("");
 
+  const isNewDraft = !note.title && !note.content;
+  const [isEditing, setIsEditing] = useState(isNewDraft);
+
+  const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
   const isDeletedRef = useRef(false);
+  const lastTapRef = useRef<number>(0);
 
   // Keep latest values in ref for unmount save
   useEffect(() => {
@@ -162,6 +162,37 @@ function NoteEditor({
     },
     [id],
   );
+
+  const startEditing = useCallback((focusTarget: "title" | "content" = "content") => {
+    setIsEditing(true);
+    setTimeout(() => {
+      if (focusTarget === "title") {
+        titleInputRef.current?.focus();
+      } else {
+        contentInputRef.current?.focus();
+      }
+    }, 50);
+  }, []);
+
+  const handleCanvasDoubleTap = useCallback(() => {
+    if (isEditing) return;
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      startEditing("content");
+    }
+    lastTapRef.current = now;
+  }, [isEditing, startEditing]);
+
+  const handleDoneEditing = useCallback(async () => {
+    Keyboard.dismiss();
+    setIsEditing(false);
+    if (hasEditedRef.current) {
+      await saveNote(title, content, tags);
+      toast.success("Note saved");
+    }
+  }, [saveNote, title, content, tags]);
 
   const handleTitleChange = (newTitle: string) => {
     hasEditedRef.current = true;
@@ -268,9 +299,9 @@ function NoteEditor({
             <Text className="text-text">Notes</Text>
           </Pressable>
 
-          {/* Center Save Indicator */}
+          {/* Center Save / Mode Indicator */}
           {/* <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
-            {isSaving ? "Saving..." : "Saved"}
+            {isEditing ? (isSaving ? "Saving..." : "Editing") : "Saved"}
           </Text> */}
 
           {/* Right Header Action Icons */}
@@ -286,21 +317,22 @@ function NoteEditor({
               />
             </Pressable>
 
-            {/* Save */}
-            <Pressable
-              className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
-              onPress={async () => {
-                const trimmedTitle = title.trim();
-                const trimmedContent = content.trim();
-                if (!trimmedTitle && !trimmedContent && tags.length === 0) {
-                  toast.warning("Cannot save an empty note");
-                  return;
-                }
-                await saveNote(title, content, tags);
-                toast.success("Note saved");
-              }}>
-              <Text className="text-base font-bold text-primary">Save</Text>
-            </Pressable>
+            {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
+            {isEditing ? (
+              <Pressable
+                className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+                onPress={handleDoneEditing}>
+                <Text className="text-base font-bold text-primary">Done</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+                onPress={() => startEditing("content")}>
+                <Text className="text-base font-semibold text-primary">
+                  Edit
+                </Text>
+              </Pressable>
+            )}
             {/* Dropdown */}
             <NotesDetailDropdown
               isPinned={isPinned}
@@ -325,94 +357,145 @@ function NoteEditor({
 
         {/* Metadata and Title */}
         <View className="px-5 pt-4">
-          {/* Metadata Row: Last edit date and word count */}
-          <Text className="text-xs font-mono mb-2 text-text-secondary">
-            {formatEditTime(note?.updatedAt)} · {wordCount} words
-          </Text>
+          {/* Metadata Row: Last edit date, word count, and Folder Pill */}
+          <View className="flex-row items-center gap-2 mb-2 flex-wrap">
+            <Text className="text-xs font-mono text-text-secondary">
+              {formatDate(note?.updatedAt)} · {wordCount} words
+            </Text>
+          </View>
 
           {/* Title Input */}
-          <TextInput
-            className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
-            placeholder="Untitled note"
-            placeholderTextColor={colors.textSecondary}
-            value={title}
-            onChangeText={handleTitleChange}
-            returnKeyType="next"
-            onSubmitEditing={() => contentInputRef.current?.focus()}
-            multiline={false}
-          />
+          <Pressable onPress={handleCanvasDoubleTap}>
+            <TextInput
+              ref={titleInputRef}
+              className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
+              placeholder={
+                isEditing ? "Untitled note" : title || "Untitled note"
+              }
+              placeholderTextColor={colors.textSecondary}
+              value={title}
+              onChangeText={handleTitleChange}
+              returnKeyType="next"
+              onSubmitEditing={() => contentInputRef.current?.focus()}
+              multiline={false}
+              editable={isEditing}
+              pointerEvents={isEditing ? "auto" : "none"}
+            />
+          </Pressable>
 
           {/* Tags Row */}
-          <View className="flex-row flex-wrap items-center gap-1.5 mb-4">
-            {tags.map((tag) => (
-              <Pressable
-                key={tag}
-                className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80"
-                onPress={() => handleRemoveTag(tag)}>
-                <Text className="text-xs font-medium text-text">#{tag}</Text>
-                <X size={12} color={colors.textSecondary} />
-              </Pressable>
-            ))}
+          {tags.length > 0 || isEditing ? (
+            <View className="flex-row flex-wrap items-center gap-1.5 mb-4">
+              {tags.map((tag) =>
+                isEditing ? (
+                  <Pressable
+                    key={tag}
+                    className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80"
+                    onPress={() => handleRemoveTag(tag)}>
+                    <Text className="text-xs font-medium text-text">
+                      #{tag}
+                    </Text>
+                    <X size={12} color={colors.textSecondary} />
+                  </Pressable>
+                ) : (
+                  <View
+                    key={tag}
+                    className="flex-row items-center px-2.5 py-1 rounded-xl border border-border bg-background-element">
+                    <Text className="text-xs font-medium text-text">
+                      #{tag}
+                    </Text>
+                  </View>
+                ),
+              )}
 
-            {newTagInputVisible ? (
-              <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
-                <Text className="text-xs text-text-secondary">#</Text>
-                <TextInput
-                  className="text-xs py-0 px-0.5 min-w-10 text-text"
-                  placeholder="tag"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newTagText}
-                  onChangeText={setNewTagText}
-                  autoFocus
-                  onSubmitEditing={handleAddTag}
-                  onBlur={handleAddTag}
-                  returnKeyType="done"
-                  autoCapitalize="none"
-                />
-              </View>
-            ) : (
-              <Pressable
-                className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setNewTagInputVisible(true);
-                }}>
-                <Plus size={12} color={colors.textSecondary} />
-                <Text className="text-xs font-medium text-text-secondary">
-                  Tag
-                </Text>
-              </Pressable>
-            )}
-          </View>
+              {isEditing &&
+                (newTagInputVisible ? (
+                  <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
+                    <Text className="text-xs text-text-secondary">#</Text>
+                    <TextInput
+                      className="text-xs py-0 px-0.5 min-w-10 text-text"
+                      placeholder="tag"
+                      placeholderTextColor={colors.textSecondary}
+                      value={newTagText}
+                      onChangeText={setNewTagText}
+                      autoFocus
+                      onSubmitEditing={handleAddTag}
+                      onBlur={handleAddTag}
+                      returnKeyType="done"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setNewTagInputVisible(true);
+                    }}>
+                    <Plus size={12} color={colors.textSecondary} />
+                    <Text className="text-xs font-medium text-text-secondary">
+                      Tag
+                    </Text>
+                  </Pressable>
+                ))}
+            </View>
+          ) : null}
         </View>
 
-        {/* Note Writing Canvas */}
+        {/* Note Writing / Reading Canvas */}
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-5 pt-4 pb-10"
+          contentContainerClassName="px-5 pt-4 pb-24"
           keyboardShouldPersistTaps="handled">
-          {/* Body Content Input */}
-          <TextInput
-            ref={contentInputRef}
-            className="text-base leading-6 min-h-60 py-0 text-text"
-            placeholder="Start typing..."
-            placeholderTextColor={colors.textSecondary}
-            value={content}
-            onChangeText={handleContentChange}
-            multiline
-            textAlignVertical="top"
-            scrollEnabled={false}
-          />
+          <Pressable
+            onPress={handleCanvasDoubleTap}
+            className="flex-1 min-h-60">
+            {/* Body Content Input */}
+            <TextInput
+              ref={contentInputRef}
+              className="text-base leading-6 min-h-60 py-0 text-text"
+              placeholder="Start typing..."
+              placeholderTextColor={colors.textSecondary}
+              value={content}
+              onChangeText={handleContentChange}
+              multiline
+              textAlignVertical="top"
+              scrollEnabled={false}
+              editable={isEditing}
+              pointerEvents={isEditing ? "auto" : "none"}
+            />
+          </Pressable>
         </ScrollView>
 
-        {/* Keyboard Accessory Bar */}
-        <NoteAccessoryBar
-          onInsertSnippet={handleInsertSnippet}
-          onOpenTagPrompt={() => setNewTagInputVisible(true)}
-          onDismiss={() => {
-            console.log("Exit Live Editing mode > View Mode");
-          }}
-        />
+        {/* Accessory / Toolbar depending on mode */}
+        
+        {isEditing ? (
+          <Animated.View
+            key="editing"
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
+            className="flex-1 flex-row items-center">
+            <NoteAccessoryBar
+              onInsertSnippet={handleInsertSnippet}
+              onOpenTagPrompt={() => setNewTagInputVisible(true)}
+              onDismiss={handleDoneEditing}
+            />
+          </Animated.View>
+        ) : (
+          <Animated.View
+            key="viewing"
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
+            className="flex-1 flex-row items-center justify-between">
+            <NoteMinimalToolbar
+              wordCount={wordCount}
+              onStartEditing={() => startEditing("content")}
+              onShare={handleShare}
+              isPinned={isPinned}
+              onTogglePin={handleTogglePin}
+            />
+          </Animated.View>
+        )}
 
         {/* Note Info Details Modal Sheet */}
         <NoteInfoSheet

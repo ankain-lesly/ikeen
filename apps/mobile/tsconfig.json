@@ -8,6 +8,9 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@repo/utils": [
+        "../../packages/utils/src/*"
       ]
     }
   },
