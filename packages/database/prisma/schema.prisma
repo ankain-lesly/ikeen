@@ -66,6 +66,8 @@ model User {
   verificationTokens  VerificationToken[]
   pushTokens          PushToken[]
   auditLogs           AuditLog[]
+  folders             Folder[]
+  notes               Note[]
   @@map("users")
 }
 
@@ -308,4 +310,52 @@ enum ModelStatus {
   active
   deleted
   achieved
+}
+
+// =====================================
+// SYNC ENGINE: FOLDERS & NOTES
+// =====================================
+
+model Folder {
+  id        String    @id @default(uuid())
+  userId    String
+  name      String    @default("") @db.VarChar(100)
+  color     String    @default("#3b82f6") @db.VarChar(30)
+  icon      String    @default("folder") @db.VarChar(50)
+  isLocked  Boolean   @default(false)
+  pinCode   String?   @db.VarChar(100)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]
+
+  @@index([userId, updatedAt])
+  @@index([userId, deletedAt])
+  @@map("folders")
+}
+
+model Note {
+  id         String    @id @default(uuid())
+  userId     String
+  folderId   String?
+  title      String    @default("") @db.VarChar(255)
+  content    String    @default("") @db.Text
+  tags       String    @default("[]") @db.Text
+  isPinned   Boolean   @default(false)
+  isArchived Boolean   @default(false)
+  summary    String?   @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, updatedAt])
+  @@index([userId, deletedAt])
+  @@index([userId, folderId])
+  @@map("notes")
 }

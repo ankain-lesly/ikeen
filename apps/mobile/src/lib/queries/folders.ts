@@ -11,6 +11,8 @@ import type {
   ListFoldersOptions,
   UpdateFolderInput,
 } from '@/lib/types/folders';
+import { enqueueOutbox } from '@/lib/sync/outbox';
+import { syncManager } from '@/lib/sync/sync-manager';
 
 // ============================================================================
 // Internal Query Builder for Folders
@@ -195,6 +197,9 @@ export async function createFolder(input: CreateFolderInput): Promise<Folder> {
     })
     .returning();
 
+  await enqueueOutbox('folders', created.id, 'upsert', created);
+  syncManager.sync().catch(() => {});
+
   return created;
 }
 
@@ -234,6 +239,9 @@ export async function updateFolder(
     throw new Error(`Folder with id "${id}" not found.`);
   }
 
+  await enqueueOutbox('folders', updated.id, 'upsert', updated);
+  syncManager.sync().catch(() => {});
+
   return updated;
 }
 
@@ -248,22 +256,39 @@ export async function softDeleteFolder(
   const now = new Date().toISOString();
 
   if (options.deleteNotes) {
-    await db
+    const updatedNotes = await db
       .update(notes)
       .set({ deletedAt: now, updatedAt: now })
-      .where(eq(notes.folderId, id));
+      .where(eq(notes.folderId, id))
+      .returning();
+
+    for (const n of updatedNotes) {
+      await enqueueOutbox('notes', n.id, 'upsert', n);
+    }
   } else {
     // Orphan notes (retain notes, remove folder association)
-    await db
+    const updatedNotes = await db
       .update(notes)
       .set({ folderId: null, updatedAt: now })
-      .where(eq(notes.folderId, id));
+      .where(eq(notes.folderId, id))
+      .returning();
+
+    for (const n of updatedNotes) {
+      await enqueueOutbox('notes', n.id, 'upsert', n);
+    }
   }
 
-  await db
+  const [deleted] = await db
     .update(folders)
     .set({ deletedAt: now, updatedAt: now })
-    .where(eq(folders.id, id));
+    .where(eq(folders.id, id))
+    .returning();
+
+  if (deleted) {
+    await enqueueOutbox('folders', deleted.id, 'upsert', deleted);
+  }
+
+  syncManager.sync().catch(() => {});
 }
 
 /**

@@ -10,6 +10,8 @@ import type {
   Note,
   UpdateNoteInput,
 } from '@/lib/types/notes';
+import { enqueueOutbox } from '@/lib/sync/outbox';
+import { syncManager } from '@/lib/sync/sync-manager';
 
 // ============================================================================
 // Internal Query Builder (Shared by listNotes & useLiveNotes)
@@ -183,6 +185,9 @@ export async function createNote(input: CreateNoteInput = {}): Promise<Note> {
     })
     .returning();
 
+  await enqueueOutbox('notes', created.id, 'upsert', created);
+  syncManager.sync().catch(() => {});
+
   return created;
 }
 
@@ -217,6 +222,9 @@ export async function updateNote(
     throw new Error(`Note with id "${id}" not found.`);
   }
 
+  await enqueueOutbox('notes', updated.id, 'upsert', updated);
+  syncManager.sync().catch(() => {});
+
   return updated;
 }
 
@@ -245,6 +253,9 @@ export async function softDeleteNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
 
+  await enqueueOutbox('notes', deleted.id, 'upsert', deleted);
+  syncManager.sync().catch(() => {});
+
   return deleted;
 }
 
@@ -263,6 +274,9 @@ export async function restoreNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
 
+  await enqueueOutbox('notes', restored.id, 'upsert', restored);
+  syncManager.sync().catch(() => {});
+
   return restored;
 }
 
@@ -270,8 +284,12 @@ export async function restoreNote(id: string): Promise<Note> {
  * Permanently removes a note from SQLite.
  */
 export async function hardDeleteNote(id: string): Promise<boolean> {
-  const result = await db.delete(notes).where(eq(notes.id, id)).returning();
-  return result.length > 0;
+  const [deleted] = await db.delete(notes).where(eq(notes.id, id)).returning();
+  if (deleted) {
+    await enqueueOutbox('notes', id, 'delete', { id, deletedAt: new Date().toISOString() });
+    syncManager.sync().catch(() => {});
+  }
+  return !!deleted;
 }
 
 /**

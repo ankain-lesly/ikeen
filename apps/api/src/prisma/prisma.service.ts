@@ -12,6 +12,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return prisma.auth;
   }
 
+  get folder() {
+    return prisma.folder;
+  }
+
+  get note() {
+    return prisma.note;
+  }
+
+  get $transaction() {
+    return prisma.$transaction.bind(prisma);
+  }
+
   get client(): PrismaClient {
     return prisma;
   }

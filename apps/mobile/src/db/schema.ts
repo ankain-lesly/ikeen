@@ -50,4 +50,32 @@ export type InsertNote = typeof notes.$inferInsert;
 export type Folder = typeof folders.$inferSelect;
 export type InsertFolder = typeof folders.$inferInsert;
 
+export const syncOutbox = sqliteTable(
+  'sync_outbox',
+  {
+    id: text('id').primaryKey(),
+    entity: text('entity', { enum: ['folders', 'notes'] }).notNull(),
+    entityId: text('entity_id').notNull(),
+    action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
+    payload: text('payload').notNull(),
+    createdAt: text('created_at').notNull(),
+    retryCount: integer('retry_count').notNull().default(0),
+    lastError: text('last_error'),
+  },
+  (table) => [
+    index('idx_sync_outbox_created_at').on(table.createdAt),
+    index('idx_sync_outbox_entity').on(table.entity, table.entityId),
+  ]
+);
+
+export const syncMetadata = sqliteTable('sync_metadata', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export type SyncOutboxItem = typeof syncOutbox.$inferSelect;
+export type InsertSyncOutboxItem = typeof syncOutbox.$inferInsert;
+export type SyncMetadataItem = typeof syncMetadata.$inferSelect;
+
 

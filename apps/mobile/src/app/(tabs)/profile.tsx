@@ -20,6 +20,7 @@ import {
   LogOut,
   Moon,
   Pin,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   User,
@@ -31,10 +32,13 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/lib/auth/auth-store';
 import { useLiveNotes } from '@/lib/queries/notes';
 import { useLiveFolders } from '@/lib/queries/folders';
+import { useSyncStore } from '@/lib/sync/use-sync';
+import { syncManager } from '@/lib/sync/sync-manager';
 
 export default function ProfileScreen() {
   const colors = useTheme();
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { status: syncStatus, pendingCount, lastSyncedAt } = useSyncStore();
 
   const { data: notes = [] } = useLiveNotes({ includeArchived: true });
   const { data: folders = [] } = useLiveFolders();
@@ -99,27 +103,72 @@ export default function ProfileScreen() {
         contentContainerClassName="gap-5">
         {/* User Identity Card */}
         {isAuthenticated && user ? (
-          <View className="p-5 rounded-3xl bg-card border border-border shadow-xs">
-            <View className="flex-row items-center gap-4">
-              <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center shadow-sm">
-                <Text className="text-white text-2xl font-bold font-mono">
-                  {userInitials}
-                </Text>
-              </View>
+          <>
+            <View className="p-5 rounded-3xl bg-card border border-border shadow-xs">
+              <View className="flex-row items-center gap-4">
+                <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center shadow-sm">
+                  <Text className="text-white text-2xl font-bold font-mono">
+                    {userInitials}
+                  </Text>
+                </View>
 
-              <View className="flex-1">
-                <ThemedText className="text-lg font-bold text-text">
-                  {user.firstName} {user.lastName}
-                </ThemedText>
-                <Text className="text-xs text-text-secondary font-mono mt-0.5">
-                  @{user.username}
-                </Text>
-                <Text className="text-xs text-text-secondary mt-0.5">
-                  {user.email}
-                </Text>
+                <View className="flex-1">
+                  <ThemedText className="text-lg font-bold text-text">
+                    {user.firstName} {user.lastName}
+                  </ThemedText>
+                  <Text className="text-xs text-text-secondary font-mono mt-0.5">
+                    @{user.username}
+                  </Text>
+                  <Text className="text-xs text-text-secondary mt-0.5">
+                    {user.email}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
+
+            {/* Cloud Sync Status Card */}
+            <View className="p-4 rounded-3xl bg-card border border-border shadow-xs gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center">
+                    <Cloud size={20} color={colors.primary} />
+                  </View>
+                  <View>
+                    <ThemedText className="text-sm font-bold text-text">
+                      Cloud Sync
+                    </ThemedText>
+                    <Text className="text-xs text-text-secondary">
+                      {syncStatus === 'syncing'
+                        ? 'Syncing changes...'
+                        : syncStatus === 'offline'
+                        ? 'Offline • Saved on device'
+                        : pendingCount > 0
+                        ? `${pendingCount} pending change${pendingCount > 1 ? 's' : ''}`
+                        : lastSyncedAt
+                        ? `Synced ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                        : 'All changes synced'}
+                    </Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    syncManager.sync().catch(() => {});
+                  }}
+                  disabled={syncStatus === 'syncing'}
+                  className="px-3 py-1.5 rounded-xl bg-background-element border border-border flex-row items-center gap-1.5 active:opacity-70">
+                  <RefreshCw
+                    size={13}
+                    color={colors.primary}
+                  />
+                  <Text className="text-xs font-semibold text-primary">
+                    {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </>
         ) : (
           /* Guest Value Proposition Card */
           <View className="p-5 rounded-3xl bg-card border border-border shadow-xs">

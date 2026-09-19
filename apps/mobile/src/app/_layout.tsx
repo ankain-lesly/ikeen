@@ -18,6 +18,8 @@ import { toastConfig } from "@/lib/toast";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { useAuthStore } from "@/lib/auth/auth-store";
+import { syncManager } from "@/lib/sync/sync-manager";
+import { log } from "@repo/utils";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,6 +70,7 @@ function RootApp() {
         .catch((err) => console.error("Seeding error:", err))
         .finally(() => {
           SplashScreen.hideAsync();
+          syncManager.init();
         });
     }
   }, [success]);
