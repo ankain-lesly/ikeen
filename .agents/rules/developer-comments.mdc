@@ -1,0 +1,59 @@
+---
+description: Standard short comments for non-obvious logic — all Delivo repos (mobile + backend)
+alwaysApply: true
+---
+
+# Developer Comments
+
+Agents and developers must **preserve and add** short comments that explain **why**, **boundaries**, and **who depends on the code** — not restate what the code already says.
+
+## When to comment
+
+| Add a comment | Skip a comment |
+|---------------|----------------|
+| File or module purpose and main consumers | Obvious getters, setters, and one-liners |
+| Non-obvious business rules or edge cases | Every step in straightforward CRUD |
+| Cross-module contracts (callbacks, queues, shared state) | Import blocks and boilerplate |
+| Security, persistence, or side-effect boundaries | Variable names that are already clear |
+| Platform or library workarounds | Test arrange / act / assert |
+| Code is a block or section | Not individual single lines, unless an explanation is genuinely needed
+
+## Structure (use consistently)
+
+### 1. File header — orchestration, shared infra, or multi-step flows
+
+```typescript
+/**
+ * Module: <file-or-domain-name>
+ * Role: <what this file is responsible for>
+ * Consumers: <who calls or imports this — optional>
+ */
+```
+
+### 2. Section blocks — group related logic in long files
+
+```typescript
+// --- Validation ---
+// --- Persistence ---
+// --- Side effects (notifications, WS, audit) ---
+```
+
+Use sparingly; only when a file has distinct phases.
+
+### 3. Inline tags — one line, purpose only
+
+```typescript
+// NOTE: <non-obvious behavior or constraint>
+// CONTRACT: <what callers must guarantee or what this guarantees>
+// WORKAROUND: <why this exists — link issue/ticket if helpful>
+```
+
+Prefer `NOTE` for most cases. Use `CONTRACT` for public APIs and callbacks. Use `WORKAROUND` for temporary or platform-specific fixes.
+
+## Rules
+
+1. **Do not remove** useful comments when editing — improve or replace them, do not strip context.
+2. **Keep comments short** — one line by default; two only when the rule is genuinely non-obvious.
+3. **No emoji** in source comments (logging may follow project conventions).
+4. **Comments match the code** — update or delete comments when behavior changes; no stale TODOs for removed features.
+5. **Prefer clear code first** — comment what code cannot express (intent, constraints, coupling), not the syntax.

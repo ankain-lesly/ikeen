@@ -17,7 +17,7 @@ import { toastConfig } from "@/lib/toast";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-// import { KeyboardProvider } from "react-native-keyboard-controller";
+import { useAuthStore } from "@/lib/auth/auth-store";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,6 +72,10 @@ function RootApp() {
     }
   }, [success]);
 
+  useEffect(() => {
+    useAuthStore.getState().init();
+  }, []);
+
   if (error) {
     return (
       <View className="flex-1 justify-center items-center p-6 p-safe">
@@ -96,5 +100,18 @@ function RootApp() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="(auth)"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.85, 1.0],
+          sheetGrabberVisible: true,
+          headerShown: false,
+        }}
+      />
+    </Stack>
+  );
 }
