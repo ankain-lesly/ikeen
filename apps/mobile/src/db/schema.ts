@@ -4,6 +4,7 @@ export const folders = sqliteTable(
   'folders',
   {
     id: text('id').primaryKey(),
+    userId: text('user_id'),
     name: text('name').notNull().default(''),
     color: text('color').notNull().default('#3b82f6'),
     icon: text('icon').notNull().default('folder'),
@@ -15,6 +16,7 @@ export const folders = sqliteTable(
     deletedAt: text('deleted_at'),
   },
   (table) => [
+    index('idx_folders_user_id').on(table.userId),
     index('idx_folders_updated_at').on(table.updatedAt),
     index('idx_folders_deleted_at').on(table.deletedAt),
   ]
@@ -24,6 +26,7 @@ export const notes = sqliteTable(
   'notes',
   {
     id: text('id').primaryKey(),
+    userId: text('user_id'),
     folderId: text('folder_id').references(() => folders.id, { onDelete: 'set null' }),
     title: text('title').notNull().default(''),
     content: text('content').notNull().default(''),
@@ -36,6 +39,7 @@ export const notes = sqliteTable(
     deletedAt: text('deleted_at'),
   },
   (table) => [
+    index('idx_notes_user_id').on(table.userId),
     index('idx_notes_folder_id').on(table.folderId),
     index('idx_notes_updated_at').on(table.updatedAt),
     index('idx_notes_deleted_at').on(table.deletedAt),

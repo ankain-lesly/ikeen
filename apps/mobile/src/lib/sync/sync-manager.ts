@@ -3,9 +3,11 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import * as Ably from 'ably';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { folders, notes, syncMetadata } from '@/db/schema';
+import { syncMetadata } from '@/db/schema';
 import { useAuthStore } from '../auth/auth-store';
-import { clearOutboxItems, getOutboxCount, getPendingOutbox, enqueueOutbox } from './outbox';
+import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
+import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
+import { clearOutboxItems, getOutboxCount, getPendingOutbox } from './outbox';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
 
@@ -43,7 +45,7 @@ class SyncManager {
     useAuthStore.subscribe((state, prevState) => {
       // Transition from Guest -> Authenticated
       if (state.isAuthenticated && !prevState.isAuthenticated && state.user) {
-        this.migrateGuestNotes()
+        this.migrateGuestNotes(state.user.id)
           .then(() => this.connectRealtime(state.user!.id))
           .then(() => this.sync())
           .catch((err) => console.error('[SyncManager] Auth transition error:', err));
@@ -124,21 +126,15 @@ class SyncManager {
   }
 
   /**
-   * Migrates any local notes and folders created in Guest Mode to the cloud.
+   * Migrates local notes and folders created in Guest Mode (strictly where userId IS NULL) to the cloud.
    */
-  async migrateGuestNotes() {
+  async migrateGuestNotes(userId?: string) {
+    const targetUserId = userId ?? useAuthStore.getState().user?.id;
+    if (!targetUserId) return;
+
     try {
-      const localFolders = await db.select().from(folders);
-      const localNotes = await db.select().from(notes);
-
-      for (const f of localFolders) {
-        await enqueueOutbox('folders', f.id, 'upsert', f);
-      }
-
-      for (const n of localNotes) {
-        await enqueueOutbox('notes', n.id, 'upsert', n);
-      }
-
+      await migrateGuestFolders(targetUserId);
+      await migrateGuestNotes(targetUserId);
       await this.updatePendingCount();
     } catch (err) {
       console.error('[SyncManager] Failed to migrate guest notes:', err);
@@ -168,6 +164,18 @@ class SyncManager {
         if (item.entity === 'folders') {
           folderMutations.push(payload);
         } else if (item.entity === 'notes') {
+          // Adapt tags: ensure payload has string[] for the API
+          let tagsArray: string[] = [];
+          if (Array.isArray(payload.tags)) {
+            tagsArray = payload.tags;
+          } else if (typeof payload.tags === 'string') {
+            try {
+              tagsArray = JSON.parse(payload.tags);
+            } catch {
+              tagsArray = [];
+            }
+          }
+          payload.tags = tagsArray;
           noteMutations.push(payload);
         }
         processedIds.push(item.id);
@@ -191,7 +199,7 @@ class SyncManager {
    * Pulls all updated deltas from the backend since last_pulled_at.
    */
   async pull(): Promise<void> {
-    const { isAuthenticated } = useAuthStore.getState();
+    const { isAuthenticated, user } = useAuthStore.getState();
     if (!isAuthenticated) return;
 
     // Read last pulled timestamp
@@ -204,68 +212,14 @@ class SyncManager {
     const since = meta?.value ?? null;
     const response = await syncApi.pull(since);
 
-    // Apply Folders
+    // Apply Folders via unified queries module
     for (const f of response.folders) {
-      await db
-        .insert(folders)
-        .values({
-          id: f.id,
-          name: f.name,
-          color: f.color,
-          icon: f.icon,
-          isLocked: f.isLocked,
-          pinCode: f.pinCode,
-          sortOrder: f.sortOrder,
-          createdAt: f.createdAt,
-          updatedAt: f.updatedAt,
-          deletedAt: f.deletedAt,
-        })
-        .onConflictDoUpdate({
-          target: folders.id,
-          set: {
-            name: f.name,
-            color: f.color,
-            icon: f.icon,
-            isLocked: f.isLocked,
-            pinCode: f.pinCode,
-            sortOrder: f.sortOrder,
-            updatedAt: f.updatedAt,
-            deletedAt: f.deletedAt,
-          },
-        });
+      await upsertFolderFromSync({ ...f, userId: user?.id });
     }
 
-    // Apply Notes
+    // Apply Notes via unified queries module (adapts native string[] tags to SQLite JSON)
     for (const n of response.notes) {
-      await db
-        .insert(notes)
-        .values({
-          id: n.id,
-          folderId: n.folderId,
-          title: n.title,
-          content: n.content,
-          tags: n.tags,
-          isPinned: n.isPinned,
-          isArchived: n.isArchived,
-          summary: n.summary,
-          createdAt: n.createdAt,
-          updatedAt: n.updatedAt,
-          deletedAt: n.deletedAt,
-        })
-        .onConflictDoUpdate({
-          target: notes.id,
-          set: {
-            folderId: n.folderId,
-            title: n.title,
-            content: n.content,
-            tags: n.tags,
-            isPinned: n.isPinned,
-            isArchived: n.isArchived,
-            summary: n.summary,
-            updatedAt: n.updatedAt,
-            deletedAt: n.deletedAt,
-          },
-        });
+      await upsertNoteFromSync({ ...n, userId: user?.id });
     }
 
     // Save new checkpoint

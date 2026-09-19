@@ -60,9 +60,10 @@ export class NoteMutationDto {
   @IsString()
   content: string;
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  tags?: string;
+  tags?: string[];
 
   @IsBoolean()
   @IsOptional()

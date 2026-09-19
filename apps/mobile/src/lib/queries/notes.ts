@@ -163,7 +163,9 @@ export async function searchNotes(
 /**
  * Creates a new note in SQLite.
  */
-export async function createNote(input: CreateNoteInput = {}): Promise<Note> {
+export async function createNote(
+  input: CreateNoteInput & { userId?: string | null } = {}
+): Promise<Note> {
   const id = input.id ?? Crypto.randomUUID();
   const now = new Date().toISOString();
   const tags = input.tags ? JSON.stringify(input.tags) : '[]';
@@ -172,6 +174,7 @@ export async function createNote(input: CreateNoteInput = {}): Promise<Note> {
     .insert(notes)
     .values({
       id,
+      userId: input.userId ?? null,
       folderId: input.folderId ?? null,
       title: input.title ?? '',
       content: input.content ?? '',
@@ -312,4 +315,100 @@ export async function toggleArchiveNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
   return await updateNote(id, { isArchived: !existing.isArchived });
+}
+
+/**
+ * Upserts a note incoming from a sync pull with Last-Write-Wins (LWW).
+ * Adapts platform boundary: parses native string[] tags into SQLite JSON string.
+ */
+export async function upsertNoteFromSync(n: {
+  id: string;
+  folderId?: string | null;
+  title: string;
+  content?: string;
+  tags?: string[] | string;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  summary?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  userId?: string | null;
+}): Promise<void> {
+  const [existing] = await db
+    .select({ updatedAt: notes.updatedAt })
+    .from(notes)
+    .where(eq(notes.id, n.id))
+    .limit(1);
+
+  if (existing && new Date(existing.updatedAt) > new Date(n.updatedAt)) {
+    return;
+  }
+
+  // Adapt tags: convert array or raw string to SQLite JSON string
+  let tagsJson = '[]';
+  if (Array.isArray(n.tags)) {
+    tagsJson = JSON.stringify(n.tags);
+  } else if (typeof n.tags === 'string') {
+    tagsJson = n.tags;
+  }
+
+  await db
+    .insert(notes)
+    .values({
+      id: n.id,
+      userId: n.userId ?? null,
+      folderId: n.folderId ?? null,
+      title: n.title ?? '',
+      content: n.content ?? '',
+      tags: tagsJson,
+      isPinned: n.isPinned ?? false,
+      isArchived: n.isArchived ?? false,
+      summary: n.summary ?? null,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      deletedAt: n.deletedAt ?? null,
+    })
+    .onConflictDoUpdate({
+      target: notes.id,
+      set: {
+        folderId: n.folderId ?? null,
+        title: n.title ?? '',
+        content: n.content ?? '',
+        tags: tagsJson,
+        isPinned: n.isPinned ?? false,
+        isArchived: n.isArchived ?? false,
+        summary: n.summary ?? null,
+        updatedAt: n.updatedAt,
+        deletedAt: n.deletedAt ?? null,
+        ...(n.userId ? { userId: n.userId } : {}),
+      },
+    });
+}
+
+/**
+ * Migrates local notes created in Guest Mode (strictly where userId IS NULL) to the authenticated user.
+ * Guarantees that notes belonging to previously signed-in accounts are NEVER overwritten or claimed.
+ */
+export async function migrateGuestNotes(userId: string): Promise<number> {
+  const guestNotes = await db
+    .select()
+    .from(notes)
+    .where(isNull(notes.userId));
+
+  if (guestNotes.length === 0) return 0;
+
+  for (const n of guestNotes) {
+    const [updated] = await db
+      .update(notes)
+      .set({ userId })
+      .where(eq(notes.id, n.id))
+      .returning();
+
+    if (updated) {
+      await enqueueOutbox('notes', updated.id, 'upsert', updated);
+    }
+  }
+
+  return guestNotes.length;
 }

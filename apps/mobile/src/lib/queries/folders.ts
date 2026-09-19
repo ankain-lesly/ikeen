@@ -303,3 +303,86 @@ export async function verifyFolderPin(
   if (!folder.isLocked) return true;
   return folder.pinCode === enteredPin.trim();
 }
+
+/**
+ * Upserts a folder incoming from a sync pull with Last-Write-Wins (LWW).
+ */
+export async function upsertFolderFromSync(f: {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  isLocked?: boolean;
+  pinCode?: string | null;
+  sortOrder?: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  userId?: string | null;
+}): Promise<void> {
+  const [existing] = await db
+    .select({ updatedAt: folders.updatedAt })
+    .from(folders)
+    .where(eq(folders.id, f.id))
+    .limit(1);
+
+  if (existing && new Date(existing.updatedAt) > new Date(f.updatedAt)) {
+    return;
+  }
+
+  await db
+    .insert(folders)
+    .values({
+      id: f.id,
+      userId: f.userId ?? null,
+      name: f.name,
+      color: f.color ?? '#3b82f6',
+      icon: f.icon ?? 'folder',
+      isLocked: f.isLocked ?? false,
+      pinCode: f.pinCode ?? null,
+      sortOrder: f.sortOrder ?? 0,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      deletedAt: f.deletedAt ?? null,
+    })
+    .onConflictDoUpdate({
+      target: folders.id,
+      set: {
+        name: f.name,
+        color: f.color ?? '#3b82f6',
+        icon: f.icon ?? 'folder',
+        isLocked: f.isLocked ?? false,
+        pinCode: f.pinCode ?? null,
+        sortOrder: f.sortOrder ?? 0,
+        updatedAt: f.updatedAt,
+        deletedAt: f.deletedAt ?? null,
+        ...(f.userId ? { userId: f.userId } : {}),
+      },
+    });
+}
+
+/**
+ * Migrates local folders created in Guest Mode (strictly where userId IS NULL) to the authenticated user.
+ */
+export async function migrateGuestFolders(userId: string): Promise<number> {
+  const guestFolders = await db
+    .select()
+    .from(folders)
+    .where(isNull(folders.userId));
+
+  if (guestFolders.length === 0) return 0;
+
+  for (const f of guestFolders) {
+    const [updated] = await db
+      .update(folders)
+      .set({ userId })
+      .where(eq(folders.id, f.id))
+      .returning();
+
+    if (updated) {
+      await enqueueOutbox('folders', updated.id, 'upsert', updated);
+    }
+  }
+
+  return guestFolders.length;
+}

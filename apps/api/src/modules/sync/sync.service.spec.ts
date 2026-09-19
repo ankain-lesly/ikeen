@@ -1,31 +1,48 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SyncService } from './sync.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AblyService } from '../ably/ably.service';
+import { FoldersService } from '../folders/folders.service';
+import { NotesService } from '../notes/notes.service';
 
 describe('SyncService', () => {
   let service: SyncService;
   let prisma: any;
+  let ablyService: any;
+  let foldersService: any;
+  let notesService: any;
 
   beforeEach(async () => {
     prisma = {
       $transaction: vi.fn(async (cb) => cb(prisma)),
       folder: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        upsert: vi.fn(),
         findMany: vi.fn(),
       },
       note: {
-        findUnique: vi.fn(),
-        upsert: vi.fn(),
         findMany: vi.fn(),
       },
+    };
+
+    ablyService = {
+      createRealtimeAuth: vi.fn().mockResolvedValue({ enabled: false }),
+      publishInvalidation: vi.fn().mockResolvedValue(undefined),
+    };
+
+    foldersService = {
+      upsertWithLww: vi.fn().mockResolvedValue({ applied: true, folderId: 'f-1' }),
+    };
+
+    notesService = {
+      upsertWithLww: vi.fn().mockResolvedValue({ applied: true, noteId: 'n-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SyncService,
         { provide: PrismaService, useValue: prisma },
+        { provide: AblyService, useValue: ablyService },
+        { provide: FoldersService, useValue: foldersService },
+        { provide: NotesService, useValue: notesService },
       ],
     }).compile();
 
@@ -33,12 +50,7 @@ describe('SyncService', () => {
   });
 
   describe('push', () => {
-    it('should upsert folders and notes in a transaction', async () => {
-      prisma.folder.findUnique.mockResolvedValue(null);
-      prisma.note.findUnique.mockResolvedValue(null);
-      prisma.folder.upsert.mockResolvedValue({ id: 'f-1' });
-      prisma.note.upsert.mockResolvedValue({ id: 'n-1' });
-
+    it('should delegate folder and note mutations to respective services', async () => {
       const result = await service.push('user-1', {
         clientTimestamp: new Date().toISOString(),
         folders: [
@@ -54,6 +66,7 @@ describe('SyncService', () => {
             id: 'n-1',
             title: 'My First Note',
             content: 'Hello World',
+            tags: ['tag1'],
             createdAt: '2026-09-18T10:00:00.000Z',
             updatedAt: '2026-09-18T10:00:00.000Z',
           },
@@ -62,31 +75,20 @@ describe('SyncService', () => {
 
       expect(result.success).toBe(true);
       expect(result.serverTimestamp).toBeDefined();
-      expect(prisma.folder.upsert).toHaveBeenCalled();
-      expect(prisma.note.upsert).toHaveBeenCalled();
-    });
-
-    it('should skip older mutations when existing record in DB is newer (LWW)', async () => {
-      // Existing in DB has newer updatedAt
-      prisma.note.findUnique.mockResolvedValue({
-        id: 'n-1',
-        updatedAt: new Date('2026-09-18T12:00:00.000Z'),
-      });
-
-      const result = await service.push('user-1', {
-        notes: [
-          {
-            id: 'n-1',
-            title: 'Stale Edit',
-            content: 'Older text',
-            createdAt: '2026-09-18T10:00:00.000Z',
-            updatedAt: '2026-09-18T11:00:00.000Z', // Older than DB's 12:00
-          },
-        ],
-      });
-
-      expect(result.success).toBe(true);
-      expect(prisma.note.upsert).not.toHaveBeenCalled();
+      expect(foldersService.upsertWithLww).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({ id: 'f-1' }),
+        prisma,
+      );
+      expect(notesService.upsertWithLww).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({ id: 'n-1' }),
+        prisma,
+      );
+      expect(ablyService.publishInvalidation).toHaveBeenCalledWith('user-1', [
+        'folders',
+        'notes',
+      ]);
     });
   });
 
@@ -113,7 +115,7 @@ describe('SyncService', () => {
           folderId: 'f-1',
           title: 'Meeting Notes',
           content: 'Important items',
-          tags: '[]',
+          tags: ['work', 'meeting'],
           isPinned: false,
           isArchived: false,
           summary: null,
@@ -130,13 +132,14 @@ describe('SyncService', () => {
       expect(result.notes).toHaveLength(1);
       expect(result.folders[0].name).toBe('Work');
       expect(result.notes[0].title).toBe('Meeting Notes');
+      expect(result.notes[0].tags).toEqual(['work', 'meeting']);
     });
   });
 
   describe('createRealtimeAuth', () => {
-    it('should return enabled: false when Ably API key is not configured', async () => {
-      const result = await service.createRealtimeAuth('user-1');
-      expect(result.enabled).toBe(false);
+    it('should delegate to ablyService', async () => {
+      await service.createRealtimeAuth('user-1');
+      expect(ablyService.createRealtimeAuth).toHaveBeenCalledWith('user-1');
     });
   });
 });

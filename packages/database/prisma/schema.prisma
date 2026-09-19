@@ -111,7 +111,7 @@ model VerificationToken {
 
   userId String?
 
-  identifier     String
+  identifier     String                 @db.VarChar(255)
   identifierType IdentifierType
 
   type   VerificationType
@@ -119,11 +119,11 @@ model VerificationToken {
 
   status VerificationStatus @default(pending)
 
-  tokenHash String
-  attempts Int @default(0)
-  ipAddress String?
-  userAgent String?
-  device    String?
+  tokenHash String    @db.VarChar(255)
+  attempts  Int       @default(0)
+  ipAddress String?   @db.VarChar(45)
+  userAgent String?   @db.Text
+  device    String?   @db.VarChar(100)
 
   expiresAt   DateTime
   verifiedAt  DateTime?
@@ -157,28 +157,25 @@ model AuditLog {
   userId String?
   //userType UserType?
 
-  // Context-specific IDs (optional based on action)
-  merchantId String?
-
   // Action details
-  action   String
+  action   String        @db.VarChar(100)
   severity AuditSeverity @default(INFO)
   isSystem Boolean       @default(false)
 
   // Resource tracking
-  resourceType String?
-  resourceId   String?
+  resourceType String? @db.VarChar(100)
+  resourceId   String? @db.VarChar(100)
 
   // Change tracking
   metadata Json?
   changes  Json?
-  details  String?
+  details  String? @db.Text
 
   // Request context
   ipAddress     String? @db.VarChar(45)
   userAgent     String? @db.Text
-  requestPath   String?
-  requestMethod String?
+  requestPath   String? @db.VarChar(255)
+  requestMethod String? @db.VarChar(10)
 
   // Status
   success      Boolean @default(true)
@@ -191,10 +188,8 @@ model AuditLog {
 
   // Indexes
   @@index([userId, createdAt])
-  @@index([merchantId, createdAt])
   @@index([action, severity])
   @@index([resourceType, resourceId])
-  @@index([merchantId, action, createdAt])
   @@map("audit_logs")
 }
 
@@ -219,9 +214,9 @@ model Notification {
   isSystem Boolean @default(false)
 
   // Content
-  title    String
-  message  String
-  type     NotificationType @default(general)
+  title    String               @db.VarChar(255)
+  message  String               @db.Text
+  type     NotificationType     @default(general)
   priority NotificationPriority @default(default)
   platform NotifyPlatformType   @default(web)
 
@@ -235,8 +230,8 @@ model Notification {
 
   // Metadata
   data      Json? // Additional context data
-  link      String? // Deep link or action url
-  linkLabel String? // Deep link or action url
+  link      String? @db.VarChar(255) // Deep link or action url
+  linkLabel String? @db.VarChar(100) // Deep link or action url
 
   createdAt DateTime  @default(now())
   expiresAt DateTime?
@@ -253,15 +248,15 @@ model PushToken {
   // Device Type
   platform NotifyPlatformType // web or mobile
 
-  token String @unique
+  token String @unique @db.VarChar(500)
 
   // Device Metadata
-  deviceName   String?
-  deviceId     String? // Device identifier for tracking
-  osVersion    String? // OS version
-  appVersion   String? // App version
-  manufacturer String? // Device manufacturer (e.g., Apple, Samsung)
-  model        String? // Device model (e.g., iPhone 14, Galaxy S23)
+  deviceName   String? @db.VarChar(100)
+  deviceId     String? @db.VarChar(100) // Device identifier for tracking
+  osVersion    String? @db.VarChar(50) // OS version
+  appVersion   String? @db.VarChar(50) // App version
+  manufacturer String? @db.VarChar(100) // Device manufacturer (e.g., Apple, Samsung)
+  model        String? @db.VarChar(100) // Device model (e.g., iPhone 14, Galaxy S23)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -323,7 +318,7 @@ model Folder {
   color     String    @default("#3b82f6") @db.VarChar(30)
   icon      String    @default("folder") @db.VarChar(50)
   isLocked  Boolean   @default(false)
-  pinCode   String?   @db.VarChar(100)
+  pinCode   String?   @db.VarChar(20)
   sortOrder Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -343,7 +338,7 @@ model Note {
   folderId   String?
   title      String    @default("") @db.VarChar(255)
   content    String    @default("") @db.Text
-  tags       String    @default("[]") @db.Text
+  tags       String[]  @default([])
   isPinned   Boolean   @default(false)
   isArchived Boolean   @default(false)
   summary    String?   @db.Text
