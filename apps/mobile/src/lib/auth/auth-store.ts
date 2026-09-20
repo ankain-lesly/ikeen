@@ -48,6 +48,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
       const storedUser = await SecureStore.getItemAsync(USER_KEY);
 
+      console.log('storedToken', storedToken);  
+      console.log('storedUser', storedUser);
+
       if (!storedToken) {
         set({ token: null, user: null, isAuthenticated: false, isLoading: false });
         return;

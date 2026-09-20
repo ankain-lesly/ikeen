@@ -174,6 +174,9 @@ export class NotesService {
       if (n.changes.deletedAt !== undefined) {
         patchData.deletedAt = n.changes.deletedAt ? new Date(n.changes.deletedAt) : null;
       }
+      if (n.changes.createdAt !== undefined) {
+        patchData.createdAt = n.changes.createdAt ? new Date(n.changes.createdAt) : undefined;
+      }
 
       await prismaClient.note.update({
         where: { id: n.id },

@@ -7,6 +7,7 @@ import { SyncModule } from './modules/sync/sync.module';
 import { AblyModule } from './modules/ably/ably.module';
 import { FoldersModule } from './modules/folders/folders.module';
 import { NotesModule } from './modules/notes/notes.module';
+import { AgentModule } from './modules/agent/agent.module';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware';
 
 @Module({
@@ -17,6 +18,7 @@ import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware
     NotesModule,
     AuthModule,
     SyncModule,
+    AgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

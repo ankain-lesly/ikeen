@@ -133,6 +133,9 @@ export class FoldersService {
       if (f.changes.deletedAt !== undefined) {
         patchData.deletedAt = f.changes.deletedAt ? new Date(f.changes.deletedAt) : null;
       }
+      if (f.changes.createdAt !== undefined) {
+        patchData.createdAt = f.changes.createdAt ? new Date(f.changes.createdAt) : undefined;
+      }
 
       await prismaClient.folder.update({
         where: { id: f.id },

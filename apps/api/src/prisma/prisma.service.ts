@@ -24,6 +24,26 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return prisma.syncLog;
   }
 
+  get auditLog() {
+    return prisma.auditLog;
+  }
+
+  get chatConversation() {
+    return prisma.chatConversation;
+  }
+
+  get chatMessage() {
+    return prisma.chatMessage;
+  }
+
+  get chatMemory() {
+    return prisma.chatMemory;
+  }
+
+  get chatConversationData() {
+    return prisma.chatConversationData;
+  }
+
   get $transaction() {
     return prisma.$transaction.bind(prisma);
   }
