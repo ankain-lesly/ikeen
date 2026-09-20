@@ -4,6 +4,7 @@
   "javascript.suggest.autoImports": true,
   "javascript.preferences.includePackageJsonAutoImports": "on",
   "cSpell.words": [
-    "ikeen"
+    "ikeen",
+    "OPENROUTER"
   ]
 }

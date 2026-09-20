@@ -1,4 +1,5 @@
 import type { UIMessage } from 'ai';
+import type { Prisma } from '@repo/db';
 
 const MAX_PARTS_JSON_CHARS = 200_000;
 
@@ -62,27 +63,17 @@ export function uiMessagesFromRows(rows: ChatMessageRow[]): UIMessage[] {
   return rows.map(uiMessageFromRow).filter((message) => message.parts.length > 0);
 }
 
-export type PersistableJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: PersistableJsonValue }
-  | PersistableJsonValue[];
-
-export type PersistableJson = PersistableJsonValue[];
-
 /**
  * Prepares UIMessage parts for database JSON serialization safely.
  */
-export function persistableParts(message: UIMessage): PersistableJson {
+export function persistableParts(message: UIMessage): Prisma.InputJsonValue {
   try {
     const serialized = JSON.stringify(message.parts || []);
     if (serialized.length > MAX_PARTS_JSON_CHARS) {
       const text = textFromMessage(message);
       return text ? [{ type: 'text', text }] : [];
     }
-    return JSON.parse(serialized) as PersistableJson;
+    return JSON.parse(serialized) as Prisma.InputJsonValue;
   } catch {
     const text = textFromMessage(message);
     return text ? [{ type: 'text', text }] : [];

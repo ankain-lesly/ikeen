@@ -3,12 +3,11 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { BottomSheet, Host, RNHostView } from '@expo/ui';
+import { Host, Switch } from '@expo/ui/jetpack-compose';
 import * as Haptics from 'expo-haptics';
 import { Check, Lock, X } from 'lucide-react-native';
 
@@ -182,15 +181,15 @@ export function CreateFolderSheet({
                 </View>
               </View>
 
-              <Switch
-                value={isLocked}
-                onValueChange={(val) => {
-                  Haptics.selectionAsync();
-                  setIsLocked(val);
-                }}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#ffffff"
-              />
+              <Host matchContents>
+                <Switch
+                  value={isLocked}
+                  onCheckedChange={(val) => {
+                    Haptics.selectionAsync();
+                    setIsLocked(val);
+                  }}
+                />
+              </Host>
             </View>
 
             {isLocked && (

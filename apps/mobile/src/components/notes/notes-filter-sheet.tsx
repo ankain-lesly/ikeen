@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, Switch, Text, View } from "react-native";
-import { BottomSheet, Host, RNHostView } from "@expo/ui";
+import { Pressable, Text, View } from "react-native";
+import { Host, Switch } from "@expo/ui/jetpack-compose";
 import * as Haptics from "expo-haptics";
 import {
   Archive,
@@ -199,14 +199,14 @@ export function NotesFilterSheet({
                           </Text>
                         </View>
                       </View>
-                      <Switch
-                        value={!!filter.pinnedFirst}
-                        onValueChange={(value) =>
-                          updateFilter("pinnedFirst", value)
-                        }
-                        trackColor={{ false: colors.border, true: colors.primary }}
-                        thumbColor="#ffffff"
-                      />
+                      <Host matchContents>
+                        <Switch
+                          value={!!filter.pinnedFirst}
+                          onCheckedChange={(value) =>
+                            updateFilter("pinnedFirst", value)
+                          }
+                        />
+                      </Host>
                     </View>
                   </View>
 
@@ -226,14 +226,14 @@ export function NotesFilterSheet({
                           </Text>
                         </View>
                       </View>
-                      <Switch
-                        value={!!filter.includeArchived}
-                        onValueChange={(value) =>
-                          updateFilter("includeArchived", value)
-                        }
-                        trackColor={{ false: colors.border, true: colors.primary }}
-                        thumbColor="#ffffff"
-                      />
+                      <Host matchContents>
+                        <Switch
+                          value={!!filter.includeArchived}
+                          onCheckedChange={(value) =>
+                            updateFilter("includeArchived", value)
+                          }
+                        />
+                      </Host>
                     </View>
                   </View>
 

@@ -15,6 +15,8 @@ import { desc } from "drizzle-orm";
 import { syncOutbox } from "@/db/schema";
 import { db } from "@/db/client";
 import { log } from "@repo/utils";
+import { router } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 
 export default function SyncMonitorPage() {
   const { width } = useWindowDimensions();
@@ -46,6 +48,18 @@ export default function SyncMonitorPage() {
   }
   return (
     <View style={styles.screen}>
+      {/* Navigation Top Header */}
+      <View style={styles.topHeader}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backButton}>
+          <ChevronLeft size={20} color="#FFFFFF" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Delivery Ledger</Text>
+        <View style={{ width: 48 }} />
+      </View>
+
       {/* 🚀 Runway Metrics Monitor Header Layout */}
       <View style={styles.metricsBar}>
         <MetricCard
@@ -262,7 +276,30 @@ function getStatusColor(status: string) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0A0E17", padding: 16 }, // Deep tech cyberpunk dark background
+  screen: { flex: 1, backgroundColor: "#0A0E17", padding: 16, paddingTop: 40 }, // Deep tech cyberpunk dark background
+  topHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  headerTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
   metricsBar: { flexDirection: "row", gap: 10, marginBottom: 16 },
   metricCard: { flex: 1, padding: 12, borderRadius: 12, alignItems: "center" },
   metricCount: { fontSize: 20, fontWeight: "700" },
