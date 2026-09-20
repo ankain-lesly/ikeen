@@ -140,18 +140,18 @@ export default function NotesScreen() {
     );
   }, []);
 
-  const handleNewNote = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      const newNote = await createNote();
-      router.push({
-        pathname: "/notes/[id]",
-        params: { id: newNote.id },
-      });
-    } catch {
-      Alert.alert("Error", "Failed to create new note");
-    }
-  };
+  // const handleNewNote = async () => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  //   try {
+  //     const newNote = await createNote();
+  //     router.push({
+  //       pathname: "/notes/[id]",
+  //       params: { id: newNote.id },
+  //     });
+  //   } catch {
+  //     Alert.alert("Error", "Failed to create new note");
+  //   }
+  // };
 
   const handleApplyFilters = (newFilter: ListNotesOptions) => {
     setFilter(newFilter);
@@ -160,7 +160,7 @@ export default function NotesScreen() {
 
   const renderNoteItem = useCallback(
     ({ item }: { item: Note }) => (
-      <View className="w-1/2 p-1.5">
+      <View className="w-1/2 p-1">
         <NoteCard
           note={item}
           onTogglePin={handleTogglePin}

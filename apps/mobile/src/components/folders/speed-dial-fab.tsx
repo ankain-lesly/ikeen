@@ -5,6 +5,7 @@ import { FileText, FolderPlus, Plus, X } from "lucide-react-native";
 
 import { useTheme } from "@/hooks/use-theme";
 import { usePathname } from "expo-router";
+import { BottomTabInset } from "@/constants/theme";
 
 export interface SpeedDialFABProps {
   onNewFolder: () => void;
@@ -53,27 +54,33 @@ export function SpeedDialFAB({
       )}
 
       {/* Speed Dial Menu Stack */}
-      <View className="absolute bottom-6 right-4">
+      <View
+        style={{
+          bottom: BottomTabInset,
+        }}
+        className="absolute right-4">
         {isOpen && (
           <View className="mb-3.5 z-20 items-center gap-2.5 rounded-full bg-card border border-primary/30 py-2 px-1.5 shadow-xl">
             {/* New Folder Action */}
             <Pressable
               onPress={() => handleAction(onNewFolder)}
               hitSlop={6}
-              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isFolderActive ? ' border border-primary/20 bg-primary/20' : ''}`
-              }
-            >
-              <FolderPlus size={20} color={isFolderActive ? colors.primary : colors.text} />
+              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isFolderActive ? " border border-primary/20 bg-primary/20" : ""}`}>
+              <FolderPlus
+                size={20}
+                color={isFolderActive ? colors.primary : colors.text}
+              />
             </Pressable>
 
             {/* New Note Action */}
             <Pressable
               onPress={() => handleAction(onNewNote)}
               hitSlop={6}
-              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isNoteActive ? ' border border-primary/20 bg-primary/20' : ''}`
-              }
-            >
-              <FileText size={20} color={isNoteActive ? colors.primary : colors.text} />
+              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isNoteActive ? " border border-primary/20 bg-primary/20" : ""}`}>
+              <FileText
+                size={20}
+                color={isNoteActive ? colors.primary : colors.text}
+              />
             </Pressable>
           </View>
         )}

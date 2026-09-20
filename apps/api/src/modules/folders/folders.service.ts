@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { FolderMutationPayload } from '@repo/types';
 import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
+import { log } from '@repo/utils';
+import type { Prisma } from '@repo/db';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -29,37 +31,32 @@ export class FoldersService {
   }
 
   /**
-   * Retrieves a single folder by ID for a user.
+   * Retrieves a single folder by ID.
    */
   async findOne(userId: string, id: string) {
     const folder = await this.prisma.folder.findFirst({
-      where: {
-        id,
-        userId,
-        deletedAt: null,
-      },
+      where: { id, userId, deletedAt: null },
     });
 
     if (!folder) {
-      throw new NotFoundException(`Folder with id "${id}" not found`);
+      throw new NotFoundException(`Folder with ID ${id} not found`);
     }
 
     return folder;
   }
 
   /**
-   * Creates a new folder for a user.
+   * Creates a new folder.
    */
   async create(userId: string, dto: CreateFolderDto) {
     return this.prisma.folder.create({
       data: {
-        ...(dto.id && { id: dto.id }),
         userId,
         name: dto.name,
         color: dto.color ?? DEFAULT_FOLDER_COLOR,
         icon: dto.icon ?? 'folder',
         isLocked: dto.isLocked ?? false,
-        pinCode: dto.pinCode ?? null,
+        pinCode: dto.pinCode,
         sortOrder: dto.sortOrder ?? 0,
         version: 1,
       },
@@ -67,7 +64,7 @@ export class FoldersService {
   }
 
   /**
-   * Updates an existing folder for a user with version incrementing.
+   * Updates an existing folder.
    */
   async update(userId: string, id: string, dto: UpdateFolderDto) {
     await this.findOne(userId, id);
@@ -75,19 +72,14 @@ export class FoldersService {
     return this.prisma.folder.update({
       where: { id },
       data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.color !== undefined && { color: dto.color }),
-        ...(dto.icon !== undefined && { icon: dto.icon }),
-        ...(dto.isLocked !== undefined && { isLocked: dto.isLocked }),
-        ...(dto.pinCode !== undefined && { pinCode: dto.pinCode }),
-        ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
+        ...dto,
         version: { increment: 1 },
       },
     });
   }
 
   /**
-   * Soft deletes a folder by setting deletedAt.
+   * Soft deletes a folder.
    */
   async softDelete(userId: string, id: string) {
     await this.findOne(userId, id);
@@ -105,7 +97,7 @@ export class FoldersService {
   async upsertWithLww(
     userId: string,
     f: FolderMutationPayload,
-    prismaClient: any = this.prisma,
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<{ applied: boolean; folderId: string }> {
     const clientUpdatedAt = new Date(f.updatedAt);
     const existing = await prismaClient.folder.findUnique({
@@ -116,13 +108,18 @@ export class FoldersService {
       this.logger.debug(
         `LWW: Skipping older folder mutation for ${f.id} (client: ${f.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
       );
+      log('[LWW:Folder:SkippedStale]', {
+        id: f.id,
+        clientUpdatedAt: f.updatedAt,
+        serverUpdatedAt: existing.updatedAt.toISOString(),
+      });
       return { applied: false, folderId: f.id };
     }
 
     const nextVersion = Math.max((existing?.version ?? 0) + 1, f.version ?? 1);
 
     if (existing) {
-      const patchData: any = {
+      const patchData: Prisma.FolderUpdateInput = {
         updatedAt: clientUpdatedAt,
         version: nextVersion,
       };
@@ -159,6 +156,13 @@ export class FoldersService {
         },
       });
     }
+
+    log('[LWW:Folder:Applied]', {
+      id: f.id,
+      action: f.action,
+      version: nextVersion,
+      isExisting: !!existing,
+    });
 
     return { applied: true, folderId: f.id };
   }

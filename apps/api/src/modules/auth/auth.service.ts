@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { log } from '@repo/utils';
 
 @Injectable()
 export class AuthService {
@@ -66,6 +67,12 @@ export class AuthService {
 
       const accessToken = this.generateToken(user.id, user.email, user.username);
 
+      log('[Auth:Register:Success]', {
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      });
+
       return {
         user,
         accessToken,
@@ -100,6 +107,11 @@ export class AuthService {
     });
 
     const accessToken = this.generateToken(user.id, user.email, user.username);
+
+    log('[Auth:Login:Success]', {
+      userId: user.id,
+      email: user.email,
+    });
 
     return {
       user: {

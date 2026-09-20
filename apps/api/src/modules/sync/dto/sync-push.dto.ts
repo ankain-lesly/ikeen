@@ -20,6 +20,14 @@ import type {
 export class FolderChangesDto implements FolderChanges {
   @IsString()
   @IsOptional()
+  id?: string;
+
+  @IsString()
+  @IsOptional()
+  userId?: string | null;
+
+  @IsString()
+  @IsOptional()
   name?: string;
 
   @IsString()
@@ -41,6 +49,18 @@ export class FolderChangesDto implements FolderChanges {
   @IsNumber()
   @IsOptional()
   sortOrder?: number;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 
   @IsString()
   @IsOptional()
@@ -73,6 +93,14 @@ export class FolderMutationDto implements FolderMutationPayload {
 export class NoteChangesDto implements NoteChanges {
   @IsString()
   @IsOptional()
+  id?: string;
+
+  @IsString()
+  @IsOptional()
+  userId?: string | null;
+
+  @IsString()
+  @IsOptional()
   folderId?: string | null;
 
   @IsString()
@@ -99,6 +127,18 @@ export class NoteChangesDto implements NoteChanges {
   @IsString()
   @IsOptional()
   summary?: string | null;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 
   @IsString()
   @IsOptional()

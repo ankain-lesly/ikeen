@@ -14,19 +14,7 @@ export interface Note {
   deletedAt?: string | null;
 }
 
-export type NoteChanges = Partial<
-  Pick<
-    Note,
-    | 'folderId'
-    | 'title'
-    | 'content'
-    | 'tags'
-    | 'isPinned'
-    | 'isArchived'
-    | 'summary'
-    | 'deletedAt'
-  >
->;
+export type NoteChanges = Partial<Note>;
 
 export type CreateNoteInput = Partial<
   Pick<

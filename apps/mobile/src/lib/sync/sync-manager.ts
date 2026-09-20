@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { syncMetadata } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
+import { log } from '@repo/utils';
 import type {
   SyncEntityType,
   SyncActionType,
@@ -54,6 +55,10 @@ class SyncManager {
 
     // 1. Listen for network changes
     NetInfo.addEventListener((state: NetInfoState) => {
+      log('[Sync:Network]', {
+        isConnected: state.isConnected,
+        isInternetReachable: state.isInternetReachable,
+      });
       if (state.isConnected && state.isInternetReachable) {
         useSyncStore.getState().setStatus('idle');
         this.sync().catch(() => {});
@@ -64,6 +69,7 @@ class SyncManager {
 
     // 2. Listen for app foregrounding
     AppState.addEventListener('change', (state: AppStateStatus) => {
+      log('[Sync:AppState]', { appState: state });
       if (state === 'active') {
         this.sync().catch(() => {});
       }
@@ -73,14 +79,23 @@ class SyncManager {
     useAuthStore.subscribe((state, prevState) => {
       // Transition from Guest -> Authenticated
       if (state.isAuthenticated && !prevState.isAuthenticated && state.user) {
+        log('[Sync:Auth:Change]', {
+          transition: 'guest_to_authenticated',
+          userId: state.user.id,
+        });
         this.migrateGuestNotes(state.user.id)
           .then(() => this.connectRealtime(state.user!.id))
           .then(() => this.sync())
-          .catch((err) => console.error('[SyncManager] Auth transition error:', err));
+          .catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            log('[Sync:Auth:Error]', { error: message });
+            console.error('[SyncManager] Auth transition error:', message);
+          });
       }
 
       // Transition from Authenticated -> Logged Out
       if (!state.isAuthenticated && prevState.isAuthenticated) {
+        log('[Sync:Auth:Change]', { transition: 'logged_out' });
         this.disconnectRealtime();
       }
     });
@@ -102,6 +117,7 @@ class SyncManager {
     this.disconnectRealtime();
 
     try {
+      log('[Sync:Realtime:Connecting]', { userId });
       const auth = await syncApi.getRealtimeAuth();
       if (!auth.enabled || !auth.tokenRequest) {
         return;
@@ -111,18 +127,22 @@ class SyncManager {
         authCallback: async (_data, callback) => {
           try {
             const freshAuth = await syncApi.getRealtimeAuth();
-            callback(null, freshAuth.tokenRequest);
-          } catch (err: any) {
-            callback(err, null);
+            callback(null, freshAuth.tokenRequest as unknown as Ably.TokenRequest);
+          } catch (err: unknown) {
+            callback(err instanceof Error ? err.message : String(err), null);
           }
         },
       });
 
       this.ablyChannel = this.ablyClient.channels.get(`user:${userId}`);
       this.ablyChannel.subscribe('sync:invalidate', () => {
+        log('[Sync:Realtime:InvalidateReceived]', { userId });
         this.pull().catch(() => {});
       });
-    } catch {
+      log('[Sync:Realtime:Connected]', { userId });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('[Sync:Realtime:Error]', { error: message });
       // Ably connection error is non-fatal; sync will continue over polling
     }
   }
@@ -143,6 +163,7 @@ class SyncManager {
       } catch {}
       this.ablyClient = null;
     }
+    log('[Sync:Realtime:Disconnected]');
   }
 
   /**
@@ -161,11 +182,15 @@ class SyncManager {
     if (!targetUserId) return;
 
     try {
+      log('[Sync:GuestMigration:Start]', { targetUserId });
       await migrateGuestFolders(targetUserId);
       await migrateGuestNotes(targetUserId);
       await this.updatePendingCount();
-    } catch (err) {
-      console.error('[SyncManager] Failed to migrate guest notes:', err);
+      log('[Sync:GuestMigration:Success]', { targetUserId });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('[Sync:GuestMigration:Error]', { error: message });
+      console.error('[SyncManager] Failed to migrate guest notes:', message);
     }
   }
 
@@ -190,34 +215,36 @@ class SyncManager {
 
       for (const item of items) {
         try {
-          let payloadData: any = {};
+          let changes: Record<string, unknown> = {};
           try {
-            payloadData = JSON.parse(item.payload);
+            changes = JSON.parse(item.payload);
           } catch {
-            payloadData = {};
+            changes = {};
           }
 
-          const changes = payloadData.changes ?? payloadData;
-          const version = payloadData.version;
-          const updatedAt = payloadData.updatedAt || item.updatedAt;
+          const version =
+            typeof changes.version === 'number' ? (changes.version as number) : undefined;
+          const updatedAt =
+            typeof changes.updatedAt === 'string' ? (changes.updatedAt as string) : item.updatedAt;
 
           if (item.entity === 'folders') {
             folderMutations.push({
               id: item.entityId,
               mutationId: item.mutationId || `${item.entity}:${item.action}:${item.id}`,
-              action: item.action as SyncActionType,
+              action: item.action,
               version,
               updatedAt,
               changes: changes as FolderChanges,
             });
           } else if (item.entity === 'notes') {
+            const noteChanges = changes as NoteChanges;
             // Adapt tags if present in changes
-            if (changes.tags) {
-              if (typeof changes.tags === 'string') {
+            if (noteChanges.tags) {
+              if (typeof noteChanges.tags === 'string') {
                 try {
-                  changes.tags = JSON.parse(changes.tags);
+                  noteChanges.tags = JSON.parse(noteChanges.tags);
                 } catch {
-                  changes.tags = [];
+                  noteChanges.tags = [];
                 }
               }
             }
@@ -227,13 +254,21 @@ class SyncManager {
               action: item.action,
               version,
               updatedAt,
-              changes: changes,
+              changes: noteChanges,
             });
           }
-        } catch (parseErr) {
-          console.warn('[SyncManager] Failed to format outbox payload:', parseErr);
+        } catch (parseErr: unknown) {
+          const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
+          log('[Sync:Push:ParseError]', { error: message });
+          console.warn('[SyncManager] Failed to format outbox payload:', message);
         }
       }
+
+      log('[Sync:Push:Dispatch]', {
+        itemsCount: items.length,
+        foldersCount: folderMutations.length,
+        notesCount: noteMutations.length,
+      });
 
       try {
         await syncApi.push({
@@ -243,10 +278,25 @@ class SyncManager {
         });
 
         await markOutboxSuccess(batchIds);
-      } catch (err: any) {
-        const status = err?.status || err?.response?.status;
+        log('[Sync:Push:Success]', { itemsCount: items.length });
+      } catch (err: unknown) {
+        const errorObj = err as {
+          status?: number;
+          response?: { status?: number };
+          message?: string;
+        };
+        const status = errorObj?.status || errorObj?.response?.status;
         const isTerminal = typeof status === 'number' && status >= 400 && status < 500;
-        await markOutboxFailed(batchIds, isTerminal, err?.message || 'Push failed');
+        const errorMessage = errorObj?.message || 'Push failed';
+
+        log('[Sync:Push:Error]', {
+          batchCount: batchIds.length,
+          isTerminal,
+          status,
+          error: errorMessage,
+        });
+
+        await markOutboxFailed(batchIds, isTerminal, errorMessage);
         throw err;
       }
     }
@@ -269,35 +319,48 @@ class SyncManager {
       .limit(1);
 
     const since = meta?.value ?? null;
-    const response = await syncApi.pull(since);
+    log('[Sync:Pull:Request]', { since: since ?? 'epoch' });
 
-    // Apply Folders via unified queries module
-    for (const f of response.folders) {
-      await upsertFolderFromSync({ ...f, userId: user?.id });
-    }
+    try {
+      const response = await syncApi.pull(since);
 
-    // Apply Notes via unified queries module (adapts native string[] tags to SQLite JSON)
-    for (const n of response.notes) {
-      await upsertNoteFromSync({ ...n, userId: user?.id });
-    }
+      // Apply Folders via unified queries module
+      for (const f of response.folders) {
+        await upsertFolderFromSync({ ...f, userId: user?.id });
+      }
 
-    // Save new checkpoint
-    await db
-      .insert(syncMetadata)
-      .values({
-        key: 'last_pulled_at',
-        value: response.serverTimestamp,
-        updatedAt: new Date().toISOString(),
-      })
-      .onConflictDoUpdate({
-        target: syncMetadata.key,
-        set: {
+      // Apply Notes via unified queries module (adapts native string[] tags to SQLite JSON)
+      for (const n of response.notes) {
+        await upsertNoteFromSync({ ...n, userId: user?.id });
+      }
+
+      // Save new checkpoint
+      await db
+        .insert(syncMetadata)
+        .values({
+          key: 'last_pulled_at',
           value: response.serverTimestamp,
           updatedAt: new Date().toISOString(),
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: syncMetadata.key,
+          set: {
+            value: response.serverTimestamp,
+            updatedAt: new Date().toISOString(),
+          },
+        });
 
-    useSyncStore.getState().setLastSyncedAt(response.serverTimestamp);
+      useSyncStore.getState().setLastSyncedAt(response.serverTimestamp);
+      log('[Sync:Pull:Success]', {
+        foldersCount: response.folders.length,
+        notesCount: response.notes.length,
+        serverTimestamp: response.serverTimestamp,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('[Sync:Pull:Error]', { error: message });
+      throw err;
+    }
   }
 
   /**
@@ -314,14 +377,18 @@ class SyncManager {
 
     this.isSyncing = true;
     useSyncStore.getState().setStatus('syncing');
+    log('[Sync:Cycle:Start]');
 
     try {
       await this.push();
       await this.pull();
       useSyncStore.getState().setStatus('idle');
-    } catch (err: any) {
-      console.error('[SyncManager] Sync failed:', err);
-      useSyncStore.getState().setError(err?.message || 'Sync failed');
+      log('[Sync:Cycle:Success]');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('[Sync:Cycle:Error]', { error: message });
+      console.error('[SyncManager] Sync failed:', message);
+      useSyncStore.getState().setError(message || 'Sync failed');
     } finally {
       this.isSyncing = false;
       await this.updatePendingCount();

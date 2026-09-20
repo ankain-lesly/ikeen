@@ -3,17 +3,15 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { syncOutbox, type SyncOutboxItem } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
+import { log } from '@repo/utils';
 import type { SyncEntityType, SyncActionType, FolderChanges, NoteChanges } from '@repo/types';
-import { triggerSync } from './sync-events';
+// import { triggerSync } from './sync-events';
 
-export interface OutboxPayloadData {
-  changes: FolderChanges | NoteChanges;
-  version?: number;
-  updatedAt: string;
-}
+export type OutboxPayloadData = FolderChanges | NoteChanges;
 
 /**
  * Enqueues a local mutation into SQLite sync_outbox.
+ * - Stores changes directly in sync_outbox.payload without an extra wrapper.
  * - Coalesces into an existing PENDING queue item for this record.
  * - If the existing item is IN_FLIGHT, keeps it immutable and inserts a NEW PENDING item.
  */
@@ -42,40 +40,44 @@ export async function enqueueOutbox(
 
     if (pendingItem) {
       // Coalesce changes into the existing pending item
-      let existingChanges: Record<string, any> = {};
+      let existingChanges: Record<string, unknown> = {};
       try {
-        const parsed = JSON.parse(pendingItem.payload);
-        existingChanges = parsed.changes || parsed;
+        existingChanges = JSON.parse(pendingItem.payload);
       } catch {
         existingChanges = {};
       }
 
-      const mergedChanges = { ...existingChanges, ...changes };
-      const updatedPayload: OutboxPayloadData = {
-        changes: mergedChanges,
-        version: version ?? pendingItem.retryCount,
-        updatedAt: now,
+      const mergedChanges = {
+        ...existingChanges,
+        ...changes,
+        ...(version !== undefined && { version }),
       };
 
       await db
         .update(syncOutbox)
         .set({
           action,
-          payload: JSON.stringify(updatedPayload),
+          payload: JSON.stringify(mergedChanges),
           updatedAt: now,
           retryCount: 0,
         })
         .where(eq(syncOutbox.id, pendingItem.id));
+
+      log('[Sync:Outbox:Coalesced]', {
+        entity,
+        entityId,
+        action,
+        version: (mergedChanges as { version?: number }).version,
+      });
     } else {
       // No PENDING item exists (either none or existing is in_flight).
       // Create a NEW PENDING queue item with an immutable mutationId.
       const id = Crypto.randomUUID();
       const mutationId = `${entity}:${action}:${id}`;
 
-      const payload: OutboxPayloadData = {
-        changes,
-        version,
-        updatedAt: now,
+      const payloadChanges = {
+        ...changes,
+        ...(version !== undefined && { version }),
       };
 
       await db.insert(syncOutbox).values({
@@ -85,15 +87,28 @@ export async function enqueueOutbox(
         action,
         status: 'pending',
         mutationId,
-        payload: JSON.stringify(payload),
+        payload: JSON.stringify(payloadChanges),
         createdAt: now,
         updatedAt: now,
         retryCount: 0,
       });
+
+      log('[Sync:Outbox:Enqueued]', {
+        mutationId,
+        entity,
+        entityId,
+        action,
+        version,
+      });
     }
-    triggerSync();
-  } catch (err) {
-    console.error('[Outbox] Failed to enqueue mutation:', err);
+
+    // Sync triggers are orchestrated exclusively by the SyncManager (network transitions,
+    // app foregrounding, auth changes, and Ably real-time invalidations) rather than firing on every granular enqueue.
+    // triggerSync();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log('[Sync:Outbox:Error]', { action: 'enqueueOutbox', error: message });
+    console.error('[Outbox] Failed to enqueue mutation:', message);
   }
 }
 
@@ -128,8 +143,11 @@ export async function markOutboxInFlight(ids: string[]): Promise<void> {
       .update(syncOutbox)
       .set({ status: 'in_flight', updatedAt: now })
       .where(inArray(syncOutbox.id, ids));
-  } catch (err) {
-    console.error('[Outbox] Failed to mark items in_flight:', err);
+    log('[Sync:Outbox:InFlight]', { count: ids.length, ids });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log('[Sync:Outbox:Error]', { action: 'markOutboxInFlight', error: message });
+    console.error('[Outbox] Failed to mark items in_flight:', message);
   }
 }
 
@@ -140,8 +158,11 @@ export async function markOutboxSuccess(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   try {
     await db.delete(syncOutbox).where(inArray(syncOutbox.id, ids));
-  } catch (err) {
-    console.error('[Outbox] Failed to clear successful outbox items:', err);
+    log('[Sync:Outbox:Success]', { count: ids.length, prunedIds: ids });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log('[Sync:Outbox:Error]', { action: 'markOutboxSuccess', error: message });
+    console.error('[Outbox] Failed to clear successful outbox items:', message);
   }
 }
 
@@ -178,8 +199,15 @@ export async function markOutboxFailed(
         })
         .where(eq(syncOutbox.id, item.id));
     }
-  } catch (err) {
-    console.error('[Outbox] Failed to handle outbox failure state:', err);
+    log('[Sync:Outbox:Failed]', {
+      count: ids.length,
+      isTerminal,
+      error: errorMessage,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log('[Sync:Outbox:Error]', { action: 'markOutboxFailed', error: message });
+    console.error('[Outbox] Failed to handle outbox failure state:', message);
   }
 }
 
@@ -192,8 +220,11 @@ export async function resetInFlightOnStartup(): Promise<void> {
       .update(syncOutbox)
       .set({ status: 'pending', updatedAt: new Date().toISOString() })
       .where(eq(syncOutbox.status, 'in_flight'));
-  } catch (err) {
-    console.error('[Outbox] Failed to reset in_flight items on startup:', err);
+    log('[Sync:Outbox:StartupRecovery]', 'Reset in-flight items to pending on startup.');
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log('[Sync:Outbox:Error]', { action: 'resetInFlightOnStartup', error: message });
+    console.error('[Outbox] Failed to reset in_flight items on startup:', message);
   }
 }
 

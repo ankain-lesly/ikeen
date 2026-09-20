@@ -1,5 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { NoteMutationPayload } from '@repo/types';
+import { log } from '@repo/utils';
+import type { Prisma } from '@repo/db';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
@@ -117,7 +119,7 @@ export class NotesService {
   async upsertWithLww(
     userId: string,
     n: NoteMutationPayload,
-    prismaClient: any = this.prisma,
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<{ applied: boolean; noteId: string }> {
     const clientUpdatedAt = new Date(n.updatedAt);
     const existing = await prismaClient.note.findUnique({
@@ -128,6 +130,11 @@ export class NotesService {
       this.logger.debug(
         `LWW: Skipping older note mutation for ${n.id} (client: ${n.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
       );
+      log('[LWW:Note:SkippedStale]', {
+        id: n.id,
+        clientUpdatedAt: n.updatedAt,
+        serverUpdatedAt: existing.updatedAt.toISOString(),
+      });
       return { applied: false, noteId: n.id };
     }
 
@@ -149,7 +156,7 @@ export class NotesService {
     }
 
     if (existing) {
-      const patchData: any = {
+      const patchData: Prisma.NoteUncheckedUpdateInput = {
         updatedAt: clientUpdatedAt,
         version: nextVersion,
       };
@@ -193,6 +200,13 @@ export class NotesService {
         },
       });
     }
+
+    log('[LWW:Note:Applied]', {
+      id: n.id,
+      action: n.action,
+      version: nextVersion,
+      isExisting: !!existing,
+    });
 
     return { applied: true, noteId: n.id };
   }

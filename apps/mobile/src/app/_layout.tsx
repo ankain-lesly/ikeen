@@ -55,7 +55,8 @@ export default function TabLayout() {
     <KeyboardProvider>
       <GestureHandlerRootView>
         <SafeAreaListener
-          onChange={({ insets }) => Uniwind.updateInsets(insets)}>
+          onChange={({ insets }) => Uniwind.updateInsets(insets)}
+          >
           <ThemeProvider value={MyTheme}>
             <View className="bg-background flex-1">
               {/* Root App */}

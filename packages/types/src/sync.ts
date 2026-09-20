@@ -54,7 +54,7 @@ export interface SyncPullResponse {
 
 export interface RealtimeAuthResponse {
   enabled: boolean;
-  tokenRequest?: any;
+  tokenRequest?: Record<string, unknown>;
   error?: string;
   message?: string;
 }

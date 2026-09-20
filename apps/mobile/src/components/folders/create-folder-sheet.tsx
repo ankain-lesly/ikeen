@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { BottomSheet, Host, RNHostView } from '@expo/ui';
 import * as Haptics from 'expo-haptics';
-import { Check, Folder, Lock, X } from 'lucide-react-native';
+import { Check, Lock, X } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';

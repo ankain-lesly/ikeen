@@ -2,9 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotesService } from './notes.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
+type MockPrisma = {
+  note: Record<string, ReturnType<typeof vi.fn>>;
+  folder: Record<string, ReturnType<typeof vi.fn>>;
+};
+
 describe('NotesService', () => {
   let service: NotesService;
-  let prisma: any;
+  let prisma: MockPrisma;
 
   beforeEach(async () => {
     prisma = {

@@ -17,18 +17,7 @@ export interface FolderWithCount extends Folder {
   noteCount: number;
 }
 
-export type FolderChanges = Partial<
-  Pick<
-    Folder,
-    | 'name'
-    | 'color'
-    | 'icon'
-    | 'isLocked'
-    | 'pinCode'
-    | 'sortOrder'
-    | 'deletedAt'
-  >
->;
+export type FolderChanges = Partial<Folder>;
 
 export type CreateFolderInput = Pick<Folder, 'name'> &
   Partial<

@@ -43,10 +43,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
-import {
-  KeyboardAwareScrollView,
-  KeyboardToolbar,
-} from "react-native-keyboard-controller";
+import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
 
 export default function NoteDetailScreen() {
   const colors = useTheme();
@@ -305,14 +302,14 @@ function NoteEditor({
 
   return (
     <>
-      <KeyboardAwareScrollView
+      {/* <KeyboardAwareScrollView
         bottomOffset={62}
         // contentContainerStyle={styles.container}
-        >
+        > */}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-200 mx-auto">
-          {/* <KeyboardAvoidingView
-            className="flex-1"
-            behavior={Platform.OS === "ios" ? "padding" : undefined}> */}
           {/* Navigation Bar */}
           <View className="h-12 flex-row items-center justify-between px-3.5">
             {/* Back Button */}
@@ -494,18 +491,13 @@ function NoteEditor({
 
           {/* Note Writing / Reading Canvas */}
           <ScrollView
-            className="flex-1"
-            contentContainerClassName="px-5 pt-4 pb-24"
+            className="flex-1_ h-screen"
+            contentContainerClassName="flex-1__ px-5 pt-4"
             keyboardShouldPersistTaps="handled">
-            {/* <Pressable
-            onPress={handleCanvasDoubleTap}
-            className="flex-1 min-h-60"> */}
-            {/* Body Content Input */}
-
             {isEditing ? (
               <TextInput
                 ref={contentInputRef}
-                className="text-base leading-6 min-h-60 py-0 text-text"
+                className="text-base leading-6 flex-1 py-0 pb-24 text-text"
                 placeholder="Start typing..."
                 placeholderTextColor={colors.textSecondary}
                 value={content}
@@ -519,14 +511,15 @@ function NoteEditor({
             ) : (
               <GestureDetector gesture={combinedGestures}>
                 <Text
-                  className="text-base leading-6 min-h-60 py-0 text-text"
-                  // selectable
+                  className="text-base leading-6 flex-1 py-0 pb-24 text-text"
                 >
                   {content}
                 </Text>
               </GestureDetector>
             )}
           </ScrollView>
+
+          {/* <View className="h-11 bg-blue" /> */}
 
           {/* Accessory / Toolbar depending on mode */}
           {isEditing ? (
@@ -581,10 +574,11 @@ function NoteEditor({
               }
             }}
           />
-          {/* </KeyboardAvoidingView> */}
         </View>
-      </KeyboardAwareScrollView>
-      <KeyboardToolbar /> {/* optional: prev/next/done buttons */}
+      </KeyboardAvoidingView>
+      <KeyboardGradualAnimation />
+      {/* </KeyboardAwareScrollView> */}
+      {/* <KeyboardToolbar /> */}
     </>
   );
 }

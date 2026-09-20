@@ -1,42 +1,66 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { FileText, Home, User } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { SpeedDialFAB } from "@/components/folders/speed-dial-fab";
+import * as Haptics from "expo-haptics";
+import { useState } from "react";
+import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
+import { CreateFolderInput } from "@/lib/types/folders";
+import { createFolder } from "@/lib/queries/folders";
+import { toast } from "@/lib/toast";
+import { createNote } from "@/lib/queries/notes";
+import AppTabs from "@/components/app-tabs";
+
 
 export default function TabsLayout() {
   const colors = useTheme();
+  const router = useRouter();
+
+  const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] =
+    useState(false);
+
+  const handleNewNote = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const newNote = await createNote();
+      router.push({
+        pathname: "/notes/[id]",
+        params: { id: newNote.id },
+      });
+    } catch (error) {
+      toast.error("Could not create note");
+      console.log(error);
+    }
+  };
+
+  const handleSaveFolder = async (data: CreateFolderInput) => {
+    try {
+      await createFolder(data);
+      toast.success("New Folder Added");
+    } catch (error) {
+      toast.error("Could not add folder");
+      console.log(error);
+    }
+  };
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-        },
-      }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-        }}
+    <>
+       <AppTabs />
+
+      {/* Speed-Dial Floating Action Button */}
+      <SpeedDialFAB
+        onNewNote={handleNewNote}
+        onNewFolder={() => setIsCreateFolderSheetVisible(true)}
       />
-      <Tabs.Screen
-        name="notes"
-        options={{
-          title: "Notes",
-          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+
+      {/* Create / Edit Folder Modal Sheet */}
+      <CreateFolderSheet
+        isPresented={isCreateFolderSheetVisible}
+        onDismiss={() => {
+          setIsCreateFolderSheetVisible(false);
         }}
+        onSave={handleSaveFolder}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-        }}
-      />
-    </Tabs>
+    </>
   );
 }

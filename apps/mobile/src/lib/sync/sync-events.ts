@@ -1,3 +1,5 @@
+import { log } from '@repo/utils';
+
 type SyncTriggerListener = () => void;
 
 let syncListener: SyncTriggerListener | null = null;
@@ -21,9 +23,12 @@ export function registerSyncTrigger(fn: SyncTriggerListener): () => void {
 export function triggerSync(): void {
   if (syncListener) {
     try {
+      log('[Sync:Trigger]', 'Triggering sync cycle via reactive event listener.');
       syncListener();
-    } catch (err) {
-      console.warn('[SyncEvents] Failed to trigger sync:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      log('[Sync:Trigger:Error]', message);
+      console.warn('[SyncEvents] Failed to trigger sync:', message);
     }
   }
 }

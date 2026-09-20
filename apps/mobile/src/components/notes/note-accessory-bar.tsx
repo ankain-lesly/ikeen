@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 
 import { useTheme } from "@/hooks/use-theme";
+import { useKeyboardGradualAnimation } from "@/hooks/use-gradual-animation";
 
 interface NoteAccessoryBarProps {
   onInsertSnippet: (snippet: string) => void;
@@ -37,6 +38,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
   onOpenTagPrompt,
   onDismiss,
 }: NoteAccessoryBarProps) {
+  const {isVisible} = useKeyboardGradualAnimation()
   const colors = useTheme();
 
   const handleAction = (snippet: string) => {
@@ -60,7 +62,8 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
   };
 
   return (
-    <View className="absolute bottom-safe-or-5 w-full items-center justify-center px-4">
+    <View
+      className={`absolute w-full items-center justify-center px-4 ${isVisible ? "bottom-2" : "bottom-safe-offset-2"}`}>
       <View className="h-12 flex-row items-center border border-border rounded-full px-2 bg-background-element">
         <ScrollView
           horizontal

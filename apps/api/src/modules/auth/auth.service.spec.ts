@@ -5,10 +5,19 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
+type MockPrisma = {
+  user: Record<string, ReturnType<typeof vi.fn>>;
+  auth: Record<string, ReturnType<typeof vi.fn>>;
+};
+
+type MockJwt = {
+  sign: ReturnType<typeof vi.fn>;
+};
+
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: any;
-  let jwt: any;
+  let prisma: MockPrisma;
+  let jwt: MockJwt;
 
   beforeEach(async () => {
     prisma = {

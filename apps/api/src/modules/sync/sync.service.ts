@@ -5,13 +5,14 @@ import { FoldersService } from '../folders/folders.service';
 import { NotesService } from '../notes/notes.service';
 import { SyncPushDto } from './dto/sync-push.dto';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
+import { log } from '@repo/utils';
 import type {
   SyncPullResponse,
   SyncPushResponse,
   SyncEntityType,
   SyncMutationBase,
 } from '@repo/types';
-import { Prisma, PrismaClient } from '@repo/db';
+import type { Prisma } from '@repo/db';
 
 @Injectable()
 export class SyncService {
@@ -76,8 +77,8 @@ export class SyncService {
     userId: string,
     entity: SyncEntityType,
     mutations: T[] | undefined,
-    applyFn: (mutation: T, tx: Prisma.TransactionClient) => Promise<any>,
-    tx: any,
+    applyFn: (mutation: T, tx: Prisma.TransactionClient) => Promise<unknown>,
+    tx: Prisma.TransactionClient,
   ): Promise<boolean> {
     if (!mutations || mutations.length === 0) return false;
 
@@ -92,6 +93,11 @@ export class SyncService {
           this.logger.debug(
             `Idempotency: Skipping already-processed ${entity} mutation ${mutation.mutationId}`,
           );
+          log('[Sync:Idempotency:Skip]', {
+            userId,
+            entity,
+            mutationId: mutation.mutationId,
+          });
           continue;
         }
       }
@@ -111,42 +117,62 @@ export class SyncService {
    * and idempotency protection backed by the sync_logs table.
    */
   async push(userId: string, dto: SyncPushDto): Promise<SyncPushResponse> {
+    const startTime = Date.now();
     const serverTimestamp = new Date().toISOString();
     const touchedEntities: string[] = [];
 
-    await this.prisma.$transaction(async (tx: any) => {
-      // 1. Process Folders
-      const foldersTouched = await this.processMutations(
-        userId,
-        'folders',
-        dto.folders,
-        (f, t) => this.foldersService.upsertWithLww(userId, f, t),
-        tx,
-      );
-      if (foldersTouched) touchedEntities.push('folders');
-
-      // 2. Process Notes
-      const notesTouched = await this.processMutations(
-        userId,
-        'notes',
-        dto.notes,
-        (n, t) => this.notesService.upsertWithLww(userId, n, t),
-        tx,
-      );
-      if (notesTouched) touchedEntities.push('notes');
+    log('[Sync:Push:Received]', {
+      userId,
+      foldersCount: dto.folders?.length ?? 0,
+      notesCount: dto.notes?.length ?? 0,
+      clientTimestamp: dto.clientTimestamp,
     });
 
-    // Broadcast invalidation ping over Ably to alert other devices of this user
-    if (touchedEntities.length > 0) {
-      this.ablyService
-        .publishInvalidation(userId, touchedEntities)
-        .catch(() => {});
-    }
+    try {
+      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // 1. Process Folders
+        const foldersTouched = await this.processMutations(
+          userId,
+          'folders',
+          dto.folders,
+          (f, t) => this.foldersService.upsertWithLww(userId, f, t),
+          tx,
+        );
+        if (foldersTouched) touchedEntities.push('folders');
 
-    return {
-      success: true,
-      serverTimestamp,
-    };
+        // 2. Process Notes
+        const notesTouched = await this.processMutations(
+          userId,
+          'notes',
+          dto.notes,
+          (n, t) => this.notesService.upsertWithLww(userId, n, t),
+          tx,
+        );
+        if (notesTouched) touchedEntities.push('notes');
+      });
+
+      // Broadcast invalidation ping over Ably to alert other devices of this user
+      if (touchedEntities.length > 0) {
+        this.ablyService
+          .publishInvalidation(userId, touchedEntities)
+          .catch(() => {});
+      }
+
+      log('[Sync:Push:Success]', {
+        userId,
+        touchedEntities,
+        durationMs: Date.now() - startTime,
+      });
+
+      return {
+        success: true,
+        serverTimestamp,
+      };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      log('[Sync:Push:Error]', { userId, error: errorMessage });
+      throw err;
+    }
   }
 
   /**
@@ -157,54 +183,73 @@ export class SyncService {
     const serverTimestamp = new Date().toISOString();
     const sinceDate = since ? new Date(since) : new Date(0);
 
-    const [folders, notes] = await Promise.all([
-      this.prisma.folder.findMany({
-        where: {
-          userId,
-          updatedAt: { gt: sinceDate },
-        },
-        take: SYNC_CONSTANTS.PULL_LIMIT,
-        orderBy: { updatedAt: 'asc' },
-      }),
-      this.prisma.note.findMany({
-        where: {
-          userId,
-          updatedAt: { gt: sinceDate },
-        },
-        take: SYNC_CONSTANTS.PULL_LIMIT,
-        orderBy: { updatedAt: 'asc' },
-      }),
-    ]);
+    log('[Sync:Pull:Received]', {
+      userId,
+      since: since ?? 'epoch',
+      limit: SYNC_CONSTANTS.PULL_LIMIT,
+    });
 
-    return {
-      serverTimestamp,
-      folders: folders.map((f: any) => ({
-        id: f.id,
-        name: f.name,
-        color: f.color,
-        icon: f.icon,
-        isLocked: f.isLocked,
-        pinCode: f.pinCode,
-        sortOrder: f.sortOrder,
-        version: f.version ?? 1,
-        createdAt: f.createdAt.toISOString(),
-        updatedAt: f.updatedAt.toISOString(),
-        deletedAt: f.deletedAt ? f.deletedAt.toISOString() : null,
-      })),
-      notes: notes.map((n: any) => ({
-        id: n.id,
-        folderId: n.folderId,
-        title: n.title,
-        content: n.content,
-        tags: n.tags,
-        isPinned: n.isPinned,
-        isArchived: n.isArchived,
-        summary: n.summary,
-        version: n.version ?? 1,
-        createdAt: n.createdAt.toISOString(),
-        updatedAt: n.updatedAt.toISOString(),
-        deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
-      })),
-    };
+    try {
+      const [folders, notes] = await Promise.all([
+        this.prisma.folder.findMany({
+          where: {
+            userId,
+            updatedAt: { gt: sinceDate },
+          },
+          take: SYNC_CONSTANTS.PULL_LIMIT,
+          orderBy: { updatedAt: 'asc' },
+        }),
+        this.prisma.note.findMany({
+          where: {
+            userId,
+            updatedAt: { gt: sinceDate },
+          },
+          take: SYNC_CONSTANTS.PULL_LIMIT,
+          orderBy: { updatedAt: 'asc' },
+        }),
+      ]);
+
+      log('[Sync:Pull:Success]', {
+        userId,
+        foldersCount: folders.length,
+        notesCount: notes.length,
+        serverTimestamp,
+      });
+
+      return {
+        serverTimestamp,
+        folders: folders.map((f) => ({
+          id: f.id,
+          name: f.name,
+          color: f.color,
+          icon: f.icon,
+          isLocked: f.isLocked,
+          pinCode: f.pinCode,
+          sortOrder: f.sortOrder,
+          version: f.version ?? 1,
+          createdAt: f.createdAt.toISOString(),
+          updatedAt: f.updatedAt.toISOString(),
+          deletedAt: f.deletedAt ? f.deletedAt.toISOString() : null,
+        })),
+        notes: notes.map((n) => ({
+          id: n.id,
+          folderId: n.folderId,
+          title: n.title,
+          content: n.content,
+          tags: n.tags,
+          isPinned: n.isPinned,
+          isArchived: n.isArchived,
+          summary: n.summary,
+          version: n.version ?? 1,
+          createdAt: n.createdAt.toISOString(),
+          updatedAt: n.updatedAt.toISOString(),
+          deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
+        })),
+      };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      log('[Sync:Pull:Error]', { userId, error: errorMessage });
+      throw err;
+    }
   }
 }

@@ -83,7 +83,7 @@ export const NoteCard = React.memo(function NoteCard({
         className={className}
         asChild>
         <Link.Trigger>
-          <Pressable className="p-3.5 rounded-2xl border border-border bg-card my-1 shadow-sm active:opacity-90 active:scale-[0.99] gap-1">
+          <Pressable className="flex-1 p-3.5 rounded-xl border border-border bg-card shadow-sm active:opacity-90 active:scale-[0.99] gap-1">
             {/* Header Row: Title & Pin/Date */}
             <View className="flex-row items-center justify-between gap-2">
               <View className="gap-1.5">

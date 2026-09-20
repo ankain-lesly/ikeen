@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Ably from 'ably';
+import { log } from '@repo/utils';
 
 @Injectable()
 export class AblyService {
@@ -30,6 +31,9 @@ export class AblyService {
    */
   async createRealtimeAuth(userId: string) {
     if (!this.ablyRest) {
+      log('[Ably:Warning]', {
+        reason: 'Ably is not configured on this server.',
+      });
       return {
         enabled: false,
         message: 'Ably is not configured on this server.',
@@ -44,15 +48,23 @@ export class AblyService {
         },
       });
 
+      log('[Ably:Auth:TokenCreated]', { userId });
+
       return {
         enabled: true,
-        tokenRequest,
+        tokenRequest: tokenRequest as unknown as Record<string, unknown>,
       };
-    } catch (err: any) {
-      this.logger.error(`Failed to create Ably token request: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to create Ably token request: ${message}`);
+      log('[Ably:Error]', {
+        action: 'createTokenRequest',
+        userId,
+        error: message,
+      });
       return {
         enabled: false,
-        error: err.message,
+        error: message,
       };
     }
   }
@@ -69,9 +81,18 @@ export class AblyService {
         timestamp: new Date().toISOString(),
         entities,
       });
-      this.logger.debug(`Published sync invalidation for user ${userId}: ${entities.join(', ')}`);
-    } catch (err: any) {
-      this.logger.warn(`Failed to publish Ably sync invalidation: ${err.message}`);
+      this.logger.debug(
+        `Published sync invalidation for user ${userId}: ${entities.join(', ')}`,
+      );
+      log('[Ably:Publish:Invalidation]', { userId, entities });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to publish Ably sync invalidation: ${message}`);
+      log('[Ably:Error]', {
+        action: 'publishInvalidation',
+        userId,
+        error: message,
+      });
     }
   }
 }
