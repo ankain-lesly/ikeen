@@ -7,8 +7,6 @@ import { syncMetadata } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
 import { log } from '@repo/utils';
 import type {
-  SyncEntityType,
-  SyncActionType,
   FolderMutationPayload,
   NoteMutationPayload,
   FolderChanges,
@@ -215,17 +213,18 @@ class SyncManager {
 
       for (const item of items) {
         try {
-          let changes: Record<string, unknown> = {};
+          let payloadData: Record<string, unknown> = {};
           try {
-            changes = JSON.parse(item.payload);
+            payloadData = JSON.parse(item.payload);
           } catch {
-            changes = {};
+            payloadData = {};
           }
 
-          const version =
-            typeof changes.version === 'number' ? (changes.version as number) : undefined;
-          const updatedAt =
-            typeof changes.updatedAt === 'string' ? (changes.updatedAt as string) : item.updatedAt;
+          const changes = (payloadData.changes ?? payloadData) as
+            | FolderChanges
+            | NoteChanges;
+          const version = payloadData.version as number | undefined;
+          const updatedAt = (payloadData.updatedAt as string | undefined) || item.updatedAt;
 
           if (item.entity === 'folders') {
             folderMutations.push({
@@ -234,7 +233,7 @@ class SyncManager {
               action: item.action,
               version,
               updatedAt,
-              changes: changes as FolderChanges,
+              changes: changes,
             });
           } else if (item.entity === 'notes') {
             const noteChanges = changes as NoteChanges;

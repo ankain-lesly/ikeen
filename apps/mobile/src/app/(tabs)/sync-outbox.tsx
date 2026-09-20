@@ -147,26 +147,27 @@ export default function SyncMonitorPage() {
         </TouchableWithoutFeedback>
         <View style={styles.modalCenteredWrap}>
           <View style={styles.modalSheet}>
+            <View style={styles.inspectorHeader}>
+              <Text style={styles.inspectorTitle}>Payload Inspection</Text>
+              <Pressable
+                style={styles.closeBtn}
+                onPress={() => setSelectedId(null)}>
+                <Text style={styles.closeBtnText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.metaLabel}>
+              Mutation ID:{" "}
+              <Text style={styles.metaVal}>{activeRow?.mutationId}</Text>
+            </Text>
+
             <ScrollView
-              style={{ maxHeight: 480 }}
+              style={{ maxHeight: 600 }}
               contentContainerStyle={{ flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={true}>
-              <View style={styles.inspectorHeader}>
-                <Text style={styles.inspectorTitle}>Payload Inspection</Text>
-                <Pressable
-                  style={styles.closeBtn}
-                  onPress={() => setSelectedId(null)}>
-                  <Text style={styles.closeBtnText}>Close</Text>
-                </Pressable>
-              </View>
-
               {activeRow && (
                 <>
-                  <Text style={styles.metaLabel}>
-                    Mutation ID:{" "}
-                    <Text style={styles.metaVal}>{activeRow.mutationId}</Text>
-                  </Text>
                   {activeRow.lastError && (
                     <View style={styles.errorBox}>
                       <Text style={styles.errorTitle}>
@@ -195,30 +196,34 @@ export default function SyncMonitorPage() {
                         // Redact 'content' if it exists in payload
                         if (
                           obj &&
-                          typeof obj === 'object' &&
-                          Object.prototype.hasOwnProperty.call(obj, 'content')
+                          typeof obj === "object" &&
+                          Object.prototype.hasOwnProperty.call(obj, "content")
                         ) {
                           obj = {
                             ...obj,
-                            content: '***REDACTED***',
+                            content: "***REDACTED***",
                           };
                         }
 
                         // Redact 'lastError' if it exists in activeRow
                         const activeRowCopy: any = { ...activeRow };
-                        if (Object.prototype.hasOwnProperty.call(activeRowCopy, 'lastError')) {
-                          activeRowCopy.lastError = '***REDACTED***';
+                        if (
+                          Object.prototype.hasOwnProperty.call(
+                            activeRowCopy,
+                            "lastError",
+                          )
+                        ) {
+                          activeRowCopy.lastError = "***REDACTED***";
                         }
 
                         return JSON.stringify(
                           { ...activeRowCopy, payload: obj },
                           null,
-                          2
+                          2,
                         );
                       })()}
                     </Text>
                   </View>
-    
                 </>
               )}
             </ScrollView>

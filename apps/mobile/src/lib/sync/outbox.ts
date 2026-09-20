@@ -1,5 +1,5 @@
 import * as Crypto from 'expo-crypto';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { syncOutbox, type SyncOutboxItem } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
@@ -122,7 +122,15 @@ export async function getPendingOutbox(
     return await db
       .select()
       .from(syncOutbox)
-      .where(eq(syncOutbox.status, 'pending'))
+      .where(
+        or(
+          eq(syncOutbox.status, 'pending'),
+          and(
+            eq(syncOutbox.status, 'failed')
+            // lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+          )
+        )
+      )
       .orderBy(syncOutbox.createdAt)
       .limit(limit);
   } catch (err) {
@@ -212,31 +220,53 @@ export async function markOutboxFailed(
 }
 
 /**
- * Resets any stale in_flight items back to pending on startup (recovery from app crash).
+ * Resets stale in_flight items and recoverable failed items back to pending on startup.
  */
 export async function resetInFlightOnStartup(): Promise<void> {
+  const now = new Date().toISOString();
   try {
+    // 1. Reset stale in-flight items from app crashes/abrupt closes
     await db
       .update(syncOutbox)
-      .set({ status: 'pending', updatedAt: new Date().toISOString() })
+      .set({ status: 'pending', updatedAt: now })
       .where(eq(syncOutbox.status, 'in_flight'));
-    log('[Sync:Outbox:StartupRecovery]', 'Reset in-flight items to pending on startup.');
+
+    // 2. Automatically recover any failed items that still have valid retries remaining
+    await db
+      .update(syncOutbox)
+      .set({ status: 'pending', updatedAt: now })
+      .where(
+        and(
+          eq(syncOutbox.status, 'failed'),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      );
+
+    log('[Sync:Outbox:StartupRecovery]', 'Reset in-flight and recoverable failed items to pending on startup.');
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'resetInFlightOnStartup', error: message });
-    console.error('[Outbox] Failed to reset in_flight items on startup:', message);
+    console.error('[Outbox] Failed to reset in_flight/failed items on startup:', message);
   }
 }
 
 /**
- * Returns the count of pending and in_flight outbox items.
+ * Returns the count of pending, in_flight, and recoverable failed outbox items.
  */
 export async function getOutboxCount(): Promise<number> {
   try {
     const items = await db
       .select({ id: syncOutbox.id })
       .from(syncOutbox)
-      .where(inArray(syncOutbox.status, ['pending', 'in_flight']));
+      .where(
+        or(
+          inArray(syncOutbox.status, ['pending', 'in_flight']),
+          and(
+            eq(syncOutbox.status, 'failed'),
+            lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+          )
+        )
+      );
     return items.length;
   } catch {
     return 0;
