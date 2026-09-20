@@ -20,6 +20,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return prisma.note;
   }
 
+  get syncLog() {
+    return prisma.syncLog;
+  }
+
   get $transaction() {
     return prisma.$transaction.bind(prisma);
   }

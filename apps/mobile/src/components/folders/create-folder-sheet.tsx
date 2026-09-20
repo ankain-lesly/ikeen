@@ -15,6 +15,7 @@ import { Check, Folder, Lock, X } from 'lucide-react-native';
 import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { CreateFolderInput, FolderWithCount } from '@/lib/types/folders';
+import { FOLDER_PRESET_COLORS, DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 import { FolderGlyph } from './folder-glyph';
 
 export interface CreateFolderSheetProps {
@@ -23,17 +24,6 @@ export interface CreateFolderSheetProps {
   folderToEdit?: FolderWithCount | null;
   onSave: (data: CreateFolderInput) => Promise<void>;
 }
-
-const PRESET_COLORS = [
-  '#2563eb', // Blue (Project ;re)
-  '#16a34a', // Green (Food recipes)
-  '#9333ea', // Purple (Referral code)
-  '#ef4444', // Red (Secret files)
-  '#f97316', // Orange
-  '#0d9488', // Teal
-  '#ec4899', // Pink
-  '#64748b', // Slate
-];
 
 export function CreateFolderSheet({
   isPresented,
@@ -44,7 +34,7 @@ export function CreateFolderSheet({
   const colors = useTheme();
 
   const [name, setName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_FOLDER_COLOR);
   const [isLocked, setIsLocked] = useState(false);
   const [pinCode, setPinCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +47,7 @@ export function CreateFolderSheet({
       setPinCode(folderToEdit.pinCode || '');
     } else {
       setName('');
-      setSelectedColor(PRESET_COLORS[0]);
+      setSelectedColor(DEFAULT_FOLDER_COLOR);
       setIsLocked(false);
       setPinCode('');
     }
@@ -153,7 +143,7 @@ export function CreateFolderSheet({
               Folder Color
             </Text>
             <View className="flex-row flex-wrap gap-3">
-              {PRESET_COLORS.map((c) => {
+              {FOLDER_PRESET_COLORS.map((c) => {
                 const isSelected = selectedColor === c;
                 return (
                   <Pressable

@@ -2,18 +2,25 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+import type {
+  FolderChanges,
+  FolderMutationPayload,
+  NoteChanges,
+  NoteMutationPayload,
+  SyncActionType,
+} from '@repo/types';
 
-export class FolderMutationDto {
+export class FolderChangesDto implements FolderChanges {
   @IsString()
-  id: string;
-
-  @IsString()
-  name: string;
+  @IsOptional()
+  name?: string;
 
   @IsString()
   @IsOptional()
@@ -36,29 +43,45 @@ export class FolderMutationDto {
   sortOrder?: number;
 
   @IsString()
-  createdAt: string;
-
-  @IsString()
-  updatedAt: string;
-
-  @IsString()
   @IsOptional()
   deletedAt?: string | null;
 }
 
-export class NoteMutationDto {
+export class FolderMutationDto implements FolderMutationPayload {
   @IsString()
   id: string;
 
+  @IsString()
+  mutationId: string;
+
+  @IsIn(['upsert', 'delete'])
+  action: SyncActionType;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
+
+  @IsString()
+  updatedAt: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => FolderChangesDto)
+  changes: FolderChangesDto;
+}
+
+export class NoteChangesDto implements NoteChanges {
   @IsString()
   @IsOptional()
   folderId?: string | null;
 
   @IsString()
-  title: string;
+  @IsOptional()
+  title?: string;
 
   @IsString()
-  content: string;
+  @IsOptional()
+  content?: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -78,14 +101,31 @@ export class NoteMutationDto {
   summary?: string | null;
 
   @IsString()
-  createdAt: string;
+  @IsOptional()
+  deletedAt?: string | null;
+}
+
+export class NoteMutationDto implements NoteMutationPayload {
+  @IsString()
+  id: string;
+
+  @IsString()
+  mutationId: string;
+
+  @IsIn(['upsert', 'delete'])
+  action: SyncActionType;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
 
   @IsString()
   updatedAt: string;
 
-  @IsString()
-  @IsOptional()
-  deletedAt?: string | null;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => NoteChangesDto)
+  changes: NoteChangesDto;
 }
 
 export class SyncPushDto {
@@ -105,3 +145,4 @@ export class SyncPushDto {
   @IsOptional()
   notes?: NoteMutationDto[];
 }
+

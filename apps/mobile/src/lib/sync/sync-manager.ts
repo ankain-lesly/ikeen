@@ -4,15 +4,33 @@ import * as Ably from 'ably';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { syncMetadata } from '@/db/schema';
+import { SYNC_CONSTANTS } from '@repo/utils/constants';
+import type {
+  SyncEntityType,
+  SyncActionType,
+  FolderMutationPayload,
+  NoteMutationPayload,
+  FolderChanges,
+  NoteChanges,
+} from '@repo/types';
 import { useAuthStore } from '../auth/auth-store';
 import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
 import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
-import { clearOutboxItems, getOutboxCount, getPendingOutbox } from './outbox';
+import {
+  getOutboxCount,
+  getPendingOutbox,
+  markOutboxInFlight,
+  markOutboxSuccess,
+  markOutboxFailed,
+  resetInFlightOnStartup,
+} from './outbox';
+import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
 
 class SyncManager {
   private isSyncing = false;
+  private syncQueued = false;
   private ablyClient: Ably.Realtime | null = null;
   private ablyChannel: Ably.RealtimeChannel | null = null;
   private isInitialized = false;
@@ -23,6 +41,16 @@ class SyncManager {
   init() {
     if (this.isInitialized) return;
     this.isInitialized = true;
+
+    // Register trigger for reactive outbox enqueueing (eliminates query circular dependency)
+    registerSyncTrigger(() => {
+      this.sync().catch(() => {});
+    });
+
+    // Reset any stranded in_flight mutations from previous app session crash
+    resetInFlightOnStartup()
+      .then(() => this.updatePendingCount())
+      .catch(() => {});
 
     // 1. Listen for network changes
     NetInfo.addEventListener((state: NetInfoState) => {
@@ -142,56 +170,87 @@ class SyncManager {
   }
 
   /**
-   * Pushes all pending outbox mutations to the backend.
+   * Pushes all pending outbox mutations to the backend in batches of SYNC_CONSTANTS.BATCH_SIZE.
    */
   async push(): Promise<void> {
     const { isAuthenticated } = useAuthStore.getState();
     if (!isAuthenticated) return;
 
-    const items = await getPendingOutbox();
-    if (items.length === 0) {
-      await this.updatePendingCount();
-      return;
-    }
+    while (true) {
+      const items = await getPendingOutbox(SYNC_CONSTANTS.BATCH_SIZE);
+      if (items.length === 0) {
+        break;
+      }
 
-    const folderMutations: any[] = [];
-    const noteMutations: any[] = [];
-    const processedIds: string[] = [];
+      const batchIds = items.map((i) => i.id);
+      await markOutboxInFlight(batchIds);
 
-    for (const item of items) {
-      try {
-        const payload = JSON.parse(item.payload);
-        if (item.entity === 'folders') {
-          folderMutations.push(payload);
-        } else if (item.entity === 'notes') {
-          // Adapt tags: ensure payload has string[] for the API
-          let tagsArray: string[] = [];
-          if (Array.isArray(payload.tags)) {
-            tagsArray = payload.tags;
-          } else if (typeof payload.tags === 'string') {
-            try {
-              tagsArray = JSON.parse(payload.tags);
-            } catch {
-              tagsArray = [];
-            }
+      const folderMutations: FolderMutationPayload[] = [];
+      const noteMutations: NoteMutationPayload[] = [];
+
+      for (const item of items) {
+        try {
+          let payloadData: any = {};
+          try {
+            payloadData = JSON.parse(item.payload);
+          } catch {
+            payloadData = {};
           }
-          payload.tags = tagsArray;
-          noteMutations.push(payload);
+
+          const changes = payloadData.changes ?? payloadData;
+          const version = payloadData.version;
+          const updatedAt = payloadData.updatedAt || item.updatedAt;
+
+          if (item.entity === 'folders') {
+            folderMutations.push({
+              id: item.entityId,
+              mutationId: item.mutationId || `${item.entity}:${item.action}:${item.id}`,
+              action: item.action as SyncActionType,
+              version,
+              updatedAt,
+              changes: changes as FolderChanges,
+            });
+          } else if (item.entity === 'notes') {
+            // Adapt tags if present in changes
+            if (changes.tags) {
+              if (typeof changes.tags === 'string') {
+                try {
+                  changes.tags = JSON.parse(changes.tags);
+                } catch {
+                  changes.tags = [];
+                }
+              }
+            }
+            noteMutations.push({
+              id: item.entityId,
+              mutationId: item.mutationId || `${item.entity}:${item.action}:${item.id}`,
+              action: item.action,
+              version,
+              updatedAt,
+              changes: changes,
+            });
+          }
+        } catch (parseErr) {
+          console.warn('[SyncManager] Failed to format outbox payload:', parseErr);
         }
-        processedIds.push(item.id);
-      } catch (parseErr) {
-        console.warn('[SyncManager] Failed to parse outbox payload:', parseErr);
-        processedIds.push(item.id); // clear invalid item
+      }
+
+      try {
+        await syncApi.push({
+          clientTimestamp: new Date().toISOString(),
+          folders: folderMutations,
+          notes: noteMutations,
+        });
+
+        await markOutboxSuccess(batchIds);
+      } catch (err: any) {
+        const status = err?.status || err?.response?.status;
+        const isTerminal = typeof status === 'number' && status >= 400 && status < 500;
+        await markOutboxFailed(batchIds, isTerminal, err?.message || 'Push failed');
+        throw err;
       }
     }
 
-    await syncApi.push({
-      clientTimestamp: new Date().toISOString(),
-      folders: folderMutations,
-      notes: noteMutations,
-    });
-
-    await clearOutboxItems(processedIds);
     await this.updatePendingCount();
   }
 
@@ -246,7 +305,12 @@ class SyncManager {
    */
   async sync(): Promise<void> {
     const { isAuthenticated } = useAuthStore.getState();
-    if (!isAuthenticated || this.isSyncing) return;
+    if (!isAuthenticated) return;
+
+    if (this.isSyncing) {
+      this.syncQueued = true;
+      return;
+    }
 
     this.isSyncing = true;
     useSyncStore.getState().setStatus('syncing');
@@ -261,6 +325,13 @@ class SyncManager {
     } finally {
       this.isSyncing = false;
       await this.updatePendingCount();
+
+      if (this.syncQueued) {
+        this.syncQueued = false;
+        setTimeout(() => {
+          this.sync().catch(() => {});
+        }, 50);
+      }
     }
   }
 }

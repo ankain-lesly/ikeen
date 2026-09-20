@@ -1,23 +1,8 @@
 import { apiClient } from '../api/api-client';
 import { useAuthStore } from '../auth/auth-store';
+import type { SyncPushPayload, SyncPullResponse, RealtimeAuthResponse } from '@repo/types';
 
-export interface SyncPushPayload {
-  clientTimestamp: string;
-  folders?: any[];
-  notes?: any[];
-}
-
-export interface SyncPullResponse {
-  serverTimestamp: string;
-  folders: any[];
-  notes: any[];
-}
-
-export interface RealtimeAuthResponse {
-  enabled: boolean;
-  tokenRequest?: any;
-  error?: string;
-}
+export type { SyncPushPayload, SyncPullResponse, RealtimeAuthResponse };
 
 export const syncApi = {
   push: async (payload: SyncPushPayload): Promise<{ success: boolean; serverTimestamp: string }> => {

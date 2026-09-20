@@ -1,7 +1,13 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { ActivityIndicator, StatusBar, Text, View, useColorScheme } from "react-native";
+import {
+  ActivityIndicator,
+  StatusBar,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -19,7 +25,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { syncManager } from "@/lib/sync/sync-manager";
-import { log } from "@repo/utils";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,18 +52,23 @@ export default function TabLayout() {
   };
 
   return (
-    <GestureHandlerRootView>
-      <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
-        <ThemeProvider value={MyTheme}>
-          <View className="bg-background flex-1">
-            {/* Root App */}
-            <RootApp />
-            <Toast config={toastConfig} position="top" topOffset={50} />
-            <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} />
-          </View>
-        </ThemeProvider>
-      </SafeAreaListener>
-    </GestureHandlerRootView>
+    <KeyboardProvider>
+      <GestureHandlerRootView>
+        <SafeAreaListener
+          onChange={({ insets }) => Uniwind.updateInsets(insets)}>
+          <ThemeProvider value={MyTheme}>
+            <View className="bg-background flex-1">
+              {/* Root App */}
+              <RootApp />
+              <Toast config={toastConfig} position="top" topOffset={50} />
+              <StatusBar
+                barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+              />
+            </View>
+          </ThemeProvider>
+        </SafeAreaListener>
+      </GestureHandlerRootView>
+    </KeyboardProvider>
   );
 }
 

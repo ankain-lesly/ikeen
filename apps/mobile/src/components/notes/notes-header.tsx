@@ -1,10 +1,18 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { ListOrdered, Pin, Search, SlidersHorizontal, Sparkles } from "lucide-react-native";
+import {
+  FolderIcon,
+  ListOrdered,
+  Pin,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
+import * as Haptics from "expo-haptics";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -77,58 +85,75 @@ export function NotesHeader({
       </View>
 
       {/* Segmented Filter Pills */}
-      <View className="flex-row gap-2 px-4">
-        <Pressable
-          key="all"
-          className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
-            isAllActive ? "bg-background-selected border-primary"
-              : "bg-background-element border-border"
-          }`}
-          onPress={() => {
-            updateFilter({ pinnedFirst: false, includeArchived: false });
-          }}>
-          <ListOrdered size={12} color={isAllActive ? colors.primary : colors.textSecondary} />
-          <ThemedText
-            className={`text-xs ${
+      <View className="flex-row items-center justify-between gap-2 px-4">
+        <View className="flex-row gap-2">
+          <Pressable
+            key="all"
+            className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
               isAllActive
-                ? "text-text font-semibold"
-                : "text-text-secondary font-normal"
-            }`}>
-            All
-          </ThemedText>
-        </Pressable>
-        {(["pinnedFirst", "includeArchived"] as const).map((mode) => {
-          const isActive = filter[mode] === true;
+                ? "bg-background-selected border-primary"
+                : "bg-background-element border-border"
+            }`}
+            onPress={() => {
+              updateFilter({ pinnedFirst: false, includeArchived: false });
+            }}>
+            <ListOrdered
+              size={12}
+              color={isAllActive ? colors.primary : colors.textSecondary}
+            />
+            <ThemedText
+              className={`text-xs ${
+                isAllActive
+                  ? "text-text font-semibold"
+                  : "text-text-secondary font-normal"
+              }`}>
+              All
+            </ThemedText>
+          </Pressable>
+          {(["pinnedFirst", "includeArchived"] as const).map((mode) => {
+            const isActive = filter[mode] === true;
 
-          const label = mode === "pinnedFirst" ? "Pinned" : "Archived";
-          return (
-            <Pressable
-              key={mode}
-              className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
-                isActive
-                  ? "bg-background-selected border-primary"
-                  : "bg-background-element border-border"
-              }`}
-              onPress={() => {
-                updateFilter({ [mode]: !filter[mode] });
-              }}>
-              {mode === "pinnedFirst" && (
-                <Pin
-                  size={12}
-                  color={isActive ? colors.primary : colors.textSecondary}
-                />
-              )}
-              <ThemedText
-                className={`text-xs ${
+            const label = mode === "pinnedFirst" ? "Pinned" : "Archived";
+            return (
+              <Pressable
+                key={mode}
+                className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
                   isActive
-                    ? "text-text font-semibold"
-                    : "text-text-secondary font-normal"
-                }`}>
-                {label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+                    ? "bg-background-selected border-primary"
+                    : "bg-background-element border-border"
+                }`}
+                onPress={() => {
+                  updateFilter({ [mode]: !filter[mode] });
+                }}>
+                {mode === "pinnedFirst" && (
+                  <Pin
+                    size={12}
+                    color={isActive ? colors.primary : colors.textSecondary}
+                  />
+                )}
+                <ThemedText
+                  className={`text-xs ${
+                    isActive
+                      ? "text-text font-semibold"
+                      : "text-text-secondary font-normal"
+                  }`}>
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(tabs)/notes/folders");
+          }}
+          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg __bg-card shadow-sm`}>
+          <FolderIcon size={16} color={colors.textSecondary} />
+          <Text className={`text-sm font-semibold text-text-secondary`}>
+            Folders
+          </Text>
+        </Pressable>
       </View>
     </View>
   );

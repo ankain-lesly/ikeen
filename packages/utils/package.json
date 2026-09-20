@@ -21,6 +21,10 @@
     "./date": {
       "types": "./src/date.ts",
       "default": "./src/date.ts"
+    },
+    "./constants": {
+      "types": "./src/constants.ts",
+      "default": "./src/constants.ts"
     }
   },
   "scripts": {

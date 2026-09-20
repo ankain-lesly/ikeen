@@ -15,6 +15,10 @@ describe('SyncService', () => {
   beforeEach(async () => {
     prisma = {
       $transaction: vi.fn(async (cb) => cb(prisma)),
+      syncLog: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'log-1' }),
+      },
       folder: {
         findMany: vi.fn(),
       },
@@ -50,24 +54,26 @@ describe('SyncService', () => {
   });
 
   describe('push', () => {
-    it('should delegate folder and note mutations to respective services', async () => {
+    it('should delegate folder and note mutations to respective services and record sync_logs', async () => {
       const result = await service.push('user-1', {
         clientTimestamp: new Date().toISOString(),
         folders: [
           {
             id: 'f-1',
-            name: 'Personal',
-            createdAt: '2026-09-18T10:00:00.000Z',
+            mutationId: 'folders:upsert:f-1',
+            action: 'upsert',
+            version: 1,
+            changes: { name: 'Personal' },
             updatedAt: '2026-09-18T10:00:00.000Z',
           },
         ],
         notes: [
           {
             id: 'n-1',
-            title: 'My First Note',
-            content: 'Hello World',
-            tags: ['tag1'],
-            createdAt: '2026-09-18T10:00:00.000Z',
+            mutationId: 'notes:upsert:n-1',
+            action: 'upsert',
+            version: 1,
+            changes: { title: 'My First Note', tags: ['tag1'] },
             updatedAt: '2026-09-18T10:00:00.000Z',
           },
         ],
@@ -85,10 +91,32 @@ describe('SyncService', () => {
         expect.objectContaining({ id: 'n-1' }),
         prisma,
       );
+      expect(prisma.syncLog.create).toHaveBeenCalledTimes(2);
       expect(ablyService.publishInvalidation).toHaveBeenCalledWith('user-1', [
         'folders',
         'notes',
       ]);
+    });
+
+    it('should skip duplicate mutations already logged in sync_logs (idempotency)', async () => {
+      prisma.syncLog.findUnique.mockResolvedValueOnce({ id: 'existing-log-1' });
+
+      const result = await service.push('user-1', {
+        clientTimestamp: new Date().toISOString(),
+        folders: [
+          {
+            id: 'f-1',
+            mutationId: 'folders:upsert:f-1',
+            action: 'upsert',
+            changes: { name: 'Personal' },
+            updatedAt: '2026-09-18T10:00:00.000Z',
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      expect(foldersService.upsertWithLww).not.toHaveBeenCalled();
+      expect(prisma.syncLog.create).not.toHaveBeenCalled();
     });
   });
 

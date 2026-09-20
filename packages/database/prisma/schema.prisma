@@ -68,6 +68,7 @@ model User {
   auditLogs           AuditLog[]
   folders             Folder[]
   notes               Note[]
+  syncLogs            SyncLog[]
   @@map("users")
 }
 
@@ -320,6 +321,7 @@ model Folder {
   isLocked  Boolean   @default(false)
   pinCode   String?   @db.VarChar(20)
   sortOrder Int       @default(0)
+  version   Int       @default(1)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -342,6 +344,7 @@ model Note {
   isPinned   Boolean   @default(false)
   isArchived Boolean   @default(false)
   summary    String?   @db.Text
+  version    Int       @default(1)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
@@ -353,4 +356,27 @@ model Note {
   @@index([userId, deletedAt])
   @@index([userId, folderId])
   @@map("notes")
+}
+
+enum SyncEntity {
+  folders
+  notes
+}
+
+model SyncLog {
+  id         String     @id @default(uuid())
+  userId     String
+  mutationId String     @db.VarChar(150)
+  entity     SyncEntity
+  entityId   String     @db.VarChar(100)
+  action     String     @db.VarChar(20)
+  version    Int        @default(1)
+  status     String     @default("applied") @db.VarChar(20)
+  createdAt  DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mutationId])
+  @@index([userId, entity, entityId])
+  @@map("sync_logs")
 }

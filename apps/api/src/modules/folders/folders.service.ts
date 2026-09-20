@@ -1,20 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { FolderMutationPayload } from '@repo/types';
+import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 
-export interface FolderSyncData {
-  id: string;
-  name: string;
-  color?: string;
-  icon?: string;
-  isLocked?: boolean;
-  pinCode?: string | null;
-  sortOrder?: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
+export type FolderSyncData = FolderMutationPayload;
 
 @Injectable()
 export class FoldersService {
@@ -31,43 +22,52 @@ export class FoldersService {
         userId,
         deletedAt: null,
       },
-      orderBy: { sortOrder: 'asc' },
-    });
-  }
-
-  /**
-   * Finds a single active folder by ID.
-   */
-  async findOne(userId: string, id: string) {
-    const folder = await this.prisma.folder.findFirst({
-      where: { id, userId, deletedAt: null },
-    });
-    if (!folder) {
-      throw new NotFoundException(`Folder with id "${id}" not found.`);
-    }
-    return folder;
-  }
-
-  /**
-   * Creates a new folder.
-   */
-  async create(userId: string, dto: CreateFolderDto) {
-    return this.prisma.folder.create({
-      data: {
-        id: dto.id,
-        userId,
-        name: dto.name,
-        color: dto.color ?? '#3b82f6',
-        icon: dto.icon ?? 'folder',
-        isLocked: dto.isLocked ?? false,
-        pinCode: dto.pinCode ?? null,
-        sortOrder: dto.sortOrder ?? 0,
+      orderBy: {
+        sortOrder: 'asc',
       },
     });
   }
 
   /**
-   * Updates an existing folder.
+   * Retrieves a single folder by ID for a user.
+   */
+  async findOne(userId: string, id: string) {
+    const folder = await this.prisma.folder.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!folder) {
+      throw new NotFoundException(`Folder with id "${id}" not found`);
+    }
+
+    return folder;
+  }
+
+  /**
+   * Creates a new folder for a user.
+   */
+  async create(userId: string, dto: CreateFolderDto) {
+    return this.prisma.folder.create({
+      data: {
+        ...(dto.id && { id: dto.id }),
+        userId,
+        name: dto.name,
+        color: dto.color ?? DEFAULT_FOLDER_COLOR,
+        icon: dto.icon ?? 'folder',
+        isLocked: dto.isLocked ?? false,
+        pinCode: dto.pinCode ?? null,
+        sortOrder: dto.sortOrder ?? 0,
+        version: 1,
+      },
+    });
+  }
+
+  /**
+   * Updates an existing folder for a user with version incrementing.
    */
   async update(userId: string, id: string, dto: UpdateFolderDto) {
     await this.findOne(userId, id);
@@ -81,6 +81,7 @@ export class FoldersService {
         ...(dto.isLocked !== undefined && { isLocked: dto.isLocked }),
         ...(dto.pinCode !== undefined && { pinCode: dto.pinCode }),
         ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
+        version: { increment: 1 },
       },
     });
   }
@@ -93,17 +94,17 @@ export class FoldersService {
 
     return this.prisma.folder.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), version: { increment: 1 } },
     });
   }
 
   /**
-   * Reusable Last-Write-Wins (LWW) upsert for folders.
-   * Can be executed inside an existing Prisma transaction or standalone.
+   * Reusable Last-Write-Wins (LWW) upsert for folders with partial patching and versioning.
+   * Strictly reads entity properties from `f.changes`.
    */
   async upsertWithLww(
     userId: string,
-    f: FolderSyncData,
+    f: FolderMutationPayload,
     prismaClient: any = this.prisma,
   ): Promise<{ applied: boolean; folderId: string }> {
     const clientUpdatedAt = new Date(f.updatedAt);
@@ -118,32 +119,46 @@ export class FoldersService {
       return { applied: false, folderId: f.id };
     }
 
-    await prismaClient.folder.upsert({
-      where: { id: f.id },
-      create: {
-        id: f.id,
-        userId,
-        name: f.name,
-        color: f.color ?? '#3b82f6',
-        icon: f.icon ?? 'folder',
-        isLocked: f.isLocked ?? false,
-        pinCode: f.pinCode ?? null,
-        sortOrder: f.sortOrder ?? 0,
-        createdAt: new Date(f.createdAt),
+    const nextVersion = Math.max((existing?.version ?? 0) + 1, f.version ?? 1);
+
+    if (existing) {
+      const patchData: any = {
         updatedAt: clientUpdatedAt,
-        deletedAt: f.deletedAt ? new Date(f.deletedAt) : null,
-      },
-      update: {
-        name: f.name,
-        color: f.color ?? '#3b82f6',
-        icon: f.icon ?? 'folder',
-        isLocked: f.isLocked ?? false,
-        pinCode: f.pinCode ?? null,
-        sortOrder: f.sortOrder ?? 0,
-        updatedAt: clientUpdatedAt,
-        deletedAt: f.deletedAt ? new Date(f.deletedAt) : null,
-      },
-    });
+        version: nextVersion,
+      };
+
+      if (f.changes.name !== undefined) patchData.name = f.changes.name;
+      if (f.changes.color !== undefined) patchData.color = f.changes.color;
+      if (f.changes.icon !== undefined) patchData.icon = f.changes.icon;
+      if (f.changes.isLocked !== undefined) patchData.isLocked = f.changes.isLocked;
+      if (f.changes.pinCode !== undefined) patchData.pinCode = f.changes.pinCode;
+      if (f.changes.sortOrder !== undefined) patchData.sortOrder = f.changes.sortOrder;
+      if (f.changes.deletedAt !== undefined) {
+        patchData.deletedAt = f.changes.deletedAt ? new Date(f.changes.deletedAt) : null;
+      }
+
+      await prismaClient.folder.update({
+        where: { id: f.id },
+        data: patchData,
+      });
+    } else {
+      await prismaClient.folder.create({
+        data: {
+          id: f.id,
+          userId,
+          name: f.changes.name ?? '',
+          color: f.changes.color ?? DEFAULT_FOLDER_COLOR,
+          icon: f.changes.icon ?? 'folder',
+          isLocked: f.changes.isLocked ?? false,
+          pinCode: f.changes.pinCode ?? null,
+          sortOrder: f.changes.sortOrder ?? 0,
+          version: nextVersion,
+          createdAt: clientUpdatedAt,
+          updatedAt: clientUpdatedAt,
+          deletedAt: f.changes.deletedAt ? new Date(f.changes.deletedAt) : null,
+        },
+      });
+    }
 
     return { applied: true, folderId: f.id };
   }

@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
+  ChevronLeft,
   Folder as FolderIcon,
   Grid2X2,
   List,
@@ -151,9 +152,20 @@ export default function NotesScreen() {
       {/* Universal Top Header */}
       <View className="px-4 pb-3 flex-row items-center justify-between border-b border-border/70">
         <View className="flex-row items-center gap-3">
-          <ThemedText className="font-bold text-2xl text-text tracking-tight">
-            Folders
-          </ThemedText>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            className="w-9 h-9 rounded-full items-center justify-center bg-background-element active:opacity-70">
+            <ChevronLeft size={22} color={colors.text} />
+          </Pressable>
+
+          <View className="flex-row items-center gap-2.5">
+            <View>
+              <ThemedText className="font-bold text-lg text-text leading-tight">
+                Folders
+              </ThemedText>
+            </View>
+          </View>
         </View>
 
         {/* Header Actions */}
@@ -169,91 +181,91 @@ export default function NotesScreen() {
       </View>
 
       {/* Folders View Mode */}
-        <View className="flex-1 px-4 pt-3">
-          {/* Search Folder Pill Input */}
-          <View className="flex-row items-center h-12 px-4 rounded-full bg-background-element border border-border shadow-xs mb-3">
-            <Search size={18} color={colors.textSecondary} />
-            <TextInput
-              value={folderSearch}
-              onChangeText={setFolderSearch}
-              placeholder="Search Folder"
-              placeholderTextColor={colors.textSecondary}
-              className="flex-1 ml-2.5 text-sm text-text"
-            />
-            {folderSearch.length > 0 && (
-              <Pressable onPress={() => setFolderSearch("")} hitSlop={6}>
-                <X size={16} color={colors.textSecondary} />
-              </Pressable>
-            )}
-          </View>
-
-          {/* Sort & Layout Control Row */}
-          <View className="flex-row items-center justify-between pb-3 pt-1">
-            {/* Sort Dropdown / Cycle button */}
-            <Pressable
-              onPress={handleCycleFolderSort}
-              className="flex-row items-center gap-1.5 active:opacity-70">
-              <Pressable onPress={handleToggleSortDirection} hitSlop={6}>
-                {folderSortDir === "desc" ? (
-                  <ArrowDownWideNarrow size={17} color={colors.text} />
-                ) : (
-                  <ArrowUpNarrowWide size={17} color={colors.text} />
-                )}
-              </Pressable>
-              <Text className="text-sm font-semibold text-text">
-                {folderSortBy === "updatedAt"
-                  ? "Last modified"
-                  : folderSortBy === "name"
-                    ? "Name"
-                    : "Date created"}
-              </Text>
+      <View className="flex-1 px-4 pt-3">
+        {/* Search Folder Pill Input */}
+        <View className="flex-row items-center h-12 px-4 rounded-full bg-background-element border border-border shadow-xs mb-3">
+          <Search size={18} color={colors.textSecondary} />
+          <TextInput
+            value={folderSearch}
+            onChangeText={setFolderSearch}
+            placeholder="Search Folder"
+            placeholderTextColor={colors.textSecondary}
+            className="flex-1 ml-2.5 text-sm text-text"
+          />
+          {folderSearch.length > 0 && (
+            <Pressable onPress={() => setFolderSearch("")} hitSlop={6}>
+              <X size={16} color={colors.textSecondary} />
             </Pressable>
+          )}
+        </View>
 
-            {/* Grid vs List View Toggle */}
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                setFolderLayout((prev) => (prev === "grid" ? "list" : "grid"));
-              }}
-              hitSlop={8}
-              className="w-8 h-8 rounded-lg items-center justify-center active:bg-background-element">
-              {folderLayout === "grid" ? (
-                <Grid2X2 size={20} color={colors.text} />
+        {/* Sort & Layout Control Row */}
+        <View className="flex-row items-center justify-between pb-3 pt-1">
+          {/* Sort Dropdown / Cycle button */}
+          <Pressable
+            onPress={handleCycleFolderSort}
+            className="flex-row items-center gap-1.5 active:opacity-70">
+            <Pressable onPress={handleToggleSortDirection} hitSlop={6}>
+              {folderSortDir === "desc" ? (
+                <ArrowDownWideNarrow size={17} color={colors.text} />
               ) : (
-                <List size={20} color={colors.text} />
+                <ArrowUpNarrowWide size={17} color={colors.text} />
               )}
             </Pressable>
-          </View>
+            <Text className="text-sm font-semibold text-text">
+              {folderSortBy === "updatedAt"
+                ? "Last modified"
+                : folderSortBy === "name"
+                  ? "Name"
+                  : "Date created"}
+            </Text>
+          </Pressable>
 
-          {/* Folders List/Grid */}
-          <FlatList
-            key={folderLayout} // Re-render when layout columns change
-            data={folders}
-            numColumns={folderLayout === "grid" ? 2 : 1}
-            renderItem={renderFolderItem}
-            keyExtractor={(item) => item.id}
-            className="flex-1"
-            contentContainerStyle={{
-              paddingBottom: BottomTabInset + 80,
+          {/* Grid vs List View Toggle */}
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setFolderLayout((prev) => (prev === "grid" ? "list" : "grid"));
             }}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View className="items-center justify-center py-20 px-6">
-                <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-                  <FolderIcon size={32} color={colors.textSecondary} />
-                </View>
-                <ThemedText className="font-semibold text-base text-text text-center">
-                  {folderSearch.trim() ? "No matching folders" : "No folders yet"}
-                </ThemedText>
-                <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-                  {folderSearch.trim()
-                    ? "Try a different search keyword."
-                    : "Tap the + button to create your first folder."}
-                </Text>
-              </View>
-            }
-          />
+            hitSlop={8}
+            className="w-8 h-8 rounded-lg items-center justify-center active:bg-background-element">
+            {folderLayout === "grid" ? (
+              <Grid2X2 size={20} color={colors.text} />
+            ) : (
+              <List size={20} color={colors.text} />
+            )}
+          </Pressable>
         </View>
+
+        {/* Folders List/Grid */}
+        <FlatList
+          key={folderLayout} // Re-render when layout columns change
+          data={folders}
+          numColumns={folderLayout === "grid" ? 2 : 1}
+          renderItem={renderFolderItem}
+          keyExtractor={(item) => item.id}
+          className="flex-1"
+          contentContainerStyle={{
+            paddingBottom: BottomTabInset + 80,
+          }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="items-center justify-center py-20 px-6">
+              <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
+                <FolderIcon size={32} color={colors.textSecondary} />
+              </View>
+              <ThemedText className="font-semibold text-base text-text text-center">
+                {folderSearch.trim() ? "No matching folders" : "No folders yet"}
+              </ThemedText>
+              <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
+                {folderSearch.trim()
+                  ? "Try a different search keyword."
+                  : "Tap the + button to create your first folder."}
+              </Text>
+            </View>
+          }
+        />
+      </View>
 
       {/* Create / Edit Folder Modal Sheet */}
       <CreateFolderSheet

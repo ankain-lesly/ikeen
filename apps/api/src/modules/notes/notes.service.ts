@@ -1,21 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { NoteMutationPayload } from '@repo/types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 
-export interface NoteSyncData {
-  id: string;
-  folderId?: string | null;
-  title: string;
-  content?: string;
-  tags?: string[];
-  isPinned?: boolean;
-  isArchived?: boolean;
-  summary?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
+export type NoteSyncData = NoteMutationPayload;
 
 @Injectable()
 export class NotesService {
@@ -54,60 +43,57 @@ export class NotesService {
    * Creates a new note.
    */
   async create(userId: string, dto: CreateNoteDto) {
-    // Validate folder ownership if folderId is provided
-    let validatedFolderId: string | null = null;
     if (dto.folderId) {
-      const folder = await this.prisma.folder.findFirst({
+      const folderExists = await this.prisma.folder.findFirst({
         where: { id: dto.folderId, userId },
       });
-      if (folder) {
-        validatedFolderId = dto.folderId;
+      if (!folderExists) {
+        dto.folderId = null;
       }
     }
 
     return this.prisma.note.create({
       data: {
-        id: dto.id,
+        ...(dto.id && { id: dto.id }),
         userId,
-        folderId: validatedFolderId,
-        title: dto.title ?? '',
+        folderId: dto.folderId ?? null,
+        title: dto.title,
         content: dto.content ?? '',
         tags: dto.tags ?? [],
         isPinned: dto.isPinned ?? false,
         isArchived: dto.isArchived ?? false,
         summary: dto.summary ?? null,
+        version: 1,
       },
     });
   }
 
   /**
-   * Updates an existing note.
+   * Updates an existing note with version incrementing.
    */
   async update(userId: string, id: string, dto: UpdateNoteDto) {
     await this.findOne(userId, id);
 
-    let validatedFolderId: string | null | undefined = undefined;
-    if (dto.folderId !== undefined) {
-      if (dto.folderId === null) {
-        validatedFolderId = null;
-      } else {
-        const folder = await this.prisma.folder.findFirst({
-          where: { id: dto.folderId, userId },
-        });
-        validatedFolderId = folder ? dto.folderId : null;
+    if (dto.folderId !== undefined && dto.folderId !== null) {
+      const folderExists = await this.prisma.folder.findFirst({
+        where: { id: dto.folderId, userId },
+      });
+      if (!folderExists) {
+        dto.folderId = null;
       }
     }
 
     return this.prisma.note.update({
       where: { id },
       data: {
-        ...(validatedFolderId !== undefined && { folderId: validatedFolderId }),
+        ...(dto.folderId !== undefined && { folderId: dto.folderId }),
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.content !== undefined && { content: dto.content }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
         ...(dto.isPinned !== undefined && { isPinned: dto.isPinned }),
         ...(dto.isArchived !== undefined && { isArchived: dto.isArchived }),
         ...(dto.summary !== undefined && { summary: dto.summary }),
+        version: { increment: 1 },
       },
     });
   }
@@ -120,17 +106,17 @@ export class NotesService {
 
     return this.prisma.note.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), version: { increment: 1 } },
     });
   }
 
   /**
-   * Reusable Last-Write-Wins (LWW) upsert for notes.
-   * Can be executed inside an existing Prisma transaction or standalone.
+   * Reusable Last-Write-Wins (LWW) upsert for notes with partial patching and versioning.
+   * Strictly reads entity properties from `n.changes`.
    */
   async upsertWithLww(
     userId: string,
-    n: NoteSyncData,
+    n: NoteMutationPayload,
     prismaClient: any = this.prisma,
   ): Promise<{ applied: boolean; noteId: string }> {
     const clientUpdatedAt = new Date(n.updatedAt);
@@ -145,47 +131,68 @@ export class NotesService {
       return { applied: false, noteId: n.id };
     }
 
-    let validatedFolderId: string | null = null;
-    if (n.folderId) {
-      const folderExists = await prismaClient.folder.findFirst({
-        where: { id: n.folderId, userId },
-      });
-      if (folderExists) {
-        validatedFolderId = n.folderId;
+    const nextVersion = Math.max((existing?.version ?? 0) + 1, n.version ?? 1);
+
+    // Validate folder ownership if folderId is changed or created
+    const targetFolderId = n.changes.folderId;
+    let validatedFolderId: string | null | undefined = undefined;
+
+    if (targetFolderId !== undefined) {
+      if (targetFolderId === null) {
+        validatedFolderId = null;
+      } else {
+        const folderExists = await prismaClient.folder.findFirst({
+          where: { id: targetFolderId, userId },
+        });
+        validatedFolderId = folderExists ? targetFolderId : null;
       }
     }
 
-    // Ensure tags is a native string array
-    const tagsArray = Array.isArray(n.tags) ? n.tags : [];
+    if (existing) {
+      const patchData: any = {
+        updatedAt: clientUpdatedAt,
+        version: nextVersion,
+      };
 
-    await prismaClient.note.upsert({
-      where: { id: n.id },
-      create: {
-        id: n.id,
-        userId,
-        folderId: validatedFolderId,
-        title: n.title ?? '',
-        content: n.content ?? '',
-        tags: tagsArray,
-        isPinned: n.isPinned ?? false,
-        isArchived: n.isArchived ?? false,
-        summary: n.summary ?? null,
-        createdAt: new Date(n.createdAt),
-        updatedAt: clientUpdatedAt,
-        deletedAt: n.deletedAt ? new Date(n.deletedAt) : null,
-      },
-      update: {
-        folderId: validatedFolderId,
-        title: n.title ?? '',
-        content: n.content ?? '',
-        tags: tagsArray,
-        isPinned: n.isPinned ?? false,
-        isArchived: n.isArchived ?? false,
-        summary: n.summary ?? null,
-        updatedAt: clientUpdatedAt,
-        deletedAt: n.deletedAt ? new Date(n.deletedAt) : null,
-      },
-    });
+      if (validatedFolderId !== undefined)
+        patchData.folderId = validatedFolderId;
+
+      if (n.changes.title !== undefined) patchData.title = n.changes.title;
+      if (n.changes.content !== undefined) patchData.content = n.changes.content;
+      if (n.changes.tags !== undefined)
+        patchData.tags = Array.isArray(n.changes.tags) ? n.changes.tags : [];
+      if (n.changes.isPinned !== undefined) patchData.isPinned = n.changes.isPinned;
+      if (n.changes.isArchived !== undefined) patchData.isArchived = n.changes.isArchived;
+      if (n.changes.summary !== undefined) patchData.summary = n.changes.summary;
+      if (n.changes.deletedAt !== undefined) {
+        patchData.deletedAt = n.changes.deletedAt ? new Date(n.changes.deletedAt) : null;
+      }
+
+      await prismaClient.note.update({
+        where: { id: n.id },
+        data: patchData,
+      });
+    } else {
+      const tagsArray = Array.isArray(n.changes?.tags) ? n.changes.tags : [];
+
+      await prismaClient.note.create({
+        data: {
+          id: n.id,
+          userId,
+          folderId: validatedFolderId ?? null,
+          title: n.changes.title ?? '',
+          content: n.changes.content ?? '',
+          tags: tagsArray,
+          isPinned: n.changes.isPinned ?? false,
+          isArchived: n.changes.isArchived ?? false,
+          summary: n.changes.summary ?? null,
+          version: nextVersion,
+          createdAt: clientUpdatedAt,
+          updatedAt: clientUpdatedAt,
+          deletedAt: n.changes.deletedAt ? new Date(n.changes.deletedAt) : null,
+        },
+      });
+    }
 
     return { applied: true, noteId: n.id };
   }

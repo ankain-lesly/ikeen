@@ -12,7 +12,6 @@ import type {
   UpdateFolderInput,
 } from '@/lib/types/folders';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-import { syncManager } from '@/lib/sync/sync-manager';
 
 // ============================================================================
 // Internal Query Builder for Folders
@@ -191,43 +190,78 @@ export async function createFolder(input: CreateFolderInput): Promise<Folder> {
       isLocked: input.isLocked ?? false,
       pinCode: input.pinCode ?? null,
       sortOrder: 0,
+      version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     })
     .returning();
 
-  await enqueueOutbox('folders', created.id, 'upsert', created);
-  syncManager.sync().catch(() => {});
+  const initialChanges = {
+    name: created.name,
+    color: created.color,
+    icon: created.icon,
+    isLocked: created.isLocked,
+    pinCode: created.pinCode,
+    sortOrder: created.sortOrder,
+  };
+
+  await enqueueOutbox('folders', created.id, 'upsert', initialChanges, created.version);
 
   return created;
 }
 
 /**
- * Updates an existing folder.
+ * Updates an existing folder with strict field-level change tracking.
  */
 export async function updateFolder(
   id: string,
   input: UpdateFolderInput
 ): Promise<Folder> {
+  const existing = await getFolderById(id);
+  if (!existing) {
+    throw new Error(`Folder with id "${id}" not found.`);
+  }
+
   const now = new Date().toISOString();
+  const nextVersion = (existing.version ?? 1) + 1;
   const valuesToUpdate: Partial<typeof folders.$inferInsert> = {
     updatedAt: now,
+    version: nextVersion,
   };
+  const changedFields: Record<string, any> = {};
 
-  if (input.name !== undefined) valuesToUpdate.name = input.name.trim();
-  if (input.color !== undefined) valuesToUpdate.color = input.color;
-  if (input.icon !== undefined) valuesToUpdate.icon = input.icon;
+  if (input.name !== undefined) {
+    valuesToUpdate.name = input.name.trim();
+    changedFields.name = valuesToUpdate.name;
+  }
+  if (input.color !== undefined) {
+    valuesToUpdate.color = input.color;
+    changedFields.color = valuesToUpdate.color;
+  }
+  if (input.icon !== undefined) {
+    valuesToUpdate.icon = input.icon;
+    changedFields.icon = valuesToUpdate.icon;
+  }
   if (input.isLocked !== undefined) {
     valuesToUpdate.isLocked = input.isLocked;
+    changedFields.isLocked = valuesToUpdate.isLocked;
     if (input.isLocked && valuesToUpdate.icon === undefined) {
       valuesToUpdate.icon = 'lock';
+      changedFields.icon = 'lock';
     } else if (!input.isLocked && valuesToUpdate.icon === 'lock') {
       valuesToUpdate.icon = 'folder';
+      changedFields.icon = 'folder';
     }
   }
-  if (input.pinCode !== undefined) valuesToUpdate.pinCode = input.pinCode;
-  if (input.sortOrder !== undefined) valuesToUpdate.sortOrder = input.sortOrder;
+  if (input.pinCode !== undefined) {
+    valuesToUpdate.pinCode = input.pinCode;
+    changedFields.pinCode = valuesToUpdate.pinCode;
+  }
+  if (input.sortOrder !== undefined) {
+    valuesToUpdate.sortOrder = input.sortOrder;
+    changedFields.sortOrder = valuesToUpdate.sortOrder;
+  }
 
   const [updated] = await db
     .update(folders)
@@ -235,12 +269,7 @@ export async function updateFolder(
     .where(eq(folders.id, id))
     .returning();
 
-  if (!updated) {
-    throw new Error(`Folder with id "${id}" not found.`);
-  }
-
-  await enqueueOutbox('folders', updated.id, 'upsert', updated);
-  syncManager.sync().catch(() => {});
+  await enqueueOutbox('folders', updated.id, 'upsert', changedFields, updated.version);
 
   return updated;
 }
@@ -258,37 +287,35 @@ export async function softDeleteFolder(
   if (options.deleteNotes) {
     const updatedNotes = await db
       .update(notes)
-      .set({ deletedAt: now, updatedAt: now })
+      .set({ deletedAt: now, updatedAt: now, version: sql`${notes.version} + 1` })
       .where(eq(notes.folderId, id))
       .returning();
 
     for (const n of updatedNotes) {
-      await enqueueOutbox('notes', n.id, 'upsert', n);
+      await enqueueOutbox('notes', n.id, 'delete', { deletedAt: now }, n.version);
     }
   } else {
     // Orphan notes (retain notes, remove folder association)
     const updatedNotes = await db
       .update(notes)
-      .set({ folderId: null, updatedAt: now })
+      .set({ folderId: null, updatedAt: now, version: sql`${notes.version} + 1` })
       .where(eq(notes.folderId, id))
       .returning();
 
     for (const n of updatedNotes) {
-      await enqueueOutbox('notes', n.id, 'upsert', n);
+      await enqueueOutbox('notes', n.id, 'upsert', { folderId: null }, n.version);
     }
   }
 
   const [deleted] = await db
     .update(folders)
-    .set({ deletedAt: now, updatedAt: now })
+    .set({ deletedAt: now, updatedAt: now, version: sql`${folders.version} + 1` })
     .where(eq(folders.id, id))
     .returning();
 
   if (deleted) {
-    await enqueueOutbox('folders', deleted.id, 'upsert', deleted);
+    await enqueueOutbox('folders', deleted.id, 'delete', { deletedAt: now }, deleted.version);
   }
-
-  syncManager.sync().catch(() => {});
 }
 
 /**
@@ -315,13 +342,14 @@ export async function upsertFolderFromSync(f: {
   isLocked?: boolean;
   pinCode?: string | null;
   sortOrder?: number;
+  version?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
   userId?: string | null;
 }): Promise<void> {
   const [existing] = await db
-    .select({ updatedAt: folders.updatedAt })
+    .select({ updatedAt: folders.updatedAt, version: folders.version })
     .from(folders)
     .where(eq(folders.id, f.id))
     .limit(1);
@@ -341,6 +369,7 @@ export async function upsertFolderFromSync(f: {
       isLocked: f.isLocked ?? false,
       pinCode: f.pinCode ?? null,
       sortOrder: f.sortOrder ?? 0,
+      version: f.version ?? 1,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
       deletedAt: f.deletedAt ?? null,
@@ -354,6 +383,7 @@ export async function upsertFolderFromSync(f: {
         isLocked: f.isLocked ?? false,
         pinCode: f.pinCode ?? null,
         sortOrder: f.sortOrder ?? 0,
+        version: f.version ?? 1,
         updatedAt: f.updatedAt,
         deletedAt: f.deletedAt ?? null,
         ...(f.userId ? { userId: f.userId } : {}),

@@ -1,37 +1,17 @@
 import type { Note, InsertNote } from '../../db/schema';
+import type {
+  CreateNoteInput,
+  UpdateNoteInput,
+  ListNotesOptions,
+  NoteChanges,
+} from '@repo/types';
 
-export type { Note, InsertNote };
+export type {
+  Note,
+  InsertNote,
+  CreateNoteInput,
+  UpdateNoteInput,
+  ListNotesOptions,
+  NoteChanges,
+};
 
-export interface CreateNoteInput {
-  id?: string;
-  folderId?: string | null;
-  title?: string;
-  content?: string;
-  tags?: string[];
-  isPinned?: boolean;
-  isArchived?: boolean;
-  summary?: string;
-}
-
-export interface UpdateNoteInput {
-  folderId?: string | null;
-  title?: string;
-  content?: string;
-  tags?: string[];
-  isPinned?: boolean;
-  isArchived?: boolean;
-  summary?: string | null;
-}
-
-export interface ListNotesOptions {
-  folderId?: string | null;
-  includeArchived?: boolean;
-  includeDeleted?: boolean;
-  pinnedFirst?: boolean;
-  tag?: string;
-  search?: string;
-  limit?: number;
-  offset?: number;
-  orderBy?: 'updatedAt' | 'createdAt' | 'title';
-  orderDirection?: 'asc' | 'desc';
-}

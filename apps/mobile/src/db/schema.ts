@@ -11,6 +11,7 @@ export const folders = sqliteTable(
     isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
     pinCode: text('pin_code'),
     sortOrder: integer('sort_order').notNull().default(0),
+    version: integer('version').notNull().default(1),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
     deletedAt: text('deleted_at'),
@@ -34,6 +35,7 @@ export const notes = sqliteTable(
     isPinned: integer('is_pinned', { mode: 'boolean' }).notNull().default(false),
     isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
     summary: text('summary'),
+    version: integer('version').notNull().default(1),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
     deletedAt: text('deleted_at'),
@@ -48,12 +50,6 @@ export const notes = sqliteTable(
   ]
 );
 
-export type Note = typeof notes.$inferSelect;
-export type InsertNote = typeof notes.$inferInsert;
-
-export type Folder = typeof folders.$inferSelect;
-export type InsertFolder = typeof folders.$inferInsert;
-
 export const syncOutbox = sqliteTable(
   'sync_outbox',
   {
@@ -61,12 +57,18 @@ export const syncOutbox = sqliteTable(
     entity: text('entity', { enum: ['folders', 'notes'] }).notNull(),
     entityId: text('entity_id').notNull(),
     action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
+    status: text('status', { enum: ['pending', 'in_flight', 'success', 'failed'] })
+      .notNull()
+      .default('pending'),
+    mutationId: text('mutation_id').notNull(),
     payload: text('payload').notNull(),
     createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
     retryCount: integer('retry_count').notNull().default(0),
     lastError: text('last_error'),
   },
   (table) => [
+    index('idx_sync_outbox_status_created').on(table.status, table.createdAt),
     index('idx_sync_outbox_created_at').on(table.createdAt),
     index('idx_sync_outbox_entity').on(table.entity, table.entityId),
   ]
@@ -77,6 +79,14 @@ export const syncMetadata = sqliteTable('sync_metadata', {
   value: text('value').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+
+
+export type Note = typeof notes.$inferSelect;
+export type InsertNote = typeof notes.$inferInsert;
+
+export type Folder = typeof folders.$inferSelect;
+export type InsertFolder = typeof folders.$inferInsert;
 
 export type SyncOutboxItem = typeof syncOutbox.$inferSelect;
 export type InsertSyncOutboxItem = typeof syncOutbox.$inferInsert;

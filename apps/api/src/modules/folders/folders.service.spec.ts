@@ -47,19 +47,56 @@ describe('FoldersService', () => {
   });
 
   describe('upsertWithLww', () => {
-    it('should apply upsert when no existing record', async () => {
+    it('should create record when no existing folder found', async () => {
       prisma.folder.findUnique.mockResolvedValue(null);
-      prisma.folder.upsert.mockResolvedValue({ id: 'f-1' });
+      prisma.folder.create.mockResolvedValue({ id: 'f-1' });
 
       const res = await service.upsertWithLww('u-1', {
         id: 'f-1',
-        name: 'Work',
-        createdAt: '2026-09-18T10:00:00.000Z',
+        mutationId: 'folders:upsert:f-1',
+        action: 'upsert',
+        changes: { name: 'Work' },
         updatedAt: '2026-09-18T10:00:00.000Z',
       });
 
       expect(res.applied).toBe(true);
-      expect(prisma.folder.upsert).toHaveBeenCalled();
+      expect(prisma.folder.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'f-1',
+            userId: 'u-1',
+            name: 'Work',
+          }),
+        }),
+      );
+    });
+
+    it('should update record when existing folder is older', async () => {
+      prisma.folder.findUnique.mockResolvedValue({
+        id: 'f-1',
+        version: 1,
+        updatedAt: new Date('2026-09-18T09:00:00.000Z'),
+      });
+      prisma.folder.update.mockResolvedValue({ id: 'f-1' });
+
+      const res = await service.upsertWithLww('u-1', {
+        id: 'f-1',
+        mutationId: 'folders:upsert:f-1',
+        action: 'upsert',
+        changes: { name: 'Renamed Work' },
+        updatedAt: '2026-09-18T11:00:00.000Z',
+      });
+
+      expect(res.applied).toBe(true);
+      expect(prisma.folder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'f-1' },
+          data: expect.objectContaining({
+            name: 'Renamed Work',
+            version: 2,
+          }),
+        }),
+      );
     });
 
     it('should skip upsert when server record has newer updatedAt', async () => {
@@ -70,13 +107,15 @@ describe('FoldersService', () => {
 
       const res = await service.upsertWithLww('u-1', {
         id: 'f-1',
-        name: 'Work',
-        createdAt: '2026-09-18T10:00:00.000Z',
+        mutationId: 'folders:upsert:f-1',
+        action: 'upsert',
+        changes: { name: 'Work' },
         updatedAt: '2026-09-18T11:00:00.000Z',
       });
 
       expect(res.applied).toBe(false);
-      expect(prisma.folder.upsert).not.toHaveBeenCalled();
+      expect(prisma.folder.create).not.toHaveBeenCalled();
+      expect(prisma.folder.update).not.toHaveBeenCalled();
     });
   });
 });

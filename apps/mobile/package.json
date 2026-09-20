@@ -14,11 +14,12 @@
     "build": "expo export"
   },
   "dependencies": {
-    "@repo/utils": "workspace:*",
     "@expo/material-symbols": "^0.1.1",
     "@expo/ui": "~57.0.18",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
+    "@repo/types": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@tanstack/react-query": "^5.102.8",
     "ably": "^2.28.0",
     "babel-preset-expo": "^57.0.12",
@@ -45,6 +46,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-keyboard-controller": "1.21.9",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",

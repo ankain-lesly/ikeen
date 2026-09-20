@@ -1,0 +1,60 @@
+import type { Folder, FolderChanges } from "./folders";
+import type { Note, NoteChanges } from "./notes";
+
+export type SyncEntityType = "folders" | "notes";
+export type SyncActionType = "upsert" | "delete";
+export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
+
+export type { FolderChanges } from "./folders";
+export type { NoteChanges } from "./notes";
+
+/**
+ * Common mutation metadata outside of entity changes.
+ * - id: Target entity UUID
+ * - mutationId: Deterministic idempotency token `${entity}:${action}:${queueId}`
+ * - action: 'upsert' | 'delete'
+ * - version: Incremental optimistic concurrency version
+ * - updatedAt: Client mutation timestamp for LWW conflict resolution
+ */
+export interface SyncMutationBase {
+  id: string;
+  mutationId: string;
+  action: SyncActionType;
+  version?: number;
+  updatedAt: string;
+}
+
+/**
+ * Generic sync mutation payload: metadata sits outside, entity fields sit strictly inside `changes`.
+ */
+export interface SyncMutationPayload<TChanges = FolderChanges | NoteChanges>
+  extends SyncMutationBase {
+  changes: TChanges;
+}
+
+export type FolderMutationPayload = SyncMutationPayload<FolderChanges>;
+export type NoteMutationPayload = SyncMutationPayload<NoteChanges>;
+
+export interface SyncPushPayload {
+  clientTimestamp: string;
+  folders?: FolderMutationPayload[];
+  notes?: NoteMutationPayload[];
+}
+
+export interface SyncPushResponse {
+  success: boolean;
+  serverTimestamp: string;
+}
+
+export interface SyncPullResponse {
+  serverTimestamp: string;
+  folders: Folder[];
+  notes: Note[];
+}
+
+export interface RealtimeAuthResponse {
+  enabled: boolean;
+  tokenRequest?: any;
+  error?: string;
+  message?: string;
+}

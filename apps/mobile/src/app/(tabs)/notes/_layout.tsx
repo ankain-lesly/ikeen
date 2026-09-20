@@ -43,7 +43,7 @@ export default function TabsLayout() {
       <Stack screenOptions={{ headerShown: false }} />
 
       {/* Notes */}
-      <NotesFolderTabs />
+      {/* <NotesFolderTabs /> */}
 
       {/* Speed-Dial Floating Action Button */}
       <SpeedDialFAB

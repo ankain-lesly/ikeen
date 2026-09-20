@@ -64,24 +64,55 @@ describe('NotesService', () => {
   });
 
   describe('upsertWithLww', () => {
-    it('should apply upsert with native tags when no existing record', async () => {
+    it('should create record with native tags when no existing record', async () => {
       prisma.note.findUnique.mockResolvedValue(null);
-      prisma.note.upsert.mockResolvedValue({ id: 'n-1' });
+      prisma.note.create.mockResolvedValue({ id: 'n-1' });
 
       const res = await service.upsertWithLww('u-1', {
         id: 'n-1',
-        title: 'Sync Note',
-        tags: ['tag1', 'tag2'],
-        createdAt: '2026-09-18T10:00:00.000Z',
+        mutationId: 'notes:upsert:n-1',
+        action: 'upsert',
+        changes: { title: 'Sync Note', tags: ['tag1', 'tag2'] },
         updatedAt: '2026-09-18T10:00:00.000Z',
       });
 
       expect(res.applied).toBe(true);
-      expect(prisma.note.upsert).toHaveBeenCalledWith(
+      expect(prisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'n-1',
+            userId: 'u-1',
+            title: 'Sync Note',
+            tags: ['tag1', 'tag2'],
+          }),
+        }),
+      );
+    });
+
+    it('should update record when existing note is older', async () => {
+      prisma.note.findUnique.mockResolvedValue({
+        id: 'n-1',
+        version: 1,
+        updatedAt: new Date('2026-09-18T09:00:00.000Z'),
+      });
+      prisma.note.update.mockResolvedValue({ id: 'n-1' });
+
+      const res = await service.upsertWithLww('u-1', {
+        id: 'n-1',
+        mutationId: 'notes:upsert:n-1',
+        action: 'upsert',
+        changes: { title: 'Updated Note', tags: ['updated'] },
+        updatedAt: '2026-09-18T11:00:00.000Z',
+      });
+
+      expect(res.applied).toBe(true);
+      expect(prisma.note.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'n-1' },
-          create: expect.objectContaining({
-            tags: ['tag1', 'tag2'],
+          data: expect.objectContaining({
+            title: 'Updated Note',
+            tags: ['updated'],
+            version: 2,
           }),
         }),
       );
@@ -95,13 +126,15 @@ describe('NotesService', () => {
 
       const res = await service.upsertWithLww('u-1', {
         id: 'n-1',
-        title: 'Older Note',
-        createdAt: '2026-09-18T10:00:00.000Z',
+        mutationId: 'notes:upsert:n-1',
+        action: 'upsert',
+        changes: { title: 'Older Note' },
         updatedAt: '2026-09-18T12:00:00.000Z',
       });
 
       expect(res.applied).toBe(false);
-      expect(prisma.note.upsert).not.toHaveBeenCalled();
+      expect(prisma.note.create).not.toHaveBeenCalled();
+      expect(prisma.note.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -11,7 +11,6 @@ import type {
   UpdateNoteInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-import { syncManager } from '@/lib/sync/sync-manager';
 
 // ============================================================================
 // Internal Query Builder (Shared by listNotes & useLiveNotes)
@@ -182,38 +181,76 @@ export async function createNote(
       isPinned: input.isPinned ?? false,
       isArchived: input.isArchived ?? false,
       summary: input.summary ?? null,
+      version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     })
     .returning();
 
-  await enqueueOutbox('notes', created.id, 'upsert', created);
-  syncManager.sync().catch(() => {});
+  const initialChanges = {
+    folderId: created.folderId,
+    title: created.title,
+    content: created.content,
+    tags: input.tags ?? [],
+    isPinned: created.isPinned,
+    isArchived: created.isArchived,
+    summary: created.summary,
+  };
+
+  await enqueueOutbox('notes', created.id, 'upsert', initialChanges, created.version);
 
   return created;
 }
 
 /**
- * Updates a note's specified fields and updates updatedAt.
+ * Updates a note's specified fields with strict field-level change tracking.
  */
 export async function updateNote(
   id: string,
   input: UpdateNoteInput
 ): Promise<Note> {
+  const existing = await getNoteById(id);
+  if (!existing) {
+    throw new Error(`Note with id "${id}" not found.`);
+  }
+
   const now = new Date().toISOString();
+  const nextVersion = (existing.version ?? 1) + 1;
   const valuesToUpdate: Partial<typeof notes.$inferInsert> = {
     updatedAt: now,
+    version: nextVersion,
   };
+  const changedFields: Record<string, any> = {};
 
-  if (input.folderId !== undefined) valuesToUpdate.folderId = input.folderId;
-  if (input.title !== undefined) valuesToUpdate.title = input.title;
-  if (input.content !== undefined) valuesToUpdate.content = input.content;
-  if (input.tags !== undefined) valuesToUpdate.tags = JSON.stringify(input.tags);
-  if (input.isPinned !== undefined) valuesToUpdate.isPinned = input.isPinned;
-  if (input.isArchived !== undefined)
+  if (input.folderId !== undefined) {
+    valuesToUpdate.folderId = input.folderId;
+    changedFields.folderId = input.folderId;
+  }
+  if (input.title !== undefined) {
+    valuesToUpdate.title = input.title;
+    changedFields.title = input.title;
+  }
+  if (input.content !== undefined) {
+    valuesToUpdate.content = input.content;
+    changedFields.content = input.content;
+  }
+  if (input.tags !== undefined) {
+    valuesToUpdate.tags = JSON.stringify(input.tags);
+    changedFields.tags = input.tags;
+  }
+  if (input.isPinned !== undefined) {
+    valuesToUpdate.isPinned = input.isPinned;
+    changedFields.isPinned = input.isPinned;
+  }
+  if (input.isArchived !== undefined) {
     valuesToUpdate.isArchived = input.isArchived;
-  if (input.summary !== undefined) valuesToUpdate.summary = input.summary;
+    changedFields.isArchived = input.isArchived;
+  }
+  if (input.summary !== undefined) {
+    valuesToUpdate.summary = input.summary;
+    changedFields.summary = input.summary;
+  }
 
   const [updated] = await db
     .update(notes)
@@ -221,12 +258,7 @@ export async function updateNote(
     .where(eq(notes.id, id))
     .returning();
 
-  if (!updated) {
-    throw new Error(`Note with id "${id}" not found.`);
-  }
-
-  await enqueueOutbox('notes', updated.id, 'upsert', updated);
-  syncManager.sync().catch(() => {});
+  await enqueueOutbox('notes', updated.id, 'upsert', changedFields, updated.version);
 
   return updated;
 }
@@ -245,10 +277,13 @@ export async function moveNoteToFolder(
  * Soft deletes a note by stamping deletedAt.
  */
 export async function softDeleteNote(id: string): Promise<Note> {
+  const existing = await getNoteById(id);
+  const nextVersion = (existing?.version ?? 1) + 1;
   const now = new Date().toISOString();
+
   const [deleted] = await db
     .update(notes)
-    .set({ deletedAt: now, updatedAt: now })
+    .set({ deletedAt: now, updatedAt: now, version: nextVersion })
     .where(eq(notes.id, id))
     .returning();
 
@@ -256,8 +291,7 @@ export async function softDeleteNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
 
-  await enqueueOutbox('notes', deleted.id, 'upsert', deleted);
-  syncManager.sync().catch(() => {});
+  await enqueueOutbox('notes', deleted.id, 'delete', { deletedAt: now }, deleted.version);
 
   return deleted;
 }
@@ -277,8 +311,7 @@ export async function restoreNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
 
-  await enqueueOutbox('notes', restored.id, 'upsert', restored);
-  syncManager.sync().catch(() => {});
+  await enqueueOutbox('notes', restored.id, 'upsert', { deletedAt: null });
 
   return restored;
 }
@@ -289,8 +322,7 @@ export async function restoreNote(id: string): Promise<Note> {
 export async function hardDeleteNote(id: string): Promise<boolean> {
   const [deleted] = await db.delete(notes).where(eq(notes.id, id)).returning();
   if (deleted) {
-    await enqueueOutbox('notes', id, 'delete', { id, deletedAt: new Date().toISOString() });
-    syncManager.sync().catch(() => {});
+    await enqueueOutbox('notes', id, 'delete', { deletedAt: new Date().toISOString() });
   }
   return !!deleted;
 }
@@ -330,6 +362,7 @@ export async function upsertNoteFromSync(n: {
   isPinned?: boolean;
   isArchived?: boolean;
   summary?: string | null;
+  version?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -365,6 +398,7 @@ export async function upsertNoteFromSync(n: {
       isPinned: n.isPinned ?? false,
       isArchived: n.isArchived ?? false,
       summary: n.summary ?? null,
+      version: n.version ?? 1,
       createdAt: n.createdAt,
       updatedAt: n.updatedAt,
       deletedAt: n.deletedAt ?? null,
@@ -379,6 +413,7 @@ export async function upsertNoteFromSync(n: {
         isPinned: n.isPinned ?? false,
         isArchived: n.isArchived ?? false,
         summary: n.summary ?? null,
+        version: n.version ?? 1,
         updatedAt: n.updatedAt,
         deletedAt: n.deletedAt ?? null,
         ...(n.userId ? { userId: n.userId } : {}),
