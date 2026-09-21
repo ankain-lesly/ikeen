@@ -31,7 +31,7 @@ export default function HomeScreenMain() {
 
   // TODO: Onboard Session
   // return <Redirect href="/(tabs)/notes" />
-  return <Redirect href="/(tabs)/home" />
+  // return <Redirect href="/(tabs)/home" />
   // return <Redirect href="/notes/your-first-task-list-note" />;
 
   return (

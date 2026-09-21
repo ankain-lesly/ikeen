@@ -10,10 +10,9 @@ const baseContextSchema = z.object({
 
 export function createNotesTools({
   prisma,
-  ably,
 }: {
   prisma: PrismaService;
-  ably: AblyService;
+  ably?: AblyService;
 }) {
   const searchNotes = tool({
     description:
@@ -219,9 +218,6 @@ export function createNotesTools({
           },
         });
 
-        // Publish real-time sync invalidation ping over Ably
-        await ably.publishInvalidation(context.userId, ['notes']);
-
         return {
           ok: true,
           note: {
@@ -298,9 +294,6 @@ export function createNotesTools({
           },
         });
 
-        // Publish real-time sync invalidation ping over Ably
-        await ably.publishInvalidation(context.userId, ['notes']);
-
         return {
           ok: true,
           noteId: note.id,
@@ -348,8 +341,6 @@ export function createNotesTools({
             version: { increment: 1 },
           },
         });
-
-        await ably.publishInvalidation(context.userId, ['notes']);
 
         return {
           ok: true,
@@ -401,8 +392,6 @@ export function createNotesTools({
             version: { increment: 1 },
           },
         });
-
-        await ably.publishInvalidation(context.userId, ['notes']);
 
         return {
           ok: true,

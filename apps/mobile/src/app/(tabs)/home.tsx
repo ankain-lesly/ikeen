@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import {  useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
   ArrowRight,
@@ -90,15 +90,6 @@ export default function HomeScreen() {
     });
   };
 
-  const handleTogglePin = async (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      await togglePinNote(id);
-    } catch {
-      toast.error("Failed to update pin");
-    }
-  };
-
   const syncStatusText = useMemo(() => {
     if (syncStatus === "syncing") return "Syncing...";
     if (syncStatus === "offline") return "Offline";
@@ -106,7 +97,7 @@ export default function HomeScreen() {
     return "All Synced";
   }, [syncStatus, pendingCount]);
 
-  return <Redirect href="/agent" />;
+  // return <Redirect href="/agent" />;
 
   return (
     <View className="flex-1 bg-background pt-safe">

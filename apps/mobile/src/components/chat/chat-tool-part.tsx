@@ -43,13 +43,17 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   // 1. Note Creation / Update Tool Card
   if (toolName === 'createNote' || toolName === 'updateNote') {
     const noteResult = result as {
+      ok?: boolean;
       success?: boolean;
-      note?: { id: string; title: string; folderId?: string };
+      note?: { id: string; title: string; folderId?: string | null };
+      noteId?: string;
+      title?: string;
     } | null;
 
     const note = noteResult?.note;
-    const noteId = note?.id || (args.noteId as string);
-    const title = note?.title || (args.title as string) || 'Untitled Note';
+    const noteId = note?.id || noteResult?.noteId || (args.noteId as string);
+    const title =
+      note?.title || noteResult?.title || (args.title as string) || 'Untitled Note';
 
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
@@ -178,13 +182,68 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
 
   // 4. Organize Note Tool
   if (toolName === 'organizeNote') {
-    const folderName = (args.folderName as string) || 'Folder';
+    const organizeResult = result as {
+      ok?: boolean;
+      noteId?: string;
+      title?: string;
+      folderId?: string | null;
+      folderName?: string | null;
+    } | null;
+
+    const noteId = organizeResult?.noteId || (args.noteId as string);
+    const title = organizeResult?.title || (args.title as string);
+    const folderName = organizeResult?.folderName;
+    const isUnfiled = args.folderId === null || organizeResult?.folderId === null;
+
+    let label = 'Note Organized';
+    let description = 'Organized note';
+    if (isUnfiled) {
+      label = 'Folder Unassigned';
+      description = title
+        ? `Moved "${title}" to general workspace`
+        : 'Moved note to general workspace';
+    } else if (folderName) {
+      label = 'Organized into Folder';
+      description = title
+        ? `Moved "${title}" into ${folderName}`
+        : `Organized note into ${folderName}`;
+    } else if (title) {
+      description = `Organized "${title}"`;
+    }
+
     return (
-      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
-        <Folder size={13} color={colors.primary} />
-        <Text className="text-xs text-text flex-1">
-          Organized note into <Text className="font-semibold">{folderName}</Text>
-        </Text>
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Folder size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {label}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {description}
+              </Text>
+            </View>
+          </View>
+
+          {noteId && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenNote(noteId)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
       </View>
     );
   }
@@ -271,36 +330,199 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
 
   // 7. Pin Note Tool
   if (toolName === 'pinNote') {
-    const noteResult = result as { noteId?: string; title?: string; isPinned?: boolean } | null;
-    const title = noteResult?.title || (args.title as string) || 'Note';
+    const noteResult = result as {
+      ok?: boolean;
+      noteId?: string;
+      title?: string;
+      isPinned?: boolean;
+      note?: { id: string; title: string; isPinned: boolean };
+    } | null;
+    const noteId = noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
+    const title = noteResult?.note?.title || noteResult?.title || (args.title as string) || 'Note';
     const isPinned =
-      noteResult?.isPinned !== undefined ? noteResult.isPinned : args.isPinned !== false;
+      noteResult?.note?.isPinned !== undefined
+        ? noteResult.note.isPinned
+        : noteResult?.isPinned !== undefined
+          ? noteResult.isPinned
+          : args.isPinned !== false;
 
     return (
-      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
-        <Pin size={13} color={colors.primary} />
-        <Text className="text-xs text-text flex-1" numberOfLines={1}>
-          {isPinned ? 'Pinned ' : 'Unpinned '}
-          <Text className="font-semibold">{title}</Text>
-        </Text>
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Pin size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isPinned ? 'Note Pinned' : 'Note Unpinned'}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {title}
+              </Text>
+            </View>
+          </View>
+
+          {noteId && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenNote(noteId)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
       </View>
     );
   }
 
   // 8. Archive Note Tool
   if (toolName === 'archiveNote') {
-    const noteResult = result as { noteId?: string; title?: string; isArchived?: boolean } | null;
-    const title = noteResult?.title || (args.title as string) || 'Note';
+    const noteResult = result as {
+      ok?: boolean;
+      noteId?: string;
+      title?: string;
+      isArchived?: boolean;
+      note?: { id: string; title: string; isArchived: boolean };
+    } | null;
+    const noteId = noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
+    const title = noteResult?.note?.title || noteResult?.title || (args.title as string) || 'Note';
     const isArchived =
-      noteResult?.isArchived !== undefined ? noteResult.isArchived : args.isArchived !== false;
+      noteResult?.note?.isArchived !== undefined
+        ? noteResult.note.isArchived
+        : noteResult?.isArchived !== undefined
+          ? noteResult.isArchived
+          : args.isArchived !== false;
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Archive size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isArchived ? 'Note Archived' : 'Note Restored'}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {title}
+              </Text>
+            </View>
+          </View>
+
+          {noteId && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenNote(noteId)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // 9. List Folders Tool
+  if (toolName === 'listFolders') {
+    const listResult = result as {
+      ok?: boolean;
+      count?: number;
+      folders?: Array<{ id: string; name: string; color?: string; noteCount?: number }>;
+    } | null;
+    const count = listResult?.count ?? listResult?.folders?.length ?? 0;
+    const query = (args.query as string) || '';
 
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
-        <Archive size={13} color={colors.primary} />
+        {isRunning ? (
+          <Loader2 size={13} color={colors.primary} />
+        ) : (
+          <Folder size={13} color={colors.primary} />
+        )}
         <Text className="text-xs text-text flex-1" numberOfLines={1}>
-          {isArchived ? 'Archived ' : 'Restored '}
-          <Text className="font-semibold">{title}</Text>
+          {isRunning
+            ? 'Checking workspace folders...'
+            : query
+              ? `Found ${count} folder${count === 1 ? '' : 's'} matching "${query}"`
+              : `Loaded ${count} workspace folder${count === 1 ? '' : 's'}`}
         </Text>
+      </View>
+    );
+  }
+
+  // 10. List Recent Notes Tool
+  if (toolName === 'listRecentNotes') {
+    const listResult = result as {
+      ok?: boolean;
+      count?: number;
+      notes?: Array<{ id: string; title: string; isPinned?: boolean }>;
+    } | null;
+    const count = listResult?.count ?? listResult?.notes?.length ?? 0;
+    const pinnedOnly = Boolean(args.pinnedOnly);
+
+    return (
+      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
+        {isRunning ? (
+          <Loader2 size={13} color={colors.primary} />
+        ) : (
+          <FileText size={13} color={colors.primary} />
+        )}
+        <Text className="text-xs text-text flex-1" numberOfLines={1}>
+          {isRunning
+            ? 'Reading recent workspace notes...'
+            : pinnedOnly
+              ? `Loaded ${count} pinned note${count === 1 ? '' : 's'}`
+              : `Loaded ${count} recent note${count === 1 ? '' : 's'}`}
+        </Text>
+      </View>
+    );
+  }
+
+  // 11. Get Note Details Tool
+  if (toolName === 'getNoteDetails') {
+    const detailResult = result as {
+      ok?: boolean;
+      note?: { id: string; title: string };
+    } | null;
+    const noteId = detailResult?.note?.id || (args.noteId as string);
+    const title = detailResult?.note?.title || 'Note details';
+
+    return (
+      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2 flex-1 mr-2">
+          {isRunning ? (
+            <Loader2 size={13} color={colors.primary} />
+          ) : (
+            <FileText size={13} color={colors.primary} />
+          )}
+          <Text className="text-xs text-text flex-1" numberOfLines={1}>
+            {isRunning ? 'Reading note...' : `Inspected "${title}"`}
+          </Text>
+        </View>
+        {noteId && !isRunning && (
+          <Pressable
+            onPress={() => handleOpenNote(noteId)}
+            className="px-2 py-1 rounded-md bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+            <Text className="text-[11px] font-medium text-primary">Open</Text>
+            <ExternalLink size={10} color={colors.primary} />
+          </Pressable>
+        )}
       </View>
     );
   }

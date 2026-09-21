@@ -210,6 +210,16 @@ export class AgentService {
               messages: Array.from(uniqueRest.values()),
             });
           }
+
+          // Strategy B: Consolidated real-time sync invalidation ping across conversational turn
+          const mutatedEntities = this.extractMutatedEntities(completedMessages);
+          if (mutatedEntities.size > 0) {
+            const entities = Array.from(mutatedEntities);
+            this.logger.log(
+              `Dispatching consolidated sync invalidation for user ${userId}: [${entities.join(', ')}]`,
+            );
+            await this.ably.publishInvalidation(userId, entities);
+          }
         } catch (error) {
           this.logger.error(
             `Failed to persist completed chat for convId=${activeConversationId}`,
@@ -218,6 +228,79 @@ export class AgentService {
         }
       },
     });
+  }
+
+  /**
+   * Scans completed messages from an agent turn to discover which database entities
+   * (e.g. notes, folders) were mutated by successfully executed tools.
+   */
+  extractMutatedEntities(messages: UIMessage[]): Set<string> {
+    const mutated = new Set<string>();
+
+    const recordMutation = (toolName: string, result: unknown) => {
+      // If the tool explicitly returned { ok: false, ... }, the mutation failed
+      if (
+        result &&
+        typeof result === 'object' &&
+        'ok' in result &&
+        (result as { ok?: boolean }).ok === false
+      ) {
+        return;
+      }
+
+      switch (toolName) {
+        case 'createNote':
+        case 'updateNote':
+        case 'pinNote':
+        case 'archiveNote':
+          mutated.add('notes');
+          break;
+        case 'createFolder':
+        case 'updateFolder':
+          mutated.add('folders');
+          break;
+        case 'organizeNote':
+          mutated.add('notes');
+          mutated.add('folders');
+          break;
+      }
+    };
+
+    for (const msg of messages) {
+      if (Array.isArray(msg.parts)) {
+        for (const part of msg.parts) {
+          const p = part as Record<string, unknown>;
+          if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
+            const toolName = p.type.replace(/^tool-/, '');
+            const result = p.output ?? p.result;
+            if (p.state !== 'error') {
+              recordMutation(toolName, result);
+            }
+          } else if (p.toolInvocation && typeof p.toolInvocation === 'object') {
+            const inv = p.toolInvocation as Record<string, unknown>;
+            const toolName = String(inv.toolName || '');
+            if (inv.state !== 'error') {
+              recordMutation(toolName, inv.result);
+            }
+          }
+        }
+      }
+
+      const legacyInvocations = (msg as unknown as Record<string, unknown>).toolInvocations;
+      if (Array.isArray(legacyInvocations)) {
+        for (const inv of legacyInvocations) {
+          if (inv && typeof inv === 'object') {
+            const i = inv as Record<string, unknown>;
+            const toolName = String(i.toolName || '');
+            if (i.state !== 'error') {
+              recordMutation(toolName, i.result);
+            }
+          }
+        }
+      }
+    }
+
+    return mutated;
   }
 
   /**

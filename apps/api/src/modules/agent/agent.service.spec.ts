@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { UIMessage } from 'ai';
 import { AgentService } from './agent.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AblyService } from '../ably/ably.service';
@@ -87,5 +88,123 @@ describe('AgentService', () => {
     expect(toolNames).toContain('archiveNote');
     expect(toolNames).toContain('recordMemory');
     expect(toolNames).toContain('summarizeKnowledge');
+  });
+
+  describe('extractMutatedEntities (Strategy B)', () => {
+    it('should return empty set for pure text messages or read-only tools', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Hello, what notes do I have?' }],
+        },
+        {
+          id: 'm-2',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-searchNotes' as 'text',
+              input: { query: 'test' },
+              output: { ok: true, count: 0, notes: [] },
+              state: 'output-available',
+            } as unknown as UIMessage['parts'][number],
+            { type: 'text', text: 'You have no notes.' },
+          ],
+        },
+      ];
+
+      const mutated = service.extractMutatedEntities(messages);
+      expect(mutated.size).toBe(0);
+    });
+
+    it('should detect notes mutation from createNote and updateNote', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-createNote' as 'text',
+              output: { ok: true, noteId: 'note-1' },
+            } as unknown as UIMessage['parts'][number],
+            {
+              type: 'tool-updateNote' as 'text',
+              output: { ok: true, noteId: 'note-1' },
+            } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ];
+
+      const mutated = service.extractMutatedEntities(messages);
+      expect(Array.from(mutated)).toEqual(['notes']);
+    });
+
+    it('should detect folders mutation from createFolder and updateFolder', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-createFolder' as 'text',
+              output: { ok: true, folderId: 'f-1' },
+            } as unknown as UIMessage['parts'][number],
+            {
+              type: 'tool-updateFolder' as 'text',
+              output: { ok: true, folderId: 'f-1' },
+            } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ];
+
+      const mutated = service.extractMutatedEntities(messages);
+      expect(Array.from(mutated)).toEqual(['folders']);
+    });
+
+    it('should detect both notes and folders when organizeNote runs alongside pinNote', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-organizeNote' as 'text',
+              output: { ok: true, noteId: 'note-1', folderId: 'f-1' },
+            } as unknown as UIMessage['parts'][number],
+            {
+              type: 'tool-pinNote' as 'text',
+              output: { ok: true, noteId: 'note-1', isPinned: true },
+            } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ];
+
+      const mutated = service.extractMutatedEntities(messages);
+      expect(mutated.has('notes')).toBe(true);
+      expect(mutated.has('folders')).toBe(true);
+      expect(mutated.size).toBe(2);
+    });
+
+    it('should ignore failed tool executions (ok: false or state: error)', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-createNote' as 'text',
+              output: { ok: false, error: 'Database timeout' },
+            } as unknown as UIMessage['parts'][number],
+            {
+              type: 'tool-createFolder' as 'text',
+              state: 'error',
+            } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ];
+
+      const mutated = service.extractMutatedEntities(messages);
+      expect(mutated.size).toBe(0);
+    });
   });
 });

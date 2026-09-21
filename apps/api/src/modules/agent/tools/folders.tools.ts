@@ -10,10 +10,9 @@ const baseContextSchema = z.object({
 
 export function createFolderTools({
   prisma,
-  ably,
 }: {
   prisma: PrismaService;
-  ably: AblyService;
+  ably?: AblyService;
 }) {
   const listFolders = tool({
     description:
@@ -133,8 +132,6 @@ export function createFolderTools({
           },
         });
 
-        await ably.publishInvalidation(context.userId, ['folders']);
-
         return {
           ok: true,
           folder: {
@@ -207,8 +204,6 @@ export function createFolderTools({
           },
         });
 
-        await ably.publishInvalidation(context.userId, ['folders']);
-
         return {
           ok: true,
           folder: updated,
@@ -254,6 +249,7 @@ export function createFolderTools({
           return { ok: false, error: 'Note not found.' };
         }
 
+        let folderName: string | null = null;
         if (folderId) {
           const folderExists = await prisma.folder.findFirst({
             where: {
@@ -261,10 +257,12 @@ export function createFolderTools({
               userId: context.userId,
               deletedAt: null,
             },
+            select: { id: true, name: true },
           });
           if (!folderExists) {
             return { ok: false, error: 'Target folder does not exist.' };
           }
+          folderName = folderExists.name;
         }
 
         const note = await prisma.note.update({
@@ -274,14 +272,23 @@ export function createFolderTools({
             ...(tags !== undefined ? { tags } : {}),
             version: { increment: 1 },
           },
+          select: {
+            id: true,
+            title: true,
+            folderId: true,
+            tags: true,
+            folder: {
+              select: { id: true, name: true },
+            },
+          },
         });
-
-        await ably.publishInvalidation(context.userId, ['notes']);
 
         return {
           ok: true,
           noteId: note.id,
+          title: note.title,
           folderId: note.folderId,
+          folderName: note.folder?.name ?? folderName ?? null,
           tags: note.tags,
         };
       } catch (err: unknown) {
