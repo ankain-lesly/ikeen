@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { ChevronLeft, Folder, Pin, Plus, X } from "lucide-react-native";
+import { ChevronLeft, Folder, Pin, Plus, Sparkles, X } from "lucide-react-native";
 import {
   NoteAccessoryBar,
   NoteMinimalToolbar,
@@ -328,6 +328,22 @@ function NoteEditor({
 
             {/* Right Header Action Icons */}
             <View className="flex-row items-center gap-2">
+              {/* Brainstorm with iKeen */}
+              <Pressable
+                className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({
+                    pathname: '/(tabs)/agent',
+                    params: {
+                      prompt: `Let's brainstorm on my note "${title || 'Untitled Note'}":\n\n${content.slice(0, 300)}`,
+                    },
+                  });
+                }}
+                hitSlop={8}>
+                <Sparkles size={18} color={colors.primary} />
+              </Pressable>
+
               {/* Pin */}
               <Pressable
                 className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"

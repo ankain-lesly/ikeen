@@ -15,6 +15,7 @@ const getDefaultApiUrl = () => {
 };
 
 export const API_BASE_URL = getDefaultApiUrl();
+export const AGENT_BASE_URL = `${API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/agent`;
 
 export interface ApiRequestOptions extends RequestInit {
   token?: string | null;
@@ -38,7 +39,9 @@ export async function request<T>(
 ): Promise<T> {
   const { token, headers = {}, ...rest } = options;
 
-  const url = `${API_BASE_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  const url = endpoint.startsWith('http://') || endpoint.startsWith('https://')
+    ? endpoint
+    : `${API_BASE_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',

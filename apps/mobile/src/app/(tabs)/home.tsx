@@ -200,6 +200,31 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
+        {/* 🤖 Brainstorm with iKeen Quick Trigger */}
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push('/(tabs)/agent');
+          }}
+          className="p-3.5 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element">
+          <View className="flex-row items-center gap-3 flex-1 mr-2">
+            <View className="w-8 h-8 rounded-xl bg-background-element border border-border items-center justify-center">
+              <Sparkles size={16} color={colors.primary} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-text">
+                Brainstorm with iKeen
+              </Text>
+              <Text className="text-xs text-text-secondary" numberOfLines={1}>
+                Synthesize notes, extract action items, or plan ideas
+              </Text>
+            </View>
+          </View>
+          <View className="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20">
+            <Text className="text-xs font-semibold text-primary">Chat</Text>
+          </View>
+        </Pressable>
+
         {/* 📊 Executive Glances Grid (Focused on Foreground/Background) */}
         <View className="gap-2.5">
           <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
