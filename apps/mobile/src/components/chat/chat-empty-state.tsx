@@ -5,7 +5,7 @@ import { Sparkles, Compass, FolderSync, Lightbulb } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 
 interface EmptyStateProps {
-  onSelectPrompt: (prompt: string) => void;
+  onSelectPrompt: (prompt: string, autoSubmit?: boolean) => void;
 }
 
 const SUGGESTIONS = [
@@ -40,7 +40,7 @@ export function ChatEmptyState({ onSelectPrompt }: EmptyStateProps) {
 
   const handlePromptPress = (prompt: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelectPrompt(prompt);
+    onSelectPrompt(prompt, true);
   };
 
   return (
@@ -69,6 +69,7 @@ export function ChatEmptyState({ onSelectPrompt }: EmptyStateProps) {
             <Pressable
               key={item.id}
               onPress={() => handlePromptPress(item.prompt)}
+              hitSlop={8}
               className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-full bg-background-element border border-border/80 active:bg-background-selected">
               <Icon size={13} color={colors.primary} />
               <Text className="text-xs font-medium text-text">

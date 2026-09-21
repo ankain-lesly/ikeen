@@ -173,7 +173,7 @@ export function createNotesTools({
 
   const createNote = tool({
     description:
-      'Create a new note in the workspace with title, markdown content, optional folder, and tags.',
+      'Create a new note in the workspace with title, markdown content, optional folderId, and tags.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       title: z.string().trim().min(1).describe('Title of the note'),
@@ -183,7 +183,7 @@ export function createNotesTools({
       folderId: z
         .string()
         .optional()
-        .describe('Optional folder UUID to place this note into'),
+        .describe('Optional folder UUID to place this note into (from listFolders)'),
       tags: z
         .array(z.string())
         .default([])
@@ -224,6 +224,11 @@ export function createNotesTools({
 
         return {
           ok: true,
+          note: {
+            id: note.id,
+            title: note.title,
+            folderId: note.folderId,
+          },
           noteId: note.id,
           title: note.title,
           folderId: note.folderId,
@@ -311,11 +316,119 @@ export function createNotesTools({
     },
   });
 
+  const pinNote = tool({
+    description:
+      'Pin or unpin a note to prioritize it at the top of the workspace list.',
+    contextSchema: baseContextSchema,
+    inputSchema: z.object({
+      noteId: z.string().describe('The UUID of the note to pin or unpin'),
+      isPinned: z
+        .boolean()
+        .default(true)
+        .describe('True to pin the note, false to unpin it'),
+    }),
+    execute: async ({ noteId, isPinned }, { context }) => {
+      try {
+        const existing = await prisma.note.findFirst({
+          where: {
+            id: noteId,
+            userId: context.userId,
+            deletedAt: null,
+          },
+        });
+
+        if (!existing) {
+          return { ok: false, error: 'Note not found or deleted.' };
+        }
+
+        const note = await prisma.note.update({
+          where: { id: noteId },
+          data: {
+            isPinned,
+            version: { increment: 1 },
+          },
+        });
+
+        await ably.publishInvalidation(context.userId, ['notes']);
+
+        return {
+          ok: true,
+          noteId: note.id,
+          title: note.title,
+          isPinned: note.isPinned,
+          note: {
+            id: note.id,
+            title: note.title,
+            isPinned: note.isPinned,
+          },
+        };
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { ok: false, error };
+      }
+    },
+  });
+
+  const archiveNote = tool({
+    description:
+      'Archive or unarchive a note to remove it from the active workspace without deleting it.',
+    contextSchema: baseContextSchema,
+    inputSchema: z.object({
+      noteId: z.string().describe('The UUID of the note to archive or unarchive'),
+      isArchived: z
+        .boolean()
+        .default(true)
+        .describe('True to archive the note, false to restore/unarchive it'),
+    }),
+    execute: async ({ noteId, isArchived }, { context }) => {
+      try {
+        const existing = await prisma.note.findFirst({
+          where: {
+            id: noteId,
+            userId: context.userId,
+            deletedAt: null,
+          },
+        });
+
+        if (!existing) {
+          return { ok: false, error: 'Note not found or deleted.' };
+        }
+
+        const note = await prisma.note.update({
+          where: { id: noteId },
+          data: {
+            isArchived,
+            version: { increment: 1 },
+          },
+        });
+
+        await ably.publishInvalidation(context.userId, ['notes']);
+
+        return {
+          ok: true,
+          noteId: note.id,
+          title: note.title,
+          isArchived: note.isArchived,
+          note: {
+            id: note.id,
+            title: note.title,
+            isArchived: note.isArchived,
+          },
+        };
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { ok: false, error };
+      }
+    },
+  });
+
   return {
     searchNotes,
     getNoteDetails,
     listRecentNotes,
     createNote,
     updateNote,
+    pinNote,
+    archiveNote,
   };
 }

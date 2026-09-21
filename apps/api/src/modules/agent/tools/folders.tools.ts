@@ -17,15 +17,32 @@ export function createFolderTools({
 }) {
   const listFolders = tool({
     description:
-      'List all folders in the user workspace with their names, colors, icons, and note counts.',
+      'List all folders in the user workspace with their names, colors, icons, and note counts. Optionally filter by name query.',
     contextSchema: baseContextSchema,
-    inputSchema: z.object({}),
-    execute: async (_input, { context }) => {
+    inputSchema: z.object({
+      query: z
+        .string()
+        .optional()
+        .describe('Optional search query to filter folders by name'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(30)
+        .describe('Maximum number of folders to return'),
+    }),
+    execute: async ({ query, limit = 30 }, { context }) => {
       try {
+        const trimmedQuery = query?.trim();
+
         const folders = await prisma.folder.findMany({
           where: {
             userId: context.userId,
             deletedAt: null,
+            ...(trimmedQuery
+              ? { name: { contains: trimmedQuery, mode: 'insensitive' } }
+              : {}),
           },
           select: {
             id: true,
@@ -42,6 +59,7 @@ export function createFolderTools({
             },
           },
           orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          take: limit,
         });
 
         return {
@@ -63,9 +81,150 @@ export function createFolderTools({
     },
   });
 
+  const createFolder = tool({
+    description:
+      'Create a new folder in the user workspace with a name, optional hex color, and icon. Use ONLY when the user explicitly requests creating a folder.',
+    contextSchema: baseContextSchema,
+    inputSchema: z.object({
+      name: z.string().trim().min(1).max(100).describe('Name of the new folder'),
+      color: z
+        .string()
+        .default('#3b82f6')
+        .describe('Hex color code for the folder (e.g. #3b82f6, #10b981, #f59e0b, #8b5cf6, #ef4444)'),
+      icon: z
+        .string()
+        .default('folder')
+        .describe('Icon identifier for the folder, e.g. folder, briefcase, book, lightbulb, code, heart, star'),
+    }),
+    execute: async ({ name, color, icon }, { context }) => {
+      try {
+        const trimmedName = name.trim();
+        // Check for existing folder with same name to prevent redundant duplicates
+        const existing = await prisma.folder.findFirst({
+          where: {
+            userId: context.userId,
+            name: { equals: trimmedName, mode: 'insensitive' },
+            deletedAt: null,
+          },
+        });
+
+        if (existing) {
+          return {
+            ok: true,
+            folder: {
+              id: existing.id,
+              name: existing.name,
+              color: existing.color,
+              icon: existing.icon,
+            },
+            folderId: existing.id,
+            name: existing.name,
+            alreadyExisted: true,
+          };
+        }
+
+        const folder = await prisma.folder.create({
+          data: {
+            userId: context.userId,
+            name: trimmedName,
+            color,
+            icon,
+            version: 1,
+          },
+        });
+
+        await ably.publishInvalidation(context.userId, ['folders']);
+
+        return {
+          ok: true,
+          folder: {
+            id: folder.id,
+            name: folder.name,
+            color: folder.color,
+            icon: folder.icon,
+          },
+          folderId: folder.id,
+          name: folder.name,
+        };
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { ok: false, error };
+      }
+    },
+  });
+
+  const updateFolder = tool({
+    description:
+      'Update an existing folder (rename, change color, update icon, or adjust sort order).',
+    contextSchema: baseContextSchema,
+    inputSchema: z.object({
+      folderId: z.string().describe('The UUID of the folder to update'),
+      name: z.string().trim().min(1).max(100).optional().describe('New name for the folder'),
+      color: z
+        .string()
+        .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a valid hex color code')
+        .optional()
+        .describe('New hex color code for the folder (e.g. #3b82f6)'),
+      icon: z
+        .string()
+        .optional()
+        .describe('New icon identifier for the folder (e.g. folder, briefcase, book, lightbulb, code)'),
+      sortOrder: z
+        .number()
+        .int()
+        .optional()
+        .describe('Sort order index for ordering folders in the UI'),
+    }),
+    execute: async ({ folderId, name, color, icon, sortOrder }, { context }) => {
+      try {
+        const existing = await prisma.folder.findFirst({
+          where: {
+            id: folderId,
+            userId: context.userId,
+            deletedAt: null,
+          },
+        });
+
+        if (!existing) {
+          return { ok: false, error: 'Folder not found.' };
+        }
+
+        const updated = await prisma.folder.update({
+          where: { id: folderId },
+          data: {
+            ...(name ? { name: name.trim() } : {}),
+            ...(color ? { color } : {}),
+            ...(icon ? { icon } : {}),
+            ...(sortOrder !== undefined ? { sortOrder } : {}),
+            version: { increment: 1 },
+          },
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            icon: true,
+            sortOrder: true,
+          },
+        });
+
+        await ably.publishInvalidation(context.userId, ['folders']);
+
+        return {
+          ok: true,
+          folder: updated,
+          folderId: updated.id,
+          name: updated.name,
+        };
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : String(err);
+        return { ok: false, error };
+      }
+    },
+  });
+
   const organizeNote = tool({
     description:
-      'Move a note into a specific folder or unassign it, and optionally adjust its tags.',
+      'Move a note into a specific folder or unassign it, and optionally adjust its tags. Rely strictly on folderId.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to organize'),
@@ -74,7 +233,7 @@ export function createFolderTools({
         .nullable()
         .optional()
         .describe(
-          'Target folder UUID, or null to remove from any folder',
+          'Target folder UUID (from listFolders), or null to remove note from any folder',
         ),
       tags: z
         .array(z.string())
@@ -134,6 +293,8 @@ export function createFolderTools({
 
   return {
     listFolders,
+    createFolder,
+    updateFolder,
     organizeNote,
   };
 }

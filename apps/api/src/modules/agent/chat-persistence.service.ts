@@ -14,7 +14,6 @@ import {
   uiMessagesFromRows,
 } from './chat-messages';
 import { PROMPT_SEGMENT_TITLE_GENERATION } from './prompts/segments';
-import { log } from '@repo/utils';
 
 @Injectable()
 export class ChatPersistenceService {
@@ -92,7 +91,7 @@ export class ChatPersistenceService {
 
     await this.prisma.chatMessage.createMany({
       data: toInsert,
-      // skipDuplicates: true,
+      skipDuplicates: true,
     });
 
     this.logger.log(
@@ -115,7 +114,7 @@ export class ChatPersistenceService {
     message?: UIMessage;
     content?: string;
     parts?: ReturnType<typeof persistableParts>;
-  }) {
+  }): Promise<boolean> {
     const updatedContent =
       content !== undefined
         ? content
@@ -140,7 +139,9 @@ export class ChatPersistenceService {
 
     if (result.count > 0) {
       this.logger.log(`[ChatPersistence:MessageUpdated] msgId=${id}`);
+      return true;
     }
+    return false;
   }
 
   /**

@@ -22,11 +22,12 @@ import Toast from "react-native-toast-message";
 import { toastConfig } from "@/lib/toast";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import "react-native-reanimated";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { syncManager } from "@/lib/sync/sync-manager";
 import { useSettingsStore } from "@/lib/settings/settings-store";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query-client";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,24 +54,26 @@ export default function TabLayout() {
   };
 
   return (
-    <KeyboardProvider>
-      <GestureHandlerRootView>
-        <SafeAreaListener
-          onChange={({ insets }) => Uniwind.updateInsets(insets)}
-          >
-          <ThemeProvider value={MyTheme}>
-            <View className="bg-background flex-1">
-              {/* Root App */}
-              <RootApp />
-              <Toast config={toastConfig} position="top" topOffset={50} />
-              <StatusBar
-                barStyle={scheme === "dark" ? "light-content" : "dark-content"}
-              />
-            </View>
-          </ThemeProvider>
-        </SafeAreaListener>
-      </GestureHandlerRootView>
-    </KeyboardProvider>
+    <QueryClientProvider client={queryClient}>
+      <KeyboardProvider>
+        <GestureHandlerRootView>
+          <SafeAreaListener
+            onChange={({ insets }) => Uniwind.updateInsets(insets)}
+            >
+            <ThemeProvider value={MyTheme}>
+              <View className="bg-background flex-1">
+                {/* Root App */}
+                <RootApp />
+                <Toast config={toastConfig} position="top" topOffset={50} />
+                <StatusBar
+                  barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+                />
+              </View>
+            </ThemeProvider>
+          </SafeAreaListener>
+        </GestureHandlerRootView>
+      </KeyboardProvider>
+    </QueryClientProvider>
   );
 }
 

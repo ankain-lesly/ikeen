@@ -1,14 +1,19 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, FlatList } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, FlatList, Pressable, Share, Platform } from 'react-native';
 import type { UIMessage } from '@ai-sdk/react';
-import { Sparkles } from 'lucide-react-native';
+import { Sparkles, Copy, Check, Share2 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import { MenuView } from '@expo/ui/community/menu';
 import { useTheme } from '@/hooks/use-theme';
+import { toast } from '@/lib/toast';
 import { ChatToolPart } from './chat-tool-part';
 
 interface MessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
   ListEmptyComponent?: React.ReactElement;
+  onEditMessage?: (text: string) => void;
 }
 
 interface ExtractedTool {
@@ -71,9 +76,11 @@ export function ChatMessageList({
   messages,
   isLoading,
   ListEmptyComponent,
+  onEditMessage,
 }: MessageListProps) {
   const colors = useTheme();
   const listRef = useRef<FlatList>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Auto-scroll to bottom on new chunks or messages
   useEffect(() => {
@@ -85,19 +92,87 @@ export function ChatMessageList({
     }
   }, [messages, isLoading]);
 
-  const renderItem = ({ item }: { item: UIMessage }) => {
+  const handleCopy = async (text: string, id?: string) => {
+    try {
+      Haptics.selectionAsync();
+      await Clipboard.setStringAsync(text);
+      if (id) {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 2000);
+      }
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const handleShare = async (text: string) => {
+    try {
+      Haptics.selectionAsync();
+      await Share.share({
+        message: text,
+      });
+    } catch (error) {
+      console.log('Share error:', error);
+    }
+  };
+
+  const renderItem = ({ item, index }: { item: UIMessage; index: number }) => {
     const isUser = item.role === 'user';
     const textContent = getMessageText(item);
     const toolInvocations = getToolInvocations(item);
+    const isLastMessage = index === messages.length - 1;
+    const isStreamingThis = isLastMessage && isLoading;
 
     if (isUser) {
+      const bubbleContent = (
+        <View className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
+          <Text className="text-sm font-normal text-text leading-relaxed">
+            {textContent}
+          </Text>
+        </View>
+      );
+
+      // On iOS and Android, use native @expo/ui MenuView with shouldOpenOnLongPress
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        return (
+          <View className="flex-row justify-end mb-4 px-4">
+            <MenuView
+              title="Message"
+              shouldOpenOnLongPress={true}
+              onPressAction={({ nativeEvent }) => {
+                if (nativeEvent.event === 'copy') {
+                  handleCopy(textContent);
+                } else if (nativeEvent.event === 'edit') {
+                  onEditMessage?.(textContent);
+                }
+              }}
+              actions={[
+                {
+                  id: 'copy',
+                  title: 'Copy',
+                  image: Platform.OS === 'ios' ? 'doc.on.doc' : undefined,
+                },
+                {
+                  id: 'edit',
+                  title: 'Edit',
+                  image: Platform.OS === 'ios' ? 'pencil' : undefined,
+                },
+              ]}>
+              {bubbleContent}
+            </MenuView>
+          </View>
+        );
+      }
+
+      // Web fallback
       return (
         <View className="flex-row justify-end mb-4 px-4">
-          <View className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
-            <Text className="text-sm font-normal text-text leading-relaxed">
-              {textContent}
-            </Text>
-          </View>
+          <Pressable
+            onLongPress={() => handleCopy(textContent)}
+            delayLongPress={400}>
+            {bubbleContent}
+          </Pressable>
         </View>
       );
     }
@@ -138,6 +213,31 @@ export function ChatMessageList({
             </Text>
           </View>
         ) : null}
+
+        {/* Action Row below Agent Message (Copy, Share) */}
+        {textContent && !isStreamingThis ? (
+          <View className="flex-row items-center gap-1 pl-7 mt-2">
+            <Pressable
+              onPress={() => handleCopy(textContent, item.id)}
+              hitSlop={8}
+              accessibilityLabel="Copy message"
+              className="w-7 h-7 rounded-lg items-center justify-center bg-transparent active:bg-background-element border border-transparent active:border-border/60">
+              {copiedId === item.id ? (
+                <Check size={13} color={colors.primary} />
+              ) : (
+                <Copy size={13} color={colors.textSecondary} />
+              )}
+            </Pressable>
+
+            <Pressable
+              onPress={() => handleShare(textContent)}
+              hitSlop={8}
+              accessibilityLabel="Share message"
+              className="w-7 h-7 rounded-lg items-center justify-center bg-transparent active:bg-background-element border border-transparent active:border-border/60">
+              <Share2 size={13} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -171,7 +271,7 @@ export function ChatMessageList({
       }
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
-      keyboardShouldPersistTaps="handled"
+      keyboardShouldPersistTaps="always"
     />
   );
 }

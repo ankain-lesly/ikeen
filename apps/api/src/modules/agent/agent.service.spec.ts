@@ -80,7 +80,11 @@ describe('AgentService', () => {
     expect(toolNames).toContain('createNote');
     expect(toolNames).toContain('updateNote');
     expect(toolNames).toContain('listFolders');
+    expect(toolNames).toContain('createFolder');
+    expect(toolNames).toContain('updateFolder');
     expect(toolNames).toContain('organizeNote');
+    expect(toolNames).toContain('pinNote');
+    expect(toolNames).toContain('archiveNote');
     expect(toolNames).toContain('recordMemory');
     expect(toolNames).toContain('summarizeKnowledge');
   });

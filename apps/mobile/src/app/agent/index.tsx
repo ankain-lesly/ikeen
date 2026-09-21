@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, Pressable, Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { useChat } from '@ai-sdk/react';
+import type { UIMessage } from 'ai';
 import { DefaultChatTransport } from 'ai';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as Crypto from 'expo-crypto';
 import { ChevronLeft, Clock, Plus } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/lib/auth/auth-store';
@@ -18,31 +20,43 @@ import { toast } from '@/lib/toast';
 import { fetch as expoFetch } from 'expo/fetch';
 import { KeyboardGradualAnimation } from '@/components/keyboard-gradual-animation';
 import { API_BASE_URL } from '@/lib/api/api-client';
+import { useQueryClient } from '@tanstack/react-query';
+import { agentQueryKeys } from '@/lib/queries/agents';
 
-export default function AgentScreen() {
-  const router = useRouter();
-  const colors = useTheme();
-  const { token } = useAuthStore();
+interface ActiveSession {
+  id: string;
+  title: string;
+  initialMessages: UIMessage[];
+}
 
-  const { prompt: initialPrompt } = useLocalSearchParams<{ prompt?: string }>();
-  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
-  const [conversationTitle, setConversationTitle] = useState<string>('Brainstorm');
-  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+interface ChatSessionProps {
+  conversationId: string;
+  initialMessages: UIMessage[];
+  token: string | null;
+  onTitleUpdate: (title: string) => void;
+  onStatusChange?: (isLoading: boolean) => void;
+  initialPrompt?: string;
+}
+
+function ChatSessionContent({
+  conversationId,
+  initialMessages,
+  token,
+  onTitleUpdate,
+  onStatusChange,
+  initialPrompt,
+}: ChatSessionProps) {
   const [input, setInput] = useState('');
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        fetch: (async (input, init) => {
-          const res = await (expoFetch as unknown as typeof globalThis.fetch)(input, init);
-          const headerConvId = res.headers.get('X-Agent-Conversation-Id');
+        fetch: (async (reqInput, init) => {
+          const res = await (expoFetch as unknown as typeof globalThis.fetch)(reqInput, init);
           const headerTitle = res.headers.get('X-Agent-Conversation-Title');
-          if (headerConvId && !conversationId) {
-            setConversationId(headerConvId);
-          }
           if (headerTitle) {
             try {
-              setConversationTitle(decodeURIComponent(headerTitle));
+              onTitleUpdate(decodeURIComponent(headerTitle));
             } catch {
               // ignore decode failure
             }
@@ -63,7 +77,7 @@ export default function AgentScreen() {
           };
         },
       }),
-    [token, conversationId]
+    [token, conversationId, onTitleUpdate]
   );
 
   const {
@@ -71,10 +85,10 @@ export default function AgentScreen() {
     sendMessage,
     status,
     stop,
-    setMessages,
   } = useChat({
     transport,
     id: conversationId,
+    messages: initialMessages,
     onError: (error: Error) => {
       console.log('[Agent Chat Error]:', error);
       toast.error('Failed to get response from iKeen');
@@ -83,8 +97,12 @@ export default function AgentScreen() {
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
-  const handleSubmit = async () => {
-    const trimmed = input.trim();
+  useEffect(() => {
+    onStatusChange?.(isLoading);
+  }, [isLoading, onStatusChange]);
+
+  const handleSendText = async (textToSend: string) => {
+    const trimmed = textToSend.trim();
     if (!trimmed || isLoading) return;
     setInput('');
     try {
@@ -94,38 +112,107 @@ export default function AgentScreen() {
     }
   };
 
+  const handleSelectPrompt = (prompt: string, autoSubmit?: boolean) => {
+    if (autoSubmit) {
+      handleSendText(prompt);
+    } else {
+      setInput(prompt);
+    }
+  };
+
   useEffect(() => {
     if (initialPrompt && typeof initialPrompt === 'string') {
       setTimeout(() => {
         setInput(initialPrompt);
-      }, 50);
+      }, 0);
     }
   }, [initialPrompt]);
 
+  return (
+    <KeyboardAvoidingView
+      className="flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
+      <ChatMessageList
+        messages={messages}
+        isLoading={isLoading}
+        onEditMessage={setInput}
+        ListEmptyComponent={
+          <ChatEmptyState onSelectPrompt={handleSelectPrompt} />
+        }
+      />
+
+      <ChatInputBar
+        input={input}
+        onChangeText={setInput}
+        onSubmit={() => handleSendText(input)}
+        isLoading={isLoading}
+        onStop={stop}
+      />
+      <KeyboardGradualAnimation />
+    </KeyboardAvoidingView>
+  );
+}
+
+export default function AgentScreen() {
+  const router = useRouter();
+  const colors = useTheme();
+  const { token } = useAuthStore();
+  const { prompt: initialPrompt } = useLocalSearchParams<{ prompt?: string }>();
+
+  const [session, setSession] = useState<ActiveSession>(() => ({
+    id: Crypto.randomUUID(),
+    title: 'Brainstorm',
+    initialMessages: [],
+  }));
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const handleTitleUpdate = useCallback(
+    (newTitle: string) => {
+      setSession((prev) => ({ ...prev, title: newTitle }));
+      queryClient.invalidateQueries({ queryKey: agentQueryKeys.conversations() });
+    },
+    [queryClient]
+  );
+
+  const handleStatusChange = useCallback((loading: boolean) => {
+    setIsStreaming(loading);
+  }, []);
+
   const handleSelectConversation = async (id: string) => {
+    setIsDrawerVisible(false);
+    if (id === session.id) return;
+
     try {
-      setConversationId(id);
+      setIsSwitching(true);
       const detail = await agentApi.getConversation(id, token);
-      setConversationTitle(detail.title || 'Brainstorm');
-      const loadedMessages = (detail.messages || (detail as unknown as { uiMessages?: unknown[] }).uiMessages) as any;
-      if (Array.isArray(loadedMessages)) {
-        setMessages(loadedMessages);
-      }
-    } catch {
+      const loadedMessages = (detail.messages || (detail as unknown as { uiMessages?: unknown[] }).uiMessages || []) as UIMessage[];
+
+      setSession({
+        id: detail.id,
+        title: detail.title || 'Brainstorm',
+        initialMessages: Array.isArray(loadedMessages) ? loadedMessages : [],
+      });
+    } catch (error) {
+      console.error('Failed to load selected conversation:', error);
       toast.error('Failed to load selected conversation');
+    } finally {
+      setIsSwitching(false);
     }
   };
 
   const handleNewChat = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setConversationId(undefined);
-    setConversationTitle('Brainstorm');
-    setMessages([]);
-    setInput('');
-  };
-
-  const handleSelectPrompt = (prompt: string) => {
-    setInput(prompt);
+    setIsDrawerVisible(false);
+    setSession({
+      id: Crypto.randomUUID(),
+      title: 'Brainstorm',
+      initialMessages: [],
+    });
   };
 
   return (
@@ -147,13 +234,13 @@ export default function AgentScreen() {
         <View className="flex-row items-center gap-2 max-w-[55%]">
           <View
             className={`w-2 h-2 rounded-full ${
-              isLoading ? 'bg-primary animate-pulse' : 'bg-primary'
+              isStreaming ? 'bg-primary animate-pulse' : 'bg-primary'
             }`}
           />
           <Text
             className="text-sm font-semibold text-text tracking-tight"
             numberOfLines={1}>
-            {conversationTitle}
+            {session.title}
           </Text>
         </View>
 
@@ -180,34 +267,32 @@ export default function AgentScreen() {
         </View>
       </View>
 
-      {/* 💬 Chat Messages + Input */}
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
-        <ChatMessageList
-          messages={messages}
-          isLoading={isLoading}
-          ListEmptyComponent={
-            <ChatEmptyState onSelectPrompt={handleSelectPrompt} />
-          }
+      {/* 💬 Active Keyed Chat Session */}
+      {isSwitching ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text className="text-xs text-text-secondary mt-2">
+            Loading conversation...
+          </Text>
+        </View>
+      ) : (
+        <ChatSessionContent
+          key={session.id}
+          conversationId={session.id}
+          initialMessages={session.initialMessages}
+          token={token}
+          onTitleUpdate={handleTitleUpdate}
+          onStatusChange={handleStatusChange}
+          initialPrompt={typeof initialPrompt === 'string' ? initialPrompt : undefined}
         />
+      )}
 
-        <ChatInputBar
-          input={input}
-          onChangeText={setInput}
-          onSubmit={() => handleSubmit()}
-          isLoading={isLoading}
-          onStop={stop}
-        />
-        <KeyboardGradualAnimation />
-      </KeyboardAvoidingView>
-
-      {/* 📁 Slide-over Conversation Drawer */}
+      {/* 📁 Slide-over Conversation Drawer (@expo/ui Host + BottomSheet) */}
       <ConversationDrawer
         isVisible={isDrawerVisible}
+        // isVisible={true}
         onClose={() => setIsDrawerVisible(false)}
-        activeConversationId={conversationId}
+        activeConversationId={session.id}
         onSelectConversation={handleSelectConversation}
         onNewChat={handleNewChat}
       />

@@ -21,7 +21,11 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     createNote: baseContext,
     updateNote: baseContext,
     listFolders: baseContext,
+    createFolder: baseContext,
+    updateFolder: baseContext,
     organizeNote: baseContext,
+    pinNote: baseContext,
+    archiveNote: baseContext,
     recordMemory: baseContext,
     summarizeKnowledge: baseContext,
   };

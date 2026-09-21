@@ -13,6 +13,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Loader2,
+  Pin,
+  Archive,
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -187,7 +189,123 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
-  // 5. Generic Tool Fallback
+  // 5. Create Folder Tool
+  if (toolName === 'createFolder') {
+    const folderResult = result as {
+      ok?: boolean;
+      folder?: { id: string; name: string; color?: string; icon?: string };
+      name?: string;
+      alreadyExisted?: boolean;
+    } | null;
+
+    const folderName =
+      folderResult?.folder?.name || folderResult?.name || (args.name as string) || 'New Folder';
+    const folderColor = folderResult?.folder?.color || (args.color as string) || colors.primary;
+    const isAlreadyExisted = folderResult?.alreadyExisted;
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View
+              style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
+              className="w-7 h-7 rounded-lg border items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={folderColor} />
+              ) : (
+                <Folder size={14} color={folderColor} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isAlreadyExisted ? 'Existing Folder Linked' : 'Folder Created'}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}>
+                {folderName}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // 6. Update Folder Tool
+  if (toolName === 'updateFolder') {
+    const folderResult = result as {
+      ok?: boolean;
+      folder?: { id: string; name: string; color?: string; icon?: string };
+      name?: string;
+    } | null;
+
+    const folderName =
+      folderResult?.folder?.name || folderResult?.name || (args.name as string) || 'Folder';
+    const folderColor = folderResult?.folder?.color || (args.color as string) || colors.primary;
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View
+            style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
+            className="w-7 h-7 rounded-lg border items-center justify-center">
+            {isRunning ? (
+              <Loader2 size={14} color={folderColor} />
+            ) : (
+              <Folder size={14} color={folderColor} />
+            )}
+          </View>
+          <View className="flex-1">
+            <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+              Folder Updated
+            </Text>
+            <Text className="text-xs font-semibold text-text" numberOfLines={1}>
+              {folderName}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // 7. Pin Note Tool
+  if (toolName === 'pinNote') {
+    const noteResult = result as { noteId?: string; title?: string; isPinned?: boolean } | null;
+    const title = noteResult?.title || (args.title as string) || 'Note';
+    const isPinned =
+      noteResult?.isPinned !== undefined ? noteResult.isPinned : args.isPinned !== false;
+
+    return (
+      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
+        <Pin size={13} color={colors.primary} />
+        <Text className="text-xs text-text flex-1" numberOfLines={1}>
+          {isPinned ? 'Pinned ' : 'Unpinned '}
+          <Text className="font-semibold">{title}</Text>
+        </Text>
+      </View>
+    );
+  }
+
+  // 8. Archive Note Tool
+  if (toolName === 'archiveNote') {
+    const noteResult = result as { noteId?: string; title?: string; isArchived?: boolean } | null;
+    const title = noteResult?.title || (args.title as string) || 'Note';
+    const isArchived =
+      noteResult?.isArchived !== undefined ? noteResult.isArchived : args.isArchived !== false;
+
+    return (
+      <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
+        <Archive size={13} color={colors.primary} />
+        <Text className="text-xs text-text flex-1" numberOfLines={1}>
+          {isArchived ? 'Archived ' : 'Restored '}
+          <Text className="font-semibold">{title}</Text>
+        </Text>
+      </View>
+    );
+  }
+
+  // 9. Generic Tool Fallback
   return (
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
       <Sparkles size={12} color={colors.primary} />
