@@ -70,29 +70,59 @@ export class AblyService {
   }
 
   /**
+   * Publishes an arbitrary real-time event to a user's private channel.
+   */
+  async publishEvent(
+    userId: string,
+    eventName: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ success: boolean; channel: string; event: string; error?: string }> {
+    const channelName = `user:${userId}`;
+    if (!this.ablyRest) {
+      return {
+        success: false,
+        channel: channelName,
+        event: eventName,
+        error: 'Realtime provider is not configured on this server.',
+      };
+    }
+
+    try {
+      const channel = this.ablyRest.channels.get(channelName);
+      await channel.publish(eventName, payload);
+      this.logger.debug(
+        `Published realtime event "${eventName}" on channel "${channelName}"`,
+      );
+      log('[Realtime:Publish:Success]', { userId, event: eventName, payload });
+      return {
+        success: true,
+        channel: channelName,
+        event: eventName,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Failed to publish realtime event "${eventName}": ${message}`);
+      log('[Realtime:Publish:Error]', {
+        userId,
+        event: eventName,
+        error: message,
+      });
+      return {
+        success: false,
+        channel: channelName,
+        event: eventName,
+        error: message,
+      };
+    }
+  }
+
+  /**
    * Broadcasts a sync invalidation ping over Ably to alert all active client devices for this user.
    */
   async publishInvalidation(userId: string, entities: string[]): Promise<void> {
-    if (!this.ablyRest) return;
-
-    try {
-      const channel = this.ablyRest.channels.get(`user:${userId}`);
-      await channel.publish('sync:invalidate', {
-        timestamp: new Date().toISOString(),
-        entities,
-      });
-      this.logger.debug(
-        `Published sync invalidation for user ${userId}: ${entities.join(', ')}`,
-      );
-      log('[Ably:Publish:Invalidation]', { userId, entities });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Failed to publish Ably sync invalidation: ${message}`);
-      log('[Ably:Error]', {
-        action: 'publishInvalidation',
-        userId,
-        error: message,
-      });
-    }
+    await this.publishEvent(userId, 'sync:invalidate', {
+      timestamp: new Date().toISOString(),
+      entities,
+    });
   }
 }

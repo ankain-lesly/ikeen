@@ -50,22 +50,22 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     const title = note?.title || (args.title as string) || 'Untitled Note';
 
     return (
-      <View className="my-1.5 p-3 rounded-2xl bg-card border border-border">
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2 flex-1 mr-2">
-            <View className="w-7 h-7 rounded-lg bg-background-selected items-center justify-center">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
-                <Loader2 size={15} color={colors.primary} />
+                <Loader2 size={14} color={colors.primary} />
               ) : (
-                <CheckCircle2 size={15} color={colors.primary} />
+                <CheckCircle2 size={14} color={colors.primary} />
               )}
             </View>
             <View className="flex-1">
-              <Text className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {toolName === 'createNote' ? 'Note Created' : 'Note Updated'}
               </Text>
               <Text
-                className="text-sm font-semibold text-text"
+                className="text-xs font-semibold text-text"
                 numberOfLines={1}
                 ellipsizeMode="tail">
                 {title}
@@ -76,9 +76,9 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
           {noteId && !isRunning && (
             <Pressable
               onPress={() => handleOpenNote(noteId)}
-              className="px-3 py-1.5 rounded-xl bg-primary flex-row items-center gap-1.5 active:opacity-75">
-              <Text className="text-xs font-semibold text-white">Open</Text>
-              <ExternalLink size={12} color="#ffffff" />
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
             </Pressable>
           )}
         </View>
@@ -98,16 +98,16 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     const count = searchResult?.count ?? notes.length;
 
     return (
-      <View className="my-1.5 p-3 rounded-2xl bg-card border border-border">
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <Pressable
           onPress={() => setIsExpanded(!isExpanded)}
           className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2 flex-1 mr-2">
-            <View className="w-7 h-7 rounded-lg bg-background-selected items-center justify-center">
-              <Search size={15} color={colors.textSecondary} />
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              <Search size={14} color={colors.textSecondary} />
             </View>
             <View className="flex-1">
-              <Text className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning ? 'Searching Notes...' : `Found ${count} Note${count === 1 ? '' : 's'}`}
               </Text>
               {query ? (
@@ -123,9 +123,9 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
           {notes.length > 0 && (
             <View className="p-1">
               {isExpanded ? (
-                <ChevronUp size={16} color={colors.textSecondary} />
+                <ChevronUp size={15} color={colors.textSecondary} />
               ) : (
-                <ChevronDown size={16} color={colors.textSecondary} />
+                <ChevronDown size={15} color={colors.textSecondary} />
               )}
             </View>
           )}
@@ -137,9 +137,9 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
               <Pressable
                 key={n.id}
                 onPress={() => handleOpenNote(n.id)}
-                className="flex-row items-center justify-between p-2 rounded-xl bg-background-element active:bg-background-selected">
+                className="flex-row items-center justify-between p-2 rounded-xl bg-background border border-border/40 active:bg-background-selected">
                 <View className="flex-row items-center gap-2 flex-1 mr-2">
-                  <FileText size={14} color={colors.textSecondary} />
+                  <FileText size={13} color={colors.textSecondary} />
                   <Text
                     className="text-xs font-medium text-text flex-1"
                     numberOfLines={1}>
@@ -159,12 +159,12 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
-  // 3. Autonomous Memory Recorded
+  // 3. Context Memory Recorded
   if (toolName === 'recordMemory') {
     const memory = (args.content as string) || '';
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
-        <Brain size={14} color={colors.primary} />
+        <Brain size={13} color={colors.primary} />
         <Text
           className="text-xs text-text-secondary flex-1"
           numberOfLines={2}>
@@ -179,7 +179,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     const folderName = (args.folderName as string) || 'Folder';
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
-        <Folder size={14} color={colors.primary} />
+        <Folder size={13} color={colors.primary} />
         <Text className="text-xs text-text flex-1">
           Organized note into <Text className="font-semibold">{folderName}</Text>
         </Text>
@@ -189,8 +189,8 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
 
   // 5. Generic Tool Fallback
   return (
-    <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border flex-row items-center gap-2">
-      <Sparkles size={13} color={colors.primary} />
+    <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
+      <Sparkles size={12} color={colors.primary} />
       <Text className="text-[11px] font-mono text-text-secondary flex-1">
         {toolName} {isRunning ? 'executing...' : 'completed'}
       </Text>

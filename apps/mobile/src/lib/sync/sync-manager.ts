@@ -1,5 +1,5 @@
 import { AppState, type AppStateStatus } from 'react-native';
-import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
+import NetInfo from '@react-native-community/netinfo';
 import * as Ably from 'ably';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -26,6 +26,7 @@ import {
 import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
+import { toast } from '../toast';
 
 class SyncManager {
   private isSyncing = false;
@@ -52,15 +53,17 @@ class SyncManager {
       .catch(() => {});
 
     // 1. Listen for network changes
-    NetInfo.addEventListener((state: NetInfoState) => {
+    NetInfo.addEventListener((state) => {
       log('[Sync:Network]', {
         isConnected: state.isConnected,
         isInternetReachable: state.isInternetReachable,
       });
       if (state.isConnected && state.isInternetReachable) {
         useSyncStore.getState().setStatus('idle');
+        toast.success('Syncing...');
         this.sync().catch(() => {});
       } else {
+        toast.error('Offline');
         useSyncStore.getState().setStatus('offline');
       }
     });
@@ -134,6 +137,7 @@ class SyncManager {
 
       this.ablyChannel = this.ablyClient.channels.get(`user:${userId}`);
       this.ablyChannel.subscribe('sync:invalidate', () => {
+        toast.info('(A) Syncing...');
         log('[Sync:Realtime:InvalidateReceived]', { userId });
         this.pull().catch(() => {});
       });

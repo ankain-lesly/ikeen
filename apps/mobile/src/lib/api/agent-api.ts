@@ -1,4 +1,4 @@
-import { AGENT_BASE_URL, request } from './api-client';
+import { request } from './api-client';
 import type {
   ChatConversationsResponse,
   ChatConversationDetail,
@@ -7,7 +7,7 @@ import type {
 
 export const agentApi = {
   getStatus: (token?: string | null): Promise<AgentStatusResponse> =>
-    request<AgentStatusResponse>(`${AGENT_BASE_URL}/status`, { token }),
+    request<AgentStatusResponse>(`/agent/status`, { token }),
 
   listConversations: (
     token?: string | null,
@@ -15,7 +15,7 @@ export const agentApi = {
     offset = 0
   ): Promise<ChatConversationsResponse> =>
     request<ChatConversationsResponse>(
-      `${AGENT_BASE_URL}/conversations?limit=${limit}&offset=${offset}`,
+      `/agent/conversations?limit=${limit}&offset=${offset}`,
       { token }
     ),
 
@@ -23,7 +23,7 @@ export const agentApi = {
     id: string,
     token?: string | null
   ): Promise<ChatConversationDetail> =>
-    request<ChatConversationDetail>(`${AGENT_BASE_URL}/conversations/${id}`, {
+    request<ChatConversationDetail>(`/agent/conversations/${id}`, {
       token,
     }),
 
@@ -32,7 +32,7 @@ export const agentApi = {
     token?: string | null
   ): Promise<{ success: boolean; id: string }> =>
     request<{ success: boolean; id: string }>(
-      `${AGENT_BASE_URL}/conversations/${id}`,
+      `/agent/conversations/${id}`,
       { method: 'DELETE', token }
     ),
 };

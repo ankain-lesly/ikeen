@@ -42,26 +42,6 @@ export class AgentController {
   }
 
   /**
-   * Main streaming chat endpoint mounted at POST /agent.
-   * Expects { messages: UIMessage[], conversationId?: string }
-   */
-  @Post()
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async chat(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: ChatAgentDto,
-    @Res() res: Response,
-  ) {
-    await this.agentService.streamChatToResponse({
-      userId: req.user.id,
-      conversationId: dto.conversationId,
-      messages: dto.messages,
-      response: res,
-    });
-  }
-
-  /**
    * Alias endpoint mounted at POST /agent/chat.
    */
   @Post('chat')

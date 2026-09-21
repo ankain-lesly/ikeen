@@ -5,7 +5,6 @@
     "": {
       "name": "my-turborepo",
       "dependencies": {
-        "@ai-sdk/react": "^4.0.110",
         "babel-plugin-inline-import": "^3.0.0",
       },
       "devDependencies": {
@@ -63,6 +62,7 @@
       "name": "@repo/mobile",
       "version": "1.0.0",
       "dependencies": {
+        "@ai-sdk/react": "^4.0.110",
         "@expo/material-symbols": "^0.1.1",
         "@expo/ui": "~57.0.18",
         "@react-native-async-storage/async-storage": "2.2.0",
@@ -71,6 +71,7 @@
         "@repo/utils": "workspace:*",
         "@tanstack/react-query": "^5.102.8",
         "ably": "^2.28.0",
+        "ai": "^7.0.107",
         "babel-preset-expo": "^57.0.12",
         "drizzle-orm": "^0.45.2",
         "expo": "~57.0.21",

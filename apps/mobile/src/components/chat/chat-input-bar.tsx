@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import { View, TextInput, Pressable, Platform } from 'react-native';
+import { View, TextInput, Pressable, Platform, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ArrowUp, Square } from 'lucide-react-native';
+import { ArrowUp, Square, Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 
 interface InputBarProps {
@@ -19,12 +19,13 @@ export function ChatInputBar({
   onSubmit,
   isLoading,
   onStop,
-  placeholder = 'Type a thought or ask iKeen...',
+  placeholder = 'Ask iKeen or capture a thought...',
 }: InputBarProps) {
   const colors = useTheme();
   const inputRef = useRef<TextInput>(null);
 
-  const canSubmit = input.trim().length > 0 && !isLoading;
+  const hasText = input.trim().length > 0;
+  const canSubmit = hasText && !isLoading;
 
   const handlePressAction = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -36,8 +37,9 @@ export function ChatInputBar({
   };
 
   return (
-    <View className="px-4 py-2.5 bg-background border-t border-border/80 pb-safe">
-      <View className="flex-row items-end gap-2 p-1.5 rounded-3xl bg-background-element border border-border">
+    <View className="px-4 pb-safe-offset-2 pt-2 bg-background border-t border-border/40">
+      {/* Floating Modern Island Dock */}
+      <View className="rounded-3xl bg-background-element border border-border/80 p-2 shadow-xs">
         {/* Multiline Auto-Growing TextInput */}
         <TextInput
           ref={inputRef}
@@ -46,45 +48,54 @@ export function ChatInputBar({
           placeholder={placeholder}
           placeholderTextColor={colors.textSecondary}
           multiline
-          maxLength={2000}
+          maxLength={3000}
           textAlignVertical="center"
           style={{
             minHeight: 38,
             maxHeight: 120,
-            paddingTop: Platform.OS === 'ios' ? 8 : 6,
-            paddingBottom: Platform.OS === 'ios' ? 8 : 6,
-            paddingLeft: 12,
-            paddingRight: 8,
+            paddingTop: Platform.OS === 'ios' ? 6 : 4,
+            paddingBottom: Platform.OS === 'ios' ? 6 : 4,
+            paddingHorizontal: 12,
             fontSize: 15,
             color: colors.text,
           }}
-          className="flex-1"
         />
 
-        {/* Action Button (Send or Stop) */}
-        <Pressable
-          onPress={handlePressAction}
-          disabled={!canSubmit && !isLoading}
-          hitSlop={8}
-          className="w-9 h-9 rounded-full items-center justify-center mb-0.5 active:scale-95"
-          style={{
-            backgroundColor: isLoading
-              ? colors.backgroundSelected
-              : canSubmit
-              ? colors.primary
-              : colors.backgroundSelected,
-            opacity: canSubmit || isLoading ? 1 : 0.45,
-          }}>
-          {isLoading ? (
-            <Square size={14} color={colors.text} fill={colors.text} />
-          ) : (
-            <ArrowUp
-              size={18}
-              color={canSubmit ? '#ffffff' : colors.textSecondary}
-              strokeWidth={2.5}
-            />
-          )}
-        </Pressable>
+        {/* Footer Dock Meta & Controls */}
+        <View className="flex-row items-center justify-between pt-1.5 px-2">
+          {/* Subtle Context Indicator */}
+          <View className="flex-row items-center gap-1.5 py-0.5 px-2 rounded-full bg-background border border-border/60">
+            <Sparkles size={11} color={colors.primary} />
+            <Text className="text-[10px] font-medium text-text-secondary">
+              Notes Context Active
+            </Text>
+          </View>
+
+          {/* Dynamic Circular Send / Stop Button */}
+          <Pressable
+            onPress={handlePressAction}
+            disabled={!canSubmit && !isLoading}
+            hitSlop={8}
+            className="w-12 h-12 rounded-full items-center justify-center active:scale-95 transition-all"
+            style={{
+              backgroundColor: isLoading
+                ? colors.backgroundSelected
+                : canSubmit
+                ? colors.primary
+                : colors.border,
+              // opacity: canSubmit || isLoading ? 1 : 0.45,
+            }}>
+            {isLoading ? (
+              <Square size={12} color={colors.text} fill={colors.text} />
+            ) : (
+              <ArrowUp
+                size={16}
+                color={canSubmit ? '#ffffff' : colors.textSecondary}
+                strokeWidth={2.4}
+              />
+            )}
+          </Pressable>
+        </View>
       </View>
     </View>
   );

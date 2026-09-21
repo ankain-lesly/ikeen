@@ -1,14 +1,70 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import type { UIMessage } from '@ai-sdk/react';
+import { Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { ChatToolPart } from './chat-tool-part';
-import { IKeenMascot } from '@/components/ikeen-mascot';
 
 interface MessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
   ListEmptyComponent?: React.ReactElement;
+}
+
+interface ExtractedTool {
+  toolCallId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+  state?: string;
+}
+
+function getMessageText(message: UIMessage): string {
+  if (Array.isArray(message.parts)) {
+    const textParts = message.parts
+      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+      .map((p) => p.text);
+    if (textParts.length > 0) {
+      return textParts.join('');
+    }
+  }
+  return ((message as unknown as Record<string, unknown>).content as string) || '';
+}
+
+function getToolInvocations(message: UIMessage): ExtractedTool[] {
+  const tools: ExtractedTool[] = [];
+
+  if (Array.isArray(message.parts)) {
+    for (const part of message.parts) {
+      const p = part as Record<string, unknown>;
+      if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
+        const toolName = p.type.replace(/^tool-/, '');
+        tools.push({
+          toolCallId: (p.toolCallId as string) || (p.id as string) || '',
+          toolName,
+          args: (p.input as Record<string, unknown>) ?? (p.args as Record<string, unknown>),
+          result: p.output ?? p.result,
+          state: p.state as string | undefined,
+        });
+      } else if (p.toolInvocation) {
+        const inv = p.toolInvocation as Record<string, unknown>;
+        tools.push({
+          toolCallId: (inv.toolCallId as string) || '',
+          toolName: (inv.toolName as string) || '',
+          args: inv.args as Record<string, unknown> | undefined,
+          result: inv.result,
+          state: inv.state as string | undefined,
+        });
+      }
+    }
+  }
+
+  const legacyInvocations = (message as unknown as Record<string, unknown>).toolInvocations;
+  if (Array.isArray(legacyInvocations)) {
+    tools.push(...(legacyInvocations as ExtractedTool[]));
+  }
+
+  return tools;
 }
 
 export function ChatMessageList({
@@ -19,40 +75,27 @@ export function ChatMessageList({
   const colors = useTheme();
   const listRef = useRef<FlatList>(null);
 
-  // Auto-scroll on new messages
+  // Auto-scroll to bottom on new chunks or messages
   useEffect(() => {
     if (messages.length > 0) {
       const timer = setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 80);
       return () => clearTimeout(timer);
     }
   }, [messages, isLoading]);
 
   const renderItem = ({ item }: { item: UIMessage }) => {
     const isUser = item.role === 'user';
-
-    // Tool invocations can exist either directly on the message or inside parts
-    const toolInvocations: any[] = [];
-
-    if (item.toolInvocations) {
-      toolInvocations.push(...item.toolInvocations);
-    }
-
-    if (Array.isArray(item.parts)) {
-      for (const part of item.parts) {
-        if (part.type === 'tool-invocation' && part.toolInvocation) {
-          toolInvocations.push(part.toolInvocation);
-        }
-      }
-    }
+    const textContent = getMessageText(item);
+    const toolInvocations = getToolInvocations(item);
 
     if (isUser) {
       return (
         <View className="flex-row justify-end mb-4 px-4">
-          <View className="max-w-[82%] px-4 py-3 rounded-2xl rounded-tr-sm bg-background-element border border-border/60">
+          <View className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
             <Text className="text-sm font-normal text-text leading-relaxed">
-              {item.content}
+              {textContent}
             </Text>
           </View>
         </View>
@@ -61,20 +104,20 @@ export function ChatMessageList({
 
     // Assistant Message
     return (
-      <View className="mb-5 px-4">
+      <View className="mb-6 px-4">
         {/* Assistant Header Avatar */}
-        <View className="flex-row items-center gap-2 mb-1.5">
-          <View className="w-5 h-5 rounded-full bg-background-element border border-border items-center justify-center overflow-hidden">
-            <IKeenMascot size={20} />
+        <View className="flex-row items-center gap-2 mb-2">
+          <View className="w-5 h-5 rounded-full bg-background-element border border-border/80 items-center justify-center">
+            <Sparkles size={11} color={colors.primary} />
           </View>
-          <Text className="text-xs font-semibold text-text-secondary">
+          <Text className="text-xs font-medium text-text-secondary tracking-tight">
             iKeen
           </Text>
         </View>
 
-        {/* Tool Cards (if any) */}
+        {/* Tool Invocations (if any) */}
         {toolInvocations.length > 0 && (
-          <View className="mb-2">
+          <View className="mb-2.5 pl-7">
             {toolInvocations.map((t, idx) => (
               <ChatToolPart
                 key={t.toolCallId || `${item.id}-tool-${idx}`}
@@ -88,10 +131,10 @@ export function ChatMessageList({
         )}
 
         {/* Text Content */}
-        {item.content ? (
+        {textContent ? (
           <View className="pl-7 pr-2">
             <Text className="text-sm font-normal text-text leading-relaxed">
-              {item.content}
+              {textContent}
             </Text>
           </View>
         ) : null}
@@ -108,19 +151,21 @@ export function ChatMessageList({
       contentContainerStyle={{
         flexGrow: 1,
         paddingTop: 16,
-        paddingBottom: 24,
+        paddingBottom: 20,
       }}
       ListEmptyComponent={ListEmptyComponent}
       ListFooterComponent={
         isLoading && messages[messages.length - 1]?.role === 'user' ? (
           <View className="flex-row items-center gap-2 px-6 py-2">
-            <View className="w-5 h-5 rounded-full bg-background-element border border-border items-center justify-center overflow-hidden">
-              <IKeenMascot size={20} />
+            <View className="w-5 h-5 rounded-full bg-background-element border border-border/80 items-center justify-center">
+              <Sparkles size={11} color={colors.primary} />
             </View>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text className="text-xs text-text-secondary ml-1">
-              Thinking...
-            </Text>
+            <View className="flex-row items-center gap-1.5 ml-1">
+              <View className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <Text className="text-xs text-text-secondary">
+                Thinking...
+              </Text>
+            </View>
           </View>
         ) : null
       }

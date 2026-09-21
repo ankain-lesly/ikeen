@@ -17,6 +17,7 @@ import { buildIkeenInstructions } from './prompts';
 import { createIkeenTools, type IkeenTools } from './tools';
 
 import { ChatPersistenceService } from './chat-persistence.service';
+import { textFromMessage } from './chat-messages';
 import type { UIMessage } from 'ai';
 
 @Injectable()
@@ -58,8 +59,6 @@ export class AgentService {
     messages: UIMessage[];
     response: ServerResponse;
   }): Promise<void> {
-    const activeConversationId =
-      conversationId?.trim() || `conv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     // Fetch user details for contextual prompt personalization
     const user = await this.prisma.user.findUnique({
@@ -69,6 +68,55 @@ export class AgentService {
 
     if (!user) {
       throw new NotFoundException('User workspace profile not found');
+    }
+
+
+    // 1. Retrieve or create the chat conversation
+    let chat = conversationId
+      ? await this.chatPersistence.getChatById({ id: conversationId })
+      : null;
+
+    let isNew = false;
+    if (!chat) {
+      chat = await this.chatPersistence.createChat({
+        id: conversationId,
+        userId,
+        title: 'New Brainstorm',
+      });
+      isNew = true;
+    } else if (chat.userId !== userId) {
+      throw new NotFoundException('Conversation not found or access denied');
+    }
+
+    if (!chat) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    const activeConversationId = chat.id;
+    const initialTitle = chat.title || 'New Brainstorm';
+
+    let titlePromise: Promise<string> | null = null;
+
+    // 2. Eagerly persist incoming user message before launching the agent loop
+    const lastUserMessage = messages.filter((m) => m.role === 'user').pop();
+    let savedUserMessageId: string | undefined;
+
+    if (lastUserMessage) {
+      await this.chatPersistence.saveMessages({
+        conversationId: activeConversationId,
+        messages: [lastUserMessage],
+      });
+      savedUserMessageId = lastUserMessage.id;
+
+      // 3. Initiate non-blocking semantic title generation if this is a new conversation
+      if (isNew) {
+        const userText = textFromMessage(lastUserMessage);
+        if (userText) {
+          titlePromise = this.chatPersistence.generateTitleFromPrompt({
+            prompt: userText,
+          });
+        }
+      }
     }
 
     const instructions = buildIkeenInstructions({
@@ -103,14 +151,65 @@ export class AgentService {
       },
       headers: {
         'X-Agent-Conversation-Id': activeConversationId,
+        'X-Agent-Conversation-Title': encodeURIComponent(initialTitle),
       },
       onEnd: async ({ messages: completedMessages }) => {
         try {
-          await this.chatPersistence.persistChat({
-            conversationId: activeConversationId,
-            userId,
-            messages: completedMessages as UIMessage[],
+          let resolvedTitle: string | undefined;
+          if (titlePromise) {
+            try {
+              resolvedTitle = await titlePromise;
+              await this.chatPersistence.updateTitle({
+                conversationId: activeConversationId,
+                title: resolvedTitle,
+              });
+            } catch (err) {
+              this.logger.warn(
+                `Failed to resolve titlePromise for convId=${activeConversationId}: ${err}`,
+              );
+            }
+          }
+
+          // Filter and update the saved message(s) from above
+          const existingInDb = await this.prisma.chatMessage.findMany({
+            where: { conversationId: activeConversationId },
+            select: { id: true },
           });
+          const savedIds = new Set(existingInDb.map((row) => row.id));
+          if (savedUserMessageId) {
+            savedIds.add(savedUserMessageId);
+          }
+
+          for (const msg of completedMessages) {
+            if (msg.id && savedIds.has(msg.id)) {
+              await this.chatPersistence.updateMessage({
+                id: msg.id,
+                message: msg,
+              });
+            }
+          }
+
+          // The rest will serve as saveMessages
+          const rest = completedMessages.filter(
+            (m) => !m.id || !savedIds.has(m.id),
+          );
+
+          if (rest.length > 0) {
+            // Deduplicate intermediate tool loop chunks by id, keeping latest state
+            const uniqueRest = new Map<string, UIMessage>();
+            for (const msg of rest) {
+              if (msg.id) {
+                uniqueRest.set(msg.id, msg);
+              } else {
+                uniqueRest.set(`temp_${uniqueRest.size}`, msg);
+              }
+            }
+
+            await this.chatPersistence.saveMessages({
+              conversationId: activeConversationId,
+              messages: Array.from(uniqueRest.values()),
+            });
+          }
         } catch (error) {
           this.logger.error(
             `Failed to persist completed chat for convId=${activeConversationId}`,

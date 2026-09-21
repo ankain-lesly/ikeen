@@ -334,7 +334,7 @@ function NoteEditor({
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push({
-                    pathname: '/(tabs)/agent',
+                    pathname: '/agent',
                     params: {
                       prompt: `Let's brainstorm on my note "${title || 'Untitled Note'}":\n\n${content.slice(0, 300)}`,
                     },

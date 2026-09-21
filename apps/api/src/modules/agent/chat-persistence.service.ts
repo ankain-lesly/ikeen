@@ -1,93 +1,275 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import type { UIMessage } from 'ai';
+import { generateText } from 'ai';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AgentProviderService } from './agent-provider.service';
 import {
   persistableParts,
   textFromMessage,
   uiMessagesFromRows,
 } from './chat-messages';
+import { PROMPT_SEGMENT_TITLE_GENERATION } from './prompts/segments';
+import { log } from '@repo/utils';
 
 @Injectable()
 export class ChatPersistenceService {
   private readonly logger = new Logger(ChatPersistenceService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly providerService?: AgentProviderService,
+  ) {}
 
   /**
-   * Upserts the conversation thread and performs an append-only batch insert
-   * for newly added messages without rewriting previous history.
+   * Retrieves a chat conversation by ID.
    */
-  async persistChat({
-    conversationId,
+  async getChatById({ id }: { id?: string }) {
+    if (!id) return null;
+    return this.prisma.chatConversation.findUnique({
+      where: { id },
+      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+    });
+  }
+
+  /**
+   * Creates a new chat conversation record in the database.
+   */
+  async createChat({
+    id,
     userId,
+    title = 'New Brainstorm',
+  }: {
+    id?: string;
+    userId: string;
+    title?: string;
+  }) {
+    return this.prisma.chatConversation.create({
+      data: {
+        ...(id ? { id } : {}),
+        userId,
+        title,
+      },
+      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+    });
+  }
+
+  /**
+   * Persists new messages to the database.
+   * Calculates the next sequence dynamically from the highest existing sequence.
+   */
+  async saveMessages({
+    conversationId,
     messages,
+  }: {
+    conversationId: string;
+    messages: UIMessage[];
+  }): Promise<number> {
+    if (!messages || messages.length === 0) {
+      return 0;
+    }
+
+    const lastMessage = await this.prisma.chatMessage.findFirst({
+      where: { conversationId },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+    });
+
+    let nextSequence = lastMessage !== null ? lastMessage.sequence + 1 : 0;
+
+    const toInsert = messages.map((msg) => ({
+      ...(msg.id ? { id: msg.id } : {}),
+      conversationId,
+      role: msg.role,
+      content: textFromMessage(msg).slice(0, 8000),
+      parts: persistableParts(msg),
+      sequence: nextSequence++,
+    }));
+
+    await this.prisma.chatMessage.createMany({
+      data: toInsert,
+      // skipDuplicates: true,
+    });
+
+    this.logger.log(
+      `[ChatPersistence:MessagesSaved] convId=${conversationId} count=${toInsert.length}`,
+    );
+
+    return toInsert.length;
+  }
+
+  /**
+   * Updates an existing message's content and/or parts (e.g. tool execution results).
+   */
+  async updateMessage({
+    id,
+    message,
+    content,
+    parts,
+  }: {
+    id: string;
+    message?: UIMessage;
+    content?: string;
+    parts?: ReturnType<typeof persistableParts>;
+  }) {
+    const updatedContent =
+      content !== undefined
+        ? content
+        : message
+          ? textFromMessage(message).slice(0, 8000)
+          : undefined;
+
+    const updatedParts =
+      parts !== undefined
+        ? parts
+        : message
+          ? persistableParts(message)
+          : undefined;
+
+    const result = await this.prisma.chatMessage.updateMany({
+      where: { id },
+      data: {
+        ...(updatedContent !== undefined ? { content: updatedContent } : {}),
+        ...(updatedParts !== undefined ? { parts: updatedParts } : {}),
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`[ChatPersistence:MessageUpdated] msgId=${id}`);
+    }
+  }
+
+  /**
+   * Generates a semantic title from user prompt.
+   * Falls back to a clean truncated prompt if model generation fails.
+   */
+  async generateTitleFromPrompt({
+    prompt,
+  }: {
+    prompt: string;
+  }): Promise<string> {
+    const cleanPrompt = prompt.trim().replace(/\s+/g, ' ');
+    if (!cleanPrompt) return 'New Brainstorm';
+
+    let generatedTitle = '';
+    if (this.providerService) {
+      try {
+        const model = this.providerService.getChatModel();
+        const response = await generateText({
+          model,
+          system: PROMPT_SEGMENT_TITLE_GENERATION,
+          prompt: cleanPrompt.slice(0, 500),
+          maxOutputTokens: 20,
+        });
+        generatedTitle =
+          response.text
+            ?.trim()
+            .replace(/^["']|["']$/g, '')
+            .replace(/\.$/, '') || '';
+      } catch (genError) {
+        this.logger.warn(
+          `AI title generation failed, using fallback: ${genError}`,
+        );
+      }
+    }
+
+    return (
+      generatedTitle ||
+      (cleanPrompt.length > 50 ? `${cleanPrompt.slice(0, 47)}...` : cleanPrompt)
+    );
+  }
+
+  /**
+   * Updates conversation title by id.
+   */
+  async updateTitle({
+    conversationId,
     title,
   }: {
     conversationId: string;
-    userId: string;
+    title: string;
+  }): Promise<void> {
+    await this.prisma.chatConversation.update({
+      where: { id: conversationId },
+      data: { title },
+    });
+    this.logger.log(
+      `[ChatPersistence:TitleUpdated] convId=${conversationId} title="${title}"`,
+    );
+  }
+
+  /**
+   * Persists completed chat messages and updates conversation timestamp.
+   * Updates mutated tool messages and batch-inserts new assistant messages.
+   */
+  async persistChat({
+    conversationId,
+    initialMessages = [],
+    messages,
+  }: {
+    conversationId: string;
+    initialMessages?: UIMessage[];
     messages: UIMessage[];
-    title?: string;
-  }): Promise<{ conversationId: string; insertedCount: number }> {
+  }): Promise<{
+    conversationId: string;
+    insertedCount: number;
+    updatedCount: number;
+  }> {
     try {
-      // Derive a clean title from the first user message if not set
-      let derivedTitle = title;
-      if (!derivedTitle && messages.length > 0) {
-        const firstUser = messages.find((m) => m.role === 'user');
-        if (firstUser) {
-          const text = textFromMessage(firstUser);
-          if (text) {
-            derivedTitle = text.length > 60 ? `${text.slice(0, 57)}...` : text;
-          }
+      // 1. Touch conversation timestamp
+      await this.prisma.chatConversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      // 2. Identify saved messages from above
+      const savedIds = new Set(initialMessages.map((m) => m.id).filter(Boolean));
+
+      const existingInDb = await this.prisma.chatMessage.findMany({
+        where: { conversationId },
+        select: { id: true },
+      });
+      for (const row of existingInDb) {
+        savedIds.add(row.id);
+      }
+
+      let updatedCount = 0;
+      const restMap = new Map<string, UIMessage>();
+
+      for (const msg of messages) {
+        const msgId = msg.id && typeof msg.id === 'string' ? msg.id : null;
+        if (msgId && savedIds.has(msgId)) {
+          // Message was saved from above; update content & tool parts
+          await this.updateMessage({ id: msgId, message: msg });
+          updatedCount++;
+        } else if (msgId) {
+          // Deduplicate multi-step tool chunks for the same turn, keeping latest state
+          restMap.set(msgId, msg);
+        } else {
+          restMap.set(`temp_${restMap.size}`, msg);
         }
       }
 
-      await this.prisma.chatConversation.upsert({
-        where: { id: conversationId },
-        create: {
-          id: conversationId,
-          userId,
-          title: derivedTitle || 'Brainstorming Session',
-        },
-        update: {
-          updatedAt: new Date(),
-          ...(derivedTitle ? { title: derivedTitle } : {}),
-        },
-      });
+      // 3. The rest will serve as saveMessages
+      const toSave = Array.from(restMap.values());
+      let insertedCount = 0;
 
-      const existingCount = await this.prisma.chatMessage.count({
-        where: { conversationId },
-      });
-
-      const pending = messages.slice(existingCount);
-      if (pending.length === 0) {
-        return { conversationId, insertedCount: 0 };
+      if (toSave.length > 0) {
+        insertedCount = await this.saveMessages({
+          conversationId,
+          messages: toSave,
+        });
       }
 
-      let sequence = existingCount;
-      const toInsert = pending.map((msg) => {
-        const seq = sequence++;
-        return {
-          id:
-            msg.id && typeof msg.id === 'string'
-              ? msg.id
-              : `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-          conversationId,
-          role: msg.role,
-          content: textFromMessage(msg).slice(0, 8000),
-          parts: persistableParts(msg),
-          sequence: seq,
-        };
-      });
-
-      await this.prisma.chatMessage.createMany({
-        data: toInsert,
-      });
-
       this.logger.log(
-        `[ChatPersistence:Saved] convId=${conversationId} inserted=${toInsert.length} existing=${existingCount}`,
+        `[ChatPersistence:Persisted] convId=${conversationId} inserted=${insertedCount} updated=${updatedCount}`,
       );
 
-      return { conversationId, insertedCount: toInsert.length };
+      return { conversationId, insertedCount, updatedCount };
     } catch (error) {
       this.logger.error(
         `[ChatPersistence:Error] Failed to persist chat for convId=${conversationId}`,
@@ -187,12 +369,15 @@ export class ChatPersistenceService {
       throw new NotFoundException('Conversation not found');
     }
 
+    const uiMessages = uiMessagesFromRows(conversation.messages);
+
     return {
       id: conversation.id,
       title: conversation.title,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
-      uiMessages: uiMessagesFromRows(conversation.messages),
+      uiMessages,
+      messages: uiMessages,
     };
   }
 

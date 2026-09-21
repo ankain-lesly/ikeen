@@ -172,7 +172,7 @@ export default function NotesScreen() {
         <View className="flex-row items-center gap-2">
           {/* AI Agent Shortcut */}
           <Pressable
-            onPress={() => router.push("/(tabs)/agent" as any)}
+            onPress={() => router.push("/agent")}
             hitSlop={6}
             className="w-9 h-9 rounded-full items-center justify-center bg-primary/10 border border-primary/20 active:opacity-70">
             <Sparkles size={17} color={colors.primary} />

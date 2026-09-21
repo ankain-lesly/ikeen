@@ -1,38 +1,37 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Sparkles, FileText, Compass, FolderSync } from 'lucide-react-native';
-import { IKeenMascot } from '@/components/ikeen-mascot';
+import { Sparkles, Compass, FolderSync, Lightbulb } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 
 interface EmptyStateProps {
   onSelectPrompt: (prompt: string) => void;
 }
 
-const SUGGESTED_PROMPTS = [
+const SUGGESTIONS = [
   {
     id: '1',
-    label: 'Summarize Recent Notes',
+    label: 'Summarize recent notes',
     prompt: 'Summarize my recent notes and highlight key action items.',
     Icon: Sparkles,
   },
   {
     id: '2',
-    label: 'Search Notes',
-    prompt: 'What notes do I have about current projects?',
-    Icon: FileText,
+    label: 'Brainstorm ideas',
+    prompt: 'Help me brainstorm fresh concepts and ideas for my current projects.',
+    Icon: Lightbulb,
   },
   {
     id: '3',
-    label: 'Brainstorm Ideas',
-    prompt: 'Help me brainstorm ideas for expanding iKeen with new workflows.',
-    Icon: Compass,
+    label: 'Organize workspace',
+    prompt: 'Review my notes and suggest folders to organize them better.',
+    Icon: FolderSync,
   },
   {
     id: '4',
-    label: 'Organize Folders',
-    prompt: 'Review my notes and suggest folders to organize them better.',
-    Icon: FolderSync,
+    label: 'Synthesize insights',
+    prompt: 'What recurring themes or insights stand out across my notes?',
+    Icon: Compass,
   },
 ];
 
@@ -45,40 +44,36 @@ export function ChatEmptyState({ onSelectPrompt }: EmptyStateProps) {
   };
 
   return (
-    <View className="flex-1 items-center justify-center px-6 py-8">
-      {/* Centered Mascot */}
-      <View className="items-center mb-6">
-        <IKeenMascot size={130} />
-        <Text className="text-xl font-bold text-text mt-4 text-center tracking-tight">
-          Eye-Keen on Ideas
+    <View className="flex-1 items-center justify-center px-6 py-12">
+      {/* 🌌 Ambient Focal Glyph */}
+      <View className="items-center justify-center mb-7">
+        <View className="w-16 h-16 rounded-full bg-background-element border border-border/80 items-center justify-center shadow-xs">
+          <View className="w-9 h-9 rounded-full bg-background border border-border/60 items-center justify-center">
+            <View className="w-2.5 h-2.5 rounded-full bg-primary" />
+          </View>
+        </View>
+
+        <Text className="text-xl font-medium text-text mt-5 tracking-tight text-center">
+          Clear space to think
         </Text>
-        <Text className="text-sm text-text-secondary mt-1.5 text-center leading-relaxed max-w-[280px]">
-          Your curious thought partner. Brainstorm, capture notes, or synthesize insights.
+        <Text className="text-xs text-text-secondary mt-1.5 text-center leading-relaxed max-w-[260px]">
+          Explore thoughts, draft notes, or synthesize insights with iKeen.
         </Text>
       </View>
 
-      {/* Suggestion Chips */}
-      <View className="w-full gap-2.5 max-w-[340px]">
-        {SUGGESTED_PROMPTS.map((item) => {
+      {/* ✦ Floating Spark Capsules */}
+      <View className="w-full max-w-[340px] flex-row flex-wrap justify-center gap-2">
+        {SUGGESTIONS.map((item) => {
           const Icon = item.Icon;
           return (
             <Pressable
               key={item.id}
               onPress={() => handlePromptPress(item.prompt)}
-              className="px-4 py-3 rounded-2xl bg-card border border-border flex-row items-center gap-3 active:bg-background-selected">
-              <View className="w-7 h-7 rounded-lg bg-background-element items-center justify-center">
-                <Icon size={15} color={colors.primary} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-xs font-semibold text-text">
-                  {item.label}
-                </Text>
-                <Text
-                  className="text-[11px] text-text-secondary mt-0.5"
-                  numberOfLines={1}>
-                  {item.prompt}
-                </Text>
-              </View>
+              className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-full bg-background-element border border-border/80 active:bg-background-selected">
+              <Icon size={13} color={colors.primary} />
+              <Text className="text-xs font-medium text-text">
+                {item.label}
+              </Text>
             </Pressable>
           );
         })}

@@ -1,12 +1,7 @@
-import React, { useMemo } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import React, { useMemo } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { Redirect, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   ArrowRight,
   Cloud,
@@ -16,17 +11,20 @@ import {
   Plus,
   Search,
   Sparkles,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 
-import { ThemedText } from '@/components/ui/themed-text';
-import { useTheme } from '@/hooks/use-theme';
-import { useAuthStore } from '@/lib/auth/auth-store';
-import { useSyncStore } from '@/lib/sync/use-sync';
-import { useLiveNotes, createNote, togglePinNote } from '@/lib/queries/notes';
-import { useLiveFolders } from '@/lib/queries/folders';
-import { NotebookHeroIllustration, EmptyNotesIllustration } from '@/components/illustrations';
-import { formatTimeAgo } from '@repo/utils/date';
-import { toast } from '@/lib/toast';
+import { ThemedText } from "@/components/ui/themed-text";
+import { useTheme } from "@/hooks/use-theme";
+import { useAuthStore } from "@/lib/auth/auth-store";
+import { useSyncStore } from "@/lib/sync/use-sync";
+import { useLiveNotes, createNote, togglePinNote } from "@/lib/queries/notes";
+import { useLiveFolders } from "@/lib/queries/folders";
+import {
+  NotebookHeroIllustration,
+  EmptyNotesIllustration,
+} from "@/components/illustrations";
+import { formatTimeAgo } from "@repo/utils/date";
+import { toast } from "@/lib/toast";
 
 export default function HomeScreen() {
   const colors = useTheme();
@@ -40,56 +38,54 @@ export default function HomeScreen() {
   // Compute stats & recent slices
   const pinnedNotes = useMemo(
     () => allNotes.filter((n) => n.isPinned),
-    [allNotes]
+    [allNotes],
   );
-  const recentNotes = useMemo(
-    () => allNotes.slice(0, 5),
-    [allNotes]
-  );
+  const recentNotes = useMemo(() => allNotes.slice(0, 5), [allNotes]);
 
   // Time-based greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   }, []);
 
   const formattedDate = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
+    return new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
     });
   }, []);
 
   const userDisplayName = user?.firstName
     ? user.firstName
     : isAuthenticated
-    ? 'Creator'
-    : 'Guest';
+      ? "Creator"
+      : "Guest";
 
   const userInitials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U'
-    : 'G';
+    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() ||
+      "U"
+    : "G";
 
   const handleCreateNote = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       const newNote = await createNote();
       router.push({
-        pathname: '/notes/[id]',
+        pathname: "/notes/[id]",
         params: { id: newNote.id },
       });
     } catch {
-      toast.error('Could not create note');
+      toast.error("Could not create note");
     }
   };
 
   const handleNotePress = (id: string) => {
     Haptics.selectionAsync();
     router.push({
-      pathname: '/notes/[id]',
+      pathname: "/notes/[id]",
       params: { id },
     });
   };
@@ -99,16 +95,18 @@ export default function HomeScreen() {
     try {
       await togglePinNote(id);
     } catch {
-      toast.error('Failed to update pin');
+      toast.error("Failed to update pin");
     }
   };
 
   const syncStatusText = useMemo(() => {
-    if (syncStatus === 'syncing') return 'Syncing...';
-    if (syncStatus === 'offline') return 'Offline';
+    if (syncStatus === "syncing") return "Syncing...";
+    if (syncStatus === "offline") return "Offline";
     if (pendingCount > 0) return `${pendingCount} Pending`;
-    return 'All Synced';
+    return "All Synced";
   }, [syncStatus, pendingCount]);
+
+  return <Redirect href="/agent" />;
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -126,7 +124,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
-            router.push('/(tabs)/profile');
+            router.push("/(tabs)/profile");
           }}
           className="w-10 h-10 rounded-full bg-background-element border border-border items-center justify-center active:opacity-75">
           <Text className="text-xs font-bold text-text font-mono">
@@ -137,13 +135,13 @@ export default function HomeScreen() {
             className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background"
             style={{
               backgroundColor:
-                syncStatus === 'syncing'
-                  ? '#3b82f6'
-                  : syncStatus === 'offline'
-                  ? '#94a3b8'
-                  : pendingCount > 0
-                  ? '#f59e0b'
-                  : colors.primary,
+                syncStatus === "syncing"
+                  ? "#3b82f6"
+                  : syncStatus === "offline"
+                    ? "#94a3b8"
+                    : pendingCount > 0
+                      ? "#f59e0b"
+                      : colors.primary,
             }}
           />
         </Pressable>
@@ -184,7 +182,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
-            router.push('/search');
+            router.push("/search");
           }}
           className="h-12 px-4 rounded-2xl bg-background-element border border-border flex-row items-center justify-between active:opacity-75">
           <View className="flex-row items-center gap-3">
@@ -204,7 +202,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
-            router.push('/(tabs)/agent');
+            router.push("/agent");
           }}
           className="p-3.5 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element">
           <View className="flex-row items-center gap-3 flex-1 mr-2">
@@ -236,7 +234,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/(tabs)/notes');
+                router.push("/(tabs)/notes");
               }}
               className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
               <View className="flex-row items-center justify-between mb-2">
@@ -257,7 +255,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/(tabs)/notes');
+                router.push("/(tabs)/notes");
               }}
               className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
               <View className="flex-row items-center justify-between mb-2">
@@ -278,7 +276,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/(tabs)/notes/folders');
+                router.push("/(tabs)/notes/folders");
               }}
               className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
               <View className="flex-row items-center justify-between mb-2">
@@ -299,7 +297,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                router.push('/(tabs)/profile/sync-outbox');
+                router.push("/(tabs)/profile/sync-outbox");
               }}
               className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
               <View className="flex-row items-center justify-between mb-2">
@@ -311,14 +309,16 @@ export default function HomeScreen() {
                   style={{
                     backgroundColor:
                       pendingCount > 0
-                        ? '#f59e0b'
-                        : syncStatus === 'offline'
-                        ? '#94a3b8'
-                        : colors.primary,
+                        ? "#f59e0b"
+                        : syncStatus === "offline"
+                          ? "#94a3b8"
+                          : colors.primary,
                   }}
                 />
               </View>
-              <Text className="text-sm font-bold text-text font-mono" numberOfLines={1}>
+              <Text
+                className="text-sm font-bold text-text font-mono"
+                numberOfLines={1}>
                 {syncStatusText}
               </Text>
               <Text className="text-xs text-text-secondary mt-0.5">
@@ -359,12 +359,12 @@ export default function HomeScreen() {
                     <Text
                       className="text-sm font-bold text-text mb-1"
                       numberOfLines={1}>
-                      {note.title.trim() || 'Untitled Note'}
+                      {note.title.trim() || "Untitled Note"}
                     </Text>
                     <Text
                       className="text-xs text-text-secondary leading-relaxed"
                       numberOfLines={2}>
-                      {note.content.trim() || 'No preview available'}
+                      {note.content.trim() || "No preview available"}
                     </Text>
                   </View>
 
@@ -390,7 +390,7 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   Haptics.selectionAsync();
-                  router.push('/(tabs)/notes');
+                  router.push("/(tabs)/notes");
                 }}
                 className="flex-row items-center gap-1 active:opacity-70">
                 <Text className="text-xs font-semibold text-text">See All</Text>
@@ -407,7 +407,8 @@ export default function HomeScreen() {
                 Your canvas is empty
               </ThemedText>
               <Text className="text-xs text-text-secondary text-center max-w-[240px]">
-                Capture meeting thoughts, daily tasks, or creative sparks in iKeen.
+                Capture meeting thoughts, daily tasks, or creative sparks in
+                iKeen.
               </Text>
               <Pressable
                 onPress={handleCreateNote}
@@ -429,16 +430,14 @@ export default function HomeScreen() {
                     <Text
                       className="text-sm font-bold text-text flex-1"
                       numberOfLines={1}>
-                      {note.title.trim() || 'Untitled Note'}
+                      {note.title.trim() || "Untitled Note"}
                     </Text>
-                    {note.isPinned && (
-                      <Pin size={12} color={colors.primary} />
-                    )}
+                    {note.isPinned && <Pin size={12} color={colors.primary} />}
                   </View>
                   <Text
                     className="text-xs text-text-secondary"
                     numberOfLines={1}>
-                    {note.content.trim() || 'Empty note'}
+                    {note.content.trim() || "Empty note"}
                   </Text>
                 </View>
 

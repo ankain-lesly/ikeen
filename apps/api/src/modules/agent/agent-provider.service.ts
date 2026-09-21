@@ -36,7 +36,7 @@ export class AgentProviderService {
 
     // Default fallback: direct OpenAI instance or OpenRouter mock
     const fallbackOpenrouter = createOpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY || 'dummy-key',
+      apiKey: process.env.OPENROUTER_API_KEY,
     });
     return fallbackOpenrouter.chat(modelName) as unknown as LanguageModel;
   }

@@ -73,7 +73,7 @@ export function persistableParts(message: UIMessage): Prisma.InputJsonValue {
       const text = textFromMessage(message);
       return text ? [{ type: 'text', text }] : [];
     }
-    return JSON.parse(serialized) as Prisma.InputJsonValue;
+    return JSON.parse(serialized);
   } catch {
     const text = textFromMessage(message);
     return text ? [{ type: 'text', text }] : [];

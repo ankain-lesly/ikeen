@@ -35,7 +35,7 @@ export function NotesHeader({
   };
 
   const handleNavigateAI = () => {
-    router.push("/(tabs)/agent" as any);
+    router.push("/agent");
   };
 
   const isAllActive = !(filter?.pinnedFirst || filter?.includeArchived);

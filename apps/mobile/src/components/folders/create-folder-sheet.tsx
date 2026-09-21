@@ -7,7 +7,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Host, Switch } from '@expo/ui/jetpack-compose';
 import * as Haptics from 'expo-haptics';
 import { Check, Lock, X } from 'lucide-react-native';
 
@@ -15,6 +14,8 @@ import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { CreateFolderInput, FolderWithCount } from '@/lib/types/folders';
 import { FOLDER_PRESET_COLORS, DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
+import { Host, Switch, RNHostView } from "@expo/ui/jetpack-compose";
+import { BottomSheet } from "@expo/ui";
 import { FolderGlyph } from './folder-glyph';
 
 export interface CreateFolderSheetProps {

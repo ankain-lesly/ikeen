@@ -11,11 +11,11 @@ const getDefaultApiUrl = () => {
   // }
   // return 'http://localhost:3000/api/v1';
   // Expo Go
-  return "http://10.87.238.98:3000/api/v1";
+  return "http://192.168.0.100:3000/api/v1";
 };
 
 export const API_BASE_URL = getDefaultApiUrl();
-export const AGENT_BASE_URL = `${API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/agent`;
+// export const AGENT_BASE_URL = `${API_BASE_URL}/agent`;
 
 export interface ApiRequestOptions extends RequestInit {
   token?: string | null;
@@ -39,9 +39,7 @@ export async function request<T>(
 ): Promise<T> {
   const { token, headers = {}, ...rest } = options;
 
-  const url = endpoint.startsWith('http://') || endpoint.startsWith('https://')
-    ? endpoint
-    : `${API_BASE_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  const url = `${API_BASE_URL.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
