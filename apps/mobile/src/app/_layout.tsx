@@ -28,6 +28,7 @@ import { useSettingsStore } from "@/lib/settings/settings-store";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
+import { CheckForUpdatesMain } from "@/components/check-for-updates";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,6 +69,8 @@ export default function TabLayout() {
                 <StatusBar
                   barStyle={scheme === "dark" ? "light-content" : "dark-content"}
                 />
+                {/* Check Of Updates */}
+                <CheckForUpdatesMain />
               </View>
             </ThemeProvider>
           </SafeAreaListener>
@@ -124,7 +127,9 @@ function RootApp() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false }} initialRouteName="index">
+      <Stack.Screen name="index" />
+      <Stack.Screen name="agent" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="(auth)"

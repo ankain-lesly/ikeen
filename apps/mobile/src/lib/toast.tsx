@@ -93,7 +93,7 @@ type ToastFn = ((title: string, description?: string) => void) & {
 
 function baseToast(title: string, description?: string) {
   Toast.show({
-    type: "info",
+    type: "success",
     text1: title,
     text2: description,
     visibilityTime: 3000,

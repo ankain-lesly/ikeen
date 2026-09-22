@@ -58,3 +58,18 @@ export interface RealtimeAuthResponse {
   error?: string;
   message?: string;
 }
+
+export interface AppUpdateInfo {
+  version: string;
+  build?: number;
+  mandatory: boolean;
+  title: string;
+  description: string;
+  url: string;
+}
+
+export interface CheckUpdatesQuery {
+  platform?: string;
+  currentVersion?: string;
+  currentBuild?: string;
+}

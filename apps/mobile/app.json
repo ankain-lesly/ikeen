@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "iKeen",
+    "name": "Eye Keen",
     "slug": "ikeen",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan"
+      "package": "com.techforgelee.ikeen"
     },
     "web": {
       "output": "static",
@@ -39,6 +39,12 @@
       "typedRoutes": true,
       "autolinkingModuleResolution": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17bd4cd5-f0a2-4cd6-b75b-4f84d40f559c"
+      }
     }
   }
 }

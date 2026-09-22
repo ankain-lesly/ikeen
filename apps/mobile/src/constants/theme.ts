@@ -9,6 +9,7 @@ export type ThemeColor =
   | 'text'
   | 'textSecondary'
   | 'primary'
+  | 'card'
   | 'border'
   | 'background'
   | 'backgroundElement'

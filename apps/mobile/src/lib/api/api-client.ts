@@ -1,12 +1,12 @@
 
 const getDefaultApiUrl = () => {
-  return "http://192.168.0.100:3000/api/v1";
+  // return "http://192.168.0.100:3000/api/v1";
   // TODO: Remove Before Production
-  // if (process.env.EXPO_PUBLIC_API_URL) {
-  //   return process.env.EXPO_PUBLIC_API_URL;
-  // } else {
-  //   throw new Error('API_BASE_URL is not set');
-  // }
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    throw new Error('API_BASE_URL is not set');
+  }
   // // Android emulator uses 10.0.2.2 to access host machine localhost
   // if (Platform.OS === 'android') {
   //   return 'http://10.0.2.2:3000/api/v1';

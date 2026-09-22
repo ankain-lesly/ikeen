@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
-import { View, TextInput, Pressable, Platform, Text } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { ArrowUp, Square, Sparkles } from 'lucide-react-native';
-import { useTheme } from '@/hooks/use-theme';
+import React, { useRef } from "react";
+import { View, TextInput, Pressable, Platform, Text } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ArrowUp, Square, Sparkles } from "lucide-react-native";
+import { useTheme } from "@/hooks/use-theme";
+import { ChatInputBar2 } from "./chat-input-bar2";
 
 interface InputBarProps {
   input: string;
@@ -19,7 +20,7 @@ export function ChatInputBar({
   onSubmit,
   isLoading,
   onStop,
-  placeholder = 'Ask iKeen or capture a thought...',
+  placeholder = "Ask iKeen or capture a thought...",
 }: InputBarProps) {
   const colors = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -37,6 +38,24 @@ export function ChatInputBar({
   };
 
   return (
+    <ChatInputBar2
+      placeholder={"Ask one deeper question"}
+      inputContext={{
+        age_range: "2",
+        hobbies: ["foo", "bars"],
+        refine: "demo",
+        user_type: "worker",
+        values: ["foo", "bars"],
+      }}
+      value={""}
+      onChangeText={() => {}}
+      onSubmit={() => {}}
+      onAddContext={() => {}}
+      onRefine={() => {}}
+      disabled={false}
+    />
+  );
+  return (
     <View className="px-4 pb-safe-offset-2 pt-2 bg-background border-t border-border/40">
       {/* Floating Modern Island Dock */}
       <View className="rounded-3xl bg-background-element border border-border/80 p-2 shadow-xs">
@@ -53,8 +72,8 @@ export function ChatInputBar({
           style={{
             minHeight: 38,
             maxHeight: 120,
-            paddingTop: Platform.OS === 'ios' ? 6 : 4,
-            paddingBottom: Platform.OS === 'ios' ? 6 : 4,
+            paddingTop: Platform.OS === "ios" ? 6 : 4,
+            paddingBottom: Platform.OS === "ios" ? 6 : 4,
             paddingHorizontal: 12,
             fontSize: 15,
             color: colors.text,
@@ -81,8 +100,8 @@ export function ChatInputBar({
               backgroundColor: isLoading
                 ? colors.backgroundSelected
                 : canSubmit
-                ? colors.primary
-                : colors.border,
+                  ? colors.primary
+                  : colors.border,
               // opacity: canSubmit || isLoading ? 1 : 0.45,
             }}>
             {isLoading ? (
@@ -90,7 +109,7 @@ export function ChatInputBar({
             ) : (
               <ArrowUp
                 size={16}
-                color={canSubmit ? '#ffffff' : colors.textSecondary}
+                color={canSubmit ? "#ffffff" : colors.textSecondary}
                 strokeWidth={2.4}
               />
             )}
