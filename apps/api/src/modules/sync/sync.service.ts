@@ -6,16 +6,15 @@ import { NotesService } from '../notes/notes.service';
 import { SyncPushDto } from './dto/sync-push.dto';
 import { CheckUpdatesQueryDto } from './dto/check-updates.dto';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
-import { log } from '@repo/utils';
+import { log } from '@repo/utils/logger';
 import type {
   SyncPullResponse,
   SyncPushResponse,
   SyncEntityType,
   SyncMutationBase,
   AppUpdateInfo,
-} from '@repo/types';
+} from '@repo/types/sync';
 import type { Prisma } from '@repo/db';
-export type { AppUpdateInfo } from '@repo/types';
 
 @Injectable()
 export class SyncService {
