@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import { Prisma } from '@repo/db';
 
 const baseContextSchema = z.object({
   userId: z.string(),
@@ -30,12 +31,7 @@ export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
     }),
     execute: async ({ folderId, noteIds, focus }, { context }) => {
       try {
-        const whereClause: {
-          userId: string;
-          deletedAt: null;
-          folderId?: string;
-          id?: { in: string[] };
-        } = {
+        const whereClause: Prisma.NoteWhereInput = {
           userId: context.userId,
           deletedAt: null,
         };

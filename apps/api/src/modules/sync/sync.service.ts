@@ -4,6 +4,7 @@ import { AblyService } from '../ably/ably.service';
 import { FoldersService } from '../folders/folders.service';
 import { NotesService } from '../notes/notes.service';
 import { SyncPushDto } from './dto/sync-push.dto';
+import { CheckUpdatesQueryDto } from './dto/check-updates.dto';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
 import { log } from '@repo/utils';
 import type {
@@ -11,8 +12,10 @@ import type {
   SyncPushResponse,
   SyncEntityType,
   SyncMutationBase,
+  AppUpdateInfo,
 } from '@repo/types';
 import type { Prisma } from '@repo/db';
+export type { AppUpdateInfo } from '@repo/types';
 
 @Injectable()
 export class SyncService {
@@ -251,5 +254,50 @@ export class SyncService {
       log('[Sync:Pull:Error]', { userId, error: errorMessage });
       throw err;
     }
+  }
+
+  /**
+   * Retrieves app update information for mobile clients.
+   */
+  getAppUpdates(query?: CheckUpdatesQueryDto): AppUpdateInfo {
+    const latestVersion = '1.0.1';
+    const latestBuild = 2;
+    const minRequiredVersion = '1.0.0';
+    const isGloballyMandatory = false;
+
+    let mandatory = isGloballyMandatory;
+    if (query?.currentVersion && !mandatory) {
+      mandatory = this.isOlderVersion(query.currentVersion, minRequiredVersion);
+    }
+
+    const platform = query?.platform?.toLowerCase();
+    let url = 'https://github.com/ankain-lesly/ikeen/releases';
+    if (platform === 'android') {
+      // (Could use a dedicated Android URL if specified in the future)
+    } else if (platform === 'ios') {
+      // (Could use a dedicated iOS URL if specified in the future)
+    }
+
+    return {
+      version: latestVersion,
+      build: latestBuild,
+      mandatory,
+      title: 'New Update Available 🚀',
+      description:
+        '• Improved sync performance\n• AI agent chat improvements\n• General bug fixes and stability improvements',
+      url,
+    };
+  }
+
+  private isOlderVersion(currentVersion: string, targetVersion: string): boolean {
+    const a = currentVersion.split('.').map(Number);
+    const b = targetVersion.split('.').map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const partA = a[i] || 0;
+      const partB = b[i] || 0;
+      if (partA < partB) return true;
+      if (partA > partB) return false;
+    }
+    return false;
   }
 }
