@@ -9,7 +9,6 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest:destination": "/api",
       "dest": "src/main.ts",
       "methods": [
         "GET",
