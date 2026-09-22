@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    // "module": "nodenext",
+    "module": "nodenext",
     // "moduleResolution": "nodenext",
-    // "resolvePackageJsonExports": true,
+    "moduleResolution": "node", // 👈 Crucial: Use "node" instead of "NodeNext"
+    "resolvePackageJsonExports": true,
     "isolatedModules": true,
     "declaration": true,
     "removeComments": true,
@@ -19,9 +20,9 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "module": "commonjs",
+    // "module": "commonjs",
     // "moduleResolution": "node",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true
   }
 }
