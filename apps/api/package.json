@@ -1,8 +1,8 @@
 {
   "name": "api",
   "name:repo": "@repo/api",
-  "description": "",
-  "author": "",
+  "description": "iKeen API",
+  "author": "Lesly Chuo",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
