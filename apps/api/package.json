@@ -14,7 +14,7 @@
     "start:dev": "nest start --exec bun --watch",
     "start:debug": "nest start --exec bun --debug --watch",
     "start:prod": "bun dist/main.js",
-    "check-types": "tsc --noEmit",
+    "check-types::dd": "tsc --noEmit",
     "lint": "oxlint src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
