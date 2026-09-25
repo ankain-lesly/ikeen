@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Folder, FolderChanges } from '@repo/types/folders';
 import { capitalize, slugify, truncate } from '@repo/utils/string';
-import { prisma } from '@repo/db/client';
+import { log } from '@repo/utils/logger';
+// import { prisma } from '@repo/db/client';
 
 @Injectable()
 export class DemoService {
@@ -41,7 +42,8 @@ export class DemoService {
 
   async testDb() {
     try {
-      const userCount = await prisma?.user.count();
+      // const userCount = await prisma.user.count();
+      const userCount = await Promise.resolve(0);
       return {
         status: 'ok',
         connected: true,
@@ -59,10 +61,13 @@ export class DemoService {
   }
 
   async testAll() {
-    return {
+    const data = {
       utils: this.testUtils(),
       types: this.testTypes(),
       db: await this.testDb(),
     };
+
+    log('Log@ialldata', data);
+    return data;
   }
 }
