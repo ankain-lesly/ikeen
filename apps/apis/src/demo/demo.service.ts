@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Folder, FolderChanges } from '@repo/types/folders';
-import { capitalize, slugify, truncate } from '@repo/utils/string';
-import { log } from '@repo/utils/logger';
+import { log, capitalize, slugify, truncate } from '@repo/utils';
 import { prisma } from '@repo/db/client';
 
 @Injectable()
