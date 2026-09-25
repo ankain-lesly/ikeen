@@ -43,7 +43,7 @@ export class DemoService {
 
   async testDb() {
     try {
-      const userCount = await prisma.user.count();
+      const userCount = await prisma?.user.count();
       return {
         status: 'ok',
         connected: true,
