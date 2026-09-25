@@ -2,46 +2,27 @@
   "name": "@repo/db",
   "type": "module",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
-    "./client": {
-      "types": "./src/client.ts",
-      "default": "./src/client.ts"
-    },
-    "./generated/prisma": {
-      "types": "./generated/prisma/client.ts",
-      "default": "./generated/prisma/client.ts"
-    },
-    "./generated/prisma/client": {
-      "types": "./generated/prisma/client.ts",
-      "default": "./generated/prisma/client.ts"
-    },
-    "./generated/prisma/enums": {
-      "types": "./generated/prisma/enums.ts",
-      "default": "./generated/prisma/enums.ts"
-    },
-    "./generated/prisma/*": {
-      "types": "./generated/prisma/*.ts",
-      "default": "./generated/prisma/*.ts"
-    },
-    "./generated/prisma/*.ts": {
-      "types": "./generated/prisma/*.ts",
-      "default": "./generated/prisma/*.ts"
-    },
-    "./generated/enums": {
-      "types": "./generated/prisma/enums.ts",
-      "default": "./generated/prisma/enums.ts"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "devDependencies": {
-    "prisma": "7.10.0"
+    "@repo/typescript-config": "workspace:*",
+    "tsup": "^8.5.1",
+    "prisma": "7.10.0",
+    "typescript": "~6.0.3"
   },
   "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "check-types": "tsc --noEmit",
+    "lint": "tsc --noEmit",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
