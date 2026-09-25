@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import {
   FileText,
 } from "lucide-react-native";
-
+import {FlashList} from "@shopify/flash-list"
 import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
 import { BottomTabInset } from "@/constants/theme";
@@ -160,7 +160,7 @@ export default function NotesScreen() {
 
   const renderNoteItem = useCallback(
     ({ item }: { item: Note }) => (
-      <View className="w-1/2 p-1">
+      <View className="p-1">
         <NoteCard
           note={item}
           onTogglePin={handleTogglePin}
@@ -183,12 +183,13 @@ export default function NotesScreen() {
           updateFilter={(newFilter) => setFilter(newFilter)}
         />
 
-        <FlatList
+        <FlashList
           data={notes}
           numColumns={2}
           renderItem={renderNoteItem}
           keyExtractor={(item) => item.id}
           className="flex-1"
+          masonry
           contentContainerClassName="pt-1 px-2.5"
           contentContainerStyle={{
             paddingBottom: BottomTabInset + 80,
