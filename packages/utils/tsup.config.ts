@@ -8,7 +8,7 @@ export default defineConfig({
     date: 'src/date.ts',
     constants: 'src/constants.ts',
   },
-  format: ['esm'],
+  format: ['cjs', 'esm'],
   dts: true,
   clean: true,
   sourcemap: true,
