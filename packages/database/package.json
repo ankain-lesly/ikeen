@@ -10,6 +10,12 @@
       "require": "./dist/index.cjs",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "require": "./dist/client.cjs",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
     }
   },
   "devDependencies": {
