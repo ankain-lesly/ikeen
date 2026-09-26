@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { UIMessage } from 'ai';
-import { AgentService } from './agent.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AblyService } from '../ably/ably.service';
-import { AgentProviderService } from './agent-provider.service';
-import { ChatPersistenceService } from './chat-persistence.service';
+import { AgentService } from './agent.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AblyService } from '../ably/ably.service.js';
+import { AgentProviderService } from './agent-provider.service.js';
+import { ChatPersistenceService } from './chat-persistence.service.js';
 
 describe('AgentService', () => {
   let service: AgentService;

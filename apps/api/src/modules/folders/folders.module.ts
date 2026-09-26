@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FoldersService } from './folders.service';
-import { FoldersController } from './folders.controller';
+import { FoldersService } from './folders.service.js';
+import { FoldersController } from './folders.controller.js';
 
 @Module({
   controllers: [FoldersController],

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FoldersService } from './folders.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { FoldersService } from './folders.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 
 type MockPrisma = {
   folder: Record<string, ReturnType<typeof vi.fn>>;

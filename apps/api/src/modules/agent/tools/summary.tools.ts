@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { Prisma } from '@repo/db';
 
 const baseContextSchema = z.object({

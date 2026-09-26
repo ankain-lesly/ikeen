@@ -1,6 +1,6 @@
 import { Module, Global } from '@nestjs/common';
-import { AblyService } from './ably.service';
-import { RealtimeController } from './realtime.controller';
+import { AblyService } from './ably.service.js';
+import { RealtimeController } from './realtime.controller.js';
 
 @Global()
 @Module({

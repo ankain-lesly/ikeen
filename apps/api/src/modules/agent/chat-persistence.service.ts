@@ -6,14 +6,14 @@ import {
 } from '@nestjs/common';
 import type { UIMessage } from 'ai';
 import { generateText } from 'ai';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AgentProviderService } from './agent-provider.service';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AgentProviderService } from './agent-provider.service.js';
 import {
   persistableParts,
   textFromMessage,
   uiMessagesFromRows,
-} from './chat-messages';
-import { PROMPT_SEGMENT_TITLE_GENERATION } from './prompts/segments';
+} from './chat-messages.js';
+import { PROMPT_SEGMENT_TITLE_GENERATION } from './prompts/segments.js';
 
 @Injectable()
 export class ChatPersistenceService {

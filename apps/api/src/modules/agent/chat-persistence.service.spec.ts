@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ChatPersistenceService } from './chat-persistence.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ChatPersistenceService } from './chat-persistence.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 import type { UIMessage } from 'ai';
 
 type MockPrisma = {

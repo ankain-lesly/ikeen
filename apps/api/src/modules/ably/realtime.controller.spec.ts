@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RealtimeController } from './realtime.controller';
-import { AblyService } from './ably.service';
+import { RealtimeController } from './realtime.controller.js';
+import { AblyService } from './ably.service.js';
 
 describe('RealtimeController', () => {
   let controller: RealtimeController;

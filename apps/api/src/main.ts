@@ -1,6 +1,6 @@
 // import { NestFactory } from '@nestjs/core';
 // import { ValidationPipe } from '@nestjs/common';
-// import { AppModule } from './app.module';
+// import { AppModule } from './app.module.js';
 
 // async function bootstrap() {
 //   const app = await NestFactory.create(AppModule);
@@ -28,11 +28,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module.js'; // Note the explicit .js extension
 import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
+import express, { Express } from 'express';
 
 const server = express();
 
-export const createServer = async () => {
+export const createServer = async (): Promise<Express> => {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
   await app.init();
   return server;

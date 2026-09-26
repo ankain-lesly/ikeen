@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AblyService } from '../ably/ably.service';
-import { FoldersService } from '../folders/folders.service';
-import { NotesService } from '../notes/notes.service';
-import { SyncPushDto } from './dto/sync-push.dto';
-import { CheckUpdatesQueryDto } from './dto/check-updates.dto';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AblyService } from '../ably/ably.service.js';
+import { FoldersService } from '../folders/folders.service.js';
+import { NotesService } from '../notes/notes.service.js';
+import { SyncPushDto } from './dto/sync-push.dto.js';
+import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
 import { log } from '@repo/utils/logger';
 import type {
