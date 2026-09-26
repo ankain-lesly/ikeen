@@ -5,7 +5,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import type { UIMessage } from 'ai';
-import { generateText } from 'ai';
+import { loadAiSdk } from './ai-sdk';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AgentProviderService } from './agent-provider.service';
 import {
@@ -172,6 +172,7 @@ export class ChatPersistenceService {
     if (this.providerService) {
       try {
         const model = this.providerService.getChatModel();
+        const { generateText } = await loadAiSdk();
         const response = await generateText({
           model,
           system: PROMPT_SEGMENT_TITLE_GENERATION,

@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { pipeAgentUIStreamToResponse, stepCountIs, ToolLoopAgent } from 'ai';
+import { loadAiSdk } from './ai-sdk';
 import type { ServerResponse } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AblyService } from '../ably/ably.service';
@@ -114,6 +114,9 @@ export class AgentService {
       firstName: user.firstName,
       username: user.username,
     });
+
+    const { ToolLoopAgent, stepCountIs, pipeAgentUIStreamToResponse } =
+      await loadAiSdk();
 
     const agent = new ToolLoopAgent({
       id: 'ikeen-agent',

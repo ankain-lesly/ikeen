@@ -1,4 +1,4 @@
-import { tool } from 'ai';
+import { tool } from '../ai-sdk';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
