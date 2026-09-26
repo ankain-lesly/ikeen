@@ -1,0 +1,215 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { log } from '@repo/utils';
+import type { Prisma } from '@repo/db';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateNoteDto } from './dto/create-note.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
+import type { NoteMutationPayload } from '@repo/types/sync';
+
+export type NoteSyncData = NoteMutationPayload;
+
+@Injectable()
+export class NotesService {
+  private readonly logger = new Logger(NotesService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Retrieves all active (non-deleted) notes for a user, optionally filtered by folderId.
+   */
+  async findAll(userId: string, folderId?: string) {
+    return this.prisma.note.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        ...(folderId !== undefined && { folderId }),
+      },
+      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+    });
+  }
+
+  /**
+   * Finds a single active note by ID.
+   */
+  async findOne(userId: string, id: string) {
+    const note = await this.prisma.note.findFirst({
+      where: { id, userId, deletedAt: null },
+    });
+    if (!note) {
+      throw new NotFoundException(`Note with id "${id}" not found.`);
+    }
+    return note;
+  }
+
+  /**
+   * Creates a new note.
+   */
+  async create(userId: string, dto: CreateNoteDto) {
+    if (dto.folderId) {
+      const folderExists = await this.prisma.folder.findFirst({
+        where: { id: dto.folderId, userId },
+      });
+      if (!folderExists) {
+        dto.folderId = null;
+      }
+    }
+
+    return this.prisma.note.create({
+      data: {
+        ...(dto.id && { id: dto.id }),
+        userId,
+        folderId: dto.folderId ?? null,
+        title: dto.title,
+        content: dto.content ?? '',
+        tags: dto.tags ?? [],
+        isPinned: dto.isPinned ?? false,
+        isArchived: dto.isArchived ?? false,
+        summary: dto.summary ?? null,
+        version: 1,
+      },
+    });
+  }
+
+  /**
+   * Updates an existing note with version incrementing.
+   */
+  async update(userId: string, id: string, dto: UpdateNoteDto) {
+    await this.findOne(userId, id);
+
+    if (dto.folderId !== undefined && dto.folderId !== null) {
+      const folderExists = await this.prisma.folder.findFirst({
+        where: { id: dto.folderId, userId },
+      });
+      if (!folderExists) {
+        dto.folderId = null;
+      }
+    }
+
+    return this.prisma.note.update({
+      where: { id },
+      data: {
+        ...(dto.folderId !== undefined && { folderId: dto.folderId }),
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.content !== undefined && { content: dto.content }),
+        ...(dto.tags !== undefined && { tags: dto.tags }),
+        ...(dto.isPinned !== undefined && { isPinned: dto.isPinned }),
+        ...(dto.isArchived !== undefined && { isArchived: dto.isArchived }),
+        ...(dto.summary !== undefined && { summary: dto.summary }),
+        version: { increment: 1 },
+      },
+    });
+  }
+
+  /**
+   * Soft deletes a note by stamping deletedAt.
+   */
+  async softDelete(userId: string, id: string) {
+    await this.findOne(userId, id);
+
+    return this.prisma.note.update({
+      where: { id },
+      data: { deletedAt: new Date(), version: { increment: 1 } },
+    });
+  }
+
+  /**
+   * Reusable Last-Write-Wins (LWW) upsert for notes with partial patching and versioning.
+   * Strictly reads entity properties from `n.changes`.
+   */
+  async upsertWithLww(
+    userId: string,
+    n: NoteSyncData,
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<{ applied: boolean; noteId: string }> {
+    const clientUpdatedAt = new Date(n.updatedAt);
+    const existing = await prismaClient.note.findUnique({
+      where: { id: n.id },
+    });
+
+    if (existing && clientUpdatedAt < existing.updatedAt) {
+      this.logger.debug(
+        `LWW: Skipping older note mutation for ${n.id} (client: ${n.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
+      );
+      log('[LWW:Note:SkippedStale]', {
+        id: n.id,
+        clientUpdatedAt: n.updatedAt,
+        serverUpdatedAt: existing.updatedAt.toISOString(),
+      });
+      return { applied: false, noteId: n.id };
+    }
+
+    const nextVersion = Math.max((existing?.version ?? 0) + 1, n.version ?? 1);
+
+    const targetFolderId = n.changes.folderId;
+    let validatedFolderId: string | null | undefined = undefined;
+
+    if (targetFolderId !== undefined) {
+      if (targetFolderId === null) {
+        validatedFolderId = null;
+      } else {
+        const folderExists = await prismaClient.folder.findFirst({
+          where: { id: targetFolderId, userId },
+        });
+        validatedFolderId = folderExists ? targetFolderId : null;
+      }
+    }
+
+    if (existing) {
+      const patchData: Prisma.NoteUncheckedUpdateInput = {
+        updatedAt: clientUpdatedAt,
+        version: nextVersion,
+      };
+
+      if (validatedFolderId !== undefined)
+        patchData.folderId = validatedFolderId;
+
+      if (n.changes.title !== undefined) patchData.title = n.changes.title;
+      if (n.changes.content !== undefined) patchData.content = n.changes.content;
+      if (n.changes.tags !== undefined)
+        patchData.tags = Array.isArray(n.changes.tags) ? n.changes.tags : [];
+      if (n.changes.isPinned !== undefined) patchData.isPinned = n.changes.isPinned;
+      if (n.changes.isArchived !== undefined) patchData.isArchived = n.changes.isArchived;
+      if (n.changes.summary !== undefined) patchData.summary = n.changes.summary;
+      if (n.changes.deletedAt !== undefined) {
+        patchData.deletedAt = n.changes.deletedAt ? new Date(n.changes.deletedAt) : undefined;
+      }
+      if (n.changes.createdAt !== undefined) {
+        patchData.createdAt = n.changes.createdAt ? new Date(n.changes.createdAt) : undefined;
+      }
+
+      await prismaClient.note.update({
+        where: { id: n.id },
+        data: patchData,
+      });
+    } else {
+      const tagsArray = Array.isArray(n.changes?.tags) ? n.changes.tags : [];
+
+      await prismaClient.note.create({
+        data: {
+          id: n.id,
+          userId,
+          folderId: validatedFolderId ?? null,
+          title: n.changes.title ?? '',
+          content: n.changes.content ?? '',
+          tags: tagsArray,
+          isPinned: n.changes.isPinned ?? false,
+          isArchived: n.changes.isArchived ?? false,
+          summary: n.changes.summary ?? null,
+          version: nextVersion,
+          createdAt: clientUpdatedAt,
+          updatedAt: clientUpdatedAt,
+          deletedAt: n.changes.deletedAt ? new Date(n.changes.deletedAt) : null,
+        },
+      });
+    }
+
+    log('[LWW:Note:Applied]', {
+      id: n.id,
+      action: n.action,
+      version: nextVersion,
+      isExisting: !!existing,
+    });
+
+    return { applied: true, noteId: n.id };
+  }
+}

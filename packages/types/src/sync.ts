@@ -5,8 +5,8 @@ export type SyncEntityType = "folders" | "notes";
 export type SyncActionType = "upsert" | "delete";
 export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
 
-export type { FolderChanges } from "./folders";
-export type { NoteChanges } from "./notes";
+// export type { FolderChanges } from "./folders";
+// export type { NoteChanges } from "./notes";
 
 /**
  * Common mutation metadata outside of entity changes.

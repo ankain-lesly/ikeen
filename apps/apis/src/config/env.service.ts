@@ -1,0 +1,30 @@
+import { Injectable } from '@nestjs/common';
+import { type EnvConfig, validateEnv } from './env.schema';
+
+@Injectable()
+export class EnvService implements EnvConfig {
+  readonly NODE_ENV: 'development' | 'production' | 'test';
+  readonly PORT: number;
+  readonly DATABASE_URL?: string;
+  readonly JWT_SECRET: string;
+  readonly JWT_EXPIRES_IN: string;
+  readonly ABLY_API_KEY?: string;
+  readonly AI_PROVIDER: 'openrouter' | 'openai';
+  readonly OPENROUTER_API_KEY?: string;
+  readonly OPENAI_API_KEY?: string;
+  readonly AI_CHAT_MODEL: string;
+  readonly AI_EMBEDDING_MODEL: string;
+
+  constructor() {
+    const validated = validateEnv(process.env);
+    Object.assign(this, validated);
+  }
+
+  get isProduction(): boolean {
+    return this.NODE_ENV === 'production';
+  }
+
+  get isDevelopment(): boolean {
+    return this.NODE_ENV === 'development';
+  }
+}

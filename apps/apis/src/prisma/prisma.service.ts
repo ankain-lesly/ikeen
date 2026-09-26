@@ -1,0 +1,62 @@
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { prisma } from '@repo/db';
+import type { PrismaClient } from '@repo/db';
+
+@Injectable()
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  get user() {
+    return prisma.user;
+  }
+
+  get auth() {
+    return prisma.auth;
+  }
+
+  get folder() {
+    return prisma.folder;
+  }
+
+  get note() {
+    return prisma.note;
+  }
+
+  get syncLog() {
+    return prisma.syncLog;
+  }
+
+  get auditLog() {
+    return prisma.auditLog;
+  }
+
+  get chatConversation() {
+    return prisma.chatConversation;
+  }
+
+  get chatMessage() {
+    return prisma.chatMessage;
+  }
+
+  get chatMemory() {
+    return prisma.chatMemory;
+  }
+
+  get chatConversationData() {
+    return prisma.chatConversationData;
+  }
+
+  get $transaction() {
+    return prisma.$transaction.bind(prisma);
+  }
+
+  get client(): PrismaClient {
+    return prisma;
+  }
+
+  async onModuleInit() {
+    // Database connection active
+  }
+
+  async onModuleDestroy() {
+    // Teardown connections if needed
+  }
+}
