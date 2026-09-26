@@ -3,16 +3,13 @@ import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { Prisma } from '@repo/db';
 
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
+import { baseToolContextSchema, type BaseToolContext } from '../call-options';
 
 export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
   const summarizeKnowledge = tool({
     description:
       'Load multiple notes or an entire folder of notes to analyze, cross-reference, and generate a synthesized summary or action checklist.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       folderId: z
         .string()
@@ -29,7 +26,7 @@ export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
           'Specific aspect to focus synthesis on (e.g. action items, timeline, decisions)',
         ),
     }),
-    execute: async ({ folderId, noteIds, focus }, { context }) => {
+    execute: async ({ folderId, noteIds, focus }, { context }: { context: BaseToolContext }) => {
       try {
         const whereClause: Prisma.NoteWhereInput = {
           userId: context.userId,

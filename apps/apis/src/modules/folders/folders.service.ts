@@ -1,11 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { FolderMutationPayload } from '@repo/types';
 import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 import { log } from '@repo/utils';
 import type { Prisma } from '@repo/db';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
+import type { FolderMutationPayload } from '@repo/types/sync';
 
 export type FolderSyncData = FolderMutationPayload;
 

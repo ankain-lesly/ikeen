@@ -3,10 +3,7 @@ import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { AblyService } from '../../ably/ably.service';
 
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
+import { baseToolContextSchema, type BaseToolContext } from '../call-options';
 
 export function createNotesTools({
   prisma,
@@ -17,7 +14,7 @@ export function createNotesTools({
   const searchNotes = tool({
     description:
       'Search through the user notes using keyword or thematic search. Optionally filter by folder.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       query: z
         .string()
@@ -35,7 +32,7 @@ export function createNotesTools({
         .default(10)
         .describe('Maximum number of notes to return'),
     }),
-    execute: async ({ query, folderId, limit }, { context }) => {
+    execute: async ({ query, folderId, limit }, { context }: { context: BaseToolContext }) => {
       try {
         const notes = await prisma.note.findMany({
           where: {
@@ -76,11 +73,11 @@ export function createNotesTools({
   const getNoteDetails = tool({
     description:
       'Retrieve full content, tags, folder, and metadata of a specific note by ID.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to retrieve'),
     }),
-    execute: async ({ noteId }, { context }) => {
+    execute: async ({ noteId }, { context }: { context: BaseToolContext }) => {
       try {
         const note = await prisma.note.findFirst({
           where: {
@@ -123,7 +120,7 @@ export function createNotesTools({
   const listRecentNotes = tool({
     description:
       'List the most recently updated or pinned notes in the workspace to establish context.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       limit: z
         .number()
@@ -137,7 +134,7 @@ export function createNotesTools({
         .default(false)
         .describe('Whether to only return pinned notes'),
     }),
-    execute: async ({ limit, pinnedOnly }, { context }) => {
+    execute: async ({ limit, pinnedOnly }, { context }: { context: BaseToolContext }) => {
       try {
         const notes = await prisma.note.findMany({
           where: {
@@ -173,7 +170,7 @@ export function createNotesTools({
   const createNote = tool({
     description:
       'Create a new note in the workspace with title, markdown content, optional folderId, and tags.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       title: z.string().trim().min(1).describe('Title of the note'),
       content: z.string().describe('Markdown content or body of the note'),
@@ -188,7 +185,7 @@ export function createNotesTools({
         .default([])
         .describe('List of tags to categorize the note'),
     }),
-    execute: async ({ title, content, folderId, tags }, { context }) => {
+    execute: async ({ title, content, folderId, tags }, { context }: { context: BaseToolContext }) => {
       try {
         // Validate folder ownership if provided
         if (folderId) {
@@ -241,7 +238,7 @@ export function createNotesTools({
   const updateNote = tool({
     description:
       'Update an existing note (modify title, tags, replace content, or append new brainstorm notes/action items).',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to update'),
       title: z.string().optional().describe('New title if changing'),
@@ -262,7 +259,7 @@ export function createNotesTools({
     }),
     execute: async (
       { noteId, title, content, appendContent, tags },
-      { context },
+      { context }: { context: BaseToolContext },
     ) => {
       try {
         const existing = await prisma.note.findFirst({
@@ -312,7 +309,7 @@ export function createNotesTools({
   const pinNote = tool({
     description:
       'Pin or unpin a note to prioritize it at the top of the workspace list.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to pin or unpin'),
       isPinned: z
@@ -320,7 +317,7 @@ export function createNotesTools({
         .default(true)
         .describe('True to pin the note, false to unpin it'),
     }),
-    execute: async ({ noteId, isPinned }, { context }) => {
+    execute: async ({ noteId, isPinned }, { context }: { context: BaseToolContext }) => {
       try {
         const existing = await prisma.note.findFirst({
           where: {
@@ -363,7 +360,7 @@ export function createNotesTools({
   const archiveNote = tool({
     description:
       'Archive or unarchive a note to remove it from the active workspace without deleting it.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       noteId: z
         .string()
@@ -373,7 +370,7 @@ export function createNotesTools({
         .default(true)
         .describe('True to archive the note, false to restore/unarchive it'),
     }),
-    execute: async ({ noteId, isArchived }, { context }) => {
+    execute: async ({ noteId, isArchived }, { context }: { context: BaseToolContext }) => {
       try {
         const existing = await prisma.note.findFirst({
           where: {

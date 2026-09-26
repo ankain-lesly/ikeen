@@ -1,20 +1,17 @@
 import { Logger } from '@nestjs/common';
 
-type AgentToolsContext = {
-  recordMemory?: { conversationId: string; userId: string };
-  searchNotes?: { conversationId: string; userId: string };
-};
-
 export function createAgentLifecycle(logger: Logger) {
   return {
-    onStart({ toolsContext }: { toolsContext: AgentToolsContext }) {
+    onStart(event: {
+      toolsContext?: Record<string, { conversationId?: string; userId?: string }>;
+    }) {
       const convId =
-        toolsContext.recordMemory?.conversationId ||
-        toolsContext.searchNotes?.conversationId ||
+        event.toolsContext?.recordMemory?.conversationId ||
+        event.toolsContext?.searchNotes?.conversationId ||
         'unknown';
       const userId =
-        toolsContext.recordMemory?.userId ||
-        toolsContext.searchNotes?.userId ||
+        event.toolsContext?.recordMemory?.userId ||
+        event.toolsContext?.searchNotes?.userId ||
         'unknown';
       logger.log(`[Agent:Start] convId=${convId} userId=${userId}`);
     },
@@ -34,12 +31,7 @@ export function createAgentLifecycle(logger: Logger) {
       );
     },
 
-    onEnd({
-      usage,
-      steps,
-      finishReason,
-      toolsContext,
-    }: {
+    onEnd(event: {
       usage?: {
         totalTokens?: number;
         inputTokens?: number;
@@ -48,16 +40,16 @@ export function createAgentLifecycle(logger: Logger) {
       };
       steps?: unknown[];
       finishReason?: string;
-      toolsContext?: AgentToolsContext;
+      toolsContext?: Record<string, { conversationId?: string; userId?: string }>;
     }) {
       const convId =
-        toolsContext?.recordMemory?.conversationId ||
-        toolsContext?.searchNotes?.conversationId ||
+        event.toolsContext?.recordMemory?.conversationId ||
+        event.toolsContext?.searchNotes?.conversationId ||
         'unknown';
       logger.log(
-        `[Agent:End] convId=${convId} steps=${steps?.length ?? 0} ` +
-          `inTokens=${usage?.inputTokens ?? 0} outTokens=${usage?.outputTokens ?? 0} ` +
-          `reason=${finishReason ?? 'stop'}`,
+        `[Agent:End] convId=${convId} steps=${event.steps?.length ?? 0} ` +
+          `inTokens=${event.usage?.inputTokens ?? 0} outTokens=${event.usage?.outputTokens ?? 0} ` +
+          `reason=${event.finishReason ?? 'stop'}`,
       );
     },
   };

@@ -5,13 +5,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AblyService } from '../ably/ably.service';
 import { AgentProviderService } from './agent-provider.service';
 import { createAgentLifecycle } from './agent-lifecycle';
-import { ikeenAgentCallOptionsSchema, ikeenToolContext } from './call-options';
 import { buildIkeenInstructions } from './prompts';
 import { createIkeenTools, type IkeenTools } from './tools';
 
 import { ChatPersistenceService } from './chat-persistence.service';
 import { textFromMessage } from './chat-messages';
 import type { UIMessage } from 'ai';
+import { baseToolContextSchema, ikeenToolContext } from './call-options';
 
 @Injectable()
 export class AgentService {
@@ -123,7 +123,7 @@ export class AgentService {
       maxOutputTokens: 8192,
       toolsContext: ikeenToolContext(userId, activeConversationId),
       stopWhen: [stepCountIs(8)],
-      callOptionsSchema: ikeenAgentCallOptionsSchema,
+      callOptionsSchema: baseToolContextSchema,
       prepareCall: ({ options, ...settings }) => ({
         ...settings,
         instructions,
@@ -270,22 +270,9 @@ export class AgentService {
             }
           } else if (p.toolInvocation && typeof p.toolInvocation === 'object') {
             const inv = p.toolInvocation as Record<string, unknown>;
-            const toolName = String(inv.toolName ?? '');
+            const toolName = String(inv.toolName) || '';
             if (inv.state !== 'error') {
               recordMutation(toolName, inv.result);
-            }
-          }
-        }
-      }
-
-      const legacyInvocations = msg.toolInvocations;
-      if (legacyInvocations && Array.isArray(legacyInvocations)) {
-        for (const inv of legacyInvocations) {
-          if (inv && typeof inv === 'object') {
-            const i = inv as Record<string, unknown>;
-            const toolName = String(i.toolName ?? '');
-            if (i.state !== 'error') {
-              recordMutation(toolName, i.result);
             }
           }
         }

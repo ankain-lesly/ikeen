@@ -2,10 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
+import { baseToolContextSchema, type BaseToolContext } from '../call-options';
 
 export const MEMORY_CATEGORIES = [
   'PREFERENCE',
@@ -19,7 +16,7 @@ export function createMemoryTools({ prisma }: { prisma: PrismaService }) {
   const recordMemory = tool({
     description:
       'Autonomously persist a valuable insight, preference, enduring goal, or breakthrough about the user to maintain continuity.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       category: z
         .enum(MEMORY_CATEGORIES)
@@ -43,7 +40,7 @@ export function createMemoryTools({ prisma }: { prisma: PrismaService }) {
           'Importance level: 1 = minor note, 3 = helpful insight, 5 = critical foundational goal/preference',
         ),
     }),
-    execute: async ({ category, description, importance }, { context }) => {
+    execute: async ({ category, description, importance }, { context }: { context: BaseToolContext }) => {
       try {
         const entry = await prisma.chatMemory.create({
           data: {

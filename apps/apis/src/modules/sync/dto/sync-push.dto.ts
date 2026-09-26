@@ -3,7 +3,7 @@ import type { NoteChanges } from '@repo/types/notes';
 import type {
   FolderMutationPayload,
   NoteMutationPayload,
-  SyncActionType
+  SyncActionType,
 } from '@repo/types/sync';
 
 import { Type } from 'class-transformer';
@@ -17,7 +17,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-
 
 export class FolderChangesDto implements FolderChanges {
   @IsString()

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-export const ikeenAgentCallOptionsSchema = z.object({
+export const baseToolContextSchema = z.object({
   userId: z.string().min(1),
   conversationId: z.string().min(1),
 });
 
-export type IkeenAgentCallOptions = z.infer<typeof ikeenAgentCallOptionsSchema>;
+export type BaseToolContext = z.infer<typeof baseToolContextSchema>;
 
 /**
  * Server-injected context for agent tools.

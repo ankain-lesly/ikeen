@@ -7,7 +7,7 @@ export type ChatMessageRow = {
   id: string;
   role: string;
   content: string;
-  parts?: unknown | null;
+  parts?: unknown;
   sequence: number;
   createdAt: Date;
 };

@@ -3,10 +3,7 @@ import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { AblyService } from '../../ably/ably.service';
 
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
+import { baseToolContextSchema, type BaseToolContext } from '../call-options';
 
 export function createFolderTools({
   prisma,
@@ -17,7 +14,7 @@ export function createFolderTools({
   const listFolders = tool({
     description:
       'List all folders in the user workspace with their names, colors, icons, and note counts. Optionally filter by name query.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       query: z
         .string()
@@ -31,7 +28,7 @@ export function createFolderTools({
         .default(30)
         .describe('Maximum number of folders to return'),
     }),
-    execute: async ({ query, limit }, { context }) => {
+    execute: async ({ query, limit }, { context }: { context: BaseToolContext }) => {
       try {
         const trimmedQuery = query?.trim();
 
@@ -83,7 +80,7 @@ export function createFolderTools({
   const createFolder = tool({
     description:
       'Create a new folder in the user workspace with a name, optional hex color, and icon. Use ONLY when the user explicitly requests creating a folder.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       name: z
         .string()
@@ -104,7 +101,7 @@ export function createFolderTools({
           'Icon identifier for the folder, e.g. folder, briefcase, book, lightbulb, code, heart, star',
         ),
     }),
-    execute: async ({ name, color, icon }, { context }) => {
+    execute: async ({ name, color, icon }, { context }: { context: BaseToolContext }) => {
       try {
         const trimmedName = name.trim();
         // Check for existing folder with same name to prevent redundant duplicates
@@ -162,7 +159,7 @@ export function createFolderTools({
   const updateFolder = tool({
     description:
       'Update an existing folder (rename, change color, update icon, or adjust sort order).',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       folderId: z.string().describe('The UUID of the folder to update'),
       name: z
@@ -194,7 +191,7 @@ export function createFolderTools({
     }),
     execute: async (
       { folderId, name, color, icon, sortOrder },
-      { context },
+      { context }: { context: BaseToolContext },
     ) => {
       try {
         const existing = await prisma.folder.findFirst({
@@ -243,7 +240,7 @@ export function createFolderTools({
   const organizeNote = tool({
     description:
       'Move a note into a specific folder or unassign it, and optionally adjust its tags. Rely strictly on folderId.',
-    contextSchema: baseContextSchema,
+    contextSchema: baseToolContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to organize'),
       folderId: z
@@ -258,7 +255,7 @@ export function createFolderTools({
         .optional()
         .describe('Optional updated array of tags'),
     }),
-    execute: async ({ noteId, folderId, tags }, { context }) => {
+    execute: async ({ noteId, folderId, tags }, { context }: { context: BaseToolContext }) => {
       try {
         const existingNote = await prisma.note.findFirst({
           where: {
