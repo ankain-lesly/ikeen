@@ -17,8 +17,16 @@ describe('ChatPersistenceService', () => {
     mockPrisma = {
       chatConversation: {
         upsert: vi.fn().mockResolvedValue({ id: 'conv-1' }),
-        findUnique: vi.fn().mockResolvedValue({ id: 'conv-1', title: 'Test Conversation', userId: 'user-1' }),
-        create: vi.fn().mockResolvedValue({ id: 'conv-1', title: 'New Brainstorm' }),
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({
+            id: 'conv-1',
+            title: 'Test Conversation',
+            userId: 'user-1',
+          }),
+        create: vi
+          .fn()
+          .mockResolvedValue({ id: 'conv-1', title: 'New Brainstorm' }),
         update: vi.fn().mockResolvedValue({ id: 'conv-1' }),
         findMany: vi.fn().mockResolvedValue([
           {
@@ -26,7 +34,9 @@ describe('ChatPersistenceService', () => {
             title: 'Test Conversation',
             createdAt: new Date(),
             updatedAt: new Date(),
-            messages: [{ content: 'Hello', role: 'user', createdAt: new Date() }],
+            messages: [
+              { content: 'Hello', role: 'user', createdAt: new Date() },
+            ],
             _count: { messages: 2 },
           },
         ]),
@@ -88,8 +98,16 @@ describe('ChatPersistenceService', () => {
 
   it('should only insert pending messages via createMany in persistChat', async () => {
     const messages: UIMessage[] = [
-      { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Existing message' }] },
-      { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'New response' }] },
+      {
+        id: 'm-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Existing message' }],
+      },
+      {
+        id: 'm-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'New response' }],
+      },
     ];
 
     // mockPrisma.chatMessage.count returns 1 existing message
@@ -126,8 +144,16 @@ describe('ChatPersistenceService', () => {
     ];
     const completedMessages: UIMessage[] = [
       { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Prompt' }] },
-      { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'Step 1' }] },
-      { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'Final' }] },
+      {
+        id: 'm-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Step 1' }],
+      },
+      {
+        id: 'm-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Final' }],
+      },
     ];
 
     const result = await service.persistChat({
@@ -187,11 +213,17 @@ describe('ChatPersistenceService', () => {
   });
 
   it('should retrieve conversation and rehydrate UIMessages', async () => {
-    const result = await service.getConversationWithMessages('user-1', 'conv-1');
+    const result = await service.getConversationWithMessages(
+      'user-1',
+      'conv-1',
+    );
 
     expect(result.id).toBe('conv-1');
     expect(result.uiMessages).toHaveLength(2);
-    expect(result.uiMessages[0].parts[0]).toEqual({ type: 'text', text: 'Hello' });
+    expect(result.uiMessages[0].parts[0]).toEqual({
+      type: 'text',
+      text: 'Hello',
+    });
   });
 
   it('should retrieve a chat by id via getChatById', async () => {
@@ -202,7 +234,9 @@ describe('ChatPersistenceService', () => {
     });
 
     const chat = await service.getChatById({ id: 'conv-1' });
-    expect(chat).toEqual(expect.objectContaining({ id: 'conv-1', title: 'Existing Chat' }));
+    expect(chat).toEqual(
+      expect.objectContaining({ id: 'conv-1', title: 'Existing Chat' }),
+    );
   });
 
   it('should create a chat via createChat', async () => {
@@ -218,7 +252,9 @@ describe('ChatPersistenceService', () => {
       title: 'New Brainstorm',
     });
 
-    expect(chat).toEqual(expect.objectContaining({ id: 'conv-new', title: 'New Brainstorm' }));
+    expect(chat).toEqual(
+      expect.objectContaining({ id: 'conv-new', title: 'New Brainstorm' }),
+    );
     expect(mockPrisma.chatConversation.create).toHaveBeenCalledWith({
       data: {
         id: 'conv-new',

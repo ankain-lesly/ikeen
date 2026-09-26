@@ -66,5 +66,4 @@ export const PROMPT_SEGMENT_MEMORY_LOGGING = `## Memory & Continuous Learning
   - BREAKTHROUGH: Critical insights or creative solutions discovered in brainstorms.
   - FEEDBACK: Corrections, praises, or critiques given by the user to improve responses.`;
 
-export const PROMPT_SEGMENT_TITLE_GENERATION =
-  `Generate a short, concise title (max 4-5 words) summarizing this user request for a note-taking brainstorm chat. Return ONLY the title. No punctuation, no quotes, no period.`;
+export const PROMPT_SEGMENT_TITLE_GENERATION = `Generate a short, concise title (max 4-5 words) summarizing this user request for a note-taking brainstorm chat. Return ONLY the title. No punctuation, no quotes, no period.`;

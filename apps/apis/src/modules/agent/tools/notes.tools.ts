@@ -176,13 +176,13 @@ export function createNotesTools({
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       title: z.string().trim().min(1).describe('Title of the note'),
-      content: z
-        .string()
-        .describe('Markdown content or body of the note'),
+      content: z.string().describe('Markdown content or body of the note'),
       folderId: z
         .string()
         .optional()
-        .describe('Optional folder UUID to place this note into (from listFolders)'),
+        .describe(
+          'Optional folder UUID to place this note into (from listFolders)',
+        ),
       tags: z
         .array(z.string())
         .default([])
@@ -365,7 +365,9 @@ export function createNotesTools({
       'Archive or unarchive a note to remove it from the active workspace without deleting it.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
-      noteId: z.string().describe('The UUID of the note to archive or unarchive'),
+      noteId: z
+        .string()
+        .describe('The UUID of the note to archive or unarchive'),
       isArchived: z
         .boolean()
         .default(true)

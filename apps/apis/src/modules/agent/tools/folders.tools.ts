@@ -85,15 +85,24 @@ export function createFolderTools({
       'Create a new folder in the user workspace with a name, optional hex color, and icon. Use ONLY when the user explicitly requests creating a folder.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
-      name: z.string().trim().min(1).max(100).describe('Name of the new folder'),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(100)
+        .describe('Name of the new folder'),
       color: z
         .string()
         .default('#3b82f6')
-        .describe('Hex color code for the folder (e.g. #3b82f6, #10b981, #f59e0b, #8b5cf6, #ef4444)'),
+        .describe(
+          'Hex color code for the folder (e.g. #3b82f6, #10b981, #f59e0b, #8b5cf6, #ef4444)',
+        ),
       icon: z
         .string()
         .default('folder')
-        .describe('Icon identifier for the folder, e.g. folder, briefcase, book, lightbulb, code, heart, star'),
+        .describe(
+          'Icon identifier for the folder, e.g. folder, briefcase, book, lightbulb, code, heart, star',
+        ),
     }),
     execute: async ({ name, color, icon }, { context }) => {
       try {
@@ -156,23 +165,37 @@ export function createFolderTools({
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       folderId: z.string().describe('The UUID of the folder to update'),
-      name: z.string().trim().min(1).max(100).optional().describe('New name for the folder'),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe('New name for the folder'),
       color: z
         .string()
-        .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a valid hex color code')
+        .regex(
+          /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+          'Must be a valid hex color code',
+        )
         .optional()
         .describe('New hex color code for the folder (e.g. #3b82f6)'),
       icon: z
         .string()
         .optional()
-        .describe('New icon identifier for the folder (e.g. folder, briefcase, book, lightbulb, code)'),
+        .describe(
+          'New icon identifier for the folder (e.g. folder, briefcase, book, lightbulb, code)',
+        ),
       sortOrder: z
         .number()
         .int()
         .optional()
         .describe('Sort order index for ordering folders in the UI'),
     }),
-    execute: async ({ folderId, name, color, icon, sortOrder }, { context }) => {
+    execute: async (
+      { folderId, name, color, icon, sortOrder },
+      { context },
+    ) => {
       try {
         const existing = await prisma.folder.findFirst({
           where: {

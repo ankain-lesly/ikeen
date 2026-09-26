@@ -90,7 +90,7 @@ describe('AuthService', () => {
           name: 'Alex Morgan',
           email: 'alex@example.com',
           password: 'password123',
-        })
+        }),
       ).rejects.toThrow(ConflictException);
     });
   });
@@ -131,7 +131,7 @@ describe('AuthService', () => {
         service.login({
           email: 'wrong@example.com',
           password: 'password123',
-        })
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -150,7 +150,7 @@ describe('AuthService', () => {
         service.login({
           email: 'alex@example.com',
           password: 'wrong-password',
-        })
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -178,7 +178,7 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.getProfile('missing-id')).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
     });
   });

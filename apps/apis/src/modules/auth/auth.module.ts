@@ -14,7 +14,10 @@ import { EnvService } from '../../config/env.service';
       inject: [EnvService],
       useFactory: (env: EnvService) => ({
         secret: env.JWT_SECRET,
-        signOptions: { expiresIn: env.JWT_EXPIRES_IN as `${number}d` | `${number}h` | `${number}m` | `${number}s` },
+        signOptions: {
+          expiresIn: env.JWT_EXPIRES_IN as
+            `${number}d` | `${number}h` | `${number}m` | `${number}s`,
+        },
       }),
     }),
   ],

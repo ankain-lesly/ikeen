@@ -1,3 +1,11 @@
+import type { FolderChanges } from '@repo/types/folders';
+import type { NoteChanges } from '@repo/types/notes';
+import type {
+  FolderMutationPayload,
+  NoteMutationPayload,
+  SyncActionType
+} from '@repo/types/sync';
+
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -9,13 +17,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import type {
-  FolderChanges,
-  FolderMutationPayload,
-  NoteChanges,
-  NoteMutationPayload,
-  SyncActionType,
-} from '@repo/types';
+
 
 export class FolderChangesDto implements FolderChanges {
   @IsString()
@@ -185,4 +187,3 @@ export class SyncPushDto {
   @IsOptional()
   notes?: NoteMutationDto[];
 }
-

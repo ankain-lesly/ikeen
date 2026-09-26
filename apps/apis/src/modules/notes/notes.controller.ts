@@ -44,10 +44,7 @@ export class NotesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: CreateNoteDto,
-  ) {
+  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateNoteDto) {
     return this.notesService.create(req.user.id, dto);
   }
 

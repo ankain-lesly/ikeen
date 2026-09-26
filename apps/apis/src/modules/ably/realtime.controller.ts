@@ -55,7 +55,10 @@ export class RealtimeController {
   ) {
     const event = query.event || 'sync:invalidate';
     const rawEntities = query.entities
-      ? query.entities.split(',').map((e) => e.trim()).filter(Boolean)
+      ? query.entities
+          .split(',')
+          .map((e) => e.trim())
+          .filter(Boolean)
       : ['notes', 'folders'];
 
     const payload: Record<string, unknown> = {
@@ -85,9 +88,10 @@ export class RealtimeController {
     @Body() body?: TriggerBody,
   ) {
     const event = body?.event || 'sync:invalidate';
-    const entities = body?.entities && Array.isArray(body.entities)
-      ? body.entities
-      : ['notes', 'folders'];
+    const entities =
+      body?.entities && Array.isArray(body.entities)
+        ? body.entities
+        : ['notes', 'folders'];
 
     const payload: Record<string, unknown> = {
       timestamp: new Date().toISOString(),

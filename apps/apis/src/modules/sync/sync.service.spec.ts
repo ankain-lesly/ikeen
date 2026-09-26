@@ -33,11 +33,15 @@ describe('SyncService', () => {
     };
 
     foldersService = {
-      upsertWithLww: vi.fn().mockResolvedValue({ applied: true, folderId: 'f-1' }),
+      upsertWithLww: vi
+        .fn()
+        .mockResolvedValue({ applied: true, folderId: 'f-1' }),
     };
 
     notesService = {
-      upsertWithLww: vi.fn().mockResolvedValue({ applied: true, noteId: 'n-1' }),
+      upsertWithLww: vi
+        .fn()
+        .mockResolvedValue({ applied: true, noteId: 'n-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -205,11 +209,14 @@ describe('SyncService', () => {
     });
 
     it('should use platform-specific URL when provided', () => {
-      process.env.APP_UPDATE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.ikeen';
+      process.env.APP_UPDATE_URL_ANDROID =
+        'https://play.google.com/store/apps/details?id=com.ikeen';
       process.env.APP_UPDATE_URL_IOS = 'https://apps.apple.com/app/ikeen';
 
       const androidUpdate = service.getAppUpdates({ platform: 'android' });
-      expect(androidUpdate.url).toBe('https://play.google.com/store/apps/details?id=com.ikeen');
+      expect(androidUpdate.url).toBe(
+        'https://play.google.com/store/apps/details?id=com.ikeen',
+      );
 
       const iosUpdate = service.getAppUpdates({ platform: 'ios' });
       expect(iosUpdate.url).toBe('https://apps.apple.com/app/ikeen');

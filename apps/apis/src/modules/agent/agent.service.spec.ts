@@ -42,14 +42,30 @@ describe('AgentService', () => {
     };
 
     const mockChatPersistence = {
-      getChatById: vi.fn().mockResolvedValue({ id: 'conv-1', title: 'New Brainstorm', userId: 'user-1' }),
-      createChat: vi.fn().mockResolvedValue({ id: 'conv-1', title: 'New Brainstorm', userId: 'user-1' }),
+      getChatById: vi
+        .fn()
+        .mockResolvedValue({
+          id: 'conv-1',
+          title: 'New Brainstorm',
+          userId: 'user-1',
+        }),
+      createChat: vi
+        .fn()
+        .mockResolvedValue({
+          id: 'conv-1',
+          title: 'New Brainstorm',
+          userId: 'user-1',
+        }),
       saveMessages: vi.fn().mockResolvedValue(1),
       updateMessage: vi.fn().mockResolvedValue(undefined),
       generateTitleFromPrompt: vi.fn().mockResolvedValue('New Brainstorm'),
       updateTitle: vi.fn().mockResolvedValue(undefined),
-      persistChat: vi.fn().mockResolvedValue({ conversationId: 'conv-1', insertedCount: 1 }),
-      listConversations: vi.fn().mockResolvedValue({ total: 0, conversations: [] }),
+      persistChat: vi
+        .fn()
+        .mockResolvedValue({ conversationId: 'conv-1', insertedCount: 1 }),
+      listConversations: vi
+        .fn()
+        .mockResolvedValue({ total: 0, conversations: [] }),
       getConversationWithMessages: vi.fn().mockResolvedValue(null),
       deleteConversation: vi.fn().mockResolvedValue({ ok: true }),
     };

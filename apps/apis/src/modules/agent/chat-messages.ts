@@ -15,9 +15,9 @@ export type ChatMessageRow = {
 function isPartLike(value: unknown): value is UIMessage['parts'][number] {
   return Boolean(
     value &&
-      typeof value === 'object' &&
-      'type' in value &&
-      typeof (value as { type: unknown }).type === 'string',
+    typeof value === 'object' &&
+    'type' in value &&
+    typeof value.type === 'string',
   );
 }
 
@@ -27,7 +27,9 @@ function isPartLike(value: unknown): value is UIMessage['parts'][number] {
 export function textFromMessage(message: UIMessage): string {
   if (!Array.isArray(message.parts)) return '';
   return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part?.type === 'text')
+    .filter(
+      (part): part is { type: 'text'; text: string } => part?.type === 'text',
+    )
     .map((part) => part.text)
     .join('\n')
     .trim();
@@ -39,7 +41,7 @@ export function textFromMessage(message: UIMessage): string {
  */
 export function uiMessageFromRow(row: ChatMessageRow): UIMessage {
   const stored: UIMessage['parts'] = Array.isArray(row.parts)
-    ? (row.parts.filter(isPartLike) as UIMessage['parts'])
+    ? row.parts.filter(isPartLike)
     : [];
 
   const parts: UIMessage['parts'] =
@@ -60,7 +62,9 @@ export function uiMessageFromRow(row: ChatMessageRow): UIMessage {
  * Converts an array of rows to valid UIMessages.
  */
 export function uiMessagesFromRows(rows: ChatMessageRow[]): UIMessage[] {
-  return rows.map(uiMessageFromRow).filter((message) => message.parts.length > 0);
+  return rows
+    .map(uiMessageFromRow)
+    .filter((message) => message.parts.length > 0);
 }
 
 /**

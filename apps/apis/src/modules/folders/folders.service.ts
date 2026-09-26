@@ -127,14 +127,21 @@ export class FoldersService {
       if (f.changes.name !== undefined) patchData.name = f.changes.name;
       if (f.changes.color !== undefined) patchData.color = f.changes.color;
       if (f.changes.icon !== undefined) patchData.icon = f.changes.icon;
-      if (f.changes.isLocked !== undefined) patchData.isLocked = f.changes.isLocked;
-      if (f.changes.pinCode !== undefined) patchData.pinCode = f.changes.pinCode;
-      if (f.changes.sortOrder !== undefined) patchData.sortOrder = f.changes.sortOrder;
+      if (f.changes.isLocked !== undefined)
+        patchData.isLocked = f.changes.isLocked;
+      if (f.changes.pinCode !== undefined)
+        patchData.pinCode = f.changes.pinCode;
+      if (f.changes.sortOrder !== undefined)
+        patchData.sortOrder = f.changes.sortOrder;
       if (f.changes.deletedAt !== undefined) {
-        patchData.deletedAt = f.changes.deletedAt ? new Date(f.changes.deletedAt) : null;
+        patchData.deletedAt = f.changes.deletedAt
+          ? new Date(f.changes.deletedAt)
+          : null;
       }
       if (f.changes.createdAt !== undefined) {
-        patchData.createdAt = f.changes.createdAt ? new Date(f.changes.createdAt) : undefined;
+        patchData.createdAt = f.changes.createdAt
+          ? new Date(f.changes.createdAt)
+          : undefined;
       }
 
       await prismaClient.folder.update({

@@ -1,18 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import {
-  pipeAgentUIStreamToResponse,
-  stepCountIs,
-  ToolLoopAgent,
-} from 'ai';
+import { pipeAgentUIStreamToResponse, stepCountIs, ToolLoopAgent } from 'ai';
 import type { ServerResponse } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AblyService } from '../ably/ably.service';
 import { AgentProviderService } from './agent-provider.service';
 import { createAgentLifecycle } from './agent-lifecycle';
-import {
-  ikeenAgentCallOptionsSchema,
-  ikeenToolContext,
-} from './call-options';
+import { ikeenAgentCallOptionsSchema, ikeenToolContext } from './call-options';
 import { buildIkeenInstructions } from './prompts';
 import { createIkeenTools, type IkeenTools } from './tools';
 
@@ -59,7 +52,6 @@ export class AgentService {
     messages: UIMessage[];
     response: ServerResponse;
   }): Promise<void> {
-
     // Fetch user details for contextual prompt personalization
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -69,7 +61,6 @@ export class AgentService {
     if (!user) {
       throw new NotFoundException('User workspace profile not found');
     }
-
 
     // 1. Retrieve or create the chat conversation
     let chat = conversationId
@@ -212,7 +203,8 @@ export class AgentService {
           }
 
           // Strategy B: Consolidated real-time sync invalidation ping across conversational turn
-          const mutatedEntities = this.extractMutatedEntities(completedMessages);
+          const mutatedEntities =
+            this.extractMutatedEntities(completedMessages);
           if (mutatedEntities.size > 0) {
             const entities = Array.from(mutatedEntities);
             this.logger.log(
@@ -278,7 +270,7 @@ export class AgentService {
             }
           } else if (p.toolInvocation && typeof p.toolInvocation === 'object') {
             const inv = p.toolInvocation as Record<string, unknown>;
-            const toolName = String(inv.toolName || '');
+            const toolName = String(inv.toolName ?? '');
             if (inv.state !== 'error') {
               recordMutation(toolName, inv.result);
             }
@@ -286,12 +278,12 @@ export class AgentService {
         }
       }
 
-      const legacyInvocations = (msg as unknown as Record<string, unknown>).toolInvocations;
-      if (Array.isArray(legacyInvocations)) {
+      const legacyInvocations = msg.toolInvocations;
+      if (legacyInvocations && Array.isArray(legacyInvocations)) {
         for (const inv of legacyInvocations) {
           if (inv && typeof inv === 'object') {
             const i = inv as Record<string, unknown>;
-            const toolName = String(i.toolName || '');
+            const toolName = String(i.toolName ?? '');
             if (i.state !== 'error') {
               recordMutation(toolName, i.result);
             }
@@ -314,7 +306,10 @@ export class AgentService {
    * Retrieves a single conversation thread with rehydrated messages.
    */
   async getConversation(userId: string, conversationId: string) {
-    return this.chatPersistence.getConversationWithMessages(userId, conversationId);
+    return this.chatPersistence.getConversationWithMessages(
+      userId,
+      conversationId,
+    );
   }
 
   /**

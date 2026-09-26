@@ -270,7 +270,7 @@ export class SyncService {
     }
 
     const platform = query?.platform?.toLowerCase();
-    let url = 'https://github.com/ankain-lesly/ikeen/releases';
+    const url = 'https://github.com/ankain-lesly/ikeen/releases';
     if (platform === 'android') {
       // (Could use a dedicated Android URL if specified in the future)
     } else if (platform === 'ios') {
@@ -288,7 +288,10 @@ export class SyncService {
     };
   }
 
-  private isOlderVersion(currentVersion: string, targetVersion: string): boolean {
+  private isOlderVersion(
+    currentVersion: string,
+    targetVersion: string,
+  ): boolean {
     const a = currentVersion.split('.').map(Number);
     const b = targetVersion.split('.').map(Number);
     for (let i = 0; i < Math.max(a.length, b.length); i++) {

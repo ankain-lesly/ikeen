@@ -29,7 +29,9 @@ export class AuthService {
       throw new ConflictException('An account with this email already exists');
     }
 
-    const emailPrefix = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+    const emailPrefix = normalizedEmail
+      .split('@')[0]
+      .replace(/[^a-zA-Z0-9_]/g, '');
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const generatedUsername = `${emailPrefix || 'user'}_${randomSuffix}`;
 
@@ -65,7 +67,11 @@ export class AuthService {
         },
       });
 
-      const accessToken = this.generateToken(user.id, user.email, user.username);
+      const accessToken = this.generateToken(
+        user.id,
+        user.email,
+        user.username,
+      );
 
       log('[Auth:Register:Success]', {
         userId: user.id,
@@ -96,7 +102,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.auth.password);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.auth.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -149,7 +158,11 @@ export class AuthService {
     return user;
   }
 
-  private generateToken(userId: string, email: string, username: string): string {
+  private generateToken(
+    userId: string,
+    email: string,
+    username: string,
+  ): string {
     return this.jwtService.sign({
       sub: userId,
       email,

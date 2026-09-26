@@ -164,17 +164,25 @@ export class NotesService {
         patchData.folderId = validatedFolderId;
 
       if (n.changes.title !== undefined) patchData.title = n.changes.title;
-      if (n.changes.content !== undefined) patchData.content = n.changes.content;
+      if (n.changes.content !== undefined)
+        patchData.content = n.changes.content;
       if (n.changes.tags !== undefined)
         patchData.tags = Array.isArray(n.changes.tags) ? n.changes.tags : [];
-      if (n.changes.isPinned !== undefined) patchData.isPinned = n.changes.isPinned;
-      if (n.changes.isArchived !== undefined) patchData.isArchived = n.changes.isArchived;
-      if (n.changes.summary !== undefined) patchData.summary = n.changes.summary;
+      if (n.changes.isPinned !== undefined)
+        patchData.isPinned = n.changes.isPinned;
+      if (n.changes.isArchived !== undefined)
+        patchData.isArchived = n.changes.isArchived;
+      if (n.changes.summary !== undefined)
+        patchData.summary = n.changes.summary;
       if (n.changes.deletedAt !== undefined) {
-        patchData.deletedAt = n.changes.deletedAt ? new Date(n.changes.deletedAt) : undefined;
+        patchData.deletedAt = n.changes.deletedAt
+          ? new Date(n.changes.deletedAt)
+          : undefined;
       }
       if (n.changes.createdAt !== undefined) {
-        patchData.createdAt = n.changes.createdAt ? new Date(n.changes.createdAt) : undefined;
+        patchData.createdAt = n.changes.createdAt
+          ? new Date(n.changes.createdAt)
+          : undefined;
       }
 
       await prismaClient.note.update({

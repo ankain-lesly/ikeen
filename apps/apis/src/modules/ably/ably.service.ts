@@ -77,7 +77,12 @@ export class AblyService {
     userId: string,
     eventName: string,
     payload: Record<string, unknown>,
-  ): Promise<{ success: boolean; channel: string; event: string; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    channel: string;
+    event: string;
+    error?: string;
+  }> {
     const channelName = `user:${userId}`;
     if (!this.ablyRest) {
       return {
@@ -102,7 +107,9 @@ export class AblyService {
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Failed to publish realtime event "${eventName}": ${message}`);
+      this.logger.warn(
+        `Failed to publish realtime event "${eventName}": ${message}`,
+      );
       log('[Realtime:Publish:Error]', {
         userId,
         event: eventName,

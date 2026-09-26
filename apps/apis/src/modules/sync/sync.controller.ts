@@ -34,19 +34,13 @@ export class SyncController {
   @Post('push')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async push(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: SyncPushDto,
-  ) {
+  async push(@Req() req: AuthenticatedRequest, @Body() dto: SyncPushDto) {
     return this.syncService.push(req.user.id, dto);
   }
 
   @Get('pull')
   @UseGuards(JwtAuthGuard)
-  async pull(
-    @Req() req: AuthenticatedRequest,
-    @Query() query: SyncPullDto,
-  ) {
+  async pull(@Req() req: AuthenticatedRequest, @Query() query: SyncPullDto) {
     return this.syncService.pull(req.user.id, query.since);
   }
 

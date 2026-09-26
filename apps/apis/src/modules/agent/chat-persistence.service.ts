@@ -31,7 +31,13 @@ export class ChatPersistenceService {
     if (!id) return null;
     return this.prisma.chatConversation.findUnique({
       where: { id },
-      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
@@ -53,7 +59,13 @@ export class ChatPersistenceService {
         userId,
         title,
       },
-      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
@@ -228,7 +240,9 @@ export class ChatPersistenceService {
       });
 
       // 2. Identify saved messages from above
-      const savedIds = new Set(initialMessages.map((m) => m.id).filter(Boolean));
+      const savedIds = new Set(
+        initialMessages.map((m) => m.id).filter(Boolean),
+      );
 
       const existingInDb = await this.prisma.chatMessage.findMany({
         where: { conversationId },

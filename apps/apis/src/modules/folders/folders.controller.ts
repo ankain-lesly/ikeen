@@ -40,10 +40,7 @@ export class FoldersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: CreateFolderDto,
-  ) {
+  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateFolderDto) {
     return this.foldersService.create(req.user.id, dto);
   }
 
