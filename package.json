@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "postinstall:dd": "cd apps/api && bunx prisma generate"
+    "postinstall": "cd apps/api && bunx prisma generate"
   },
   "devDependencies": {
     "prettier": "3.9.6",
