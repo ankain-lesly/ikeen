@@ -3,6 +3,7 @@
   "ui": "tui",
   "globalEnv": [
     "DATABASE_URL",
+    "NODE_ENV",
     "PORT",
     "ABLY_API_KEY",
     "AI_PROVIDER",
