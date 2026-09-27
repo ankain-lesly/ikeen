@@ -1,30 +1,63 @@
-module.exports = function (options) {
-  return {
-    ...options,
-    target: 'node',
-    externalsType: 'commonjs',
-    externals: [
-      function ({ request }, callback) {
-        // Inline both internal packages AND pure ESM dependencies
-        const shouldBundle =
-          request?.startsWith('@repo/') || request === 'ai' || request?.startsWith('@openrouter/');
+const path = require('node:path');
+const { builtinModules } = require('node:module');
+const rspack = require('@rspack/core');
+const nodeExternals = require('webpack-node-externals');
 
-        if (shouldBundle) {
-          return callback(); // Bundle into the artifact
-        }
-
-        // Keep standard node_modules external
-        if (request && !request.startsWith('.') && !request.startsWith('/')) {
-          return callback(null, `commonjs ${request}`);
-        }
-
-        callback();
+/** @type {import('@rspack/core').Configuration} */
+module.exports = {
+  entry: './src/main.ts',
+  target: 'node',
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'main.js',
+    clean: true,
+  },
+  resolve: {
+    extensions: ['.ts', '.js', '.json'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                  decorators: true,
+                },
+                transform: {
+                  legacyDecorator: true,
+                  decoratorMetadata: true,
+                },
+              },
+            },
+          },
+        ],
+        exclude: /node_modules/,
       },
     ],
-    output: {
-      ...options.output,
-      filename: 'main.js',
-      chunkFormat: 'commonjs',
+  },
+  externals: [
+    nodeExternals({
+      // Inlines monorepo packages and pure ESM dependencies
+      allowlist: [/^@repo\//, 'ai', /^@openrouter\//],
+    }),
+    ({ request }, callback) => {
+      if (!request) return callback();
+      const bare = request.startsWith('node:') ? request.slice(5) : request;
+      if (builtinModules.includes(bare)) {
+        return callback(null, `commonjs ${request}`);
+      }
+      callback();
     },
-  };
+  ],
+  plugins: [
+    new rspack.IgnorePlugin({
+      resourceRegExp: /^pg-native$/,
+    }),
+  ],
 };

@@ -10,11 +10,14 @@ export default defineConfig([
     dts: true,
     clean: true,
     sourcemap: true,
-    external: [
+    noExternal: [
       '@prisma/client',
       '@prisma/adapter-pg',
       'pg',
       'dotenv',
+    ],
+    external: [
+      'pg-native',
     ],
   },
   {
@@ -31,11 +34,14 @@ export default defineConfig([
     define: {
       'import.meta.url': 'import_meta_url',
     },
-    external: [
+    noExternal: [
       '@prisma/client',
       '@prisma/adapter-pg',
       'pg',
       'dotenv',
+    ],
+    external: [
+      'pg-native',
     ],
   },
 ]);
