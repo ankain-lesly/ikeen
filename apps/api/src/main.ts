@@ -14,7 +14,7 @@ export async function bootstrap() {
       credentials: true,
     });
 
-    app.setGlobalPrefix('api/v1');
+    // app.setGlobalPrefix('api/v1');
 
     app.useGlobalPipes(
       new ValidationPipe({
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
 }
 
 // Standalone execution for local development / Docker
-if (!process.env.VERCEL) {
+if (process.env.NODE_ENV === 'development') {
   const port = process.env.PORT ?? 3000;
   const app = await NestFactory.create(AppModule);
   app.enableCors({
