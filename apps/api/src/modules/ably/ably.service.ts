@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Ably from 'ably';
-import { log } from '@repo/utils';
+// import { log } from '@repo/utils';
+
+const log = (...args: any[]) => {
+  console.log("DD", args)
+}
 
 @Injectable()
 export class AblyService {

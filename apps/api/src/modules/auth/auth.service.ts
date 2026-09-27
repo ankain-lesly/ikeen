@@ -9,7 +9,12 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { log } from '@repo/utils';
+// import { log } from '@repo/utils';
+
+const log = (...args: any[]) => {
+  console.log('DD', args);
+};
+
 
 @Injectable()
 export class AuthService {

@@ -1,10 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { NoteMutationPayload } from '@repo/types';
-import { log } from '@repo/utils';
+// import { log } from '@repo/utils';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
+
+const log = (...args: any[]) => {
+  console.log('DD', args);
+};
 
 export type NoteSyncData = NoteMutationPayload;
 
