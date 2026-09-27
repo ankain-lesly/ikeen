@@ -1,68 +1,55 @@
-// import { NestFactory } from '@nestjs/core';
-// import { ValidationPipe } from '@nestjs/common';
-// import { AppModule } from './app.module.js';
-
-// async function bootstrap() {
-//   const app = await NestFactory.create(AppModule);
-
-//   app.enableCors({
-//     origin: true,
-//     credentials: true,
-//   });
-
-//   app.setGlobalPrefix('api/v1');
-
-//   app.useGlobalPipes(
-//     new ValidationPipe({
-//       whitelist: true,
-//       transform: true,
-//       forbidNonWhitelisted: true,
-//     }),
-//   );
-
-//   const port = process.env.PORT ?? 3000;
-//   await app.listen(port);
-// }
-// await bootstrap();
-
-// ###################################
-
-// import { NestFactory } from '@nestjs/core';
-// import { AppModule } from '../src/app.module.js'; // Note the explicit .js extension
-// import { ExpressAdapter } from '@nestjs/platform-express';
-// import express from 'express';
-
-// const server = express();
-
-// export const createServer = async () => {
-//   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-//   await app.init();
-//   return server;
-// };
-
-// export default async function handler(req: any, res: any) {
-//   await createServer();
-//   server(req, res);
-// }
-
-
-// ###################################
-
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module.js'; // Note the explicit .js extension
+import { ValidationPipe } from '@nestjs/common';
+import { AppModule } from './app.module.js';
 
-let cachedApp: any;
+let cachedServer: any;
 
 export async function bootstrap() {
-  if (!cachedApp) {
+  if (!cachedServer) {
     const app = await NestFactory.create(AppModule);
+
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+
+    app.setGlobalPrefix('api/v1');
+
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+
     await app.init();
-    cachedApp = app.getHttpAdapter().getInstance();
+    cachedServer = app.getHttpAdapter().getInstance();
   }
-  return cachedApp;
+  return cachedServer;
 }
 
 export default async function handler(req: any, res: any) {
-  const instance = await bootstrap();
-  instance(req, res);
+  const server = await bootstrap();
+  return server(req, res);
+}
+
+// Standalone execution for local development / Docker
+if (!process.env.VERCEL) {
+  const port = process.env.PORT ?? 3000;
+  const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+  app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+  await app.listen(port);
 }

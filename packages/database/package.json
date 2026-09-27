@@ -29,7 +29,7 @@
     "dev": "tsup --watch",
     "check-types": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "db:deploy": "prisma migrate deploy",
+    "db:deploy": "prisma migrate deploy && tsup",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",

@@ -3,8 +3,8 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "builder": "swc",
-    "webpack": true,
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "builder": "rspack",
+    "rspackConfigPath": "rspack.config.cjs"
   }
 }
