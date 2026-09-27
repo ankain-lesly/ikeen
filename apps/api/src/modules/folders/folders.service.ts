@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { FolderMutationPayload } from '@repo/types';
-import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
+// import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateFolderDto } from './dto/create-folder.dto.js';
@@ -56,7 +56,8 @@ export class FoldersService {
       data: {
         userId,
         name: dto.name,
-        color: dto.color ?? DEFAULT_FOLDER_COLOR,
+        // color: dto.color ?? DEFAULT_FOLDER_COLOR,
+        color: dto.color ?? '#3b82f6',
         icon: dto.icon ?? 'folder',
         isLocked: dto.isLocked ?? false,
         pinCode: dto.pinCode,
@@ -150,7 +151,8 @@ export class FoldersService {
           id: f.id,
           userId,
           name: f.changes.name ?? '',
-          color: f.changes.color ?? DEFAULT_FOLDER_COLOR,
+          // color: f.changes.color ?? DEFAULT_FOLDER_COLOR,
+          color: f.changes.color ?? '#3b82f6',
           icon: f.changes.icon ?? 'folder',
           isLocked: f.changes.isLocked ?? false,
           pinCode: f.changes.pinCode ?? null,

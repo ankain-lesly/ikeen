@@ -5,8 +5,11 @@ import { FoldersService } from '../folders/folders.service.js';
 import { NotesService } from '../notes/notes.service.js';
 import { SyncPushDto } from './dto/sync-push.dto.js';
 import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
-import { SYNC_CONSTANTS } from '@repo/utils/constants';
-import { log } from '@repo/utils/logger';
+// import { SYNC_CONSTANTS } from '@repo/utils/constants';
+// import { log } from '@repo/utils/logger';
+const log = (...args: any[]) => {
+  console.log('DD', args);
+};
 import type {
   SyncPullResponse,
   SyncPushResponse,
@@ -15,6 +18,12 @@ import type {
   AppUpdateInfo,
 } from '@repo/types/sync';
 import { Prisma } from '../../generated/prisma/client.js';
+
+const SYNC_CONSTANTS= {
+   BATCH_SIZE: 100,
+   PULL_LIMIT: 250,
+   MAX_RETRIES: 5,
+};
 
 @Injectable()
 export class SyncService {
