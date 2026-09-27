@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, RequestMethod, ValidationPipe } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module.js';
 import { EnvService } from './config/env.service.js';
@@ -28,7 +28,10 @@ function setupApp(app: INestApplication) {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api/v1');
+  // Set prefix but preserve the base root path '/'
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: '/', method: RequestMethod.GET }],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

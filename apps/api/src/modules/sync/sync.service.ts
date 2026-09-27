@@ -168,7 +168,10 @@ export class SyncService {
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      this.logger.error(`[Sync:Push:Error] userId=${userId}: ${errorMessage}`, err);
+      this.logger.error(
+        `[Sync:Push:Error] userId=${userId}: ${errorMessage}`,
+        err,
+      );
       throw err;
     }
   }
@@ -241,7 +244,10 @@ export class SyncService {
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      this.logger.error(`[Sync:Pull:Error] userId=${userId}: ${errorMessage}`, err);
+      this.logger.error(
+        `[Sync:Pull:Error] userId=${userId}: ${errorMessage}`,
+        err,
+      );
       throw err;
     }
   }
@@ -252,13 +258,8 @@ export class SyncService {
   getAppUpdates(query?: CheckUpdatesQueryDto): AppUpdateInfo {
     const latestVersion = '1.0.1';
     const latestBuild = 2;
-    const minRequiredVersion =
-      this.env?.APP_MIN_REQUIRED_VERSION ||
-      process.env.APP_MIN_REQUIRED_VERSION ||
-      '1.0.0';
-    const isGloballyMandatory =
-      this.env?.APP_UPDATE_MANDATORY ??
-      (process.env.APP_UPDATE_MANDATORY === 'true');
+    const minRequiredVersion = this.env?.APP_MIN_REQUIRED_VERSION || '1.0.0';
+    const isGloballyMandatory = this.env?.APP_UPDATE_MANDATORY || false;
 
     let mandatory = isGloballyMandatory;
     if (query?.currentVersion && !mandatory) {
@@ -268,15 +269,9 @@ export class SyncService {
     const platform = query?.platform?.toLowerCase();
     let url = 'https://github.com/ankain-lesly/ikeen/releases';
     if (platform === 'android') {
-      url =
-        this.env?.APP_UPDATE_URL_ANDROID ||
-        process.env.APP_UPDATE_URL_ANDROID ||
-        url;
+      url = this.env?.APP_UPDATE_URL_ANDROID || url;
     } else if (platform === 'ios') {
-      url =
-        this.env?.APP_UPDATE_URL_IOS ||
-        process.env.APP_UPDATE_URL_IOS ||
-        url;
+      url = this.env?.APP_UPDATE_URL_IOS || url;
     }
 
     return {
@@ -290,7 +285,10 @@ export class SyncService {
     };
   }
 
-  private isOlderVersion(currentVersion: string, targetVersion: string): boolean {
+  private isOlderVersion(
+    currentVersion: string,
+    targetVersion: string,
+  ): boolean {
     const a = currentVersion.split('.').map(Number);
     const b = targetVersion.split('.').map(Number);
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
