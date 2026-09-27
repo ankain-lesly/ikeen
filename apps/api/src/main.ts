@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
 
+import { EnvService } from './config/env.service.js';
+
 let cachedServer: any;
 
 export async function bootstrap() {
@@ -14,7 +16,7 @@ export async function bootstrap() {
       credentials: true,
     });
 
-    // app.setGlobalPrefix('api/v1');
+    app.setGlobalPrefix('api/v1');
 
     app.useGlobalPipes(
       new ValidationPipe({
@@ -37,8 +39,8 @@ export default async function handler(req: any, res: any) {
 
 // Standalone execution for local development / Docker
 if (process.env.NODE_ENV === 'development') {
-  const port = process.env.PORT ?? 3000;
   const app = await NestFactory.create(AppModule);
+  const env = app.get(EnvService);
   app.enableCors({
     origin: true,
     credentials: true,
@@ -51,5 +53,5 @@ if (process.env.NODE_ENV === 'development') {
       forbidNonWhitelisted: true,
     }),
   );
-  await app.listen(port);
+  await app.listen(env.PORT);
 }

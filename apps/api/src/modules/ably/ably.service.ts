@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Ably from 'ably';
+import { EnvService } from '../../config/env.service.js';
 // import { log } from '@repo/utils';
 
 const log = (...args: any[]) => {
@@ -11,8 +12,8 @@ export class AblyService {
   private readonly logger = new Logger(AblyService.name);
   private ablyRest: Ably.Rest | null = null;
 
-  constructor() {
-    const ablyApiKey = process.env.ABLY_API_KEY;
+  constructor(private readonly env: EnvService) {
+    const ablyApiKey = this.env.ABLY_API_KEY;
     if (ablyApiKey) {
       this.ablyRest = new Ably.Rest({ key: ablyApiKey });
       this.logger.log('Ably Realtime initialized successfully');

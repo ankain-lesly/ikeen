@@ -9,9 +9,11 @@ import { FoldersModule } from './modules/folders/folders.module.js';
 import { NotesModule } from './modules/notes/notes.module.js';
 import { AgentModule } from './modules/agent/agent.module.js';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware.js';
+import { EnvModule } from './config/env.module.js';
 
 @Module({
   imports: [
+    EnvModule,
     PrismaModule,
     AblyModule,
     FoldersModule,

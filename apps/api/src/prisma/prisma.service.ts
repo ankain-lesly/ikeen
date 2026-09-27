@@ -6,16 +6,17 @@ import {
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { EnvService } from '../config/env.service.js';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   public readonly prisma: PrismaClient;
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor() {
-    const connectionString = process.env.DATABASE_URL;
+  constructor(private readonly env: EnvService) {
+    const connectionString = this.env.DATABASE_URL;
 
-    const isProd = process.env.NODE_ENV === 'production';
+    const isProd = this.env.isProduction;
 
     const adapter = new PrismaPg({
       connectionString,
@@ -76,7 +77,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     // In serverless, avoid closing the pool explicitly on destroy to let warm instances reuse it
-    if (process.env.NODE_ENV !== 'production') {
+    if (!this.env.isProduction) {
       await this.prisma.$disconnect();
       this.logger.log('Database connection disconnected cleanly.');
     }
