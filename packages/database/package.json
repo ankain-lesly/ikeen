@@ -1,4 +1,6 @@
 {
+  "name": "@repo/db",
+  "private": true,
   "meta": {
     "name": "@repo/db",
     "type": "module",
