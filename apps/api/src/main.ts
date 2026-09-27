@@ -25,20 +25,44 @@
 // }
 // await bootstrap();
 
+// ###################################
+
+// import { NestFactory } from '@nestjs/core';
+// import { AppModule } from '../src/app.module.js'; // Note the explicit .js extension
+// import { ExpressAdapter } from '@nestjs/platform-express';
+// import express from 'express';
+
+// const server = express();
+
+// export const createServer = async () => {
+//   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+//   await app.init();
+//   return server;
+// };
+
+// export default async function handler(req: any, res: any) {
+//   await createServer();
+//   server(req, res);
+// }
+
+
+// ###################################
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module.js'; // Note the explicit .js extension
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express, { Express } from 'express';
 
-const server = express();
+let cachedApp: any;
 
-export const createServer = async () => {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-  await app.init();
-  return server;
-};
+export async function bootstrap() {
+  if (!cachedApp) {
+    const app = await NestFactory.create(AppModule);
+    await app.init();
+    cachedApp = app.getHttpAdapter().getInstance();
+  }
+  return cachedApp;
+}
 
 export default async function handler(req: any, res: any) {
-  await createServer();
-  server(req, res);
+  const instance = await bootstrap();
+  instance(req, res);
 }
