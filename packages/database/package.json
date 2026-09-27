@@ -1,44 +1,46 @@
 {
-  "name": "@repo/db",
-  "type": "module",
-  "private": true,
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+  "meta": {
+    "name": "@repo/db",
+    "type": "module",
+    "private": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "require": "./dist/index.cjs",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./client": {
+        "types": "./dist/client.d.ts",
+        "require": "./dist/client.cjs",
+        "import": "./dist/client.js",
+        "default": "./dist/client.js"
+      }
     },
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "require": "./dist/client.cjs",
-      "import": "./dist/client.js",
-      "default": "./dist/client.js"
+    "devDependencies": {
+      "@repo/typescript-config": "workspace:*",
+      "tsup": "^8.5.1",
+      "prisma": "7.10.0",
+      "typescript": "~6.0.3"
+    },
+    "scripts": {
+      "build": "prisma generate && tsup",
+      "dev": "tsup --watch",
+      "check-types": "tsc --noEmit",
+      "lint": "tsc --noEmit",
+      "db:deploy": "prisma migrate deploy",
+      "db:generate": "prisma generate",
+      "db:migrate": "prisma migrate dev",
+      "db:studio": "prisma studio",
+      "db:validate": "prisma validate"
+    },
+    "dependencies": {
+      "@prisma/adapter-pg": "^7.10.0",
+      "@prisma/client": "7.10.0",
+      "dotenv": "^17.4.2",
+      "pg": "^8.23.0"
     }
-  },
-  "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
-    "tsup": "^8.5.1",
-    "prisma": "7.10.0",
-    "typescript": "~6.0.3"
-  },
-  "scripts": {
-    "build": "prisma generate && tsup",
-    "dev": "tsup --watch",
-    "check-types": "tsc --noEmit",
-    "lint": "tsc --noEmit",
-    "db:deploy": "prisma migrate deploy && tsup",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:validate": "prisma validate"
-  },
-  "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "7.10.0",
-    "dotenv": "^17.4.2",
-    "pg": "^8.23.0"
   }
 }
