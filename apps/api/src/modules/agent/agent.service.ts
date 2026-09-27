@@ -5,19 +5,19 @@ import {
   ToolLoopAgent,
 } from 'ai';
 import type { ServerResponse } from 'node:http';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AblyService } from '../ably/ably.service';
-import { AgentProviderService } from './agent-provider.service';
-import { createAgentLifecycle } from './agent-lifecycle';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AblyService } from '../ably/ably.service.js';
+import { AgentProviderService } from './agent-provider.service.js';
+import { createAgentLifecycle } from './agent-lifecycle.js';
 import {
   ikeenAgentCallOptionsSchema,
   ikeenToolContext,
-} from './call-options';
-import { buildIkeenInstructions } from './prompts';
-import { createIkeenTools, type IkeenTools } from './tools';
+} from './call-options.js';
+import { buildIkeenInstructions } from './prompts/index.js';
+import { createIkeenTools, type IkeenTools } from './tools/index.js';
 
-import { ChatPersistenceService } from './chat-persistence.service';
-import { textFromMessage } from './chat-messages';
+import { ChatPersistenceService } from './chat-persistence.service.js';
+import { textFromMessage } from './chat-messages.js';
 import type { UIMessage } from 'ai';
 
 @Injectable()

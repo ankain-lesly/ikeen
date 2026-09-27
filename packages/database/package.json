@@ -1,57 +1,48 @@
 {
   "name": "@repo/db",
-  "type": "module",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+  "meta": {
+    "name": "@repo/db",
+    "type": "module",
+    "private": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "require": "./dist/index.cjs",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./client": {
+        "types": "./dist/client.d.ts",
+        "require": "./dist/client.cjs",
+        "import": "./dist/client.js",
+        "default": "./dist/client.js"
+      }
     },
-    "./client": {
-      "types": "./src/client.ts",
-      "default": "./src/client.ts"
+    "devDependencies": {
+      "@repo/typescript-config": "workspace:*",
+      "tsup": "^8.5.1",
+      "prisma": "7.10.0",
+      "typescript": "~6.0.3"
     },
-    "./generated/prisma": {
-      "types": "./generated/prisma/client.ts",
-      "default": "./generated/prisma/client.ts"
+    "scripts": {
+      "build": "prisma generate && tsup",
+      "dev": "tsup --watch",
+      "check-types": "tsc --noEmit",
+      "lint": "tsc --noEmit",
+      "db:deploy": "prisma migrate deploy",
+      "db:generate": "prisma generate",
+      "db:migrate": "prisma migrate dev",
+      "db:studio": "prisma studio",
+      "db:validate": "prisma validate"
     },
-    "./generated/prisma/client": {
-      "types": "./generated/prisma/client.ts",
-      "default": "./generated/prisma/client.ts"
-    },
-    "./generated/prisma/enums": {
-      "types": "./generated/prisma/enums.ts",
-      "default": "./generated/prisma/enums.ts"
-    },
-    "./generated/prisma/*": {
-      "types": "./generated/prisma/*.ts",
-      "default": "./generated/prisma/*.ts"
-    },
-    "./generated/prisma/*.ts": {
-      "types": "./generated/prisma/*.ts",
-      "default": "./generated/prisma/*.ts"
-    },
-    "./generated/enums": {
-      "types": "./generated/prisma/enums.ts",
-      "default": "./generated/prisma/enums.ts"
+    "dependencies": {
+      "@prisma/adapter-pg": "^7.10.0",
+      "@prisma/client": "7.10.0",
+      "dotenv": "^17.4.2",
+      "pg": "^8.23.0"
     }
-  },
-  "devDependencies": {
-    "prisma": "7.10.0"
-  },
-  "scripts": {
-    "db:deploy": "prisma migrate deploy",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:validate": "prisma validate"
-  },
-  "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "7.10.0",
-    "dotenv": "^17.4.2",
-    "pg": "^8.23.0"
   }
 }

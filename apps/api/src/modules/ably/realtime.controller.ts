@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { AblyService } from './ably.service';
+import { AblyService } from './ably.service.js';
 
 interface TriggerQuery {
   event?: string;

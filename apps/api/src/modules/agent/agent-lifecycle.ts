@@ -7,14 +7,14 @@ type AgentToolsContext = {
 
 export function createAgentLifecycle(logger: Logger) {
   return {
-    onStart({ toolsContext }: { toolsContext: AgentToolsContext }) {
+    onStart({ toolsContext }: { toolsContext?: AgentToolsContext }) {
       const convId =
-        toolsContext.recordMemory?.conversationId ||
-        toolsContext.searchNotes?.conversationId ||
+        toolsContext?.recordMemory?.conversationId ||
+        toolsContext?.searchNotes?.conversationId ||
         'unknown';
       const userId =
-        toolsContext.recordMemory?.userId ||
-        toolsContext.searchNotes?.userId ||
+        toolsContext?.recordMemory?.userId ||
+        toolsContext?.searchNotes?.userId ||
         'unknown';
       logger.log(`[Agent:Start] convId=${convId} userId=${userId}`);
     },

@@ -1,17 +1,19 @@
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { SyncModule } from './modules/sync/sync.module';
-import { AblyModule } from './modules/ably/ably.module';
-import { FoldersModule } from './modules/folders/folders.module';
-import { NotesModule } from './modules/notes/notes.module';
-import { AgentModule } from './modules/agent/agent.module';
-import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { PrismaModule } from './prisma/prisma.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { SyncModule } from './modules/sync/sync.module.js';
+import { AblyModule } from './modules/ably/ably.module.js';
+import { FoldersModule } from './modules/folders/folders.module.js';
+import { NotesModule } from './modules/notes/notes.module.js';
+import { AgentModule } from './modules/agent/agent.module.js';
+import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware.js';
+import { EnvModule } from './config/env.module.js';
 
 @Module({
   imports: [
+    EnvModule,
     PrismaModule,
     AblyModule,
     FoldersModule,

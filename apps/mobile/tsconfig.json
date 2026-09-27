@@ -10,6 +10,9 @@
         "./assets/*"
       ],
       "@repo/utils": [
+        "../../packages/utils/src/index"
+      ],
+      "@repo/utils/*": [
         "../../packages/utils/src/*"
       ]
     }

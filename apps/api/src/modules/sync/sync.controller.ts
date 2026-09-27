@@ -9,11 +9,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { SyncService } from './sync.service';
-import { SyncPushDto } from './dto/sync-push.dto';
-import { SyncPullDto } from './dto/sync-pull.dto';
-import { CheckUpdatesQueryDto } from './dto/check-updates.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SyncService } from './sync.service.js';
+import { SyncPushDto } from './dto/sync-push.dto.js';
+import { SyncPullDto } from './dto/sync-pull.dto.js';
+import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 
 interface AuthenticatedRequest {
   user: {

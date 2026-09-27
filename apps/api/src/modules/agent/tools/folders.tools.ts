@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { PrismaService } from '../../../prisma/prisma.service';
-import type { AblyService } from '../../ably/ably.service';
+import type { PrismaService } from '../../../prisma/prisma.service.js';
+import type { AblyService } from '../../ably/ably.service.js';
 
 const baseContextSchema = z.object({
   userId: z.string(),

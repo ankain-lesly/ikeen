@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SyncService } from './sync.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AblyService } from '../ably/ably.service';
-import { FoldersService } from '../folders/folders.service';
-import { NotesService } from '../notes/notes.service';
+import { SyncService } from './sync.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AblyService } from '../ably/ably.service.js';
+import { FoldersService } from '../folders/folders.service.js';
+import { NotesService } from '../notes/notes.service.js';
 
 describe('SyncService', () => {
   let service: SyncService;

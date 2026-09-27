@@ -1,5 +1,5 @@
 import type { UIMessage } from 'ai';
-import type { Prisma } from '@repo/db';
+import type { Prisma } from '../../generated/prisma/client.js';
 
 const MAX_PARTS_JSON_CHARS = 200_000;
 

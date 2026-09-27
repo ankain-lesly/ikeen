@@ -2,10 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
+import { EnvService } from '../../config/env.service.js';
 
 @Injectable()
 export class AgentProviderService {
   private readonly logger = new Logger(AgentProviderService.name);
+
+  constructor(private readonly env: EnvService) {}
 
   /**
    * Resolves the configured chat LanguageModel.
@@ -13,19 +16,18 @@ export class AgentProviderService {
    * otherwise falls back to direct OpenAI with OPENAI_API_KEY.
    */
   getChatModel(): LanguageModel {
-    const provider = process.env.AI_PROVIDER || 'openrouter';
-    const modelName =
-      process.env.AI_CHAT_MODEL || 'google/gemini-2.5-flash';
+    const provider = this.env.AI_PROVIDER;
+    const modelName = this.env.AI_CHAT_MODEL;
 
-    if (provider === 'openai' && process.env.OPENAI_API_KEY) {
+    if (provider === 'openai' && this.env.OPENAI_API_KEY) {
       const openai = createOpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: this.env.OPENAI_API_KEY,
       });
       this.logger.debug(`Using OpenAI chat model: ${modelName}`);
       return openai.chat(modelName) as unknown as LanguageModel;
     }
 
-    const openrouterKey = process.env.OPENROUTER_API_KEY;
+    const openrouterKey = this.env.OPENROUTER_API_KEY;
     if (openrouterKey) {
       const openrouter = createOpenRouter({
         apiKey: openrouterKey,
@@ -36,7 +38,7 @@ export class AgentProviderService {
 
     // Default fallback: direct OpenAI instance or OpenRouter mock
     const fallbackOpenrouter = createOpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY,
+      apiKey: this.env.OPENROUTER_API_KEY,
     });
     return fallbackOpenrouter.chat(modelName) as unknown as LanguageModel;
   }

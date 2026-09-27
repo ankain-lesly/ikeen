@@ -48,3 +48,9 @@ yarn-error.log*
 apps/mobile/ios/
 apps/mobile/android/
 screenshots
+
+
+
+# apps/nestcjs
+# apps/nestesm
+apps/apis
