@@ -13,9 +13,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AgentService } from './agent.service';
-import { ChatAgentDto } from './dto/chat-agent.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AgentService } from './agent.service.js';
+import { ChatAgentDto } from './dto/chat-agent.dto.js';
 
 interface AuthenticatedRequest {
   user: {

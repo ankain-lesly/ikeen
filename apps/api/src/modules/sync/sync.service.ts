@@ -1,12 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AblyService } from '../ably/ably.service';
-import { FoldersService } from '../folders/folders.service';
-import { NotesService } from '../notes/notes.service';
-import { SyncPushDto } from './dto/sync-push.dto';
-import { CheckUpdatesQueryDto } from './dto/check-updates.dto';
-import { SYNC_CONSTANTS } from '@repo/utils/constants';
-import { log } from '@repo/utils/logger';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AblyService } from '../ably/ably.service.js';
+import { FoldersService } from '../folders/folders.service.js';
+import { NotesService } from '../notes/notes.service.js';
+import { EnvService } from '../../config/env.service.js';
+import { SyncPushDto } from './dto/sync-push.dto.js';
+import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
 import type {
   SyncPullResponse,
   SyncPushResponse,
@@ -14,7 +13,13 @@ import type {
   SyncMutationBase,
   AppUpdateInfo,
 } from '@repo/types/sync';
-import type { Prisma } from '@repo/db';
+import { Prisma } from '../../generated/prisma/client.js';
+
+const SYNC_CONSTANTS = {
+  BATCH_SIZE: 100,
+  PULL_LIMIT: 250,
+  MAX_RETRIES: 5,
+};
 
 @Injectable()
 export class SyncService {
@@ -25,6 +30,7 @@ export class SyncService {
     private readonly ablyService: AblyService,
     private readonly foldersService: FoldersService,
     private readonly notesService: NotesService,
+    @Optional() private readonly env?: EnvService,
   ) {}
 
   /**
@@ -93,13 +99,8 @@ export class SyncService {
         );
         if (isProcessed) {
           this.logger.debug(
-            `Idempotency: Skipping already-processed ${entity} mutation ${mutation.mutationId}`,
+            `Idempotency: Skipping already-processed ${entity} mutation ${mutation.mutationId} for user ${userId}`,
           );
-          log('[Sync:Idempotency:Skip]', {
-            userId,
-            entity,
-            mutationId: mutation.mutationId,
-          });
           continue;
         }
       }
@@ -123,12 +124,9 @@ export class SyncService {
     const serverTimestamp = new Date().toISOString();
     const touchedEntities: string[] = [];
 
-    log('[Sync:Push:Received]', {
-      userId,
-      foldersCount: dto.folders?.length ?? 0,
-      notesCount: dto.notes?.length ?? 0,
-      clientTimestamp: dto.clientTimestamp,
-    });
+    this.logger.debug(
+      `[Sync:Push:Received] userId=${userId} folders=${dto.folders?.length ?? 0} notes=${dto.notes?.length ?? 0}`,
+    );
 
     try {
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -160,11 +158,9 @@ export class SyncService {
           .catch(() => {});
       }
 
-      log('[Sync:Push:Success]', {
-        userId,
-        touchedEntities,
-        durationMs: Date.now() - startTime,
-      });
+      this.logger.log(
+        `[Sync:Push:Success] userId=${userId} touched=[${touchedEntities.join(', ')}] duration=${Date.now() - startTime}ms`,
+      );
 
       return {
         success: true,
@@ -172,7 +168,10 @@ export class SyncService {
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      log('[Sync:Push:Error]', { userId, error: errorMessage });
+      this.logger.error(
+        `[Sync:Push:Error] userId=${userId}: ${errorMessage}`,
+        err,
+      );
       throw err;
     }
   }
@@ -185,11 +184,9 @@ export class SyncService {
     const serverTimestamp = new Date().toISOString();
     const sinceDate = since ? new Date(since) : new Date(0);
 
-    log('[Sync:Pull:Received]', {
-      userId,
-      since: since ?? 'epoch',
-      limit: SYNC_CONSTANTS.PULL_LIMIT,
-    });
+    this.logger.debug(
+      `[Sync:Pull:Received] userId=${userId} since=${since ?? 'epoch'} limit=${SYNC_CONSTANTS.PULL_LIMIT}`,
+    );
 
     try {
       const [folders, notes] = await Promise.all([
@@ -211,12 +208,9 @@ export class SyncService {
         }),
       ]);
 
-      log('[Sync:Pull:Success]', {
-        userId,
-        foldersCount: folders.length,
-        notesCount: notes.length,
-        serverTimestamp,
-      });
+      this.logger.log(
+        `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length}`,
+      );
 
       return {
         serverTimestamp,
@@ -250,7 +244,10 @@ export class SyncService {
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      log('[Sync:Pull:Error]', { userId, error: errorMessage });
+      this.logger.error(
+        `[Sync:Pull:Error] userId=${userId}: ${errorMessage}`,
+        err,
+      );
       throw err;
     }
   }
@@ -261,8 +258,8 @@ export class SyncService {
   getAppUpdates(query?: CheckUpdatesQueryDto): AppUpdateInfo {
     const latestVersion = '1.0.1';
     const latestBuild = 2;
-    const minRequiredVersion = '1.0.0';
-    const isGloballyMandatory = false;
+    const minRequiredVersion = this.env?.APP_MIN_REQUIRED_VERSION || '1.0.0';
+    const isGloballyMandatory = this.env?.APP_UPDATE_MANDATORY || false;
 
     let mandatory = isGloballyMandatory;
     if (query?.currentVersion && !mandatory) {
@@ -272,9 +269,9 @@ export class SyncService {
     const platform = query?.platform?.toLowerCase();
     let url = 'https://github.com/ankain-lesly/ikeen/releases';
     if (platform === 'android') {
-      // (Could use a dedicated Android URL if specified in the future)
+      url = this.env?.APP_UPDATE_URL_ANDROID || url;
     } else if (platform === 'ios') {
-      // (Could use a dedicated iOS URL if specified in the future)
+      url = this.env?.APP_UPDATE_URL_IOS || url;
     }
 
     return {
@@ -288,7 +285,10 @@ export class SyncService {
     };
   }
 
-  private isOlderVersion(currentVersion: string, targetVersion: string): boolean {
+  private isOlderVersion(
+    currentVersion: string,
+    targetVersion: string,
+  ): boolean {
     const a = currentVersion.split('.').map(Number);
     const b = targetVersion.split('.').map(Number);
     for (let i = 0; i < Math.max(a.length, b.length); i++) {

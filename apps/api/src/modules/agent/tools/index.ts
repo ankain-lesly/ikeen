@@ -1,9 +1,9 @@
-import type { PrismaService } from '../../../prisma/prisma.service';
-import type { AblyService } from '../../ably/ably.service';
-import { createFolderTools } from './folders.tools';
-import { createMemoryTools } from './memory.tools';
-import { createNotesTools } from './notes.tools';
-import { createSummaryTools } from './summary.tools';
+import type { PrismaService } from '../../../prisma/prisma.service.js';
+import type { AblyService } from '../../ably/ably.service.js';
+import { createFolderTools } from './folders.tools.js';
+import { createMemoryTools } from './memory.tools.js';
+import { createNotesTools } from './notes.tools.js';
+import { createSummaryTools } from './summary.tools.js';
 
 export function createIkeenTools({
   prisma,

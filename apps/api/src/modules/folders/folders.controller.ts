@@ -11,10 +11,10 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { FoldersService } from './folders.service';
-import { CreateFolderDto } from './dto/create-folder.dto';
-import { UpdateFolderDto } from './dto/update-folder.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { FoldersService } from './folders.service.js';
+import { CreateFolderDto } from './dto/create-folder.dto.js';
+import { UpdateFolderDto } from './dto/update-folder.dto.js';
 
 interface AuthenticatedRequest {
   user: {

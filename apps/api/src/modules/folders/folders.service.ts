@@ -1,11 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { FolderMutationPayload } from '@repo/types';
-import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
-import { log } from '@repo/utils';
-import type { Prisma } from '@repo/db';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateFolderDto } from './dto/create-folder.dto';
-import { UpdateFolderDto } from './dto/update-folder.dto';
+// import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
+import type { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { CreateFolderDto } from './dto/create-folder.dto.js';
+import { UpdateFolderDto } from './dto/update-folder.dto.js';
 
 export type FolderSyncData = FolderMutationPayload;
 
@@ -53,7 +52,8 @@ export class FoldersService {
       data: {
         userId,
         name: dto.name,
-        color: dto.color ?? DEFAULT_FOLDER_COLOR,
+        // color: dto.color ?? DEFAULT_FOLDER_COLOR,
+        color: dto.color ?? '#3b82f6',
         icon: dto.icon ?? 'folder',
         isLocked: dto.isLocked ?? false,
         pinCode: dto.pinCode,
@@ -108,11 +108,6 @@ export class FoldersService {
       this.logger.debug(
         `LWW: Skipping older folder mutation for ${f.id} (client: ${f.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
       );
-      log('[LWW:Folder:SkippedStale]', {
-        id: f.id,
-        clientUpdatedAt: f.updatedAt,
-        serverUpdatedAt: existing.updatedAt.toISOString(),
-      });
       return { applied: false, folderId: f.id };
     }
 
@@ -147,7 +142,8 @@ export class FoldersService {
           id: f.id,
           userId,
           name: f.changes.name ?? '',
-          color: f.changes.color ?? DEFAULT_FOLDER_COLOR,
+          // color: f.changes.color ?? DEFAULT_FOLDER_COLOR,
+          color: f.changes.color ?? '#3b82f6',
           icon: f.changes.icon ?? 'folder',
           isLocked: f.changes.isLocked ?? false,
           pinCode: f.changes.pinCode ?? null,
@@ -160,12 +156,9 @@ export class FoldersService {
       });
     }
 
-    log('[LWW:Folder:Applied]', {
-      id: f.id,
-      action: f.action,
-      version: nextVersion,
-      isExisting: !!existing,
-    });
+    this.logger.debug(
+      `[LWW:Folder:Applied] id=${f.id} action=${f.action} version=${nextVersion} isExisting=${!!existing}`,
+    );
 
     return { applied: true, folderId: f.id };
   }

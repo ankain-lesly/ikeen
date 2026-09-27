@@ -1,7 +1,16 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["DATABASE_URL"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NODE_ENV",
+    "PORT",
+    "ABLY_API_KEY",
+    "AI_PROVIDER",
+    "OPENROUTER_API_KEY",
+    "AI_CHAT_MODEL",
+    "AI_EMBEDDING_MODEL"
+  ],
   "globalDependencies": [".env"],
   "tasks": {
     "db:deploy": {

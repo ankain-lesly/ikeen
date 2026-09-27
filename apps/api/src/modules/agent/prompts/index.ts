@@ -1,2 +1,2 @@
-export * from './segments';
-export * from './ikeen.prompt';
+export * from './segments.js';
+export * from './ikeen.prompt.js';

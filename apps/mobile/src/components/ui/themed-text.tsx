@@ -27,6 +27,7 @@ const COLOR_CLASSES: Record<ThemeColor, string> = {
   background: 'text-background',
   backgroundElement: 'text-background-element',
   backgroundSelected: 'text-background-selected',
+  card: 'text-card',
 };
 
 export function ThemedText({

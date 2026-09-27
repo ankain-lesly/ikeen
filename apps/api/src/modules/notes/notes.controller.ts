@@ -12,10 +12,10 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { NotesService } from './notes.service';
-import { CreateNoteDto } from './dto/create-note.dto';
-import { UpdateNoteDto } from './dto/update-note.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { NotesService } from './notes.service.js';
+import { CreateNoteDto } from './dto/create-note.dto.js';
+import { UpdateNoteDto } from './dto/update-note.dto.js';
 
 interface AuthenticatedRequest {
   user: {

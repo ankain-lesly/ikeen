@@ -6,7 +6,7 @@ import {
   PROMPT_SEGMENT_PERSONALITY_AND_TONE,
   PROMPT_SEGMENT_TOOL_ROUTING,
   PROMPT_SEGMENT_WORKSPACE_AND_GUARDRAILS,
-} from './segments';
+} from './segments.js';
 
 export interface UserPromptContext {
   firstName?: string;

@@ -5,8 +5,8 @@ export type SyncEntityType = "folders" | "notes";
 export type SyncActionType = "upsert" | "delete";
 export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
 
-export type { FolderChanges } from "./folders";
-export type { NoteChanges } from "./notes";
+// export type { FolderChanges } from "./folders";
+// export type { NoteChanges } from "./notes";
 
 /**
  * Common mutation metadata outside of entity changes.
@@ -16,22 +16,20 @@ export type { NoteChanges } from "./notes";
  * - version: Incremental optimistic concurrency version
  * - updatedAt: Client mutation timestamp for LWW conflict resolution
  */
-export interface SyncMutationBase {
+export interface SyncMutationPayload<TChanges extends FolderChanges | NoteChanges> {
   id: string;
   mutationId: string;
   action: SyncActionType;
   version?: number;
   updatedAt: string;
+  changes: TChanges;
 }
+
+export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges>;
 
 /**
  * Generic sync mutation payload: metadata sits outside, entity fields sit strictly inside `changes`.
  */
-export interface SyncMutationPayload<TChanges = FolderChanges | NoteChanges>
-  extends SyncMutationBase {
-  changes: TChanges;
-}
-
 export type FolderMutationPayload = SyncMutationPayload<FolderChanges>;
 export type NoteMutationPayload = SyncMutationPayload<NoteChanges>;
 

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotesService } from './notes.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { NotesService } from './notes.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 
 type MockPrisma = {
   note: Record<string, ReturnType<typeof vi.fn>>;
