@@ -32,7 +32,7 @@ import express, { Express } from 'express';
 
 const server = express();
 
-export const createServer = async (): Promise<Express> => {
+export const createServer = async () => {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
   await app.init();
   return server;
