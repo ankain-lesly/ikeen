@@ -8,10 +8,6 @@ import { UpdateFolderDto } from './dto/update-folder.dto.js';
 
 export type FolderSyncData = FolderMutationPayload;
 
-const log = (...args: any[]) => {
-  console.log('DD', args);
-};
-
 @Injectable()
 export class FoldersService {
   private readonly logger = new Logger(FoldersService.name);
@@ -112,11 +108,6 @@ export class FoldersService {
       this.logger.debug(
         `LWW: Skipping older folder mutation for ${f.id} (client: ${f.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
       );
-      log('[LWW:Folder:SkippedStale]', {
-        id: f.id,
-        clientUpdatedAt: f.updatedAt,
-        serverUpdatedAt: existing.updatedAt.toISOString(),
-      });
       return { applied: false, folderId: f.id };
     }
 
@@ -165,12 +156,9 @@ export class FoldersService {
       });
     }
 
-    log('[LWW:Folder:Applied]', {
-      id: f.id,
-      action: f.action,
-      version: nextVersion,
-      isExisting: !!existing,
-    });
+    this.logger.debug(
+      `[LWW:Folder:Applied] id=${f.id} action=${f.action} version=${nextVersion} isExisting=${!!existing}`,
+    );
 
     return { applied: true, folderId: f.id };
   }

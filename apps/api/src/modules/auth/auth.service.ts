@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -9,15 +10,11 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-// import { log } from '@repo/utils';
-
-const log = (...args: any[]) => {
-  console.log('DD', args);
-};
-
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -72,11 +69,9 @@ export class AuthService {
 
       const accessToken = this.generateToken(user.id, user.email, user.username);
 
-      log('[Auth:Register:Success]', {
-        userId: user.id,
-        email: user.email,
-        username: user.username,
-      });
+      this.logger.log(
+        `[Auth:Register:Success] userId=${user.id} email=${user.email} username=${user.username}`,
+      );
 
       return {
         user,
@@ -113,10 +108,9 @@ export class AuthService {
 
     const accessToken = this.generateToken(user.id, user.email, user.username);
 
-    log('[Auth:Login:Success]', {
-      userId: user.id,
-      email: user.email,
-    });
+    this.logger.log(
+      `[Auth:Login:Success] userId=${user.id} email=${user.email}`,
+    );
 
     return {
       user: {

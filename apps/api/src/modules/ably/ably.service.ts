@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Ably from 'ably';
 import { EnvService } from '../../config/env.service.js';
-// import { log } from '@repo/utils';
-
-const log = (...args: any[]) => {
-  console.log("DD", args)
-}
-
 @Injectable()
 export class AblyService {
   private readonly logger = new Logger(AblyService.name);
@@ -36,9 +30,7 @@ export class AblyService {
    */
   async createRealtimeAuth(userId: string) {
     if (!this.ablyRest) {
-      log('[Ably:Warning]', {
-        reason: 'Ably is not configured on this server.',
-      });
+      this.logger.warn('Ably is not configured on this server.');
       return {
         enabled: false,
         message: 'Ably is not configured on this server.',
@@ -53,7 +45,7 @@ export class AblyService {
         },
       });
 
-      log('[Ably:Auth:TokenCreated]', { userId });
+      this.logger.debug(`[Ably:Auth:TokenCreated] userId=${userId}`);
 
       return {
         enabled: true,
@@ -61,12 +53,7 @@ export class AblyService {
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Failed to create Ably token request: ${message}`);
-      log('[Ably:Error]', {
-        action: 'createTokenRequest',
-        userId,
-        error: message,
-      });
+      this.logger.error(`Failed to create Ably token request for ${userId}: ${message}`, err);
       return {
         enabled: false,
         error: message,
@@ -96,9 +83,8 @@ export class AblyService {
       const channel = this.ablyRest.channels.get(channelName);
       await channel.publish(eventName, payload);
       this.logger.debug(
-        `Published realtime event "${eventName}" on channel "${channelName}"`,
+        `Published realtime event "${eventName}" on channel "${channelName}" for user "${userId}"`,
       );
-      log('[Realtime:Publish:Success]', { userId, event: eventName, payload });
       return {
         success: true,
         channel: channelName,
@@ -106,12 +92,7 @@ export class AblyService {
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Failed to publish realtime event "${eventName}": ${message}`);
-      log('[Realtime:Publish:Error]', {
-        userId,
-        event: eventName,
-        error: message,
-      });
+      this.logger.warn(`Failed to publish realtime event "${eventName}" for ${userId}: ${message}`);
       return {
         success: false,
         channel: channelName,

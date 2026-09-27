@@ -22,6 +22,12 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   AI_CHAT_MODEL: z.string().default('google/gemini-2.5-flash'),
   AI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
+
+  // App Updates
+  APP_MIN_REQUIRED_VERSION: z.string().default('1.0.0'),
+  APP_UPDATE_MANDATORY: z.coerce.boolean().default(false),
+  APP_UPDATE_URL_ANDROID: z.string().optional(),
+  APP_UPDATE_URL_IOS: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
