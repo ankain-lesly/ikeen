@@ -14,7 +14,7 @@ import type {
   SyncMutationBase,
   AppUpdateInfo,
 } from '@repo/types/sync';
-import type { Prisma } from '@repo/db';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class SyncService {

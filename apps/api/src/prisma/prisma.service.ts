@@ -1,62 +1,84 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { prisma } from '@repo/db';
-import type { PrismaClient } from '@repo/db';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  public readonly prisma: PrismaClient;
+  private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    const connectionString = process.env.DATABASE_URL;
+
+    const isProd = process.env.NODE_ENV === 'production';
+
+    const adapter = new PrismaPg({
+      connectionString,
+      ssl: isProd ? { rejectUnauthorized: true } : false,
+    });
+
+    this.prisma = new PrismaClient({ adapter });
+  }
+
+  // Direct delegation helper if you prefer this.prisma.user syntax
   get user() {
-    return prisma.user;
+    return this.prisma.user;
   }
-
   get auth() {
-    return prisma.auth;
+    return this.prisma.auth;
   }
-
   get folder() {
-    return prisma.folder;
+    return this.prisma.folder;
   }
-
   get note() {
-    return prisma.note;
+    return this.prisma.note;
   }
-
   get syncLog() {
-    return prisma.syncLog;
+    return this.prisma.syncLog;
   }
-
   get auditLog() {
-    return prisma.auditLog;
+    return this.prisma.auditLog;
   }
-
   get chatConversation() {
-    return prisma.chatConversation;
+    return this.prisma.chatConversation;
   }
-
   get chatMessage() {
-    return prisma.chatMessage;
+    return this.prisma.chatMessage;
   }
-
   get chatMemory() {
-    return prisma.chatMemory;
+    return this.prisma.chatMemory;
   }
-
   get chatConversationData() {
-    return prisma.chatConversationData;
+    return this.prisma.chatConversationData;
   }
 
+  get client() {
+    return this.prisma;
+  }
   get $transaction() {
-    return prisma.$transaction.bind(prisma);
-  }
-
-  get client(): PrismaClient {
-    return prisma;
+    return this.prisma.$transaction.bind(this.prisma);
   }
 
   async onModuleInit() {
-    // Database connection active
+    try {
+      await this.prisma.$connect();
+      this.logger.log('Database connection successfully established.');
+    } catch (error) {
+      this.logger.error('Failed to connect to the database on boot', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {
-    // Teardown connections if needed
+    // In serverless, avoid closing the pool explicitly on destroy to let warm instances reuse it
+    if (process.env.NODE_ENV !== 'production') {
+      await this.prisma.$disconnect();
+      this.logger.log('Database connection disconnected cleanly.');
+    }
   }
 }
