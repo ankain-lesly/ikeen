@@ -1,5 +1,12 @@
 import React from "react";
-import { Keyboard, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Keyboard,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import {
   Bold,
@@ -15,7 +22,11 @@ import {
   Pin,
   Share2,
 } from "lucide-react-native";
-
+import Animated, {
+  FadeIn,
+  FadeOut,
+  // LinearTransition,
+} from "react-native-reanimated";
 import { useTheme } from "@/hooks/use-theme";
 import { useKeyboardGradualAnimation } from "@/hooks/use-gradual-animation";
 
@@ -23,6 +34,7 @@ interface NoteAccessoryBarProps {
   onInsertSnippet: (snippet: string) => void;
   onOpenTagPrompt?: () => void;
   onDismiss?: () => void;
+  isSaving: boolean;
 }
 
 interface NoteMinimalToolbarProps {
@@ -33,13 +45,67 @@ interface NoteMinimalToolbarProps {
   onTogglePin?: () => void;
 }
 
+interface NoteBottomToolBarProps
+  extends NoteMinimalToolbarProps, NoteAccessoryBarProps {
+  isEditing: boolean;
+}
+
+export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
+  onInsertSnippet,
+  onOpenTagPrompt,
+  onDismiss,
+  isSaving,
+  onStartEditing,
+  isPinned,
+  isEditing,
+  onShare,
+  onTogglePin,
+  wordCount,
+}: NoteBottomToolBarProps) {
+
+  return (
+    <View
+      className={`absolute w-full items-center justify-center  pointer-events-box-none bottom-0`}>
+      {isEditing ? (
+        <Animated.View
+          key="editing"
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          className="flex-1 flex-row items-center">
+          <NoteAccessoryBar
+            onInsertSnippet={onInsertSnippet}
+            onOpenTagPrompt={onOpenTagPrompt}
+            onDismiss={onDismiss}
+            isSaving={isSaving}
+          />
+        </Animated.View>
+      ) : (
+        <Animated.View
+          key="viewing"
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          className="flex-1 flex-row items-center justify-between">
+          <NoteMinimalToolbar
+            wordCount={wordCount}
+            onStartEditing={onStartEditing}
+            onShare={onShare}
+            isPinned={isPinned}
+            onTogglePin={onTogglePin}
+          />
+        </Animated.View>
+      )}
+    </View>
+  );
+});
+
 export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
   onInsertSnippet,
   onOpenTagPrompt,
   onDismiss,
+  isSaving,
 }: NoteAccessoryBarProps) {
-  const {isVisible} = useKeyboardGradualAnimation()
   const colors = useTheme();
+  const { isVisible } = useKeyboardGradualAnimation();
 
   const handleAction = (snippet: string) => {
     Haptics.selectionAsync();
@@ -63,82 +129,85 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
 
   return (
     <View
-      className={`absolute w-full items-center justify-center px-4 ${isVisible ? "bottom-2" : "bottom-safe-offset-2"}`}>
-      <View className="h-12 flex-row items-center border border-border rounded-full px-2 bg-background-element">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="items-center gap-3 px-1"
-          keyboardShouldPersistTaps="always">
-          {/* Checklist */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={() => handleAction("\n- [ ] ")}>
-            <CheckSquare size={18} color={colors.text} />
-          </Pressable>
+      className={`flex-row items-center border border-border _rounded-full px-2 bg-background-element${!isVisible?" pb-safe-offset-2":""}`}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="items-center gap-3 px-1"
+        keyboardShouldPersistTaps="always">
+        {/* Checklist */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={() => handleAction("\n- [ ] ")}>
+          <CheckSquare size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Bullet List */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={() => handleAction("\n- ")}>
-            <List size={18} color={colors.text} />
-          </Pressable>
+        {/* Bullet List */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={() => handleAction("\n- ")}>
+          <List size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Heading */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={() => handleAction("\n## ")}>
-            <Heading1 size={18} color={colors.text} />
-          </Pressable>
+        {/* Heading */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={() => handleAction("\n## ")}>
+          <Heading1 size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Bold */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={() => handleAction("****")}>
-            <Bold size={18} color={colors.text} />
-          </Pressable>
+        {/* Bold */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={() => handleAction("****")}>
+          <Bold size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Italic */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={() => handleAction("**")}>
-            <Italic size={18} color={colors.text} />
-          </Pressable>
+        {/* Italic */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={() => handleAction("**")}>
+          <Italic size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Tag Pill */}
-          <Pressable
-            className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            onPress={handleTagAction}>
-            <Hash size={18} color={colors.text} />
-          </Pressable>
+        {/* Tag Pill */}
+        <Pressable
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          onPress={handleTagAction}>
+          <Hash size={18} color={colors.text} />
+        </Pressable>
 
-          {/* Undo */}
-          <Pressable
-            className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            hitSlop={8}>
-            <Undo size={18} color={colors.textSecondary} />
-          </Pressable>
-          {/* Redo */}
-          <Pressable
-            className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-            hitSlop={8}>
-            <Redo size={18} color={colors.textSecondary} />
-          </Pressable>
-        </ScrollView>
+        {/* Undo */}
+        <Pressable
+          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          hitSlop={8}>
+          <Undo size={18} color={colors.textSecondary} />
+        </Pressable>
+        {/* Redo */}
+        <Pressable
+          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          hitSlop={8}>
+          <Redo size={18} color={colors.textSecondary} />
+        </Pressable>
+      </ScrollView>
 
-        {/* Done Button */}
+      {/* Done Button */}
+      {isSaving ? (
+        <Pressable
+          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+          onPress={handleDismiss}>
+          <ActivityIndicator size={"small"} color={colors.border} />
+        </Pressable>
+      ) : (
         <Pressable
           className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
           onPress={handleDismiss}>
           <CheckCheck size={24} color={colors.primary} />
         </Pressable>
-      </View>
+      )}
     </View>
   );
 });
-
-
-
 
 /**
  * Minimal toolbar rendered when the user is in View Mode.
@@ -152,10 +221,12 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
   onTogglePin,
 }: NoteMinimalToolbarProps) {
   const colors = useTheme();
+  const { isVisible } = useKeyboardGradualAnimation();
 
   return (
-    <View className="absolute bottom-safe-or-5 w-full items-center justify-center px-4 pointer-events-box-none">
-      <View className="h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm max-w-sm w-full">
+    <View className={`items-center justify-center w-full${!isVisible ? " pb-safe-offset-2" : ""}`}>
+      <View
+        className={`h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2`}>
         {/* Left: Word count badge */}
         <Text className="text-xs font-mono text-text-secondary">
           {wordCount} {wordCount === 1 ? "word" : "words"}

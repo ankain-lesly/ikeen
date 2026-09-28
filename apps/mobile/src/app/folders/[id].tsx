@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -7,47 +7,44 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+} from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   ChevronLeft,
   FileText,
-  Lock,
-  Plus,
   Search,
   SquarePen,
   X,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 
-import { NoteCard } from '@/components/notes/note-card';
-import { ThemedText } from '@/components/ui/themed-text';
-import { BottomTabInset } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { NoteCard } from "@/components/notes/note-card";
+import { ThemedText } from "@/components/ui/themed-text";
+import { BottomTabInset } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import {
   softDeleteFolder,
   updateFolder,
   useLiveFolder,
-} from '@/lib/queries/folders';
+} from "@/lib/queries/folders";
 import {
-  createNote,
   softDeleteNote,
   toggleArchiveNote,
   togglePinNote,
   useLiveNotes,
-} from '@/lib/queries/notes';
-import type { Note } from '@/lib/types/notes';
-import { FolderGlyph } from '@/components/folders/folder-glyph';
-import { FolderDetailDropdown } from '@/components/folders/folder-detail-dropdown';
-import { CreateFolderSheet } from '@/components/folders/create-folder-sheet';
-import type { CreateFolderInput } from '@/lib/types/folders';
+} from "@/lib/queries/notes";
+import type { Note } from "@/lib/types/notes";
+import { FolderGlyph } from "@/components/folders/folder-glyph";
+import { FolderDetailDropdown } from "@/components/folders/folder-detail-dropdown";
+import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
+import type { CreateFolderInput } from "@/lib/types/folders";
 
 export default function FolderDetailScreen() {
   const colors = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: folder } = useLiveFolder(id as string);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isEditSheetPresented, setIsEditSheetPresented] = useState(false);
 
   // Live notes inside this specific folder
@@ -64,7 +61,7 @@ export default function FolderDetailScreen() {
     try {
       await togglePinNote(noteId);
     } catch {
-      Alert.alert('Error', 'Could not update pin state');
+      Alert.alert("Error", "Could not update pin state");
     }
   }, []);
 
@@ -72,45 +69,38 @@ export default function FolderDetailScreen() {
     try {
       await toggleArchiveNote(noteId);
     } catch {
-      Alert.alert('Error', 'Could not update archive state');
+      Alert.alert("Error", "Could not update archive state");
     }
   }, []);
 
   const handleDeleteNote = useCallback((noteId: string) => {
     Alert.alert(
-      'Delete Note',
-      'Are you sure you want to move this note to recently deleted?',
+      "Delete Note",
+      "Are you sure you want to move this note to recently deleted?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await softDeleteNote(noteId);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             } catch {
-              Alert.alert('Error', 'Could not delete note');
+              Alert.alert("Error", "Could not delete note");
             }
           },
         },
-      ]
+      ],
     );
   }, []);
 
-  const handleNewNoteInFolder = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      const newNote = await createNote({
-        folderId: id as string,
-      });
-      router.push({
-        pathname: '/notes/[id]',
-        params: { id: newNote.id },
-      });
-    } catch {
-      Alert.alert('Error', 'Failed to create note in folder');
-    }
+  const handleNewNote = async () => {
+    router.push({
+      pathname: "/notes/create",
+    });
   };
 
   const handleSaveEditFolder = async (data: CreateFolderInput) => {
@@ -126,24 +116,26 @@ export default function FolderDetailScreen() {
   const handleDeleteFolder = () => {
     if (!folder) return;
     Alert.alert(
-      'Delete Folder',
+      "Delete Folder",
       `Delete "${folder.name}"? Notes inside will remain in All Notes.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await softDeleteFolder(folder.id);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
               router.back();
             } catch {
-              Alert.alert('Error', 'Failed to delete folder');
+              Alert.alert("Error", "Failed to delete folder");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -165,7 +157,7 @@ export default function FolderDetailScreen() {
         />
       </View>
     ),
-    [handleTogglePin, handleToggleArchive, handleDeleteNote]
+    [handleTogglePin, handleToggleArchive, handleDeleteNote],
   );
 
   if (!folder) {
@@ -199,7 +191,7 @@ export default function FolderDetailScreen() {
                 {folder.name}
               </ThemedText>
               <Text className="text-xs text-text-secondary font-mono">
-                {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+                {notes.length} {notes.length === 1 ? "note" : "notes"}
               </Text>
             </View>
           </View>
@@ -225,7 +217,7 @@ export default function FolderDetailScreen() {
             className="flex-1 ml-2 text-sm text-text"
           />
           {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} hitSlop={6}>
+            <Pressable onPress={() => setSearchQuery("")} hitSlop={6}>
               <X size={14} color={colors.textSecondary} />
             </Pressable>
           )}
@@ -250,12 +242,12 @@ export default function FolderDetailScreen() {
               <FileText size={32} color={colors.textSecondary} />
             </View>
             <ThemedText className="font-semibold text-base text-text text-center">
-              {searchQuery.trim() ? 'No matching notes' : 'Folder is empty'}
+              {searchQuery.trim() ? "No matching notes" : "Folder is empty"}
             </ThemedText>
             <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
               {searchQuery.trim()
-                ? 'Try searching for a different keyword.'
-                : 'Create a note to start organizing in this folder.'}
+                ? "Try searching for a different keyword."
+                : "Create a note to start organizing in this folder."}
             </Text>
           </View>
         }
@@ -264,12 +256,12 @@ export default function FolderDetailScreen() {
       {/* Bottom Floating Bar */}
       <View className="absolute bottom-safe left-5 right-5 h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5">
         <Text className="text-xs font-medium text-text-secondary font-mono">
-          {notes.length} {notes.length === 1 ? 'Note' : 'Notes'}
+          {notes.length} {notes.length === 1 ? "Note" : "Notes"}
         </Text>
 
         <Pressable
           className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary active:opacity-90 active:scale-[0.98]"
-          onPress={handleNewNoteInFolder}>
+          onPress={handleNewNote}>
           <SquarePen size={17} color="#ffffff" />
           <Text className="text-white text-sm font-semibold">New Note</Text>
         </Pressable>

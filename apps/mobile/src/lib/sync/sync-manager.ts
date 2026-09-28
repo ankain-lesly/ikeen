@@ -60,10 +60,10 @@ class SyncManager {
       });
       if (state.isConnected && state.isInternetReachable) {
         useSyncStore.getState().setStatus('idle');
-        toast.success('Syncing...');
+        // toast.success('Syncing...');
         this.sync().catch(() => {});
       } else {
-        toast.error('Offline');
+        // toast.error('Offline');
         useSyncStore.getState().setStatus('offline');
       }
     });

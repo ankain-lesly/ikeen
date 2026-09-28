@@ -1,18 +1,10 @@
-import React from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
-import { Host, Switch } from '@expo/ui/jetpack-compose';
-import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import React from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Host, Switch } from "@expo/ui/jetpack-compose";
+import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   ArrowUpDown,
-  Check,
-  CheckCircle2,
   ChevronRight,
   Cloud,
   FileText,
@@ -28,23 +20,24 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  User,
+  Trash,
   Vibrate,
   Wifi,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 
-import { ThemedText } from '@/components/ui/themed-text';
-import { useTheme } from '@/hooks/use-theme';
-import { useAuthStore } from '@/lib/auth/auth-store';
-import { useLiveNotes } from '@/lib/queries/notes';
-import { useLiveFolders } from '@/lib/queries/folders';
-import { useSyncStore } from '@/lib/sync/use-sync';
-import { syncManager } from '@/lib/sync/sync-manager';
+import { ThemedText } from "@/components/ui/themed-text";
+import { useTheme } from "@/hooks/use-theme";
+import { useAuthStore } from "@/lib/auth/auth-store";
+import { useLiveNotes } from "@/lib/queries/notes";
+import { useLiveFolders } from "@/lib/queries/folders";
+import { useSyncStore } from "@/lib/sync/use-sync";
+import { syncManager } from "@/lib/sync/sync-manager";
 import {
   useSettingsStore,
   type AppTheme,
   type DefaultNoteSort,
-} from '@/lib/settings/settings-store';
+} from "@/lib/settings/settings-store";
+import { NewBadge } from "@/components/ui/new-badge";
 
 export default function ProfileScreen() {
   const colors = useTheme();
@@ -61,19 +54,23 @@ export default function ProfileScreen() {
     setAutoSyncOnCellular,
   } = useSettingsStore();
 
-  const { data: notes = [] } = useLiveNotes({ includeArchived: true });
+  const { data: notes = [] } = useLiveNotes({
+    includeArchived: true,
+    includeDeleted: true,
+  });
   const { data: folders = [] } = useLiveFolders();
 
   const pinnedCount = notes.filter((n) => n.isPinned).length;
+  const trashedCount = notes.filter((n) => !!n.deletedAt).length;
 
   const handleOpenAuth = () => {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/(auth)/login');
+    router.push("/(auth)/login");
   };
 
   const handleOpenSyncOutbox = () => {
     if (hapticsEnabled) Haptics.selectionAsync();
-    router.push('/(tabs)/profile/sync-outbox');
+    router.push("/(tabs)/profile/sync-outbox");
   };
 
   const handleThemeChange = (newTheme: AppTheme) => {
@@ -84,11 +81,11 @@ export default function ProfileScreen() {
   const handleSortCycle = () => {
     if (hapticsEnabled) Haptics.selectionAsync();
     const cycleMap: Record<DefaultNoteSort, DefaultNoteSort> = {
-      updatedAt: 'createdAt',
-      createdAt: 'title',
-      title: 'updatedAt',
+      updatedAt: "createdAt",
+      createdAt: "title",
+      title: "updatedAt",
     };
-    setDefaultSort(cycleMap[defaultSort] || 'updatedAt');
+    setDefaultSort(cycleMap[defaultSort] || "updatedAt");
   };
 
   const handleSignOut = () => {
@@ -96,87 +93,82 @@ export default function ProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out? Your notes will remain safely stored on this device.',
+      "Sign Out",
+      "Are you sure you want to sign out? Your notes will remain safely stored on this device.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Sign Out',
-          style: 'destructive',
+          text: "Sign Out",
+          style: "destructive",
           onPress: async () => {
             await logout();
             if (hapticsEnabled) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const userInitials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U'
-    : 'G';
+    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() ||
+      "U"
+    : "G";
 
   const sortLabel = {
-    updatedAt: 'Recently Edited',
-    createdAt: 'Date Created',
-    title: 'Title (A-Z)',
+    updatedAt: "Recently Edited",
+    createdAt: "Date Created",
+    title: "Title (A-Z)",
   }[defaultSort];
 
+  const username = [user?.firstName, user?.lastName]?.filter(Boolean).join(" ");
   return (
     <View className="flex-1 bg-background pt-safe">
       {/* Top Navigation Header */}
-      <View className="px-5 pb-3 border-b border-border/70 flex-row items-center justify-between">
-        <ThemedText className="font-bold text-2xl text-text tracking-tight">
-          Profile
-        </ThemedText>
-        {isAuthenticated ? (
-          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-background-element border border-border">
-            <CheckCircle2 size={12} color={colors.primary} />
-            <Text className="text-xs font-semibold text-text">
-              Active Cloud
-            </Text>
-          </View>
-        ) : (
-          <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-background-element border border-border">
-            <User size={12} color={colors.textSecondary} />
-            <Text className="text-xs font-medium text-text-secondary">
-              Guest Mode
-            </Text>
-          </View>
-        )}
-      </View>
+      {/* <View className="px-5 py-3 border-b border-border/70 flex-row items-center justify-between">
+        <ThemedText type="title">Account</ThemedText>
+      </View> */}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         className="flex-1 px-5 pt-4 pb-safe"
         contentContainerClassName="gap-5 pb-20">
         {/* User Identity Card */}
-        {isAuthenticated && user ? (
-          <>
-            <View className="p-5 rounded-3xl bg-card border border-border shadow-xs">
-              <View className="flex-row items-center gap-4">
-                <View className="w-16 h-16 rounded-2xl bg-background-element border border-border items-center justify-center shadow-xs">
-                  <Text className="text-text text-2xl font-bold font-mono">
-                    {userInitials}
-                  </Text>
-                </View>
 
-                <View className="flex-1">
-                  <ThemedText className="text-lg font-bold text-text">
-                    {user.firstName} {user.lastName}
-                  </ThemedText>
-                  <Text className="text-xs text-text-secondary font-mono mt-0.5">
-                    @{user.username}
-                  </Text>
-                  <Text className="text-xs text-text-secondary mt-0.5">
-                    {user.email}
-                  </Text>
-                </View>
-              </View>
+        <View className="p-5">
+          <View className="flex-col items-center gap-4">
+            <View className="w-16 h-16 rounded-2xl bg-background-element border border-border items-center justify-center shadow-xs">
+              <Text className="text-text text-2xl font-bold font-mono">
+                {userInitials}
+              </Text>
             </View>
 
+            <View className="flex-1 items-center justify-center">
+              <ThemedText className="text-lg font-bold text-text">
+                {username || "iKeen Notes"}
+              </ThemedText>
+              {user?.username && (
+                <Text className="text-xs text-text-secondary font-mono mt-0.5">
+                  @{user?.username}
+                </Text>
+              )}
+              {user?.email ? (
+                <Text className="text-xs text-text-secondary mt-0.5">
+                  {user?.email}
+                </Text>
+              ) : (
+                <Text className="text-xs text-text-secondary mt-0.5">
+                  Brainstorm with iKeen
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+        {isAuthenticated && user ? (
+          <>
             {/* Cloud Sync Status Card */}
             <View className="p-4 rounded-3xl bg-card border border-border shadow-xs gap-3">
               <View className="flex-row items-center justify-between">
@@ -189,15 +181,15 @@ export default function ProfileScreen() {
                       Cloud Sync
                     </ThemedText>
                     <Text className="text-xs text-text-secondary">
-                      {syncStatus === 'syncing'
-                        ? 'Syncing changes...'
-                        : syncStatus === 'offline'
-                        ? 'Offline • Saved on device'
-                        : pendingCount > 0
-                        ? `${pendingCount} pending change${pendingCount > 1 ? 's' : ''}`
-                        : lastSyncedAt
-                        ? `Synced ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                        : 'All changes synced'}
+                      {syncStatus === "syncing"
+                        ? "Syncing changes..."
+                        : syncStatus === "offline"
+                          ? "Offline • Saved on device"
+                          : pendingCount > 0
+                            ? `${pendingCount} pending change${pendingCount > 1 ? "s" : ""}`
+                            : lastSyncedAt
+                              ? `Synced ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                              : "All changes synced"}
                     </Text>
                   </View>
                 </View>
@@ -209,30 +201,12 @@ export default function ProfileScreen() {
                     }
                     syncManager.sync().catch(() => {});
                   }}
-                  disabled={syncStatus === 'syncing'}
-                  className="px-3 py-1.5 rounded-xl bg-background-element border border-border flex-row items-center gap-1.5 active:opacity-70">
-                  <RefreshCw
-                    size={12}
-                    color={colors.primary}
-                  />
-                  <Text className="text-xs font-semibold text-text">
-                    {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+                  disabled={syncStatus === "syncing"}
+                  className="px-3 py-1.5 rounded-xl bg-foreground flex-row items-center gap-1.5 active:opacity-70">
+                  <RefreshCw size={12} color={colors.background} />
+                  <Text className="text-xs font-semibold text-background">
+                    {syncStatus === "syncing" ? "Syncing..." : "Sync Now"}
                   </Text>
-                </Pressable>
-              </View>
-
-              {/* Direct Link inside Sync Card */}
-              <View className="pt-2 border-t border-border/60 flex-row items-center justify-between">
-                <Text className="text-[11px] text-text-secondary">
-                  Inspect delivery ledger & outbox
-                </Text>
-                <Pressable
-                  onPress={handleOpenSyncOutbox}
-                  className="flex-row items-center gap-1 active:opacity-70">
-                  <Text className="text-xs font-semibold text-text">
-                    View Outbox
-                  </Text>
-                  <ChevronRight size={13} color={colors.textSecondary} />
                 </Pressable>
               </View>
             </View>
@@ -256,8 +230,8 @@ export default function ProfileScreen() {
 
             <Pressable
               onPress={handleOpenAuth}
-              className="w-full h-11 rounded-xl bg-background-element border border-border items-center justify-center active:opacity-80 mt-2 shadow-xs">
-              <Text className="text-text font-semibold text-sm">
+              className="w-full h-11 rounded-xl bg-foreground items-center justify-center active:opacity-80 mt-2 shadow-xs">
+              <Text className="text-background font-semibold text-sm">
                 Sign In or Register
               </Text>
             </Pressable>
@@ -273,19 +247,19 @@ export default function ProfileScreen() {
           <View className="p-2 rounded-2xl bg-card border border-border flex-row gap-2">
             {/* System Theme Option */}
             <Pressable
-              onPress={() => handleThemeChange('system')}
+              onPress={() => handleThemeChange("system")}
               className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-2 ${
-                theme === 'system'
-                  ? 'bg-background-element border-foreground/30 shadow-xs'
-                  : 'border-transparent bg-transparent'
+                theme === "system"
+                  ? "bg-background-element border-foreground/30 shadow-xs"
+                  : "border-transparent bg-transparent"
               }`}>
               <Laptop
                 size={16}
-                color={theme === 'system' ? colors.text : colors.textSecondary}
+                color={theme === "system" ? colors.text : colors.textSecondary}
               />
               <Text
                 className={`text-xs font-bold ${
-                  theme === 'system' ? 'text-text' : 'text-text-secondary'
+                  theme === "system" ? "text-text" : "text-text-secondary"
                 }`}>
                 System
               </Text>
@@ -293,19 +267,19 @@ export default function ProfileScreen() {
 
             {/* Light Theme Option */}
             <Pressable
-              onPress={() => handleThemeChange('light')}
+              onPress={() => handleThemeChange("light")}
               className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-2 ${
-                theme === 'light'
-                  ? 'bg-background-element border-foreground/30 shadow-xs'
-                  : 'border-transparent bg-transparent'
+                theme === "light"
+                  ? "bg-background-element border-foreground/30 shadow-xs"
+                  : "border-transparent bg-transparent"
               }`}>
               <Sun
                 size={16}
-                color={theme === 'light' ? colors.text : colors.textSecondary}
+                color={theme === "light" ? colors.text : colors.textSecondary}
               />
               <Text
                 className={`text-xs font-bold ${
-                  theme === 'light' ? 'text-text' : 'text-text-secondary'
+                  theme === "light" ? "text-text" : "text-text-secondary"
                 }`}>
                 Light
               </Text>
@@ -313,19 +287,19 @@ export default function ProfileScreen() {
 
             {/* Dark Theme Option */}
             <Pressable
-              onPress={() => handleThemeChange('dark')}
+              onPress={() => handleThemeChange("dark")}
               className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-2 ${
-                theme === 'dark'
-                  ? 'bg-background-element border-foreground/30 shadow-xs'
-                  : 'border-transparent bg-transparent'
+                theme === "dark"
+                  ? "bg-background-element border-foreground/30 shadow-xs"
+                  : "border-transparent bg-transparent"
               }`}>
               <Moon
                 size={16}
-                color={theme === 'dark' ? colors.text : colors.textSecondary}
+                color={theme === "dark" ? colors.text : colors.textSecondary}
               />
               <Text
                 className={`text-xs font-bold ${
-                  theme === 'dark' ? 'text-text' : 'text-text-secondary'
+                  theme === "dark" ? "text-text" : "text-text-secondary"
                 }`}>
                 Dark
               </Text>
@@ -420,22 +394,28 @@ export default function ProfileScreen() {
 
           <View className="p-4 rounded-2xl bg-card border border-border gap-3">
             {/* Total Notes */}
-            <View className="flex-row items-center justify-between">
+            <Pressable
+              onPress={() => router.push("/(tabs)/notes")}
+              className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
                 <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
                   <FileText size={16} color={colors.text} />
                 </View>
-                <Text className="text-sm font-medium text-text">Total Notes</Text>
+                <Text className="text-sm font-medium text-text">
+                  Total Notes
+                </Text>
               </View>
               <Text className="text-sm font-bold text-text font-mono">
                 {notes.length}
               </Text>
-            </View>
+            </Pressable>
 
             <View className="h-px bg-border/60" />
 
             {/* Folders */}
-            <View className="flex-row items-center justify-between">
+            <Pressable
+              onPress={() => router.push("/(tabs)/notes/folders")}
+              className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
                 <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
                   <Folder size={16} color={colors.text} />
@@ -445,22 +425,48 @@ export default function ProfileScreen() {
               <Text className="text-sm font-bold text-text font-mono">
                 {folders.length}
               </Text>
-            </View>
+            </Pressable>
 
             <View className="h-px bg-border/60" />
 
             {/* Pinned Notes */}
-            <View className="flex-row items-center justify-between">
+            <Pressable
+              onPress={() => router.push("/(tabs)/notes")}
+              className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
                 <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
                   <Pin size={16} color={colors.text} />
                 </View>
-                <Text className="text-sm font-medium text-text">Pinned Notes</Text>
+                <Text className="text-sm font-medium text-text">
+                  Pinned Notes
+                </Text>
               </View>
               <Text className="text-sm font-bold text-text font-mono">
                 {pinnedCount}
               </Text>
-            </View>
+            </Pressable>
+
+            {/* Pinned Notes */}
+            {trashedCount > 0 && (
+              <Pressable
+                onPress={() => router.push("/notes/trash")}
+                className="relative flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2.5">
+                  <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
+                    <Trash size={16} color={colors.text} />
+                  </View>
+                  <View className="relative flex-row gap-1">
+                    <Text className=" text-sm font-medium text-red-400">
+                      Recycle Bin
+                    </Text>
+                    <NewBadge />
+                  </View>
+                </View>
+                <Text className="text-sm font-bold text-text font-mono">
+                  {trashedCount}
+                </Text>
+              </Pressable>
+            )}
 
             <View className="h-px bg-border/60" />
 
@@ -468,11 +474,18 @@ export default function ProfileScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
                 <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
-                  <RefreshCw size={16} color={pendingCount > 0 ? '#f59e0b' : colors.text} />
+                  <RefreshCw
+                    size={16}
+                    color={pendingCount > 0 ? "#f59e0b" : colors.text}
+                  />
                 </View>
                 <View>
-                  <Text className="text-sm font-medium text-text">Pending Syncs</Text>
-                  <Text className="text-[10px] text-text-secondary">Queued outbox mutations</Text>
+                  <Text className="text-sm font-medium text-text">
+                    Pending Syncs
+                  </Text>
+                  <Text className="text-[10px] text-text-secondary">
+                    Queued outbox mutations
+                  </Text>
                 </View>
               </View>
               <View
@@ -480,43 +493,45 @@ export default function ProfileScreen() {
                 style={{
                   backgroundColor:
                     pendingCount > 0
-                      ? 'rgba(245, 158, 11, 0.1)'
+                      ? "rgba(245, 158, 11, 0.1)"
                       : colors.backgroundElement,
                   borderColor:
                     pendingCount > 0
-                      ? 'rgba(245, 158, 11, 0.3)'
+                      ? "rgba(245, 158, 11, 0.3)"
                       : colors.border,
                 }}>
                 <Text
                   className="text-xs font-bold font-mono"
                   style={{
-                    color: pendingCount > 0 ? '#f59e0b' : colors.textSecondary,
+                    color: pendingCount > 0 ? "#f59e0b" : colors.textSecondary,
                   }}>
-                  {pendingCount > 0 ? `${pendingCount} queued` : '0 (Clean)'}
+                  {pendingCount > 0 ? `${pendingCount} queued` : "0 (Clean)"}
                 </Text>
               </View>
             </View>
           </View>
 
           {/* 🔗 Dedicated Interactive Link to Sync Outbox Page */}
-          <Pressable
-            onPress={handleOpenSyncOutbox}
-            className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
-                <HardDrive size={18} color={colors.text} />
+          {user?.type === "admin" && (
+            <Pressable
+              onPress={handleOpenSyncOutbox}
+              className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
+              <View className="flex-row items-center gap-3">
+                <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
+                  <HardDrive size={18} color={colors.text} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-text">
+                    Sync Outbox
+                  </Text>
+                  <Text className="text-xs text-text-secondary mt-0.5">
+                    Inspect Sync Progress
+                  </Text>
+                </View>
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-text">
-                  Sync Outbox & Delivery Ledger
-                </Text>
-                <Text className="text-xs text-text-secondary mt-0.5">
-                  Inspect SQLite queue, delivery status, and retry logs
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={16} color={colors.textSecondary} />
-          </Pressable>
+              <ChevronRight size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
         </View>
 
         {/* Security & Settings Section */}
@@ -530,8 +545,8 @@ export default function ProfileScreen() {
               onPress={() => {
                 if (hapticsEnabled) Haptics.selectionAsync();
                 Alert.alert(
-                  'Folder Passcode',
-                  'Manage folder PIN codes directly inside folder cards.'
+                  "Folder Passcode",
+                  "Manage folder PIN codes directly inside folder cards.",
                 );
               }}
               className="p-3.5 flex-row items-center justify-between active:bg-background-element">
@@ -550,8 +565,8 @@ export default function ProfileScreen() {
               onPress={() => {
                 if (hapticsEnabled) Haptics.selectionAsync();
                 Alert.alert(
-                  'Cloud Encryption',
-                  'All synchronized data is securely stored with user-level isolation.'
+                  "Cloud Encryption",
+                  "All synchronized data is securely stored with user-level isolation.",
                 );
               }}
               className="p-3.5 flex-row items-center justify-between active:bg-background-element">
@@ -566,26 +581,24 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* App Info Card */}
-        <View className="p-4 rounded-2xl bg-background-element border border-border/70 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5">
-            <Info size={16} color={colors.textSecondary} />
-            <Text className="text-xs text-text-secondary">iKeen Notes</Text>
-          </View>
-          <Text className="text-xs text-text-secondary font-mono">v1.0.0</Text>
-        </View>
-
         {/* Sign Out Action (When Authenticated) */}
         {isAuthenticated && (
           <Pressable
             onPress={handleSignOut}
             className="w-full h-12 rounded-2xl border border-red-500/20 bg-red-500/5 flex-row items-center justify-center gap-2 active:opacity-75">
             <LogOut size={16} color="#ef4444" />
-            <Text className="text-red-500 font-semibold text-sm">
-              Sign Out
-            </Text>
+            <Text className="text-red-500 font-semibold text-sm">Sign Out</Text>
           </Pressable>
         )}
+
+        {/* App Info Card */}
+        <View className="px-4 py-6 items-center justify-center gap-2">
+          <View className="flex-row items-center gap-2.5">
+            <Info size={16} color={colors.textSecondary} />
+            <Text className="text-xs text-text-secondary">iKeen Notes</Text>
+          </View>
+          <Text className="text-xs text-text-secondary font-mono">v1.0.0</Text>
+        </View>
       </ScrollView>
     </View>
   );

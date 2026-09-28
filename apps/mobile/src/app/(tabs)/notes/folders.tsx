@@ -41,14 +41,20 @@ export default function NotesScreen() {
 
   // Folders State
   const [folderSearch, setFolderSearch] = useState("");
-  const [folderSortBy, setFolderSortBy] = useState<"updatedAt" | "name" | "createdAt">("updatedAt");
+  const [folderSortBy, setFolderSortBy] = useState<
+    "updatedAt" | "name" | "createdAt"
+  >("updatedAt");
   const [folderSortDir, setFolderSortDir] = useState<"asc" | "desc">("desc");
   const [folderLayout, setFolderLayout] = useState<"grid" | "list">("grid");
 
   // Folder Sheets & Modals
-  const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] = useState(false);
-  const [folderToEdit, setFolderToEdit] = useState<FolderWithCount | null>(null);
-  const [lockedFolderToUnlock, setLockedFolderToUnlock] = useState<FolderWithCount | null>(null);
+  const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] =
+    useState(false);
+  const [folderToEdit, setFolderToEdit] = useState<FolderWithCount | null>(
+    null,
+  );
+  const [lockedFolderToUnlock, setLockedFolderToUnlock] =
+    useState<FolderWithCount | null>(null);
 
   const { data: folders = [] } = useLiveFolders({
     search: folderSearch.trim() || undefined,
@@ -96,13 +102,15 @@ export default function NotesScreen() {
           onPress: async () => {
             try {
               await softDeleteFolder(folder.id);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             } catch {
               Alert.alert("Error", "Could not delete folder");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -131,10 +139,10 @@ export default function NotesScreen() {
     setFolderSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-
   const renderFolderItem = useCallback(
     ({ item }: { item: FolderWithCount }) => (
-      <View className={folderLayout === "grid" ? "w-1/2 p-1.5" : "w-full py-1.5"}>
+      <View
+        className={folderLayout === "grid" ? "w-1/2 p-1.5" : "w-full py-1.5"}>
         <FolderCard
           folder={item}
           onPress={handleFolderPress}

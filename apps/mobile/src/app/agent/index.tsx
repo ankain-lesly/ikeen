@@ -1,27 +1,36 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
-import { useChat } from '@ai-sdk/react';
-import type { UIMessage } from 'ai';
-import { DefaultChatTransport } from 'ai';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import * as Crypto from 'expo-crypto';
-import { ChevronLeft, Clock, Plus } from 'lucide-react-native';
-import { useTheme } from '@/hooks/use-theme';
-import { useAuthStore } from '@/lib/auth/auth-store';
-import { agentApi } from '@/lib/api/agent-api';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  Platform,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+} from "react-native";
+import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
+import * as Crypto from "expo-crypto";
+import { ChevronLeft, Clock, Plus, WifiOff } from "lucide-react-native";
+import { useTheme } from "@/hooks/use-theme";
+import { useAuthStore } from "@/lib/auth/auth-store";
+import { agentApi } from "@/lib/api/agent-api";
 import {
   ChatMessageList,
   ChatInputBar,
   ChatEmptyState,
   ConversationDrawer,
-} from '@/components/chat';
-import { toast } from '@/lib/toast';
-import { fetch as expoFetch } from 'expo/fetch';
-import { KeyboardGradualAnimation } from '@/components/keyboard-gradual-animation';
-import { API_BASE_URL } from '@/lib/api/api-client';
-import { useQueryClient } from '@tanstack/react-query';
-import { agentQueryKeys } from '@/lib/queries/agents';
+} from "@/components/chat";
+import { toast } from "@/lib/toast";
+import { fetch as expoFetch } from "expo/fetch";
+import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
+import { API_BASE_URL } from "@/lib/api/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { agentQueryKeys } from "@/lib/queries/agents";
+import { useNetInfo } from "@react-native-community/netinfo";
+import { ThemedText } from "@/components/ui/themed-text";
 
 interface ActiveSession {
   id: string;
@@ -46,14 +55,17 @@ function ChatSessionContent({
   onStatusChange,
   initialPrompt,
 }: ChatSessionProps) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         fetch: (async (reqInput, init) => {
-          const res = await (expoFetch as unknown as typeof globalThis.fetch)(reqInput, init);
-          const headerTitle = res.headers.get('X-Agent-Conversation-Title');
+          const res = await (expoFetch as unknown as typeof globalThis.fetch)(
+            reqInput,
+            init,
+          );
+          const headerTitle = res.headers.get("X-Agent-Conversation-Title");
           if (headerTitle) {
             try {
               onTitleUpdate(decodeURIComponent(headerTitle));
@@ -77,25 +89,20 @@ function ChatSessionContent({
           };
         },
       }),
-    [token, conversationId, onTitleUpdate]
+    [token, conversationId, onTitleUpdate],
   );
 
-  const {
-    messages,
-    sendMessage,
-    status,
-    stop,
-  } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     transport,
     id: conversationId,
     messages: initialMessages,
     onError: (error: Error) => {
-      console.log('[Agent Chat Error]:', error);
-      toast.error('Failed to get response from iKeen');
+      console.log("[Agent Chat Error]:", error);
+      toast.error("Failed to get response from iKeen");
     },
   });
 
-  const isLoading = status === 'streaming' || status === 'submitted';
+  const isLoading = status === "streaming" || status === "submitted";
 
   useEffect(() => {
     onStatusChange?.(isLoading);
@@ -104,11 +111,11 @@ function ChatSessionContent({
   const handleSendText = async (textToSend: string) => {
     const trimmed = textToSend.trim();
     if (!trimmed || isLoading) return;
-    setInput('');
+    setInput("");
     try {
       await sendMessage({ text: trimmed });
     } catch {
-      toast.error('Could not send message');
+      toast.error("Could not send message");
     }
   };
 
@@ -121,7 +128,7 @@ function ChatSessionContent({
   };
 
   useEffect(() => {
-    if (initialPrompt && typeof initialPrompt === 'string') {
+    if (initialPrompt && typeof initialPrompt === "string") {
       setTimeout(() => {
         setInput(initialPrompt);
       }, 0);
@@ -131,8 +138,8 @@ function ChatSessionContent({
   return (
     <KeyboardAvoidingView
       className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}>
       <ChatMessageList
         messages={messages}
         isLoading={isLoading}
@@ -160,9 +167,12 @@ export default function AgentScreen() {
   const { token } = useAuthStore();
   const { prompt: initialPrompt } = useLocalSearchParams<{ prompt?: string }>();
 
+  const { isConnected, isInternetReachable } = useNetInfo();
+  const isOnline = isConnected && isInternetReachable;
+
   const [session, setSession] = useState<ActiveSession>(() => ({
     id: Crypto.randomUUID(),
-    title: 'Brainstorm',
+    title: "Brainstorm",
     initialMessages: [],
   }));
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -174,9 +184,11 @@ export default function AgentScreen() {
   const handleTitleUpdate = useCallback(
     (newTitle: string) => {
       setSession((prev) => ({ ...prev, title: newTitle }));
-      queryClient.invalidateQueries({ queryKey: agentQueryKeys.conversations() });
+      queryClient.invalidateQueries({
+        queryKey: agentQueryKeys.conversations(),
+      });
     },
-    [queryClient]
+    [queryClient],
   );
 
   const handleStatusChange = useCallback((loading: boolean) => {
@@ -190,16 +202,18 @@ export default function AgentScreen() {
     try {
       setIsSwitching(true);
       const detail = await agentApi.getConversation(id, token);
-      const loadedMessages = (detail.messages || (detail as unknown as { uiMessages?: unknown[] }).uiMessages || []) as UIMessage[];
+      const loadedMessages = (detail.messages ||
+        (detail as unknown as { uiMessages?: unknown[] }).uiMessages ||
+        []) as UIMessage[];
 
       setSession({
         id: detail.id,
-        title: detail.title || 'Brainstorm',
+        title: detail.title || "Brainstorm",
         initialMessages: Array.isArray(loadedMessages) ? loadedMessages : [],
       });
     } catch (error) {
-      console.error('Failed to load selected conversation:', error);
-      toast.error('Failed to load selected conversation');
+      console.error("Failed to load selected conversation:", error);
+      toast.error("Failed to load selected conversation");
     } finally {
       setIsSwitching(false);
     }
@@ -210,7 +224,7 @@ export default function AgentScreen() {
     setIsDrawerVisible(false);
     setSession({
       id: Crypto.randomUUID(),
-      title: 'Brainstorm',
+      title: "Brainstorm",
       initialMessages: [],
     });
   };
@@ -218,7 +232,7 @@ export default function AgentScreen() {
   return (
     <View className="flex-1 bg-background pt-safe">
       {/* 🧭 Minimal Deep-Focused Header */}
-      <View className="px-4 py-2.5 border-b border-border/60 flex-row items-center justify-between bg-background">
+      <View className="px-4 py-2.5 flex-row items-center justify-between bg-background">
         {/* Left: Back Button */}
         <Pressable
           onPress={() => {
@@ -234,7 +248,7 @@ export default function AgentScreen() {
         <View className="flex-row items-center gap-2 max-w-[55%]">
           <View
             className={`w-2 h-2 rounded-full ${
-              isStreaming ? 'bg-primary animate-pulse' : 'bg-primary'
+              isStreaming ? "bg-primary animate-pulse" : "bg-primary"
             }`}
           />
           <Text
@@ -253,7 +267,7 @@ export default function AgentScreen() {
             }}
             hitSlop={8}
             accessibilityLabel="Chat History"
-            className="w-9 h-9 rounded-full items-center justify-center bg-background-element border border-border/80 active:bg-background-selected">
+            className="w-9 h-9 rounded-full items-center justify-center">
             <Clock size={16} color={colors.text} />
           </Pressable>
 
@@ -261,12 +275,23 @@ export default function AgentScreen() {
             onPress={handleNewChat}
             hitSlop={8}
             accessibilityLabel="New Conversation"
-            className="w-9 h-9 rounded-full items-center justify-center bg-background-element border border-border/80 active:bg-background-selected">
+            className="w-9 h-9 rounded-full items-center justify-center">
             <Plus size={17} color={colors.text} />
           </Pressable>
         </View>
       </View>
 
+      {!isOnline && !session.initialMessages.length && (
+        <View className="absolute w-full top-safe-offset-16 px-5 py-2">
+          <View className="bg-background-selected/80 p-6 rounded-4xl flex-row gap-6 items-center">
+            <WifiOff color={colors.textSecondary} size={24} />
+            <ThemedText className="text-sm flex-1">
+              Sorry. Ikeen chat is not available at the moment. Please check
+              your connection and try again.
+            </ThemedText>
+          </View>
+        </View>
+      )}
       {/* 💬 Active Keyed Chat Session */}
       {isSwitching ? (
         <View className="flex-1 items-center justify-center">
@@ -283,7 +308,9 @@ export default function AgentScreen() {
           token={token}
           onTitleUpdate={handleTitleUpdate}
           onStatusChange={handleStatusChange}
-          initialPrompt={typeof initialPrompt === 'string' ? initialPrompt : undefined}
+          initialPrompt={
+            typeof initialPrompt === "string" ? initialPrompt : undefined
+          }
         />
       )}
 

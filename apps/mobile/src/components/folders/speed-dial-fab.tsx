@@ -1,47 +1,83 @@
 import React, { useState } from "react";
-import { Pressable, View } from "react-native";
-import * as Haptics from "expo-haptics";
-import { FileText, FolderPlus, Plus, X } from "lucide-react-native";
+import { Pressable, Text, View } from "react-native";
+import {
+  FileText,
+  FolderPlus,
+  LucideIcon,
+  Plus,
+  Sparkles,
+  X,
+} from "lucide-react-native";
 
 import { useTheme } from "@/hooks/use-theme";
-import { usePathname } from "expo-router";
+import { RoutePath,  useRouter } from "expo-router";
 import { BottomTabInset } from "@/constants/theme";
-
+import Animated, {
+  FadeIn,
+  FadeOut,
+  // LinearTransition,
+} from "react-native-reanimated";
 export interface SpeedDialFABProps {
   onNewFolder: () => void;
-  onNewNote: () => void;
   className?: string;
 }
 
+type SpeedDialFABOptionType = {
+  label: string;
+  icon: LucideIcon;
+  route: RoutePath;
+  onPress: () => void;
+};
 /**
  * Speed-Dial FAB matching the Catat reference UI:
  * - Circular primary action button (+)
  * - Vertical speed-dial bubble stack for 'New Folder' and 'New Note'
  */
+
 export function SpeedDialFAB({
   onNewFolder,
-  onNewNote,
   className = "",
 }: SpeedDialFABProps) {
   const colors = useTheme();
+  const router = useRouter();
+
   const [isOpen, setIsOpen] = useState(false);
 
-  const pathname = usePathname();
+  // const pathname = usePathname();
 
   // Determine which action is "active"
-  const isFolderActive = pathname === "/notes/folders";
-  const isNoteActive = pathname === "/notes";
+  // const isFolderActive = pathname === "/notes/folders";
+  // const isNoteActive = pathname === "/notes";
 
   const toggleOpen = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsOpen((prev) => !prev);
   };
 
   const handleAction = (action: () => void) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsOpen(false);
     action();
   };
+
+  const options: SpeedDialFABOptionType[] = [
+    {
+      label: "Chat",
+      icon: Sparkles,
+      onPress: () => router.push("/agent"),
+      route: "/agent",
+    },
+    {
+      label: "New Folder",
+      icon: FolderPlus,
+      onPress: onNewFolder,
+      route: "/agent",
+    },
+    {
+      label: "New Note",
+      icon: FileText,
+      onPress: () => router.push("/notes/create"),
+      route: "/notes/create",
+    },
+  ];
 
   return (
     <View className={`items-center ${className}`}>
@@ -49,39 +85,35 @@ export function SpeedDialFAB({
       {isOpen && (
         <Pressable
           onPress={() => setIsOpen(false)}
-          className="absolute -top-250 -left-250 -right-250 -bottom-250 z-10"
+          className="absolute -top-250 -left-250 -right-250 -bottom-250 z-10 bg-black/30"
         />
       )}
 
       {/* Speed Dial Menu Stack */}
       <View
         style={{
-          bottom: BottomTabInset,
+          bottom: BottomTabInset * 2,
         }}
-        className="absolute right-4">
+        className="absolute right-4 items-end">
         {isOpen && (
-          <View className="mb-3.5 z-20 items-center gap-2.5 rounded-full bg-card border border-primary/30 py-2 px-1.5 shadow-xl">
-            {/* New Folder Action */}
-            <Pressable
-              onPress={() => handleAction(onNewFolder)}
-              hitSlop={6}
-              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isFolderActive ? " border border-primary/20 bg-primary/20" : ""}`}>
-              <FolderPlus
-                size={20}
-                color={isFolderActive ? colors.primary : colors.text}
-              />
-            </Pressable>
-
-            {/* New Note Action */}
-            <Pressable
-              onPress={() => handleAction(onNewNote)}
-              hitSlop={6}
-              className={`w-11 h-11 rounded-full items-center justify-center active:bg-primary/20 active:scale-95${isNoteActive ? " border border-primary/20 bg-primary/20" : ""}`}>
-              <FileText
-                size={20}
-                color={isNoteActive ? colors.primary : colors.text}
-              />
-            </Pressable>
+          <View className="mb-3.5 z-20 items-end gap-2.5 rounded-3xl py-2 px-1.5">
+            {options.map((o, i) => (
+              <Animated.View
+                key={i}
+                entering={FadeIn.duration(200*i)}
+                exiting={FadeOut.duration(150)}>
+                <Pressable
+                  key={i}
+                  onPress={() => handleAction(o.onPress)}
+                  hitSlop={6}
+                  className={`bg-foreground border border-border/20 px-4 py-2 flex-row gap-2 rounded-full items-center justify-center active:scale-95`}>
+                  <Text className="text-background font-semibold text-base">
+                    {o.label}
+                  </Text>
+                  <o.icon size={20} color={colors.primary} strokeWidth={2.2} />
+                </Pressable>
+              </Animated.View>
+            ))}
           </View>
         )}
 

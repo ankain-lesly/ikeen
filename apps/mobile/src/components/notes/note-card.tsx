@@ -12,9 +12,9 @@ import { formatTimeAgo } from "@repo/utils/date";
 
 interface NoteCardProps {
   note: Note;
-  onTogglePin: (id: string) => void;
-  onToggleArchive: (id: string) => void;
-  onDelete: (id: string) => void;
+  onTogglePin?: (id: string) => void;
+  onToggleArchive?: (id: string) => void;
+  onDelete?: (id: string) => void;
   className?: string;
 }
 
@@ -54,22 +54,22 @@ export const NoteCard = React.memo(function NoteCard({
 
   const handlePinPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onTogglePin(note.id);
+    onTogglePin?.(note.id);
   };
 
   const handleArchivePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggleArchive(note.id);
+    onToggleArchive?.(note.id);
   };
 
   const handleDeletePress = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    onDelete(note.id);
+    onDelete?.(note.id);
   };
 
   const handleLongPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsMenuOpen(true)
+    setIsMenuOpen(true);
   };
 
   return (
@@ -107,6 +107,8 @@ export const NoteCard = React.memo(function NoteCard({
                     // customTrigger={
                     //   <MoreVertical size={14} color={colors.textSecondary} />
                     // }
+                    isDeleted={!!note.deletedAt}
+                    noteId={note.id}
                     iconStyle={{ size: 14, className: "pl-2" }}
                     isPinned={note.isPinned}
                     isArchived={note.isArchived}
@@ -173,7 +175,7 @@ export const NoteCard = React.memo(function NoteCard({
             onPress={handleShare}
           />
           <Link.MenuAction
-            title="Delete Note"
+            title="Trash Note"
             icon="trash"
             destructive
             onPress={handleDeletePress}

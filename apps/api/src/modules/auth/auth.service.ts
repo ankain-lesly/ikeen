@@ -31,7 +31,9 @@ export class AuthService {
       throw new ConflictException('An account with this email already exists');
     }
 
-    const emailPrefix = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+    const emailPrefix = normalizedEmail
+      .split('@')[0]
+      .replace(/[^a-zA-Z0-9_]/g, '');
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const generatedUsername = `${emailPrefix || 'user'}_${randomSuffix}`;
 
@@ -64,10 +66,15 @@ export class AuthService {
           lastName: true,
           avatarUrl: true,
           createdAt: true,
+          type: true,
         },
       });
 
-      const accessToken = this.generateToken(user.id, user.email, user.username);
+      const accessToken = this.generateToken(
+        user.id,
+        user.email,
+        user.username,
+      );
 
       this.logger.log(
         `[Auth:Register:Success] userId=${user.id} email=${user.email} username=${user.username}`,
@@ -96,7 +103,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.auth.password);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.auth.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -121,6 +131,7 @@ export class AuthService {
         lastName: user.lastName,
         avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
+        type: user.type,
       },
       accessToken,
     };
@@ -138,6 +149,7 @@ export class AuthService {
         avatarUrl: true,
         status: true,
         createdAt: true,
+        type: true,
       },
     });
 
@@ -148,7 +160,11 @@ export class AuthService {
     return user;
   }
 
-  private generateToken(userId: string, email: string, username: string): string {
+  private generateToken(
+    userId: string,
+    email: string,
+    username: string,
+  ): string {
     return this.jwtService.sign({
       sub: userId,
       email,

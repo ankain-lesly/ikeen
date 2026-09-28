@@ -256,7 +256,7 @@ export class SyncService {
    * Retrieves app update information for mobile clients.
    */
   getAppUpdates(query?: CheckUpdatesQueryDto): AppUpdateInfo {
-    const latestVersion = '1.0.1';
+    // TODO: Configure to come from a registry(object-with-data)
     const latestBuild = 2;
     const minRequiredVersion = this.env?.APP_MIN_REQUIRED_VERSION || '1.0.0';
     const isGloballyMandatory = this.env?.APP_UPDATE_MANDATORY || false;
@@ -275,7 +275,7 @@ export class SyncService {
     }
 
     return {
-      version: latestVersion,
+      version: minRequiredVersion,
       build: latestBuild,
       mandatory,
       title: 'New Update Available 🚀',

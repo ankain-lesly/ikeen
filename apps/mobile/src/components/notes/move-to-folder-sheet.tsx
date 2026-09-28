@@ -58,7 +58,7 @@ export function MoveToFolderSheet({
                   <Text
                     className="font-semibold text-text text-sm"
                     numberOfLines={2}>
-                    Unorganized (No Folder)
+                    (No Folder)
                   </Text>
                   <Text className="text-xs text-text-secondary">
                     Root note library

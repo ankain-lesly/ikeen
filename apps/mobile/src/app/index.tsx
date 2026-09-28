@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Pressable,  } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +8,96 @@ import Svg, { Rect, Line, G } from 'react-native-svg';
 import { useTheme } from '@/hooks/use-theme';
 
 const ONBOARDING_STORAGE_KEY = '@ikeen_onboarded';
+
+/**
+ * Primary App Entry & Onboarding Screen.
+ * Automatically redirects onboarded users to /(tabs)/home while presenting
+ * a focused, distraction-free onboarding experience for newcomers.
+ */
+export default function AppEntryScreen() {
+  const router = useRouter();
+  const colors = useTheme();
+
+  const [isReady, setIsReady] = useState(false);
+  const [isOnboarded, setIsOnboarded] = useState(false);
+
+  useEffect(() => {
+    async function checkOnboardingStatus() {
+      try {
+        const value = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+        if (value === 'true') {
+          setIsOnboarded(true);
+        }
+      } catch (error) {
+        console.error('[Onboarding] Error checking status:', error);
+      } finally {
+        setIsReady(true);
+      }
+    }
+
+    checkOnboardingStatus();
+  }, []);
+
+  // Avoid flash of content during fast storage check
+  if (!isReady) {
+    return <View className="flex-1 bg-background" />;
+  }
+
+  // Already onboarded -> jump directly into the main tabs
+  if (isOnboarded) {
+    // return <Redirect href="/notes/trash" />;
+    // return <Redirect href="/profile" />;
+    // return <Redirect href="/notes/archive-note-demo" />;
+    // return <Redirect href="/(tabs)/notes" />;
+    return <Redirect href="/(tabs)/home" />;
+    // return <Redirect href="/agent" />;
+    // return <Redirect href="/search" />;
+  }
+
+  const handleGetStarted = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      console.error('[Onboarding] Error saving status:', error);
+      router.replace('/(tabs)/home');
+    }
+  };
+
+  return (
+    <View className="py-safe flex-1 bg-background justify-between items-center px-6">
+      {/* Top Spacer & Center Graphic */}
+      <View className="flex-1 items-center justify-center pt-8">
+        <OnboardingIllustration />
+      </View>
+
+      {/* Bottom Typography & Action */}
+      <View className="w-full items-center pb-16">
+        {/* Main Heading */}
+        <Text className="text-[32px] font-bold text-text text-center tracking-tight leading-[1.2] mb-4">
+          Write Everything{'\n'}Avoid Oversharing
+        </Text>
+
+        {/* Subtitle Quote */}
+        <Text className="text-[13px] font-normal text-text-secondary text-center leading-relaxed max-w-70 mb-10">
+          People can be clever as high as the sky, but as long as they don&apos;t write, they will be lost in society and from history.
+        </Text>
+
+        {/* Circular Dark Next Button */}
+        <Pressable
+          onPress={handleGetStarted}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Get Started"
+          className="w-14 h-14 rounded-full bg-foreground items-center justify-center shadow-lg active:opacity-80">
+          <ChevronRight size={22} color={colors.background} strokeWidth={2.5} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 
 /**
  * High-fidelity generative geometric illustration matching the reference design.
@@ -68,90 +157,5 @@ function OnboardingIllustration() {
         <Rect x={162} y={120} width={4.5} height={20} rx={2.25} fill="#2563EB" />
       </G>
     </Svg>
-  );
-}
-
-/**
- * Primary App Entry & Onboarding Screen.
- * Automatically redirects onboarded users to /(tabs)/home while presenting
- * a focused, distraction-free onboarding experience for newcomers.
- */
-export default function AppEntryScreen() {
-  const router = useRouter();
-  const colors = useTheme();
-
-  const [isReady, setIsReady] = useState(false);
-  const [isOnboarded, setIsOnboarded] = useState(false);
-
-  useEffect(() => {
-    async function checkOnboardingStatus() {
-      try {
-        const value = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
-        if (value === 'true') {
-          setIsOnboarded(true);
-        }
-      } catch (error) {
-        console.error('[Onboarding] Error checking status:', error);
-      } finally {
-        setIsReady(true);
-      }
-    }
-
-    checkOnboardingStatus();
-  }, []);
-
-  // Avoid flash of content during fast storage check
-  if (!isReady) {
-    return <View className="flex-1 bg-background" />;
-  }
-
-  // Already onboarded -> jump directly into the main tabs
-  if (isOnboarded) {
-    return <Redirect href="/(tabs)/home" />;
-  }
-
-  const handleGetStarted = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-      router.replace('/(tabs)/home');
-    } catch (error) {
-      console.error('[Onboarding] Error saving status:', error);
-      router.replace('/(tabs)/home');
-    }
-  };
-
-  return (
-    <View className="py-safe flex-1 bg-background justify-between items-center px-6">
-      <StatusBar barStyle="dark-content" />
-
-      {/* Top Spacer & Center Graphic */}
-      <View className="flex-1 items-center justify-center pt-8">
-        <OnboardingIllustration />
-      </View>
-
-      {/* Bottom Typography & Action */}
-      <View className="w-full items-center pb-16">
-        {/* Main Heading */}
-        <Text className="text-[32px] font-bold text-text text-center tracking-tight leading-[1.2] mb-4">
-          Write Everything{'\n'}Avoid Oversharing
-        </Text>
-
-        {/* Subtitle Quote */}
-        <Text className="text-[13px] font-normal text-text-secondary text-center leading-relaxed max-w-[280px] mb-10">
-          People can be clever as high as the sky, but as long as they don&apos;t write, they will be lost in society and from history.
-        </Text>
-
-        {/* Circular Dark Next Button */}
-        <Pressable
-          onPress={handleGetStarted}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Get Started"
-          className="w-14 h-14 rounded-full bg-foreground items-center justify-center shadow-lg active:opacity-80">
-          <ChevronRight size={22} color={colors.background} strokeWidth={2.5} />
-        </Pressable>
-      </View>
-    </View>
   );
 }

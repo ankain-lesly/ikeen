@@ -17,7 +17,6 @@ const getDefaultApiUrl = () => {
 };
 
 export const API_BASE_URL = getDefaultApiUrl();
-// export const AGENT_BASE_URL = `${API_BASE_URL}/agent`;
 
 export interface ApiRequestOptions extends RequestInit {
   token?: string | null;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../api/api-client';
+import { UserType } from '@repo/types';
 
 const TOKEN_KEY = 'ikeen_auth_jwt_token';
 const USER_KEY = 'ikeen_auth_user_cache';
@@ -13,6 +14,7 @@ export interface UserProfile {
   lastName: string;
   avatarUrl?: string | null;
   createdAt?: string;
+  type?: UserType;
 }
 
 interface AuthResponse {
@@ -77,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try {
         const freshUser = await apiClient.get<UserProfile>('/auth/me', { token: storedToken });
         await SecureStore.setItemAsync(USER_KEY, JSON.stringify(freshUser));
-        set({ user: freshUser, isAuthenticated: true });
+        set({ user: { ...parsedUser, ...freshUser }, isAuthenticated: true });
       } catch (err: any) {
         // If 401 Unauthorized, token has expired
         if (err?.status === 401) {

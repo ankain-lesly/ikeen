@@ -8,8 +8,7 @@
     "dev:mobile": "turbo run dev --filter=@repo/mobile",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types",
-    "postinstall:dd": "cd apps/api && bunx prisma generate"
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "prettier": "3.9.6",

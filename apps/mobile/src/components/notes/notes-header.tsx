@@ -13,6 +13,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
 import * as Haptics from "expo-haptics";
+import { ScrollView } from "react-native";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -86,12 +87,15 @@ export function NotesHeader({
 
       {/* Segmented Filter Pills */}
       <View className="flex-row items-center justify-between gap-2 px-4">
-        <View className="flex-row gap-2">
+        <ScrollView
+          className="flex-row gap-2"
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="gap-3">
           <Pressable
-            key="all"
-            className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
+            className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
               isAllActive
-                ? "bg-background-selected border-primary"
+                ? "bg-foreground border-foreground"
                 : "bg-background-element border-border"
             }`}
             onPress={() => {
@@ -99,12 +103,12 @@ export function NotesHeader({
             }}>
             <ListOrdered
               size={12}
-              color={isAllActive ? colors.primary : colors.textSecondary}
+              color={isAllActive ? colors.background : colors.textSecondary}
             />
             <ThemedText
               className={`text-xs ${
                 isAllActive
-                  ? "text-text font-semibold"
+                  ? "text-background font-semibold"
                   : "text-text-secondary font-normal"
               }`}>
               All
@@ -117,9 +121,9 @@ export function NotesHeader({
             return (
               <Pressable
                 key={mode}
-                className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border active:opacity-80 ${
+                className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
                   isActive
-                    ? "bg-background-selected border-primary"
+                    ? "bg-foreground border-foreground"
                     : "bg-background-element border-border"
                 }`}
                 onPress={() => {
@@ -128,13 +132,13 @@ export function NotesHeader({
                 {mode === "pinnedFirst" && (
                   <Pin
                     size={12}
-                    color={isActive ? colors.primary : colors.textSecondary}
+                    color={isActive ? colors.background : colors.textSecondary}
                   />
                 )}
                 <ThemedText
                   className={`text-xs ${
                     isActive
-                      ? "text-text font-semibold"
+                      ? "text-background font-semibold"
                       : "text-text-secondary font-normal"
                   }`}>
                   {label}
@@ -142,17 +146,16 @@ export function NotesHeader({
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
+
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
             router.push("/(tabs)/notes/folders");
           }}
-          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg __bg-card shadow-sm`}>
-          <FolderIcon size={16} color={colors.textSecondary} />
-          <Text className={`text-sm font-semibold text-text-secondary`}>
-            Folders
-          </Text>
+          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg __bg-card`}>
+          <FolderIcon size={16} color={colors.primary} />
+          <Text className={`text-sm font-semibold text-primary`}>Folders</Text>
         </Pressable>
       </View>
     </View>

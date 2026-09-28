@@ -67,7 +67,7 @@ export default function TabLayout() {
                 <RootApp />
                 <Toast config={toastConfig} position="top" topOffset={50} />
                 <StatusBar
-                  barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+                  barStyle={scheme === "dark"  ? "light-content" : "dark-content"}
                 />
                 {/* Check Of Updates */}
                 <CheckForUpdatesMain />

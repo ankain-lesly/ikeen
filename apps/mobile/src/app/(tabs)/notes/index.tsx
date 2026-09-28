@@ -1,43 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
 import {
-  FileText,
-} from "lucide-react-native";
-import {FlashList} from "@shopify/flash-list"
-import { NoteCard } from "@/components/notes/note-card";
-import { ThemedText } from "@/components/ui/themed-text";
-import { BottomTabInset } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import {
-  createNote,
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
   useLiveNotes,
 } from "@/lib/queries/notes";
 import {
   createFolder,
-  softDeleteFolder,
   updateFolder,
-  useLiveFolders,
 } from "@/lib/queries/folders";
-import type { ListNotesOptions, Note } from "@/lib/types/notes";
+import type { ListNotesOptions } from "@/lib/types/notes";
 import type { CreateFolderInput, FolderWithCount } from "@/lib/types/folders";
 import { NotesHeader } from "@/components/notes/notes-header";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
-import { SpeedDialFAB } from "@/components/folders/speed-dial-fab";
 import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
+import { NoteGridContainer } from "@/components/notes/notes-grid-container";
+import { NoteEmptyCard } from "@/components/notes/note-empty-card";
 
 export default function NotesScreen() {
-  const colors = useTheme();
-
   // Folder Sheets & Modals
   const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] =
     useState(false);
@@ -99,78 +79,10 @@ export default function NotesScreen() {
     }
   };
 
-  // Note Handlers
-  const handleTogglePin = useCallback(async (id: string) => {
-    try {
-      await togglePinNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update pin state");
-    }
-  }, []);
-
-  const handleToggleArchive = useCallback(async (id: string) => {
-    try {
-      await toggleArchiveNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update archive state");
-    }
-  }, []);
-
-  const handleDeleteNote = useCallback((id: string) => {
-    Alert.alert(
-      "Delete Note",
-      "Are you sure you want to move this note to recently deleted?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await softDeleteNote(id);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            } catch {
-              Alert.alert("Error", "Could not delete note");
-            }
-          },
-        },
-      ],
-    );
-  }, []);
-
-  // const handleNewNote = async () => {
-  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  //   try {
-  //     const newNote = await createNote();
-  //     router.push({
-  //       pathname: "/notes/[id]",
-  //       params: { id: newNote.id },
-  //     });
-  //   } catch {
-  //     Alert.alert("Error", "Failed to create new note");
-  //   }
-  // };
-
   const handleApplyFilters = (newFilter: ListNotesOptions) => {
     setFilter(newFilter);
     setIsFilterSheetPresented(false);
   };
-
-  const renderNoteItem = useCallback(
-    ({ item }: { item: Note }) => (
-      <View className="p-1">
-        <NoteCard
-          note={item}
-          onTogglePin={handleTogglePin}
-          onToggleArchive={handleToggleArchive}
-          onDelete={handleDeleteNote}
-        />
-      </View>
-    ),
-    [handleTogglePin, handleToggleArchive, handleDeleteNote],
-  );
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -183,35 +95,28 @@ export default function NotesScreen() {
           updateFilter={(newFilter) => setFilter(newFilter)}
         />
 
-        <FlashList
+        <NoteGridContainer
+        filter={filter}
+        updateFilter={(key,val) =>setFilter(prev=>({...prev,[key]: val}))}
           data={notes}
-          numColumns={2}
-          renderItem={renderNoteItem}
-          keyExtractor={(item) => item.id}
-          className="flex-1"
-          masonry
-          contentContainerClassName="pt-1 px-2.5"
-          contentContainerStyle={{
-            paddingBottom: BottomTabInset + 80,
-          }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View className="items-center justify-center py-20 px-8">
-              <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-                <FileText size={32} color={colors.textSecondary} />
-              </View>
-              <ThemedText className="font-semibold text-base text-text text-center">
-                {Object.keys(filter).length > 0
-                  ? "No matching notes"
-                  : "No notes yet"}
-              </ThemedText>
-              <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-                {Object.keys(filter).length > 0
-                  ? "Try searching for a different keyword or tag."
-                  : "Capture your thoughts, ideas, and architecture notes."}
-              </Text>
-            </View>
-          }
+          empty={<NoteEmptyCard />}
+          // empty={
+          //   <View className="items-center justify-center py-20 px-8">
+          //     <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
+          //       <FileText size={32} color={colors.textSecondary} />
+          //     </View>
+          //     <ThemedText className="font-semibold text-base text-text text-center">
+          //       {Object.keys(filter).length > 0
+          //         ? "No matching notes"
+          //         : "No notes yet"}
+          //     </ThemedText>
+          //     <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
+          //       {Object.keys(filter).length > 0
+          //         ? "Try searching for a different keyword or tag."
+          //         : "Capture your thoughts, ideas, and architecture notes."}
+          //     </Text>
+          //   </View>
+          // }
         />
       </View>
 

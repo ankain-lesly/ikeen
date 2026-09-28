@@ -26,3 +26,15 @@
 ## Keywords
 
 - tombstones
+
+
+###
+
+ pathname: "/notes/[id]",
+ pathname: "/notes/create|new",
+
+
+- Chage all cosole.error -> cosole.warn
+
+
+- App version

@@ -1,19 +1,12 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Keyboard,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Alert, Keyboard, Pressable, View } from "react-native";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
   ArrowLeft,
   FileQuestion,
-  Pin,
   Search,
+  SlidersHorizontalIcon,
   Tag,
   X,
 } from "lucide-react-native";
@@ -26,51 +19,39 @@ import {
   type TextInputRef,
 } from "@expo/ui";
 
-import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
-import {
-  createNote,
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
-  useLiveNotes,
-} from "@/lib/queries/notes";
-import { ListNotesOptions } from "@/lib/types/notes";
+import { createNote, searchNotes, useLiveNotes } from "@/lib/queries/notes";
+import { ListNotesOptions, Note } from "@/lib/types/notes";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
-
-type ScopeFilter = "all" | "pinned" | "archived";
+import { NoteGridContainer } from "@/components/notes/notes-grid-container";
+import { useRecentSearches } from "@/hooks/use-recent-search";
+import { capitalize } from "@repo/utils";
 
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useTheme();
 
+  const [notes, setNotes] = useState<Note[]>([]);
+
   const inputRef = useRef<TextInputRef>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ListNotesOptions>({});
-  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [isFilterSheetPresented, setIsFilterSheetPresented] = useState(false);
 
-  const handleTextChange = useCallback((text: string) => {
-    setQuery(text);
-  }, []);
+  // Search history
+  const { deleteSearch, history, saveSearch } = useRecentSearches();
+
+  // const handleTextChange = useCallback((text: string) => {
+  //   setQuery(text);
+  // }, []);
 
   const handleClear = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     inputRef.current?.clear();
+    inputRef.current?.focus();
     setQuery("");
   }, []);
-
-  // Reactive live query for notes matching search term
-  const { data: rawNotes = [] } = useLiveNotes({
-    search: query.trim() || undefined,
-    includeArchived: scopeFilter === "archived",
-    pinnedFirst: true,
-    orderBy: "updatedAt",
-    orderDirection: "desc",
-    ...filter,
-  });
 
   // Query all active notes to discover distinct tags dynamically
   const { data: allNotes = [] } = useLiveNotes({
@@ -99,21 +80,21 @@ export default function SearchScreen() {
 
   // Filter notes based on scope and selected tag
   const filteredNotes = useMemo(() => {
-    let list = rawNotes ?? [];
+    let list = notes ?? [];
 
-    if (scopeFilter === "pinned") {
+    if (filter.pinnedFirst) {
       list = list.filter((n) => n.isPinned && !n.isArchived);
-    } else if (scopeFilter === "archived") {
+    } else if (filter.includeArchived) {
       list = list.filter((n) => n.isArchived);
     } else {
       list = list.filter((n) => !n.isArchived);
     }
 
-    if (selectedTag) {
+    if (filter.tag) {
       list = list.filter((n) => {
         try {
           const parsed = JSON.parse(n.tags || "[]");
-          return Array.isArray(parsed) && parsed.includes(selectedTag);
+          return Array.isArray(parsed) && parsed.includes(filter.tag);
         } catch {
           return false;
         }
@@ -121,48 +102,7 @@ export default function SearchScreen() {
     }
 
     return list;
-  }, [rawNotes, scopeFilter, selectedTag]);
-
-  // Note actions
-  const handleTogglePin = useCallback(async (id: string) => {
-    try {
-      await togglePinNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update pin state");
-    }
-  }, []);
-
-  const handleToggleArchive = useCallback(async (id: string) => {
-    try {
-      await toggleArchiveNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update archive state");
-    }
-  }, []);
-
-  const handleDelete = useCallback((id: string) => {
-    Alert.alert(
-      "Delete Note",
-      "Are you sure you want to move this note to recently deleted?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await softDeleteNote(id);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            } catch {
-              Alert.alert("Error", "Could not delete note");
-            }
-          },
-        },
-      ],
-    );
-  }, []);
+  }, [notes, filter]);
 
   const handleCreateNoteFromQuery = useCallback(async () => {
     try {
@@ -170,7 +110,7 @@ export default function SearchScreen() {
       const newNote = await createNote({
         title: query.trim(),
         content: "",
-        tags: selectedTag ? [selectedTag] : [],
+        tags: filter.tag ? [filter.tag] : [],
       });
       router.replace({
         pathname: "/notes/[id]",
@@ -179,30 +119,40 @@ export default function SearchScreen() {
     } catch {
       Alert.alert("Error", "Failed to create note");
     }
-  }, [query, selectedTag, router]);
+  }, [query, filter.tag, router]);
 
-  const handleScopeSelect = useCallback((scope: ScopeFilter) => {
-    Haptics.selectionAsync();
-    setScopeFilter(scope);
-  }, []);
+  const handleSearch = useCallback(
+    async (t: string, f: ListNotesOptions = {}) => {
+      // Save Search
+      await saveSearch(t);
 
-  const handleTagToggle = useCallback((tag: string) => {
-    Haptics.selectionAsync();
-    setSelectedTag((prev) => (prev === tag ? null : tag));
-  }, []);
+      // Query notes
+      const res = await searchNotes(t, filter);
+
+      // Update state
+      setNotes(res);
+      setQuery(t);
+      setFilter(f);
+      Keyboard.dismiss();
+    },
+    [filter, saveSearch],
+  );
 
   const isSearchActive = query.trim().length > 0;
 
+  // Determine if any non-default filters or sorts are active
+  const hasActiveFilters = useMemo(() => {
+    return Object.keys(filter).some((key) =>
+      Boolean(filter[key as keyof ListNotesOptions]),
+    );
+  }, [filter]);
+
   return (
     <>
-    {/* TODO: Fix Presentation */}
-      <Stack>
-        <Stack.Screen options={{ headerShown: false, presentation: "modal" }} />
-      </Stack>
       <View className="flex-1 bg-background pt-safe pb-safe w-full max-w-200 mx-auto">
         {/* Search Header Bar */}
         <View className="px-4 pt-2 pb-3">
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center justify-between gap-2">
             {/* Back Navigation Button */}
             <Pressable
               accessibilityRole="button"
@@ -212,15 +162,20 @@ export default function SearchScreen() {
                 Haptics.selectionAsync();
                 router.back();
               }}
-              className="min-w-11 min-h-11 items-center justify-center rounded-full active:opacity-70">
+              className="w-11 h-11 items-center justify-center rounded-full active:opacity-70">
               <ArrowLeft size={22} color={colors.text} />
             </Pressable>
 
-            {/* Search Input Box using Expo UI Host & TextInput */}
-            <View className="flex-1 flex-row items-center bg-background-element border border-border rounded-2xl px-3 py-1 gap-2 min-h-[44px]">
-              <Search size={18} color={colors.textSecondary} />
+            <ThemedText type="subtitle">Search</ThemedText>
 
-              <View className="flex-1 justify-center">
+            <View className="w-11" />
+          </View>
+
+          {/* Search Input Box using Expo UI Host & TextInput */}
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1 flex-row items-center bg-background-element border border-border rounded-full px-3 py-2 gap-2 h-12">
+              <Search size={18} color={colors.textSecondary} />
+              <View className="flex-1 justify-center px-4">
                 <Host
                   matchContents={{ vertical: true }}
                   style={{ width: "100%" }}>
@@ -231,8 +186,8 @@ export default function SearchScreen() {
                     placeholderTextColor={colors.textSecondary}
                     autoFocus
                     returnKeyType="search"
-                    onChangeText={handleTextChange}
-                    onSubmitEditing={() => Keyboard.dismiss()}
+                    // onChangeText={handleTextChange}
+                    onSubmitEditing={(t) => handleSearch(t)}
                     style={{
                       backgroundColor: "transparent",
                     }}
@@ -243,187 +198,105 @@ export default function SearchScreen() {
                   />
                 </Host>
               </View>
-
-              {/* Clear Button inside Input */}
-              {isSearchActive && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear search input"
-                  hitSlop={8}
-                  onPress={handleClear}
-                  className="min-w-9 min-h-9 items-center justify-center rounded-full active:opacity-70">
-                  <X size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-            </View>
-
-            {/* Expo UI Filter Button */}
-            <View className="justify-center">
-              <Host matchContents={{ vertical: true, horizontal: true }}>
-                <Button
-                  variant="text"
-                  label="Filter"
-                  onPress={() => {
-                    // Haptics.selectionAsync();
-                    setIsFilterSheetPresented(true);
-                  }}
-                  style={{
-                    paddingHorizontal: 8,
-                    height: 44,
-                  }}
-                />
-              </Host>
-            </View>
-          </View>
-
-          {/* Filter Scope and Tags Row */}
-          <View className="mt-3">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerClassName="flex-row items-center gap-2 pr-4">
-              {/* Scope: All */}
-              <Pressable
-                onPress={() => handleScopeSelect("all")}
-                accessibilityRole="button"
-                accessibilityState={{ selected: scopeFilter === "all" }}
-                className={`min-h-[36px] px-3.5 py-1.5 rounded-full border items-center justify-center flex-row gap-1.5 active:opacity-80 ${
-                  scopeFilter === "all"
-                    ? "bg-background-selected border-primary"
-                    : "bg-background-element border-border"
-                }`}>
-                <ThemedText
-                  className={`text-xs font-medium ${
-                    scopeFilter === "all"
-                      ? "text-primary font-semibold"
-                      : "text-text-secondary"
-                  }`}>
-                  All
-                </ThemedText>
-              </Pressable>
-
-              {/* Scope: Pinned */}
-              <Pressable
-                onPress={() => handleScopeSelect("pinned")}
-                accessibilityRole="button"
-                accessibilityState={{ selected: scopeFilter === "pinned" }}
-                className={`min-h-9 px-3.5 py-1.5 rounded-full border items-center justify-center flex-row gap-1.5 active:opacity-80 ${
-                  scopeFilter === "pinned"
-                    ? "bg-background-selected border-primary"
-                    : "bg-background-element border-border"
-                }`}>
-                <Pin
-                  size={12}
-                  color={
-                    scopeFilter === "pinned"
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
-                />
-                <ThemedText
-                  className={`text-xs font-medium ${
-                    scopeFilter === "pinned"
-                      ? "text-primary font-semibold"
-                      : "text-text-secondary"
-                  }`}>
-                  Pinned
-                </ThemedText>
-              </Pressable>
-
-              {/* Scope: Archived */}
-              <Pressable
-                onPress={() => handleScopeSelect("archived")}
-                accessibilityRole="button"
-                accessibilityState={{ selected: scopeFilter === "archived" }}
-                className={`min-h-[36px] px-3.5 py-1.5 rounded-full border items-center justify-center flex-row gap-1.5 active:opacity-80 ${
-                  scopeFilter === "archived"
-                    ? "bg-background-selected border-primary"
-                    : "bg-background-element border-border"
-                }`}>
-                <ThemedText
-                  className={`text-xs font-medium ${
-                    scopeFilter === "archived"
-                      ? "text-primary font-semibold"
-                      : "text-text-secondary"
-                  }`}>
-                  Archived
-                </ThemedText>
-              </Pressable>
-
-              {/* Dynamic Tag Pills */}
-              {availableTags.map((tag) => {
-                const isSelected = selectedTag === tag;
-                return (
+              {/* // Toolset */}
+              <View className="flex-row gap-1.5 items-center">
+                {/* Clear Button inside Input */}
+                {isSearchActive && (
                   <Pressable
-                    key={tag}
-                    onPress={() => handleTagToggle(tag)}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-full border items-center justify-center flex-row gap-1 active:opacity-80 ${
-                      isSelected
-                        ? "bg-background-selected border-primary"
-                        : "bg-background-element border-border"
-                    }`}>
-                    <Tag
-                      size={11}
-                      color={isSelected ? colors.primary : colors.textSecondary}
-                    />
-                    <ThemedText
-                      className={`text-xs font-medium ${
-                        isSelected
-                          ? "text-primary font-semibold"
-                          : "text-text-secondary"
-                      }`}>
-                      #{tag}
-                    </ThemedText>
+                    accessibilityLabel="Clear search input"
+                    hitSlop={8}
+                    onPress={handleClear}
+                    className="w-9 h-9 items-center justify-center rounded-full">
+                    <X size={16} color={colors.textSecondary} />
                   </Pressable>
-                );
-              })}
-            </ScrollView>
+                )}
+                {/* Expo UI Filter Button */}
+                <View className="justify-center relative">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear search input"
+                    hitSlop={8}
+                    onPress={() => setIsFilterSheetPresented(true)}
+                    className="w-9 h-9 items-center justify-center rounded-full relative">
+                    <SlidersHorizontalIcon
+                      size={16}
+                      color={
+                        hasActiveFilters ? colors.primary : colors.textSecondary
+                      }
+                    />
+                    {hasActiveFilters && (
+                      <View className="p-1 rounded-full bg-red-500 absolute top-2 right-2" />
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Results Header / Summary */}
-        <View className="px-4 py-2.5 flex-row items-center justify-between border-b border-border/50">
-          <ThemedText className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-            {isSearchActive
-              ? `${filteredNotes.length} ${
-                  filteredNotes.length === 1 ? "result" : "results"
-                }`
-              : "Recent Notes"}
-          </ThemedText>
+        <View className="border-b border-border/50">
+          <View className="px-4 py-2.5 flex-row items-center justify-between">
+            <ThemedText className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+              {isSearchActive
+                ? `${filteredNotes.length} ${
+                    filteredNotes.length === 1 ? "result" : "results"
+                  }`
+                : "Recent Notes"}
+            </ThemedText>
 
-          {(selectedTag || scopeFilter !== "all") && (
-            <Pressable
-              hitSlop={8}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setScopeFilter("all");
-                setSelectedTag(null);
-              }}
-              className="active:opacity-70">
-              <ThemedText className="text-xs text-primary font-medium">
-                Reset Filters
-              </ThemedText>
-            </Pressable>
+            {hasActiveFilters && (
+              <Pressable
+                hitSlop={8}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setFilter({});
+                  setNotes([]);
+                }}
+                className="active:opacity-70">
+                <ThemedText className="text-xs text-primary font-medium">
+                  Clear All
+                </ThemedText>
+              </Pressable>
+            )}
+          </View>
+
+          {!notes.length && !!history.length && (
+            <View className="flex-row gap-1 flex-wrap px-5 pb-2">
+              {history.map((term) => (
+                <Pressable
+                  key={term}
+                  onPress={() => {
+                    // setQuery(term);
+                    inputRef.current?.focus();
+                    handleSearch(term);
+                    // inputRef.current?.setSelection(0,-1)
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-background-element border border-border flex-row items-center gap-1">
+                  <ThemedText className="text-sm text-text-secondary">
+                    {capitalize(term)}
+                  </ThemedText>
+                  <Pressable
+                    key={term}
+                    onPress={async () => await deleteSearch(term)}
+                    className="p-1.5 items-center">
+                    <X size={12} color={colors.textSecondary} />
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
           )}
         </View>
 
+        {/* Recent search */}
+
         {/* Result List or Empty State */}
-        <FlatList
+        <NoteGridContainer
           data={filteredNotes}
-          keyExtractor={(item) => item.id}
-          keyboardDismissMode="on-drag"
-          contentContainerClassName="p-4 gap-2"
-          renderItem={({ item }) => (
-            <NoteCard
-              note={item}
-              onTogglePin={handleTogglePin}
-              onToggleArchive={handleToggleArchive}
-              onDelete={handleDelete}
-            />
-          )}
-          ListEmptyComponent={() => (
+          filter={filter}
+          updateFilter={(key, val) => setFilter((p) => ({ ...p, [key]: val }))}
+          empty={
             <View className="items-center justify-center py-16 px-6">
               <View className="w-16 h-16 rounded-full bg-background-element items-center justify-center mb-4">
                 {isSearchActive ? (
@@ -437,93 +310,67 @@ export default function SearchScreen() {
                 {isSearchActive ? "No matching notes" : "Search your notes"}
               </ThemedText>
 
-              <ThemedText className="text-sm text-center text-text-secondary mb-6 leading-5 max-w-[280px]">
+              <ThemedText className="text-sm text-center text-text-secondary mb-6 leading-5 max-w-70">
                 {isSearchActive
                   ? `No notes match "${query}". Try searching with a different keyword or create a new note.`
                   : "Type in keywords, note titles, or select tags above to quickly find your notes."}
               </ThemedText>
 
-              {/* {isSearchActive ? (
-              <View className="">
-                <Host matchContents>
-                  <Column spacing={8}>
-                    <Row spacing={8}>
-                      <Button
-                        variant="filled"
-                        label={`Create "${query.slice(0, 18)}..."`}
-                        onPress={handleCreateNoteFromQuery}
-                        style={{
-                          height: 44,
-                          paddingHorizontal: 16,
-                          borderRadius: 12,
-                        }}
-                      />
-                    </Row>
-                    <Row spacing={8}>
-                      <Button
-                        variant="outlined"
-                        label="Clear Search"
-                        onPress={handleClear}
-                        style={{
-                          height: 44,
-                          paddingHorizontal: 16,
-                          borderRadius: 12,
-                        }}
-                      />
-                    </Row>
-                  </Column>
-                </Host>
-              </View>
-            ) : availableTags.length > 0 ? ( */}
-              <View className="w-full mt-2">
-                <Host matchContents>
-                  <Column spacing={8}>
-                    <Row spacing={8}>
-                      <Button
-                        variant="filled"
-                        label={`Create "${query.slice(0, 18)}..."`}
-                        onPress={handleCreateNoteFromQuery}
-                        style={{
-                          height: 44,
-                          paddingHorizontal: 16,
-                          borderRadius: 12,
-                        }}
-                      />
-                    </Row>
-                    <Row spacing={8}>
-                      <Button
-                        variant="outlined"
-                        label="Clear Search"
-                        onPress={handleClear}
-                        style={{
-                          height: 44,
-                          paddingHorizontal: 16,
-                          borderRadius: 12,
-                        }}
-                      />
-                    </Row>
-                  </Column>
-                </Host>
-                <ThemedText className="text-xs font-mono uppercase text-text-secondary text-center mb-3">
-                  Popular Tags
-                </ThemedText>
-                <View className="flex-row flex-wrap justify-center gap-2">
-                  {availableTags.slice(0, 6).map((tag) => (
-                    <Pressable
-                      key={tag}
-                      onPress={() => handleTagToggle(tag)}
-                      className="px-3 py-1.5 rounded-xl bg-background-element border border-border flex-row items-center gap-1 active:opacity-70">
-                      <Tag size={12} color={colors.textSecondary} />
-                      <ThemedText className="text-xs text-text-secondary">
-                        #{tag}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+              {isSearchActive ? (
+                <View className="">
+                  <Host matchContents>
+                    <Column spacing={8}>
+                      <Row spacing={8}>
+                        <Button
+                          variant="filled"
+                          label={`Create note "${query.slice(0, 18)}..."`}
+                          onPress={handleCreateNoteFromQuery}
+                          style={{
+                            height: 44,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                          }}
+                        />
+                      </Row>
+                      {/* <Row spacing={8}>
+                        <Button
+                          variant="outlined"
+                          label="Clear Search"
+                          onPress={handleClear}
+                          style={{
+                            height: 44,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                          }}
+                        />
+                      </Row> */}
+                    </Column>
+                  </Host>
                 </View>
-              </View>
-              {/* ) : null} */}
+              ) : availableTags.length > 0 ? (
+                <View className="w-full mt-2">
+                  <ThemedText className="text-xs font-mono uppercase text-text-secondary text-center mb-3">
+                    Popular Tags
+                  </ThemedText>
+                  <View className="flex-row flex-wrap justify-center gap-2">
+                    {availableTags.slice(0, 6).map((tag) => (
+                      <Pressable
+                        key={tag}
+                        onPress={() => {
+                          handleSearch("", { tag });
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-background-element border border-border flex-row items-center gap-1 active:opacity-70">
+                        <Tag size={12} color={colors.textSecondary} />
+                        <ThemedText className="text-xs text-text-secondary">
+                          #{tag}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
             </View>
-          )}
+          }
         />
 
         {/* Notes Filter Sheet */}
@@ -532,8 +379,11 @@ export default function SearchScreen() {
           onDismiss={() => setIsFilterSheetPresented(false)}
           availableTags={availableTags}
           handleApplyFilters={(filter) => {
-            setFilter(filter);
+            // setFilter(filter);
             setIsFilterSheetPresented(false);
+            // setTimeout(() => {
+            handleSearch("", filter);
+            // }, 50);
           }}
         />
       </View>
