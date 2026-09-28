@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { Link } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Pin } from "lucide-react-native";
+import { ArchiveRestore, Pin } from "lucide-react-native";
 
 import { ThemedText } from "@/components/ui/themed-text";
 import type { Note } from "@/lib/types/notes";
@@ -97,6 +97,15 @@ export const NoteCard = React.memo(function NoteCard({
                       color={colors.primary}
                       fill={colors.primary}
                       // style={{ transform: [{ rotate: '45deg' }] }}
+                    />
+                  )}
+
+                  <View/>
+                  
+                  {note.isArchived && (
+                    <ArchiveRestore
+                      size={12}
+                      color={colors.textSecondary}
                     />
                   )}
 

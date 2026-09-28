@@ -123,12 +123,13 @@ export default function SearchScreen() {
 
   const handleSearch = useCallback(
     async (t: string, f: ListNotesOptions = {}) => {
-      // Save Search
-      await saveSearch(t);
-
-      // Query notes
+     // Query notes
       const res = await searchNotes(t, filter);
 
+      // Save Search
+      if (res?.length > 0)
+        await saveSearch(t);
+      
       // Update state
       setNotes(res);
       setQuery(t);

@@ -16,17 +16,16 @@ import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useSyncStore } from "@/lib/sync/use-sync";
-import { useLiveNotes, createNote } from "@/lib/queries/notes";
+import { useLiveNotes,  } from "@/lib/queries/notes";
 import { useLiveFolders } from "@/lib/queries/folders";
 import { NotebookHeroIllustration } from "@/components/illustrations";
-import { toast } from "@/lib/toast";
 import { NoteCard } from "@/components/notes/note-card";
 import { NoteEmptyCard } from "@/components/notes/note-empty-card";
 
 export default function HomeScreen() {
   const colors = useTheme();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const { status: syncStatus, pendingCount } = useSyncStore();
 
   const { data: allNotes = [] } = useLiveNotes();
@@ -51,32 +50,32 @@ export default function HomeScreen() {
     [allNotes],
   );
 
-  // Time-based greeting
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  }, []);
+  // // Time-based greeting
+  // const greeting = useMemo(() => {
+  //   const hour = new Date().getHours();
+  //   if (hour < 12) return "Good morning";
+  //   if (hour < 18) return "Good afternoon";
+  //   return "Good evening";
+  // }, []);
 
-  const formattedDate = useMemo(() => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  }, []);
+  // const formattedDate = useMemo(() => {
+  //   return new Date().toLocaleDateString("en-US", {
+  //     weekday: "long",
+  //     month: "short",
+  //     day: "numeric",
+  //   });
+  // }, []);
 
-  const userDisplayName = user?.firstName
-    ? user.firstName
-    : isAuthenticated
-      ? "Creator"
-      : "Guest";
+  // const userDisplayName = user?.firstName
+  //   ? user.firstName
+  //   : isAuthenticated
+  //     ? "Creator"
+  //     : "Guest";
 
-  const userInitials = user
-    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() ||
-      "U"
-    : "G";
+  // const userInitials = user
+  //   ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() ||
+  //     "U"
+  //   : "G";
 
   const handleCreateNote =  () => {
     router.push("/notes/create")
@@ -88,8 +87,6 @@ export default function HomeScreen() {
     if (pendingCount > 0) return `${pendingCount} Pending`;
     return "All Synced";
   }, [syncStatus, pendingCount]);
-
-  // return <Redirect href="/agent" />;
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -264,10 +261,10 @@ export default function HomeScreen() {
 
               {/* Cloud Sync Status */}
               <Pressable
-                onPress={() => {
+                onPress={user?.type ==="admin" ? () => {
                   Haptics.selectionAsync();
                   router.push("/(tabs)/profile/sync-outbox");
-                }}
+                } : undefined}
                 className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
                 <View className="flex-row items-center justify-between mb-2">
                   <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">

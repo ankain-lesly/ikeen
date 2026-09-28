@@ -111,7 +111,7 @@ export function NotesHeader({
                   ? "text-background font-semibold"
                   : "text-text-secondary font-normal"
               }`}>
-              All
+              Recent
             </ThemedText>
           </Pressable>
           {(["pinnedFirst", "includeArchived"] as const).map((mode) => {

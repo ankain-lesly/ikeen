@@ -73,6 +73,7 @@ export function NoteEditor({ note }: { note?: Note }) {
 
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
+  const tagInputRef = useRef<TextInput>(null);
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
   const isDeletedRef = useRef(false);
@@ -245,11 +246,12 @@ export function NoteEditor({ note }: { note?: Note }) {
       const updatedTags = [...tags, trimmed];
       setTags(updatedTags);
       setNewTagText("");
-      setNewTagInputVisible(false);
+      // setNewTagInputVisible(false);
       saveNote(title, content, updatedTags);
       Haptics.selectionAsync();
+      tagInputRef?.current?.focus()
     } else {
-      setNewTagInputVisible(false);
+      // setNewTagInputVisible(false);
       setNewTagText("");
     }
   };
@@ -358,6 +360,8 @@ export function NoteEditor({ note }: { note?: Note }) {
               )}
               {/* Dropdown */}
               <NotesDetailDropdown
+                isDeleted={false}
+                noteId={id ?? ""}
                 isPinned={isPinned}
                 onTogglePin={handleTogglePin}
                 isArchived={isArchived}
@@ -461,6 +465,7 @@ export function NoteEditor({ note }: { note?: Note }) {
                     <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
                       <Text className="text-xs text-text-secondary">#</Text>
                       <TextInput
+                        ref={tagInputRef}
                         className="text-xs py-0 px-0.5 min-w-10 text-text"
                         placeholder="tag"
                         placeholderTextColor={colors.textSecondary}

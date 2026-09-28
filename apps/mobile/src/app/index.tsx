@@ -48,8 +48,8 @@ export default function AppEntryScreen() {
     // return <Redirect href="/notes/trash" />;
     // return <Redirect href="/profile" />;
     // return <Redirect href="/notes/archive-note-demo" />;
-    // return <Redirect href="/(tabs)/notes" />;
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/(tabs)/notes" />;
+    // return <Redirect href="/(tabs)/home" />;
     // return <Redirect href="/agent" />;
     // return <Redirect href="/search" />;
   }

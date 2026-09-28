@@ -283,11 +283,11 @@ export default function AgentScreen() {
 
       {!isOnline && !session.initialMessages.length && (
         <View className="absolute w-full top-safe-offset-16 px-5 py-2">
-          <View className="bg-background-selected/80 p-6 rounded-4xl flex-row gap-6 items-center">
+          <View className="bg-background-selected p-8 rounded-4xl flex-row gap-6 items-center">
             <WifiOff color={colors.textSecondary} size={24} />
-            <ThemedText className="text-sm flex-1">
+            <ThemedText className="text-[13px] flex-1">
               Sorry. Ikeen chat is not available at the moment. Please check
-              your connection and try again.
+              your connection and try again
             </ThemedText>
           </View>
         </View>

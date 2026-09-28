@@ -145,7 +145,7 @@ function ChatInputComponent({
       style={[
         styles.wrap,
         {
-          paddingBottom: isVisible ? 12 : bottomPadding,
+          paddingBottom: isVisible ? 8 : bottomPadding,
         },
       ]}>
       <View style={[styles.inputWrap]}>

@@ -6,29 +6,16 @@ import { Plus } from "lucide-react-native";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { EmptyNotesIllustration } from "@/components/illustrations";
-import * as Haptics from "expo-haptics";
-import { createNote } from "@/lib/queries/notes";
-import { toast } from "@/lib/toast";
 
 export const NoteEmptyCard = ({ hide = false }) => {
   const router = useRouter();
   const colors = useTheme();
 
-  const handleCreateNote = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      const newNote = await createNote();
-      router.push({
-        pathname: "/notes/[id]",
-        params: { id: newNote.id },
-      });
-    } catch {
-      toast.error("Could not create note");
-    }
+  const handleCreateNote = () => {
+    router.push("/notes/create");
   };
 
   if (hide === true) return null;
-
   return (
     <View className="gap-2.5">
       <View className="p-8 items-center justify-center text-center gap-3">

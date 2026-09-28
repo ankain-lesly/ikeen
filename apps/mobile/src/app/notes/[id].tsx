@@ -47,7 +47,6 @@ export default function NoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: note } = useLiveNote(id as string);
 
-  console.log(id)
   if (!note) {
     return (
       <View className="flex-1 bg-background pt-safe pb-safe justify-center items-center">

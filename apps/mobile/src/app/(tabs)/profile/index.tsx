@@ -24,6 +24,7 @@ import {
   Vibrate,
   Wifi,
 } from "lucide-react-native";
+import Constants from "expo-constants";
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
@@ -125,6 +126,12 @@ export default function ProfileScreen() {
   }[defaultSort];
 
   const username = [user?.firstName, user?.lastName]?.filter(Boolean).join(" ");
+
+  const version = Constants.expoConfig?.version || "0.0.0";
+  const build =
+    Constants.expoConfig?.ios?.buildNumber ||
+    Constants.expoConfig?.android?.versionCode;
+
   return (
     <View className="flex-1 bg-background pt-safe">
       {/* Top Navigation Header */}
@@ -597,7 +604,9 @@ export default function ProfileScreen() {
             <Info size={16} color={colors.textSecondary} />
             <Text className="text-xs text-text-secondary">iKeen Notes</Text>
           </View>
-          <Text className="text-xs text-text-secondary font-mono">v1.0.0</Text>
+          <Text className="text-xs text-text-secondary font-mono">
+            v{version} {build ? ` - ${build}` : ""}
+          </Text>
         </View>
       </ScrollView>
     </View>
