@@ -279,8 +279,13 @@ export class SyncService {
       build: latestBuild,
       mandatory,
       title: 'New Update Available 🚀',
-      description:
-        '• Improved sync performance\n• AI agent chat improvements\n• General bug fixes and stability improvements',
+      description: [
+        'Enhanced user-centered design structure for easier navigation',
+        'Enhance search functionality, recent search, and note filtering',
+        'Improved sync performance for faster note updates on all devices',
+        'Smarter, more interactive AI agent chat features based on your feedback',
+        'Bug fixes and general stability improvements for a smoother experience',
+      ].join('\n• '),
       url,
     };
   }

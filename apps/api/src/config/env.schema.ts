@@ -24,7 +24,7 @@ export const envSchema = z.object({
   AI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
 
   // App Updates
-  APP_MIN_REQUIRED_VERSION: z.string().default('1.0.0'),
+  APP_MIN_REQUIRED_VERSION: z.string().default('1.2.0'),
   APP_UPDATE_MANDATORY: z.coerce.boolean().default(false),
   APP_UPDATE_URL_ANDROID: z.string().optional(),
   APP_UPDATE_URL_IOS: z.string().optional(),
