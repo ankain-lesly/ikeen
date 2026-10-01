@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable,  } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { ChevronRight } from 'lucide-react-native';
 import Svg, { Rect, Line, G } from 'react-native-svg';
 import { useTheme } from '@/hooks/use-theme';
@@ -45,23 +45,17 @@ export default function AppEntryScreen() {
 
   // Already onboarded -> jump directly into the main tabs
   if (isOnboarded) {
-    // return <Redirect href="/notes/trash" />;
-    // return <Redirect href="/profile" />;
-    // return <Redirect href="/notes/archive-note-demo" />;
     return <Redirect href="/(tabs)/notes" />;
-    // return <Redirect href="/(tabs)/home" />;
-    // return <Redirect href="/agent" />;
-    // return <Redirect href="/search" />;
   }
 
   const handleGetStarted = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/notes');
     } catch (error) {
       console.error('[Onboarding] Error saving status:', error);
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/notes');
     }
   };
 

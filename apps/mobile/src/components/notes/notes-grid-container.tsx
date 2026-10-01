@@ -10,7 +10,7 @@ import { FlashList } from "@shopify/flash-list";
 import type { ListNotesOptions, Note } from "@/lib/types/notes";
 
 import { useTheme } from "@/hooks/use-theme";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import { BottomTabInset } from "@/constants/theme";
 import { NoteCard } from "./note-card";
 import {
@@ -139,24 +139,37 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
               <View className="flex-row items-center justify-between pb-3 pt-1">
                 {/* Sort Dropdown / Cycle button */}
                 {showFilter ? (
-                  <Pressable
-                    onPress={handleCycleFolderSort}
-                    className="flex-row items-center gap-1.5 active:opacity-70">
-                    <Pressable onPress={handleToggleSortDirection} hitSlop={6}>
+                  <View className="flex-row items-center gap-1.5">
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        filter.orderDirection === "desc"
+                          ? "Sort descending, tap to reverse"
+                          : "Sort ascending, tap to reverse"
+                      }
+                      onPress={handleToggleSortDirection}
+                      hitSlop={8}
+                      className="min-h-11 min-w-11 items-center justify-center">
                       {filter.orderDirection === "desc" ? (
                         <ArrowDownWideNarrow size={17} color={colors.text} />
                       ) : (
                         <ArrowUpNarrowWide size={17} color={colors.text} />
                       )}
                     </Pressable>
-                    <Text className="text-sm font-semibold text-text">
-                      {filter.orderBy === "updatedAt"
-                        ? "Last modified"
-                        : filter.orderBy === "title"
-                          ? "Title"
-                          : "Date created"}
-                    </Text>
-                  </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Change sort field"
+                      onPress={handleCycleFolderSort}
+                      className="flex-row items-center min-h-11 active:opacity-70">
+                      <Text className="text-sm font-semibold text-text">
+                        {filter.orderBy === "updatedAt"
+                          ? "Last modified"
+                          : filter.orderBy === "title"
+                            ? "Title"
+                            : "Date created"}
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : (
                   <ThemedText type="subtitle" className="pl-2">
                     Notes
@@ -165,6 +178,12 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
 
                 {/* Grid vs List View Toggle */}
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    gridLayout === "grid"
+                      ? "Switch to list view"
+                      : "Switch to grid view"
+                  }
                   onPress={() => {
                     Haptics.selectionAsync();
                     setGridLayout((prev) =>
@@ -172,7 +191,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                     );
                   }}
                   hitSlop={8}
-                  className="w-8 h-8 rounded-lg items-center justify-center active:bg-background-element">
+                  className="min-h-11 min-w-11 rounded-lg items-center justify-center active:bg-background-element">
                   {gridLayout === "grid" ? (
                     <Grid2X2 size={20} color={colors.text} />
                   ) : (

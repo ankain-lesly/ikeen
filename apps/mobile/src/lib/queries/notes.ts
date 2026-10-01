@@ -23,8 +23,14 @@ function buildNotesQuery(options: ListNotesOptions = {}) {
     conditions.push(isNull(notes.deletedAt));
   }
 
-  if (!options.includeArchived) {
+  if (options.archivedOnly) {
+    conditions.push(eq(notes.isArchived, true));
+  } else if (!options.includeArchived) {
     conditions.push(eq(notes.isArchived, false));
+  }
+
+  if (options.pinnedOnly) {
+    conditions.push(eq(notes.isPinned, true));
   }
 
   if (options.folderId !== undefined) {
@@ -49,7 +55,7 @@ function buildNotesQuery(options: ListNotesOptions = {}) {
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const orderClauses = [];
-  if (options.pinnedFirst !== false) {
+  if (!options.pinnedOnly && options.pinnedFirst !== false) {
     orderClauses.push(desc(notes.isPinned));
   }
 
@@ -91,6 +97,8 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.folderId,
     options.includeDeleted,
     options.includeArchived,
+    options.pinnedOnly,
+    options.archivedOnly,
     options.tag,
     options.search,
     options.pinnedFirst,

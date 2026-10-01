@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { Link } from "expo-router";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import { ArchiveRestore, Pin } from "lucide-react-native";
 
 import { ThemedText } from "@/components/ui/themed-text";

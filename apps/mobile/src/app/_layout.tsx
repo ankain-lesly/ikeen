@@ -130,6 +130,9 @@ function RootApp() {
     <Stack screenOptions={{ headerShown: false }} initialRouteName="index">
       <Stack.Screen name="index" />
       <Stack.Screen name="agent" />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="notes" />
+      <Stack.Screen name="folders" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="(auth)"

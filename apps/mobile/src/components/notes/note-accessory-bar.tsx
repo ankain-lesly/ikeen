@@ -7,7 +7,7 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import {
   Bold,
   CheckSquare,
@@ -15,8 +15,8 @@ import {
   Heading1,
   Italic,
   List,
-  Undo,
-  Redo,
+  // Undo,
+  // Redo,
   CheckCheck,
   Pencil,
   Pin,
@@ -137,70 +137,86 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
         keyboardShouldPersistTaps="always">
         {/* Checklist */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert checklist item"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={() => handleAction("\n- [ ] ")}>
           <CheckSquare size={18} color={colors.text} />
         </Pressable>
 
         {/* Bullet List */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert bullet list"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={() => handleAction("\n- ")}>
           <List size={18} color={colors.text} />
         </Pressable>
 
         {/* Heading */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert heading"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={() => handleAction("\n## ")}>
           <Heading1 size={18} color={colors.text} />
         </Pressable>
 
         {/* Bold */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert bold"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={() => handleAction("****")}>
           <Bold size={18} color={colors.text} />
         </Pressable>
 
         {/* Italic */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert italic"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={() => handleAction("**")}>
           <Italic size={18} color={colors.text} />
         </Pressable>
 
         {/* Tag Pill */}
         <Pressable
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          accessibilityRole="button"
+          accessibilityLabel="Insert tag"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
           onPress={handleTagAction}>
           <Hash size={18} color={colors.text} />
         </Pressable>
 
-        {/* Undo */}
+        {/* Undo / Redo — not wired to editor history yet
         <Pressable
           className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
           hitSlop={8}>
           <Undo size={18} color={colors.textSecondary} />
         </Pressable>
-        {/* Redo */}
         <Pressable
           className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
           hitSlop={8}>
           <Redo size={18} color={colors.textSecondary} />
         </Pressable>
+        */}
       </ScrollView>
 
       {/* Done Button */}
       {isSaving ? (
         <Pressable
-          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+          accessibilityRole="button"
+          accessibilityLabel="Saving note"
+          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-11"
           onPress={handleDismiss}>
           <ActivityIndicator size={"small"} color={colors.border} />
         </Pressable>
       ) : (
         <Pressable
-          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+          accessibilityRole="button"
+          accessibilityLabel="Done editing"
+          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-11"
           onPress={handleDismiss}>
           <CheckCheck size={24} color={colors.primary} />
         </Pressable>
@@ -236,7 +252,9 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
         <View className="flex-row items-center gap-2">
           {onShare ? (
             <Pressable
-              className="p-2 rounded-full justify-center items-center active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel="Share note"
+              className="p-2 rounded-full justify-center items-center active:opacity-70 min-h-11 min-w-11"
               onPress={onShare}
               hitSlop={8}>
               <Share2 size={16} color={colors.textSecondary} />
@@ -245,7 +263,9 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
 
           {onTogglePin ? (
             <Pressable
-              className="p-2 rounded-full justify-center items-center active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel={isPinned ? "Unpin note" : "Pin note"}
+              className="p-2 rounded-full justify-center items-center active:opacity-70 min-h-11 min-w-11"
               onPress={onTogglePin}
               hitSlop={8}>
               <Pin

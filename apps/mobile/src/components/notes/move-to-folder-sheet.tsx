@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { BottomSheet, Host, RNHostView } from "@expo/ui";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import { Box, Check, FolderX, X } from "lucide-react-native";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";

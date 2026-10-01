@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import {
   ChevronLeft,
   FileText,
@@ -20,7 +20,6 @@ import {
 
 import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
-import { BottomTabInset } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   softDeleteFolder,
@@ -174,9 +173,11 @@ export default function FolderDetailScreen() {
       <View className="px-4 pb-3 pt-2 border-b border-border flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             onPress={() => router.back()}
             hitSlop={8}
-            className="w-9 h-9 rounded-full items-center justify-center bg-background-element active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-background-element active:opacity-70">
             <ChevronLeft size={22} color={colors.text} />
           </Pressable>
 
@@ -217,7 +218,12 @@ export default function FolderDetailScreen() {
             className="flex-1 ml-2 text-sm text-text"
           />
           {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")} hitSlop={6}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              className="min-h-11 min-w-11 items-center justify-center">
               <X size={14} color={colors.textSecondary} />
             </Pressable>
           )}
@@ -231,10 +237,7 @@ export default function FolderDetailScreen() {
         renderItem={renderNoteItem}
         keyExtractor={(item) => item.id}
         className="flex-1"
-        contentContainerClassName="pt-2 px-2.5"
-        contentContainerStyle={{
-          paddingBottom: BottomTabInset + 76,
-        }}
+        contentContainerClassName="pt-2 px-2.5 pb-safe-offset-20"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="items-center justify-center py-20 px-8">

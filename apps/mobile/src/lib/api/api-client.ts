@@ -1,7 +1,6 @@
 
 const getDefaultApiUrl = () => {
   // return "http://192.168.0.100:3000/api/v1";
-  // TODO: Remove Before Production
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   } else {

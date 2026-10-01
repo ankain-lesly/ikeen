@@ -60,12 +60,14 @@ export function FolderDetailDropdown({
         <DropdownMenu.Trigger>
           <RNHostView matchContents>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Folder actions"
               onPress={(e) => {
                 e?.stopPropagation?.();
                 handleOpen();
               }}
               hitSlop={8}
-              className="p-1 rounded-full active:opacity-60">
+              className="min-h-11 min-w-11 items-center justify-center rounded-full active:opacity-60">
               <MoreVertical size={iconSize} color={colors.textSecondary} />
             </Pressable>
           </RNHostView>

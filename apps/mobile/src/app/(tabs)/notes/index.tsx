@@ -9,7 +9,7 @@ import {
   createFolder,
   updateFolder,
 } from "@/lib/queries/folders";
-import type { ListNotesOptions } from "@/lib/types/notes";
+import { hasActiveNotesFilters, type ListNotesOptions } from "@/lib/types/notes";
 import type { CreateFolderInput, FolderWithCount } from "@/lib/types/folders";
 import { NotesHeader } from "@/components/notes/notes-header";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
@@ -51,24 +51,12 @@ export default function NotesScreen() {
     return Array.from(set).sort();
   }, [rawNotes]);
 
-  // Determine if any non-default filters or sorts are active
-  const hasActiveFilters = useMemo(() => {
-    return Object.keys(filter).some((key) =>
-      Boolean(filter[key as keyof ListNotesOptions]),
-    );
-  }, [filter]);
+  const hasActiveFilters = useMemo(
+    () => hasActiveNotesFilters(filter),
+    [filter],
+  );
 
-  // Filter notes in memory
-  const notes = useMemo(() => {
-    const list = rawNotes ?? [];
-    if (filter.pinnedFirst) {
-      return list.filter((n) => n.isPinned && !n.isArchived);
-    }
-    if (filter.includeArchived) {
-      return list.filter((n) => n.isArchived);
-    }
-    return list.filter((n) => !n.isArchived);
-  }, [rawNotes, filter]);
+  const notes = rawNotes ?? [];
 
   const handleSaveFolder = async (data: CreateFolderInput) => {
     if (folderToEdit) {
@@ -136,6 +124,7 @@ export default function NotesScreen() {
         isPresented={isFilterSheetPresented}
         onDismiss={() => setIsFilterSheetPresented(false)}
         availableTags={availableTags}
+        appliedFilter={filter}
         handleApplyFilters={handleApplyFilters}
       />
     </View>

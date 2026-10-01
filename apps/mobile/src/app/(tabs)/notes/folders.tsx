@@ -7,8 +7,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { router, type Href } from "expo-router";
+import * as Haptics from "@/lib/haptics";
 import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
@@ -68,12 +68,12 @@ export default function NotesScreen() {
       setLockedFolderToUnlock(folder);
       return;
     }
-    router.push(`/folders/${folder.id}` as any);
+    router.push(`/folders/${folder.id}` as Href);
   };
 
   const handleUnlockedSuccess = (folder: FolderWithCount) => {
     setLockedFolderToUnlock(null);
-    router.push(`/folders/${folder.id}` as any);
+    router.push(`/folders/${folder.id}` as Href);
   };
 
   const handleEditFolder = (folder: FolderWithCount) => {
@@ -161,9 +161,11 @@ export default function NotesScreen() {
       <View className="px-4 pb-3 flex-row items-center justify-between border-b border-border/70">
         <View className="flex-row items-center gap-3">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             onPress={() => router.back()}
             hitSlop={8}
-            className="w-9 h-9 rounded-full items-center justify-center bg-background-element active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-background-element active:opacity-70">
             <ChevronLeft size={22} color={colors.text} />
           </Pressable>
 
@@ -180,9 +182,11 @@ export default function NotesScreen() {
         <View className="flex-row items-center gap-2">
           {/* AI Agent Shortcut */}
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open AI agent"
             onPress={() => router.push("/agent")}
             hitSlop={6}
-            className="w-9 h-9 rounded-full items-center justify-center bg-primary/10 border border-primary/20 active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-primary/10 border border-primary/20 active:opacity-70">
             <Sparkles size={17} color={colors.primary} />
           </Pressable>
         </View>
@@ -201,7 +205,12 @@ export default function NotesScreen() {
             className="flex-1 ml-2.5 text-sm text-text"
           />
           {folderSearch.length > 0 && (
-            <Pressable onPress={() => setFolderSearch("")} hitSlop={6}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear folder search"
+              onPress={() => setFolderSearch("")}
+              hitSlop={8}
+              className="min-h-11 min-w-11 items-center justify-center">
               <X size={16} color={colors.textSecondary} />
             </Pressable>
           )}
@@ -209,34 +218,51 @@ export default function NotesScreen() {
 
         {/* Sort & Layout Control Row */}
         <View className="flex-row items-center justify-between pb-3 pt-1">
-          {/* Sort Dropdown / Cycle button */}
-          <Pressable
-            onPress={handleCycleFolderSort}
-            className="flex-row items-center gap-1.5 active:opacity-70">
-            <Pressable onPress={handleToggleSortDirection} hitSlop={6}>
+          <View className="flex-row items-center gap-1.5">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                folderSortDir === "desc"
+                  ? "Sort descending, tap to reverse"
+                  : "Sort ascending, tap to reverse"
+              }
+              onPress={handleToggleSortDirection}
+              hitSlop={8}
+              className="min-h-11 min-w-11 items-center justify-center">
               {folderSortDir === "desc" ? (
                 <ArrowDownWideNarrow size={17} color={colors.text} />
               ) : (
                 <ArrowUpNarrowWide size={17} color={colors.text} />
               )}
             </Pressable>
-            <Text className="text-sm font-semibold text-text">
-              {folderSortBy === "updatedAt"
-                ? "Last modified"
-                : folderSortBy === "name"
-                  ? "Name"
-                  : "Date created"}
-            </Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change sort field"
+              onPress={handleCycleFolderSort}
+              className="flex-row items-center min-h-11 active:opacity-70">
+              <Text className="text-sm font-semibold text-text">
+                {folderSortBy === "updatedAt"
+                  ? "Last modified"
+                  : folderSortBy === "name"
+                    ? "Name"
+                    : "Date created"}
+              </Text>
+            </Pressable>
+          </View>
 
-          {/* Grid vs List View Toggle */}
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              folderLayout === "grid"
+                ? "Switch to list view"
+                : "Switch to grid view"
+            }
             onPress={() => {
               Haptics.selectionAsync();
               setFolderLayout((prev) => (prev === "grid" ? "list" : "grid"));
             }}
             hitSlop={8}
-            className="w-8 h-8 rounded-lg items-center justify-center active:bg-background-element">
+            className="min-h-11 min-w-11 rounded-lg items-center justify-center active:bg-background-element">
             {folderLayout === "grid" ? (
               <Grid2X2 size={20} color={colors.text} />
             ) : (

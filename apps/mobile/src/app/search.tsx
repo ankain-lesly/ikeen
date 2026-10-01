@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import {
   ArrowLeft,
   FileQuestion,
@@ -22,7 +22,7 @@ import {
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { createNote, searchNotes, useLiveNotes } from "@/lib/queries/notes";
-import { ListNotesOptions, Note } from "@/lib/types/notes";
+import { hasActiveNotesFilters, ListNotesOptions, Note } from "@/lib/types/notes";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
 import { NoteGridContainer } from "@/components/notes/notes-grid-container";
 import { useRecentSearches } from "@/hooks/use-recent-search";
@@ -78,31 +78,7 @@ export default function SearchScreen() {
     return Array.from(tagSet);
   }, [allNotes]);
 
-  // Filter notes based on scope and selected tag
-  const filteredNotes = useMemo(() => {
-    let list = notes ?? [];
-
-    if (filter.pinnedFirst) {
-      list = list.filter((n) => n.isPinned && !n.isArchived);
-    } else if (filter.includeArchived) {
-      list = list.filter((n) => n.isArchived);
-    } else {
-      list = list.filter((n) => !n.isArchived);
-    }
-
-    if (filter.tag) {
-      list = list.filter((n) => {
-        try {
-          const parsed = JSON.parse(n.tags || "[]");
-          return Array.isArray(parsed) && parsed.includes(filter.tag);
-        } catch {
-          return false;
-        }
-      });
-    }
-
-    return list;
-  }, [notes, filter]);
+  const filteredNotes = notes ?? [];
 
   const handleCreateNoteFromQuery = useCallback(async () => {
     try {
@@ -122,15 +98,11 @@ export default function SearchScreen() {
   }, [query, filter.tag, router]);
 
   const handleSearch = useCallback(
-    async (t: string, f: ListNotesOptions = {}) => {
-     // Query notes
-      const res = await searchNotes(t, filter);
+    async (t: string, f: ListNotesOptions = filter) => {
+      const res = await searchNotes(t, f);
 
-      // Save Search
-      if (res?.length > 0)
-        await saveSearch(t);
-      
-      // Update state
+      if (res?.length > 0) await saveSearch(t);
+
       setNotes(res);
       setQuery(t);
       setFilter(f);
@@ -141,12 +113,10 @@ export default function SearchScreen() {
 
   const isSearchActive = query.trim().length > 0;
 
-  // Determine if any non-default filters or sorts are active
-  const hasActiveFilters = useMemo(() => {
-    return Object.keys(filter).some((key) =>
-      Boolean(filter[key as keyof ListNotesOptions]),
-    );
-  }, [filter]);
+  const hasActiveFilters = useMemo(
+    () => hasActiveNotesFilters(filter),
+    [filter],
+  );
 
   return (
     <>
@@ -208,7 +178,7 @@ export default function SearchScreen() {
                     accessibilityLabel="Clear search input"
                     hitSlop={8}
                     onPress={handleClear}
-                    className="w-9 h-9 items-center justify-center rounded-full">
+                    className="min-h-11 min-w-11 items-center justify-center rounded-full">
                     <X size={16} color={colors.textSecondary} />
                   </Pressable>
                 )}
@@ -216,10 +186,10 @@ export default function SearchScreen() {
                 <View className="justify-center relative">
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Clear search input"
+                    accessibilityLabel="Filter and sort notes"
                     hitSlop={8}
                     onPress={() => setIsFilterSheetPresented(true)}
-                    className="w-9 h-9 items-center justify-center rounded-full relative">
+                    className="min-h-11 min-w-11 items-center justify-center rounded-full relative">
                     <SlidersHorizontalIcon
                       size={16}
                       color={
@@ -379,12 +349,10 @@ export default function SearchScreen() {
           isPresented={isFilterSheetPresented}
           onDismiss={() => setIsFilterSheetPresented(false)}
           availableTags={availableTags}
-          handleApplyFilters={(filter) => {
-            // setFilter(filter);
+          appliedFilter={filter}
+          handleApplyFilters={(nextFilter) => {
             setIsFilterSheetPresented(false);
-            // setTimeout(() => {
-            handleSearch("", filter);
-            // }, 50);
+            handleSearch(query, nextFilter);
           }}
         />
       </View>

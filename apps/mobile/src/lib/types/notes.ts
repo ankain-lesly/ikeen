@@ -6,6 +6,8 @@ import type {
   NoteChanges,
 } from '@repo/types';
 
+export { hasActiveNotesFilters } from '@repo/types';
+
 export type {
   Note,
   InsertNote,

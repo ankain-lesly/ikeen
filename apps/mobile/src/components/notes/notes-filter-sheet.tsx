@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Host, Switch, RNHostView } from "@expo/ui/jetpack-compose";
 import { BottomSheet } from "@expo/ui";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import {
   Archive,
   ArrowDownWideNarrow,
@@ -16,31 +16,44 @@ import {
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
-import { ListNotesOptions } from "@/lib/types/notes";
+import { hasActiveNotesFilters, ListNotesOptions } from "@/lib/types/notes";
 
 export interface NotesFilterSheetProps {
   isPresented: boolean;
   onDismiss: () => void;
   availableTags: string[];
-  // Actions
+  appliedFilter: ListNotesOptions;
   handleApplyFilters: (filter: ListNotesOptions) => void;
 }
 
-export function NotesFilterSheet({
+export function NotesFilterSheet(props: NotesFilterSheetProps) {
+  return (
+    <Host matchContents>
+      {props.isPresented ? <NotesFilterSheetBody {...props} /> : null}
+    </Host>
+  );
+}
+
+function NotesFilterSheetBody({
   availableTags = [],
   isPresented,
   onDismiss,
+  appliedFilter,
   handleApplyFilters,
 }: NotesFilterSheetProps) {
-  const [filter, setFilter] = useState<ListNotesOptions>({});
+  const [filter, setFilter] = useState<ListNotesOptions>(appliedFilter);
   const colors = useTheme();
 
   const handleReset = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setFilter({});
+    setFilter({
+      pinnedOnly: appliedFilter.pinnedOnly,
+      includeArchived: appliedFilter.includeArchived,
+      archivedOnly: appliedFilter.archivedOnly,
+    });
   };
 
-  const updateFilter = (key: keyof ListNotesOptions, value: any) => {
+  const updateFilter = (key: keyof ListNotesOptions, value: unknown) => {
     Haptics.selectionAsync();
     setFilter((s) => ({ ...s, [key]: value }));
   };
@@ -59,22 +72,20 @@ export function NotesFilterSheet({
         : "Newest first";
   }, [filter.orderBy, isAsc]);
 
-  // Determine if any non-default filters or sorts are active
-  const hasActiveFilters = useMemo(() => {
-    return Object.keys(filter).some((key) =>
-      Boolean(filter[key as keyof ListNotesOptions]),
-    );
-  }, [filter]);
+  const hasActiveFilters = useMemo(
+    () => hasActiveNotesFilters(filter),
+    [filter],
+  );
+
+  const showPinnedFirstSort = !filter.pinnedOnly && !filter.includeArchived && !filter.archivedOnly;
 
   return (
-    <Host matchContents>
-      {isPresented && (
-        <BottomSheet
-          isPresented={isPresented}
-          onDismiss={() => onDismiss()}
-          showDragIndicator
-          snapPoints={["half", "full"]}
-          containerColor={colors.card}>
+    <BottomSheet
+      isPresented={isPresented}
+      onDismiss={() => onDismiss()}
+      showDragIndicator
+      snapPoints={["half", "full"]}
+      containerColor={colors.card}>
           <RNHostView>
             <View className="flex-1 pt-2 pb-8 w-full p-4">
               {/* Header: Title + Reset Action + Close Button */}
@@ -93,9 +104,11 @@ export function NotesFilterSheet({
                 <View className="flex-row items-center gap-2">
                   {hasActiveFilters && (
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Reset sort and filters"
                       onPress={handleReset}
                       hitSlop={8}
-                      className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg bg-background-element active:opacity-70">
+                      className="flex-row items-center gap-1 min-h-11 px-2.5 py-1 rounded-lg bg-background-element active:opacity-70">
                       <RotateCcw size={12} color={colors.textSecondary} />
                       <Text className="text-xs font-medium text-text-secondary">
                         Reset
@@ -104,18 +117,17 @@ export function NotesFilterSheet({
                   )}
 
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close sort and filter"
                     onPress={onDismiss}
                     hitSlop={8}
-                    className="h-8 w-8 items-center justify-center rounded-full bg-background-element active:opacity-70">
+                    className="h-11 w-11 items-center justify-center rounded-full bg-background-element active:opacity-70">
                     <X size={16} color={colors.textSecondary} />
                   </Pressable>
                 </View>
               </View>
 
-              <View
-                // showsVerticalScrollIndicator={false}
-                // contentContainerClassName="pt-4 pb-6 gap-5"
-                className="pt-4 pb-6 gap-5">
+              <View className="pt-4 pb-6 gap-5">
                 {/* Section 1: Sort By */}
                 <View className="gap-2.5">
                   <Text className="text-xs font-semibold tracking-wider text-text-secondary">
@@ -177,36 +189,38 @@ export function NotesFilterSheet({
                   </Pressable>
                 </View>
 
-                {/* Section 2: Pinned Preference */}
-                <View className="gap-2.5 pt-2 border-t border-border">
-                  <View className="flex-row items-center justify-between py-1">
-                    <View className="flex-row items-center gap-2.5">
-                      <View className="h-8 w-8 items-center justify-center rounded-lg bg-background-element">
-                        <Pin
-                          size={15}
-                          color={colors.primary}
-                          style={{ transform: [{ rotate: "45deg" }] }}
+                {/* Section 2: Pinned sort — Recent view only */}
+                {showPinnedFirstSort && (
+                  <View className="gap-2.5 pt-2 border-t border-border">
+                    <View className="flex-row items-center justify-between py-1">
+                      <View className="flex-row items-center gap-2.5">
+                        <View className="h-8 w-8 items-center justify-center rounded-lg bg-background-element">
+                          <Pin
+                            size={15}
+                            color={colors.primary}
+                            style={{ transform: [{ rotate: "45deg" }] }}
+                          />
+                        </View>
+                        <View>
+                          <Text className="text-sm font-semibold text-text">
+                            Keep Pinned on Top
+                          </Text>
+                          <Text className="text-xs text-text-secondary mt-0.5">
+                            Sort pinned notes above the rest
+                          </Text>
+                        </View>
+                      </View>
+                      <Host matchContents>
+                        <Switch
+                          value={filter.pinnedFirst !== false}
+                          onCheckedChange={(value) =>
+                            updateFilter("pinnedFirst", value)
+                          }
                         />
-                      </View>
-                      <View>
-                        <Text className="text-sm font-semibold text-text">
-                          Keep Pinned on Top
-                        </Text>
-                        <Text className="text-xs text-text-secondary mt-0.5">
-                          Pinned notes always precede regular notes
-                        </Text>
-                      </View>
+                      </Host>
                     </View>
-                    <Host matchContents>
-                      <Switch
-                        value={!!filter.pinnedFirst}
-                        onCheckedChange={(value) =>
-                          updateFilter("pinnedFirst", value)
-                        }
-                      />
-                    </Host>
                   </View>
-                </View>
+                )}
 
                 {/* Section 3: Status / View Filter */}
                 <View className="gap-2.5 pt-2 border-t border-border">
@@ -227,9 +241,15 @@ export function NotesFilterSheet({
                     <Host matchContents>
                       <Switch
                         value={!!filter.includeArchived}
-                        onCheckedChange={(value) =>
-                          updateFilter("includeArchived", value)
-                        }
+                        onCheckedChange={(value) => {
+                          Haptics.selectionAsync();
+                          setFilter((s) => ({
+                            ...s,
+                            includeArchived: value,
+                            archivedOnly: value,
+                            pinnedOnly: value ? false : s.pinnedOnly,
+                          }));
+                        }}
                       />
                     </Host>
                   </View>
@@ -260,13 +280,13 @@ export function NotesFilterSheet({
                       <Pressable
                         onPress={() => updateFilter("tag", null)}
                         className={`px-3 py-1.5 rounded-full border active:opacity-80 ${
-                          filter.tag === null
+                          filter.tag === null || filter.tag === undefined
                             ? "bg-background-selected border-primary"
                             : "bg-background-element border-border"
                         }`}>
                         <Text
                           className={`text-xs ${
-                            filter.tag === null
+                            filter.tag === null || filter.tag === undefined
                               ? "font-bold text-text"
                               : "font-normal text-text-secondary"
                           }`}>
@@ -318,8 +338,6 @@ export function NotesFilterSheet({
               </Pressable>
             </View>
           </RNHostView>
-        </BottomSheet>
-      )}
-    </Host>
+    </BottomSheet>
   );
 }

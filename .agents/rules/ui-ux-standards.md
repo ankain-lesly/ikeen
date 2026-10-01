@@ -43,7 +43,7 @@ Always style using the established Uniwind semantic tokens defined in `src/globa
 2. **Touch Targets & Active Feedback**:
    - All interactive touch targets must be at least 44x44pt (`min-h-[44px]`).
    - Every pressable element must provide instant visual feedback (`active:opacity-70` or `active:scale-[0.98]`).
-   - Trigger native haptics (`expo-haptics`) on key user decisions.
+   - Trigger native haptics via `@/lib/haptics` (`selectionAsync` / `impactAsync`) on key user decisions. Notes, folders, FAB, search, and onboarding must not call `expo-haptics` directly.
 3. **Safe Area & Inset Handling (Uniwind Safe Utilities)**:
    - **Eliminate `SafeAreaView`**: Use Uniwind's built-in safe area utilities (`p-safe`, `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `m-safe`, etc.) directly on standard `<View>` components instead of importing `SafeAreaView` from `react-native-safe-area-context`.
    - Scrollable containers or root views can use `pt-safe` for status bar notches and `pb-safe` for home indicators:
@@ -67,7 +67,8 @@ Uniwind processes `className` bindings at build time by intercepting core React 
 - **`RefreshControl`**: Does not accept `className`. Use `tintColorClassName`, `colorsClassName`, etc.
 - **`ScrollView` / `FlatList`**: The outer element takes `className`, but the scrollable container **strictly requires** `contentContainerClassName` or `contentContainerStyle`. For multi-column `FlatList`, use `columnWrapperClassName`.
 - **Third-Party / Expo Primitives**:
-  - `NativeTabs` (`expo-router/unstable-native-tabs`): Use typed color props (`backgroundColor`, `indicatorColor`, `labelStyle`).
+  - `NativeTabs` (`expo-router/unstable-native-tabs`): Use typed color props (`backgroundColor`, `indicatorColor`, `labelStyle`). Prefer `sf` + `md` symbol names; PNG `src` only as fallback. Sources: [`apps/mobile/EXPO-UI.md`](../../apps/mobile/EXPO-UI.md) §3.
+  - `@expo/ui`: Wrap in `Host`. No `className`. Prefer `BottomSheet`, `Switch`, `Button`, `TextInput`, `RNHostView`. Docs: https://docs.expo.dev/versions/v57.0.0/sdk/ui/
   - `SymbolView` (`expo-symbols`): Use `tintColor`, `size`, and `style` for transforms.
   - `Image` (`expo-image`): Explicit sizing or wrap in a styled `<View className="...">`.
   - Reanimated Worklets: Dynamic animated styles require `style={[animatedStyle]}`.

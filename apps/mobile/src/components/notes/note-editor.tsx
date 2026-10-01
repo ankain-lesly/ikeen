@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import {
   ChevronLeft,
   Folder,

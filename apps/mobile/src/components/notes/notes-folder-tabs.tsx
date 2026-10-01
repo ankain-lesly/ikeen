@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import { router, usePathname } from "expo-router";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "@/lib/haptics";
 import { FileText, Folder as FolderIcon } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 

@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/lib/haptics';
 import { Check, Lock, X } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/ui/themed-text';

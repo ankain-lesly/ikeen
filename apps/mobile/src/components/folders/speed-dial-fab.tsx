@@ -10,13 +10,14 @@ import {
 } from "lucide-react-native";
 
 import { useTheme } from "@/hooks/use-theme";
-import { RoutePath,  useRouter } from "expo-router";
+import { RoutePath, useRouter } from "expo-router";
 import { BottomTabInset } from "@/constants/theme";
 import Animated, {
   FadeIn,
   FadeOut,
   // LinearTransition,
 } from "react-native-reanimated";
+import * as Haptics from "@/lib/haptics";
 export interface SpeedDialFABProps {
   onNewFolder: () => void;
   className?: string;
@@ -50,10 +51,12 @@ export function SpeedDialFAB({
   // const isNoteActive = pathname === "/notes";
 
   const toggleOpen = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsOpen((prev) => !prev);
   };
 
   const handleAction = (action: () => void) => {
+    Haptics.selectionAsync();
     setIsOpen(false);
     action();
   };
@@ -104,9 +107,11 @@ export function SpeedDialFAB({
                 exiting={FadeOut.duration(150)}>
                 <Pressable
                   key={i}
+                  accessibilityRole="button"
+                  accessibilityLabel={o.label}
                   onPress={() => handleAction(o.onPress)}
                   hitSlop={6}
-                  className={`bg-foreground border border-border/20 px-4 py-2 flex-row gap-2 rounded-full items-center justify-center active:scale-95`}>
+                  className={`bg-foreground border border-border/20 px-4 py-2 min-h-11 flex-row gap-2 rounded-full items-center justify-center active:scale-95`}>
                   <Text className="text-background font-semibold text-base">
                     {o.label}
                   </Text>
@@ -119,6 +124,8 @@ export function SpeedDialFAB({
 
         {/* Main Floating Trigger Button */}
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isOpen ? "Close create actions" : "Create"}
           onPress={toggleOpen}
           className="w-14 h-14 rounded-full bg-primary items-center justify-center shadow-lg active:scale-95 z-20"
           style={{

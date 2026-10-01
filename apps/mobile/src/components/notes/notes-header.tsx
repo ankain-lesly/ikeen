@@ -1,6 +1,6 @@
 import React from "react";
-import { View, Pressable, Text } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Pressable, Text, ScrollView } from "react-native";
+import { type Href, useRouter } from "expo-router";
 import {
   FolderIcon,
   ListOrdered,
@@ -13,7 +13,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
 import * as Haptics from "expo-haptics";
-import { ScrollView } from "react-native";
+import {  } from "react-native";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -32,14 +32,29 @@ export function NotesHeader({
   const colors = useTheme();
 
   const handleNavigateSearch = () => {
-    router.push("/search" as any);
+    router.push("/search" as Href);
   };
 
   const handleNavigateAI = () => {
     router.push("/agent");
   };
 
-  const isAllActive = !(filter?.pinnedFirst || filter?.includeArchived);
+  const isRecentActive = !filter.pinnedOnly && !filter.includeArchived && !filter.archivedOnly;
+  const isPinnedActive = filter.pinnedOnly === true;
+  const isArchivedActive = filter.archivedOnly === true || (filter.includeArchived === true && !filter.pinnedOnly);
+
+  const applyView = (view: {
+    pinnedOnly: boolean;
+    includeArchived: boolean;
+    archivedOnly: boolean;
+  }) => {
+    updateFilter({
+      ...filter,
+      pinnedOnly: view.pinnedOnly,
+      includeArchived: view.includeArchived,
+      archivedOnly: view.archivedOnly,
+    });
+  };
 
   return (
     <View className="border-b border-border/50 bg-background pb-3">
@@ -93,67 +108,83 @@ export function NotesHeader({
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="gap-3">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Recent notes"
             className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
-              isAllActive
+              isRecentActive
                 ? "bg-foreground border-foreground"
                 : "bg-background-element border-border"
             }`}
             onPress={() => {
-              updateFilter({ pinnedFirst: false, includeArchived: false });
+              applyView({ pinnedOnly: false, includeArchived: false, archivedOnly: false });
             }}>
             <ListOrdered
               size={12}
-              color={isAllActive ? colors.background : colors.textSecondary}
+              color={isRecentActive ? colors.background : colors.textSecondary}
             />
             <ThemedText
               className={`text-xs ${
-                isAllActive
+                isRecentActive
                   ? "text-background font-semibold"
                   : "text-text-secondary font-normal"
               }`}>
               Recent
             </ThemedText>
           </Pressable>
-          {(["pinnedFirst", "includeArchived"] as const).map((mode) => {
-            const isActive = filter[mode] === true;
-
-            const label = mode === "pinnedFirst" ? "Pinned" : "Archived";
-            return (
-              <Pressable
-                key={mode}
-                className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
-                  isActive
-                    ? "bg-foreground border-foreground"
-                    : "bg-background-element border-border"
-                }`}
-                onPress={() => {
-                  updateFilter({ [mode]: !filter[mode] });
-                }}>
-                {mode === "pinnedFirst" && (
-                  <Pin
-                    size={12}
-                    color={isActive ? colors.background : colors.textSecondary}
-                  />
-                )}
-                <ThemedText
-                  className={`text-xs ${
-                    isActive
-                      ? "text-background font-semibold"
-                      : "text-text-secondary font-normal"
-                  }`}>
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pinned notes"
+            className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
+              isPinnedActive
+                ? "bg-foreground border-foreground"
+                : "bg-background-element border-border"
+            }`}
+            onPress={() => {
+              applyView({ pinnedOnly: true, includeArchived: false, archivedOnly: false });
+            }}>
+            <Pin
+              size={12}
+              color={isPinnedActive ? colors.background : colors.textSecondary}
+            />
+            <ThemedText
+              className={`text-xs ${
+                isPinnedActive
+                  ? "text-background font-semibold"
+                  : "text-text-secondary font-normal"
+              }`}>
+              Pinned
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Archived notes"
+            className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
+              isArchivedActive
+                ? "bg-foreground border-foreground"
+                : "bg-background-element border-border"
+            }`}
+            onPress={() => {
+              applyView({ pinnedOnly: false, includeArchived: true, archivedOnly: true });
+            }}>
+            <ThemedText
+              className={`text-xs ${
+                isArchivedActive
+                  ? "text-background font-semibold"
+                  : "text-text-secondary font-normal"
+              }`}>
+              Archived
+            </ThemedText>
+          </Pressable>
         </ScrollView>
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open folders"
           onPress={() => {
             Haptics.selectionAsync();
             router.push("/(tabs)/notes/folders");
           }}
-          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg __bg-card`}>
+          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg min-h-11`}>
           <FolderIcon size={16} color={colors.primary} />
           <Text className={`text-sm font-semibold text-primary`}>Folders</Text>
         </Pressable>

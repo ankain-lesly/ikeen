@@ -74,7 +74,7 @@ Typography must balance readability, density, and clear typographic hierarchy:
 - **Minimum Hit Slop**: Touch targets must be at least `44x44pt` (`min-h-[44px] min-w-[44px]`), even if the visual icon or label is smaller.
 - **Active State Feedback**: Every interactive button, row, and chip must provide immediate feedback:
   - Visual: `active:opacity-70` or `active:scale-[0.98]`.
-  - Haptic: Trigger `expo-haptics` (`Haptics.selectionAsync()` or `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)`) on tap.
+  - Haptic: Trigger `@/lib/haptics` (`Haptics.selectionAsync()` or `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)`) on tap. Do not import `expo-haptics` directly in notes/folders; the helper no-ops when Settings → Haptics is off.
 
 ### B. Safe Area & Inset Handling (Uniwind Safe Utilities)
 - **Eliminate `SafeAreaView` with `p-safe`**: Uniwind provides native safe area utilities (`p-safe`, `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `m-safe`, etc.) that automatically adapt to hardware notches and home indicators at runtime. Always prefer:
@@ -109,7 +109,8 @@ Uniwind processes `className` bindings at build time by intercepting core React 
 
 ### B. Third-Party & Expo Components Requiring `style` or Props
 Uniwind does **not** intercept non-core packages. Never pass `className` to:
-- **`expo-router` NativeTabs** (`NativeTabs`, `NativeTabs.Trigger`): Use typed color props (`backgroundColor`, `indicatorColor`, `labelStyle`).
+- **`@expo/ui` (`Host`, `BottomSheet`, `Switch`, …)**: No `className`. Wrap in `Host`. See §7 and [`apps/mobile/EXPO-UI.md`](apps/mobile/EXPO-UI.md).
+- **`expo-router` NativeTabs** (`NativeTabs`, `NativeTabs.Trigger`): Use typed color props (`backgroundColor`, `indicatorColor`, `labelStyle`). Icons: prefer `sf` + `md` symbol names over PNGs — see [`apps/mobile/EXPO-UI.md`](apps/mobile/EXPO-UI.md) §3.
 - **`expo-symbols` (`SymbolView`)**: Requires `tintColor`, `size`, and inline `style` for transforms (e.g. `{ transform: [{ rotate: ... }] }`).
 - **`expo-image` (`Image`)**: Layout and aspect-ratio should be defined on a parent `<View className="...">` or passed via `style`.
 - **`react-native-reanimated` (`useAnimatedStyle`)**: Worklet-driven dynamic styles must strictly use `style={[animatedStyle, ...]}`.
@@ -151,3 +152,29 @@ Before declaring any screen or UI component complete:
 - [ ] **Insets**: Does the content scroll comfortably past the tab bar and status bar without clipping?
 - [ ] **Touch Ergonomics**: Are all interactive elements at least 44pt tall with active states?
 - [ ] **Type Safety**: Does `bun run check-types` pass with 0 errors?
+
+---
+
+## 7. Expo UI (`@expo/ui`) — Native Controls
+
+Mobile native sheets, switches, menus, and inputs use **`@expo/ui` ~57** (SDK 57). This is a primitives layer over SwiftUI and Jetpack Compose, not a CSS kit.
+
+**Canonical reference:** [`apps/mobile/EXPO-UI.md`](apps/mobile/EXPO-UI.md)  
+**Docs:** https://docs.expo.dev/versions/v57.0.0/sdk/ui/
+
+### Agent rules
+- Wrap every Expo UI subtree in `<Host matchContents>` (or `style={{ flex: 1 }}` when filling).
+- Prefer universal `@expo/ui` (`Host`, `BottomSheet`, `Switch`, `Button`, `TextInput`, `Row`, `Column`, `RNHostView`). Use `@expo/ui/jetpack-compose` / `@expo/ui/swift-ui` only for platform-only APIs (e.g. Compose `DropdownMenu`).
+- Never pass Uniwind `className` to Expo UI or NativeTabs. Token-style the RN chrome around `Host`.
+- Mix RN children inside sheets via `RNHostView`.
+
+### Common components (this codebase)
+
+| Use | Component |
+| :--- | :--- |
+| Modal sheets | `BottomSheet` + `RNHostView` |
+| Toggles | `Switch` inside `Host` (`AppSwitch` wrapper) |
+| Overflow | Compose `DropdownMenu` |
+| Search field / CTA | `TextInput`, `Button` |
+
+Full catalog (universal + Compose + SwiftUI) is listed in the SDK 57 overview. Native tab icons (`sf` / `md` / `src`) and download sources are in `EXPO-UI.md` §3.
