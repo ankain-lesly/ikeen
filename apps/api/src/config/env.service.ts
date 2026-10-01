@@ -14,6 +14,7 @@ export class EnvService implements EnvConfig {
   readonly OPENAI_API_KEY?: string;
   readonly AI_CHAT_MODEL: string;
   readonly AI_EMBEDDING_MODEL: string;
+  readonly AGENT_MAX_STEPS: number;
   readonly APP_MIN_REQUIRED_VERSION: string;
   readonly APP_UPDATE_MANDATORY: boolean;
   readonly APP_UPDATE_URL_ANDROID?: string;

@@ -2,17 +2,24 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { AblyService } from '../../ably/ably.service.js';
+import type { AuditService } from '../../audit/audit.service.js';
 
 const baseContextSchema = z.object({
   userId: z.string(),
   conversationId: z.string(),
 });
 
+const HEX_COLOR = z
+  .string()
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a valid hex color code');
+
 export function createFolderTools({
   prisma,
+  audit,
 }: {
   prisma: PrismaService;
   ably?: AblyService;
+  audit: AuditService;
 }) {
   const listFolders = tool({
     description:
@@ -64,6 +71,12 @@ export function createFolderTools({
         return {
           ok: true,
           count: folders.length,
+          matched: trimmedQuery ? folders.length > 0 : true,
+          ...(trimmedQuery && folders.length === 0
+            ? {
+                hint: `No folder named "${trimmedQuery}"; call listFolders without query to list all folders.`,
+              }
+            : {}),
           folders: folders.map((f) => ({
             id: f.id,
             name: f.name,
@@ -86,8 +99,7 @@ export function createFolderTools({
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       name: z.string().trim().min(1).max(100).describe('Name of the new folder'),
-      color: z
-        .string()
+      color: HEX_COLOR
         .default('#3b82f6')
         .describe('Hex color code for the folder (e.g. #3b82f6, #10b981, #f59e0b, #8b5cf6, #ef4444)'),
       icon: z
@@ -132,6 +144,16 @@ export function createFolderTools({
           },
         });
 
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.createFolder',
+          severity: 'WARN',
+          resourceType: 'folder',
+          resourceId: folder.id,
+          details: `Created folder "${folder.name}"`,
+        });
+
         return {
           ok: true,
           folder: {
@@ -157,9 +179,7 @@ export function createFolderTools({
     inputSchema: z.object({
       folderId: z.string().describe('The UUID of the folder to update'),
       name: z.string().trim().min(1).max(100).optional().describe('New name for the folder'),
-      color: z
-        .string()
-        .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a valid hex color code')
+      color: HEX_COLOR
         .optional()
         .describe('New hex color code for the folder (e.g. #3b82f6)'),
       icon: z
@@ -202,6 +222,30 @@ export function createFolderTools({
             icon: true,
             sortOrder: true,
           },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.updateFolder',
+          resourceType: 'folder',
+          resourceId: updated.id,
+          details: `Updated folder "${updated.name}"`,
+          changes: audit.trackChanges(
+            {
+              name: existing.name,
+              color: existing.color,
+              icon: existing.icon,
+              sortOrder: existing.sortOrder,
+            },
+            {
+              name: updated.name,
+              color: updated.color,
+              icon: updated.icon,
+              sortOrder: updated.sortOrder,
+            },
+            ['name', 'color', 'icon', 'sortOrder'],
+          ),
         });
 
         return {
@@ -280,6 +324,20 @@ export function createFolderTools({
             folder: {
               select: { id: true, name: true },
             },
+          },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.organizeNote',
+          severity: 'WARN',
+          resourceType: 'note',
+          resourceId: note.id,
+          details: `Organized note "${note.title}"`,
+          metadata: {
+            folderId: note.folderId,
+            previousFolderId: existingNote.folderId,
           },
         });
 

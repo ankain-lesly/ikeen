@@ -2,21 +2,66 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { AblyService } from '../../ably/ably.service.js';
+import type { AuditService } from '../../audit/audit.service.js';
 
 const baseContextSchema = z.object({
   userId: z.string(),
   conversationId: z.string(),
 });
 
+const discoverySelect = {
+  id: true,
+  title: true,
+  summary: true,
+  tags: true,
+  folderId: true,
+  isPinned: true,
+  isArchived: true,
+  updatedAt: true,
+  folder: { select: { name: true } },
+} as const;
+
+function mapDiscoveryNote(note: {
+  id: string;
+  title: string;
+  summary: string | null;
+  tags: string[];
+  folderId: string | null;
+  isPinned: boolean;
+  isArchived: boolean;
+  updatedAt: Date;
+  folder: { name: string } | null;
+}) {
+  return {
+    id: note.id,
+    title: note.title,
+    summary: note.summary,
+    tags: note.tags,
+    folderId: note.folderId,
+    folderName: note.folder?.name ?? null,
+    isPinned: note.isPinned,
+    isArchived: note.isArchived,
+    updatedAt: note.updatedAt,
+  };
+}
+
+function previewText(text: string, max = 280) {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max)}…`;
+}
+
 export function createNotesTools({
   prisma,
+  audit,
 }: {
   prisma: PrismaService;
   ably?: AblyService;
+  audit: AuditService;
 }) {
   const searchNotes = tool({
     description:
-      'Search through the user notes using keyword or thematic search. Optionally filter by folder.',
+      'Search notes by keyword in title, content, or exact tag. Optionally filter by folder. Excludes archived notes unless includeArchived is true.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       query: z
@@ -34,13 +79,18 @@ export function createNotesTools({
         .max(30)
         .default(10)
         .describe('Maximum number of notes to return'),
+      includeArchived: z
+        .boolean()
+        .default(false)
+        .describe('Set true to include archived notes in results'),
     }),
-    execute: async ({ query, folderId, limit }, { context }) => {
+    execute: async ({ query, folderId, limit, includeArchived }, { context }) => {
       try {
         const notes = await prisma.note.findMany({
           where: {
             userId: context.userId,
             deletedAt: null,
+            ...(includeArchived ? {} : { isArchived: false }),
             ...(folderId ? { folderId } : {}),
             OR: [
               { title: { contains: query, mode: 'insensitive' } },
@@ -48,15 +98,7 @@ export function createNotesTools({
               { tags: { has: query } },
             ],
           },
-          select: {
-            id: true,
-            title: true,
-            summary: true,
-            tags: true,
-            folderId: true,
-            isPinned: true,
-            updatedAt: true,
-          },
+          select: discoverySelect,
           orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
           take: limit,
         });
@@ -64,7 +106,7 @@ export function createNotesTools({
         return {
           ok: true,
           count: notes.length,
-          notes,
+          notes: notes.map(mapDiscoveryNote),
         };
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -90,7 +132,7 @@ export function createNotesTools({
           },
           include: {
             folder: {
-              select: { id: true, name: true, color: true },
+              select: { id: true, name: true, color: true, isLocked: true },
             },
           },
         });
@@ -122,7 +164,7 @@ export function createNotesTools({
 
   const listRecentNotes = tool({
     description:
-      'List the most recently updated or pinned notes in the workspace to establish context.',
+      'List the most recently updated or pinned notes in the workspace to establish context. Excludes archived notes unless includeArchived is true.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       limit: z
@@ -136,24 +178,21 @@ export function createNotesTools({
         .boolean()
         .default(false)
         .describe('Whether to only return pinned notes'),
+      includeArchived: z
+        .boolean()
+        .default(false)
+        .describe('Set true to include archived notes in results'),
     }),
-    execute: async ({ limit, pinnedOnly }, { context }) => {
+    execute: async ({ limit, pinnedOnly, includeArchived }, { context }) => {
       try {
         const notes = await prisma.note.findMany({
           where: {
             userId: context.userId,
             deletedAt: null,
+            ...(includeArchived ? {} : { isArchived: false }),
             ...(pinnedOnly ? { isPinned: true } : {}),
           },
-          select: {
-            id: true,
-            title: true,
-            summary: true,
-            tags: true,
-            folderId: true,
-            isPinned: true,
-            updatedAt: true,
-          },
+          select: discoverySelect,
           orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
           take: limit,
         });
@@ -161,7 +200,7 @@ export function createNotesTools({
         return {
           ok: true,
           count: notes.length,
-          notes,
+          notes: notes.map(mapDiscoveryNote),
         };
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -190,7 +229,9 @@ export function createNotesTools({
     }),
     execute: async ({ title, content, folderId, tags }, { context }) => {
       try {
-        // Validate folder ownership if provided
+        let resolvedFolderId = folderId || null;
+        let warning: string | undefined;
+
         if (folderId) {
           const folderExists = await prisma.folder.findFirst({
             where: {
@@ -200,22 +241,30 @@ export function createNotesTools({
             },
           });
           if (!folderExists) {
-            return {
-              ok: false,
-              error: 'Specified folder does not exist or is deleted.',
-            };
+            resolvedFolderId = null;
+            warning = 'Folder not found; saved at root';
           }
         }
 
         const note = await prisma.note.create({
           data: {
             userId: context.userId,
-            folderId: folderId || null,
+            folderId: resolvedFolderId,
             title: title.trim(),
             content: content.trim(),
             tags,
             version: 1,
           },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.createNote',
+          resourceType: 'note',
+          resourceId: note.id,
+          details: `Created note "${note.title}"`,
+          metadata: { folderId: note.folderId, warning },
         });
 
         return {
@@ -230,6 +279,7 @@ export function createNotesTools({
           folderId: note.folderId,
           tags: note.tags,
           createdAt: note.createdAt,
+          ...(warning ? { warning } : {}),
         };
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);
@@ -240,7 +290,7 @@ export function createNotesTools({
 
   const updateNote = tool({
     description:
-      'Update an existing note (modify title, tags, replace content, or append new brainstorm notes/action items).',
+      'Update an existing note (modify title, tags, replace content, or append new brainstorm notes/action items). Full content replace requires confirm: true after the user agrees.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to update'),
@@ -248,7 +298,7 @@ export function createNotesTools({
       content: z
         .string()
         .optional()
-        .describe('Replacement content for the note'),
+        .describe('Replacement content for the note. Requires confirm: true after user agreement.'),
       appendContent: z
         .string()
         .optional()
@@ -259,12 +309,25 @@ export function createNotesTools({
         .array(z.string())
         .optional()
         .describe('New or updated array of tags'),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe(
+          'Set true only after the user agrees to a full content replace in this turn',
+        ),
     }),
     execute: async (
-      { noteId, title, content, appendContent, tags },
+      { noteId, title, content, appendContent, tags, confirm },
       { context },
     ) => {
       try {
+        if (content !== undefined && appendContent) {
+          return {
+            ok: false,
+            error: 'Pass content or appendContent, not both.',
+          };
+        }
+
         const existing = await prisma.note.findFirst({
           where: {
             id: noteId,
@@ -275,6 +338,20 @@ export function createNotesTools({
 
         if (!existing) {
           return { ok: false, error: 'Note not found or deleted.' };
+        }
+
+        const isReplace =
+          content !== undefined && content !== existing.content;
+        if (isReplace && confirm !== true) {
+          return {
+            ok: false,
+            needsConfirmation: true,
+            preview: {
+              title: existing.title,
+              current: previewText(existing.content),
+              proposed: previewText(content),
+            },
+          };
         }
 
         let updatedContent = existing.content;
@@ -292,6 +369,33 @@ export function createNotesTools({
             ...(tags !== undefined ? { tags } : {}),
             version: { increment: 1 },
           },
+        });
+
+        const changes = audit.trackChanges(
+          {
+            title: existing.title,
+            content: existing.content,
+            tags: existing.tags,
+          },
+          {
+            title: note.title,
+            content: note.content,
+            tags: note.tags,
+          },
+          ['title', 'content', 'tags'],
+        );
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: isReplace ? 'agent.replaceNote' : 'agent.updateNote',
+          severity: isReplace ? 'WARN' : 'INFO',
+          resourceType: 'note',
+          resourceId: note.id,
+          details: isReplace
+            ? `Replaced content of note "${note.title}"`
+            : `Updated note "${note.title}"`,
+          changes,
         });
 
         return {
@@ -340,6 +444,16 @@ export function createNotesTools({
             isPinned,
             version: { increment: 1 },
           },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.pinNote',
+          resourceType: 'note',
+          resourceId: note.id,
+          details: `${isPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
+          metadata: { isPinned },
         });
 
         return {
@@ -391,6 +505,17 @@ export function createNotesTools({
             isArchived,
             version: { increment: 1 },
           },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.archiveNote',
+          severity: 'WARN',
+          resourceType: 'note',
+          resourceId: note.id,
+          details: `${isArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
+          metadata: { isArchived },
         });
 
         return {

@@ -94,11 +94,23 @@ export class ChatPersistenceService {
       skipDuplicates: true,
     });
 
+    await this.touchConversation(conversationId);
+
     this.logger.log(
       `[ChatPersistence:MessagesSaved] convId=${conversationId} count=${toInsert.length}`,
     );
 
     return toInsert.length;
+  }
+
+  /**
+   * Bumps conversation updatedAt so the thread list stays ordered.
+   */
+  async touchConversation(conversationId: string): Promise<void> {
+    await this.prisma.chatConversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
   }
 
   /**
@@ -305,6 +317,28 @@ export class ChatPersistenceService {
         importance: Math.min(Math.max(importance, 1), 5),
       },
     });
+  }
+
+  /**
+   * Loads the highest-importance memories for prompt injection (no extra agent step).
+   */
+  async listMemoriesForUser(userId: string, { limit = 12 }: { limit?: number } = {}) {
+    const take = Math.min(Math.max(limit, 1), 24);
+    const rows = await this.prisma.chatMemory.findMany({
+      where: { userId },
+      orderBy: [{ importance: 'desc' }, { createdAt: 'desc' }],
+      take,
+      select: {
+        category: true,
+        description: true,
+        importance: true,
+      },
+    });
+
+    return rows.map((row) => ({
+      category: row.category,
+      description: row.description.trim().slice(0, 200),
+    }));
   }
 
   /**

@@ -8,36 +8,51 @@ const baseContextSchema = z.object({
   conversationId: z.string(),
 });
 
+const CONTENT_SLICE = 3000;
+
+export const summarizeKnowledgeInputSchema = z
+  .object({
+    folderId: z
+      .string()
+      .optional()
+      .describe('Folder UUID to pull all notes from'),
+    noteIds: z
+      .array(z.string())
+      .optional()
+      .describe('Specific note UUIDs to synthesize'),
+    focus: z
+      .string()
+      .optional()
+      .describe(
+        'Specific aspect to focus synthesis on (e.g. action items, timeline, decisions)',
+      ),
+  })
+  .refine(
+    (value) => Boolean(value.folderId) || (value.noteIds && value.noteIds.length > 0),
+    {
+      message: 'Provide folderId or a non-empty noteIds list.',
+    },
+  );
+
 export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
   const summarizeKnowledge = tool({
     description:
-      'Load multiple notes or an entire folder of notes to analyze, cross-reference, and generate a synthesized summary or action checklist.',
+      'Load notes from a folder or a specific set of note IDs to analyze, cross-reference, and generate a synthesized summary or action checklist. Requires folderId or noteIds.',
     contextSchema: baseContextSchema,
-    inputSchema: z.object({
-      folderId: z
-        .string()
-        .optional()
-        .describe('Folder UUID to pull all notes from'),
-      noteIds: z
-        .array(z.string())
-        .optional()
-        .describe('Specific note UUIDs to synthesize'),
-      focus: z
-        .string()
-        .optional()
-        .describe(
-          'Specific aspect to focus synthesis on (e.g. action items, timeline, decisions)',
-        ),
-    }),
+    inputSchema: summarizeKnowledgeInputSchema,
     execute: async ({ folderId, noteIds, focus }, { context }) => {
       try {
         const whereClause: Prisma.NoteWhereInput = {
           userId: context.userId,
           deletedAt: null,
+          isArchived: false,
         };
 
-        if (folderId) whereClause.folderId = folderId;
-        if (noteIds && noteIds.length > 0) whereClause.id = { in: noteIds };
+        if (noteIds && noteIds.length > 0) {
+          whereClause.id = { in: noteIds };
+        } else if (folderId) {
+          whereClause.folderId = folderId;
+        }
 
         const notes = await prisma.note.findMany({
           where: whereClause,
@@ -61,12 +76,16 @@ export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
           ok: true,
           focus: focus || 'General synthesis',
           notesCount: notes.length,
-          notes: notes.map((n) => ({
-            id: n.id,
-            title: n.title,
-            tags: n.tags,
-            content: n.content.slice(0, 3000), // Protect token budget
-          })),
+          notes: notes.map((n) => {
+            const truncated = n.content.length > CONTENT_SLICE;
+            return {
+              id: n.id,
+              title: n.title,
+              tags: n.tags,
+              content: truncated ? n.content.slice(0, CONTENT_SLICE) : n.content,
+              truncated,
+            };
+          }),
         };
       } catch (err: unknown) {
         const error = err instanceof Error ? err.message : String(err);

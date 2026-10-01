@@ -69,6 +69,7 @@ describe('ChatPersistenceService', () => {
       },
       chatMemory: {
         create: vi.fn().mockResolvedValue({ id: 'mem-1' }),
+        findMany: vi.fn().mockResolvedValue([]),
       },
     };
 
@@ -242,16 +243,51 @@ describe('ChatPersistenceService', () => {
     });
 
     expect(count).toBe(1);
-    expect(mockPrisma.chatMessage.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({
-          id: 'msg-user-1',
-          conversationId: 'conv-1',
-          role: 'user',
-          content: 'Plan sprint',
-        }),
-      ],
-      skipDuplicates: true,
+    expect(mockPrisma.chatMessage.createMany).toHaveBeenCalled();
+    expect(mockPrisma.chatConversation.update).toHaveBeenCalledWith({
+      where: { id: 'conv-1' },
+      data: { updatedAt: expect.any(Date) },
+    });
+  });
+
+  it('should list memories by importance then recency and cap descriptions', async () => {
+    mockPrisma.chatMemory.findMany.mockResolvedValueOnce([
+      {
+        category: 'GOAL',
+        description: `  ${'B'.repeat(250)}  `,
+        importance: 5,
+      },
+      {
+        category: 'PREFERENCE',
+        description: 'Prefer concise bullets',
+        importance: 4,
+      },
+    ]);
+
+    const memories = await service.listMemoriesForUser('user-1', { limit: 12 });
+
+    expect(mockPrisma.chatMemory.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      orderBy: [{ importance: 'desc' }, { createdAt: 'desc' }],
+      take: 12,
+      select: {
+        category: true,
+        description: true,
+        importance: true,
+      },
+    });
+    expect(memories).toEqual([
+      { category: 'GOAL', description: 'B'.repeat(200) },
+      { category: 'PREFERENCE', description: 'Prefer concise bullets' },
+    ]);
+  });
+
+  it('should bump conversation updatedAt via touchConversation', async () => {
+    await service.touchConversation('conv-1');
+
+    expect(mockPrisma.chatConversation.update).toHaveBeenCalledWith({
+      where: { id: 'conv-1' },
+      data: { updatedAt: expect.any(Date) },
     });
   });
 

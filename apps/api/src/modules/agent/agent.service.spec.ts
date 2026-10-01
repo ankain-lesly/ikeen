@@ -5,6 +5,8 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { AblyService } from '../ably/ably.service.js';
 import { AgentProviderService } from './agent-provider.service.js';
 import { ChatPersistenceService } from './chat-persistence.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import { EnvService } from '../../config/env.service.js';
 
 describe('AgentService', () => {
   let service: AgentService;
@@ -52,6 +54,8 @@ describe('AgentService', () => {
       listConversations: vi.fn().mockResolvedValue({ total: 0, conversations: [] }),
       getConversationWithMessages: vi.fn().mockResolvedValue(null),
       deleteConversation: vi.fn().mockResolvedValue({ ok: true }),
+      listMemoriesForUser: vi.fn().mockResolvedValue([]),
+      touchConversation: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -61,6 +65,15 @@ describe('AgentService', () => {
         { provide: AblyService, useValue: mockAbly },
         { provide: AgentProviderService, useValue: mockProvider },
         { provide: ChatPersistenceService, useValue: mockChatPersistence },
+        {
+          provide: AuditService,
+          useValue: {
+            log: vi.fn(),
+            logAgent: vi.fn(),
+            trackChanges: vi.fn().mockReturnValue({}),
+          },
+        },
+        { provide: EnvService, useValue: { AGENT_MAX_STEPS: 10 } },
       ],
     }).compile();
 

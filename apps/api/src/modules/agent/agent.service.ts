@@ -19,6 +19,9 @@ import { createIkeenTools, type IkeenTools } from './tools/index.js';
 import { ChatPersistenceService } from './chat-persistence.service.js';
 import { textFromMessage } from './chat-messages.js';
 import type { UIMessage } from 'ai';
+import { AuditService } from '../audit/audit.service.js';
+import { EnvService } from '../../config/env.service.js';
+import { DEFAULT_AGENT_MAX_STEPS } from './agent-config.js';
 
 @Injectable()
 export class AgentService {
@@ -30,10 +33,13 @@ export class AgentService {
     private readonly ably: AblyService,
     private readonly providerService: AgentProviderService,
     private readonly chatPersistence: ChatPersistenceService,
+    private readonly audit: AuditService,
+    private readonly env: EnvService,
   ) {
     this.tools = createIkeenTools({
       prisma: this.prisma,
       ably: this.ably,
+      audit: this.audit,
     });
     this.logger.log('Ikeen AgentService initialized with tool registry');
   }
@@ -119,9 +125,13 @@ export class AgentService {
       }
     }
 
+    const memories = await this.chatPersistence.listMemoriesForUser(userId);
+    const maxSteps = this.env.AGENT_MAX_STEPS ?? DEFAULT_AGENT_MAX_STEPS;
     const instructions = buildIkeenInstructions({
       firstName: user.firstName,
       username: user.username,
+      memories,
+      maxSteps,
     });
 
     const agent = new ToolLoopAgent({
@@ -131,13 +141,14 @@ export class AgentService {
       tools: this.tools,
       maxOutputTokens: 8192,
       toolsContext: ikeenToolContext(userId, activeConversationId),
-      stopWhen: [stepCountIs(8)],
+      stopWhen: [stepCountIs(maxSteps)],
       callOptionsSchema: ikeenAgentCallOptionsSchema,
       prepareCall: ({ options, ...settings }) => ({
         ...settings,
         instructions,
         toolsContext: ikeenToolContext(options.userId, options.conversationId),
       }),
+      ...createAgentLifecycle(this.logger, maxSteps),
       ...createAgentLifecycle(this.logger),
     });
 
@@ -220,6 +231,8 @@ export class AgentService {
             );
             await this.ably.publishInvalidation(userId, entities);
           }
+
+          await this.chatPersistence.touchConversation(activeConversationId);
         } catch (error) {
           this.logger.error(
             `Failed to persist completed chat for convId=${activeConversationId}`,

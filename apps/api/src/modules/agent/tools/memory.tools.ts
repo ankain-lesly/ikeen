@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import type { AuditService } from '../../audit/audit.service.js';
 
 const baseContextSchema = z.object({
   userId: z.string(),
@@ -15,7 +16,13 @@ export const MEMORY_CATEGORIES = [
   'FEEDBACK',
 ] as const;
 
-export function createMemoryTools({ prisma }: { prisma: PrismaService }) {
+export function createMemoryTools({
+  prisma,
+  audit,
+}: {
+  prisma: PrismaService;
+  audit: AuditService;
+}) {
   const recordMemory = tool({
     description:
       'Autonomously persist a valuable insight, preference, enduring goal, or breakthrough about the user to maintain continuity.',
@@ -53,6 +60,16 @@ export function createMemoryTools({ prisma }: { prisma: PrismaService }) {
             description: description.trim(),
             importance: Math.min(Math.max(importance, 1), 5),
           },
+        });
+
+        audit.logAgent({
+          userId: context.userId,
+          conversationId: context.conversationId,
+          action: 'agent.recordMemory',
+          resourceType: 'memory',
+          resourceId: entry.id,
+          details: `Recorded ${category} memory`,
+          metadata: { category, importance },
         });
 
         return {

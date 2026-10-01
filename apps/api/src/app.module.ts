@@ -8,6 +8,7 @@ import { AblyModule } from './modules/ably/ably.module.js';
 import { FoldersModule } from './modules/folders/folders.module.js';
 import { NotesModule } from './modules/notes/notes.module.js';
 import { AgentModule } from './modules/agent/agent.module.js';
+import { AuditModule } from './modules/audit/audit.module.js';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware.js';
 import { EnvModule } from './config/env.module.js';
 
@@ -15,6 +16,7 @@ import { EnvModule } from './config/env.module.js';
   imports: [
     EnvModule,
     PrismaModule,
+    AuditModule,
     AblyModule,
     FoldersModule,
     NotesModule,
