@@ -126,8 +126,8 @@ export function ChatMessageList({
 
     if (isUser) {
       const bubbleContent = (
-        <View className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
-          <Text className="text-sm font-normal text-text leading-relaxed">
+        <View className="px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
+          <Text className="shrink text-sm font-normal text-text leading-relaxed">
             {textContent}
           </Text>
         </View>
@@ -136,7 +136,8 @@ export function ChatMessageList({
       // On iOS and Android, use native @expo/ui MenuView with shouldOpenOnLongPress
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
         return (
-          <View className="flex-row justify-end mb-4 px-4">
+          <View className="mb-4 flex-row justify-end px-4">
+            <View className="max-w-[85%] shrink">
             <MenuView
               title="Message"
               shouldOpenOnLongPress={true}
@@ -161,14 +162,16 @@ export function ChatMessageList({
               ]}>
               {bubbleContent}
             </MenuView>
+            </View>
           </View>
         );
       }
 
       // Web fallback
       return (
-        <View className="flex-row justify-end mb-4 px-4">
+        <View className="mb-4 flex-row justify-end px-4">
           <Pressable
+            className="max-w-[85%] shrink"
             onLongPress={() => handleCopy(textContent)}
             delayLongPress={400}>
             {bubbleContent}

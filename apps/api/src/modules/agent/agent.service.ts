@@ -17,7 +17,11 @@ import { buildIkeenInstructions } from './prompts/index.js';
 import { createIkeenTools, type IkeenTools } from './tools/index.js';
 
 import { ChatPersistenceService } from './chat-persistence.service.js';
-import { textFromMessage } from './chat-messages.js';
+import {
+  latestUserTextMessage,
+  normalizeUiMessages,
+  textFromMessage,
+} from './chat-messages.js';
 import type { UIMessage } from 'ai';
 import { AuditService } from '../audit/audit.service.js';
 import { EnvService } from '../../config/env.service.js';
@@ -104,7 +108,7 @@ export class AgentService {
     let titlePromise: Promise<string> | null = null;
 
     // 2. Eagerly persist incoming user message before launching the agent loop
-    const lastUserMessage = messages.filter((m) => m.role === 'user').pop();
+    const lastUserMessage = latestUserTextMessage(messages);
     let savedUserMessageId: string | undefined;
 
     if (lastUserMessage) {
@@ -149,13 +153,17 @@ export class AgentService {
         toolsContext: ikeenToolContext(options.userId, options.conversationId),
       }),
       ...createAgentLifecycle(this.logger, maxSteps),
-      ...createAgentLifecycle(this.logger),
     });
+
+    const stored = await this.chatPersistence.getConversationWithMessages(
+      userId,
+      activeConversationId,
+    );
 
     await pipeAgentUIStreamToResponse({
       response,
       agent,
-      uiMessages: messages,
+      uiMessages: normalizeUiMessages(stored.uiMessages),
       options: {
         userId,
         conversationId: activeConversationId,
@@ -251,12 +259,10 @@ export class AgentService {
     const mutated = new Set<string>();
 
     const recordMutation = (toolName: string, result: unknown) => {
-      // If the tool explicitly returned { ok: false, ... }, the mutation failed
       if (
-        result &&
-        typeof result === 'object' &&
-        'ok' in result &&
-        (result as { ok?: boolean }).ok === false
+        !result ||
+        typeof result !== 'object' ||
+        (result as { ok?: boolean }).ok !== true
       ) {
         return;
       }

@@ -10,7 +10,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
 
   // Auth & Security
-  JWT_SECRET: z.string().default('ikeen-jwt-secret-dev-2026'),
+  JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('7d'),
 
   // Realtime (Ably)

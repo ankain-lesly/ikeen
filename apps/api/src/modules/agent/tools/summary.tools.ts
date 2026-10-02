@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { optionalId, toolFailure } from '../call-options.js';
 import { Prisma } from '../../../generated/prisma/client.js';
 
 const baseContextSchema = z.object({
@@ -12,10 +13,9 @@ const CONTENT_SLICE = 3000;
 
 export const summarizeKnowledgeInputSchema = z
   .object({
-    folderId: z
-      .string()
-      .optional()
-      .describe('Folder UUID to pull all notes from'),
+    folderId: optionalId.describe(
+      'Folder id to pull notes from. Omit when using noteIds. Do not pass null.',
+    ),
     noteIds: z
       .array(z.string())
       .optional()
@@ -87,9 +87,8 @@ export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
             };
           }),
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });

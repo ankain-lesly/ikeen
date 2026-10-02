@@ -531,8 +531,8 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   return (
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
       <Sparkles size={12} color={colors.primary} />
-      <Text className="text-[11px] font-mono text-text-secondary flex-1">
-        {toolName} {isRunning ? 'executing...' : 'completed'}
+      <Text className="text-[11px] text-text-secondary flex-1">
+        {isRunning ? 'Working…' : 'Done'}
       </Text>
     </View>
   );

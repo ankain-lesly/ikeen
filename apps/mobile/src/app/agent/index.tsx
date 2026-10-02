@@ -41,7 +41,7 @@ interface ActiveSession {
 interface ChatSessionProps {
   conversationId: string;
   initialMessages: UIMessage[];
-  token: string | null;
+  token: string;
   onTitleUpdate: (title: string) => void;
   onStatusChange?: (isLoading: boolean) => void;
   initialPrompt?: string;
@@ -76,7 +76,7 @@ function ChatSessionContent({
           return res;
         }) as typeof globalThis.fetch,
         api: `${API_BASE_URL}/agent/chat`,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        headers: { Authorization: `Bearer ${token}` },
         prepareSendMessagesRequest: ({ messages, body }) => {
           const rest = { ...(body ?? {}) } as Record<string, unknown>;
           delete rest.id;
@@ -167,6 +167,12 @@ export default function AgentScreen() {
   const { token } = useAuthStore();
   const { prompt: initialPrompt } = useLocalSearchParams<{ prompt?: string }>();
 
+  useEffect(() => {
+    if (!token) {
+      router.replace("/(auth)/login");
+    }
+  }, [token, router]);
+
   const { isConnected, isInternetReachable } = useNetInfo();
   const isOnline = isConnected && isInternetReachable;
 
@@ -228,6 +234,10 @@ export default function AgentScreen() {
       initialMessages: [],
     });
   };
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <View className="flex-1 bg-background pt-safe">

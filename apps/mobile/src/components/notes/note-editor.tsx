@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -77,77 +78,111 @@ export function NoteEditor({ note }: { note?: Note }) {
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
   const isDeletedRef = useRef(false);
+  const idRef = useRef(note?.id);
+  const creatingRef = useRef<Promise<string> | null>(null);
+  const isPinnedRef = useRef(isPinned);
+  const isArchivedRef = useRef(isArchived);
 
-  // Keep latest values in ref for unmount save
   useEffect(() => {
     latestNoteRef.current = { title, content, tags };
   }, [title, content, tags]);
 
-  // Explicit save function (called by Save button & tag updates)
+  useEffect(() => {
+    idRef.current = id;
+  }, [id]);
+
+  useEffect(() => {
+    isPinnedRef.current = isPinned;
+    isArchivedRef.current = isArchived;
+  }, [isPinned, isArchived]);
+
   const saveNote = useCallback(
-    async (title: string, content: string, tags: string[]) => {
-      if (!id) {
-        const note = await createNote({
-          title,
-          content,
-          tags,
-          isPinned,
-          isArchived,
-        });
-        setId(note.id);
-        return;
+    async (
+      next?: { title: string; content: string; tags: string[] },
+      options?: { silent?: boolean; commitId?: boolean },
+    ) => {
+      if (next) {
+        latestNoteRef.current = next;
       }
-      setIsSaving(true);
+      if (isDeletedRef.current || !hasEditedRef.current) return;
+
+      const snapshot = latestNoteRef.current;
+      const isEmpty =
+        snapshot.title.trim().length === 0 &&
+        snapshot.content.trim().length === 0 &&
+        snapshot.tags.length === 0;
+      if (isEmpty) return;
+
+      const silent = options?.silent === true;
+      const commitId = options?.commitId !== false;
+      if (!silent) setIsSaving(true);
       try {
-        await updateNote(id, {
-          title,
-          content,
-          tags,
-        });
+        const startedCreate = !idRef.current && !creatingRef.current;
+        if (!idRef.current) {
+          if (!creatingRef.current) {
+            creatingRef.current = createNote({
+              title: snapshot.title,
+              content: snapshot.content,
+              tags: snapshot.tags,
+              isPinned: isPinnedRef.current,
+              isArchived: isArchivedRef.current,
+            })
+              .then((created) => {
+                idRef.current = created.id;
+                if (commitId) setId(created.id);
+                return created.id;
+              })
+              .finally(() => {
+                creatingRef.current = null;
+              });
+          }
+          await creatingRef.current;
+        }
+
+        const savedId = idRef.current;
+        const latest = latestNoteRef.current;
+        const unchanged =
+          latest.title === snapshot.title &&
+          latest.content === snapshot.content &&
+          latest.tags === snapshot.tags;
+        if (savedId && !(startedCreate && unchanged)) {
+          await updateNote(savedId, {
+            title: latest.title,
+            content: latest.content,
+            tags: latest.tags,
+          });
+        }
         hasEditedRef.current = false;
       } catch {
         // Non-blocking save error
       } finally {
-        setIsSaving(false);
+        if (!silent) setIsSaving(false);
       }
     },
-    [id, isArchived, isPinned],
+    [],
   );
 
-  // Save changes on unmount or clean up empty draft note
+  const saveNoteRef = useRef(saveNote);
+  useEffect(() => {
+    saveNoteRef.current = saveNote;
+  }, [saveNote]);
+
   useEffect(() => {
     return () => {
-      if (isDeletedRef.current) return;
-
-      const { title, content, tags } = latestNoteRef.current;
-      const isEmpty =
-        title?.trim().length === 0 &&
-        content?.trim().length === 0 &&
-        tags.length === 0;
-
-      if (isEmpty) {
-        // hardDeleteNote(id).catch((err) => {
-        //   console.error("Failed to delete empty note on unmount:", err);
-        // });
-        return;
-      }
-
-      if (hasEditedRef.current) {
-        // updateNote(id, {
-        //   title,
-        //   content,
-        //   tags,
-        // }).catch((err) => {
-        //   console.error("Failed to save note on unmount:", err);
-        // });
-        saveNote(title, content, tags).catch((err) => {
-          console.error("Failed to save note on unmount:", err);
-        });
-
-        toast.success("Note saved");
-      }
+      void saveNoteRef.current(undefined, { silent: true, commitId: false }).catch((err) => {
+        console.error("Failed to save note on unmount:", err);
+      });
     };
-  }, [id, saveNote]);
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "background") {
+        void saveNoteRef.current(undefined, { silent: true });
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
     null,
@@ -179,18 +214,20 @@ export function NoteEditor({ note }: { note?: Note }) {
     Keyboard.dismiss();
     setIsEditing(false);
     if (hasEditedRef.current) {
-      await saveNote(title, content, tags);
+      await saveNote({ title, content, tags });
       toast.success("Note saved");
     }
   }, [saveNote, title, content, tags]);
 
   const handleTitleChange = (newTitle: string) => {
     hasEditedRef.current = true;
+    latestNoteRef.current = { ...latestNoteRef.current, title: newTitle };
     setTitle(newTitle);
   };
 
   const handleContentChange = (newContent: string) => {
     hasEditedRef.current = true;
+    latestNoteRef.current = { ...latestNoteRef.current, content: newContent };
     setContent(newContent);
   };
 
@@ -246,8 +283,8 @@ export function NoteEditor({ note }: { note?: Note }) {
       const updatedTags = [...tags, trimmed];
       setTags(updatedTags);
       setNewTagText("");
-      // setNewTagInputVisible(false);
-      saveNote(title, content, updatedTags);
+      hasEditedRef.current = true;
+      void saveNote({ title, content, tags: updatedTags });
       Haptics.selectionAsync();
       tagInputRef?.current?.focus()
     } else {
@@ -260,12 +297,17 @@ export function NoteEditor({ note }: { note?: Note }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const updatedTags = tags.filter((t) => t !== tagToRemove);
     setTags(updatedTags);
-    saveNote(title, content, updatedTags);
+    hasEditedRef.current = true;
+    void saveNote({ title, content, tags: updatedTags });
   };
 
   const handleInsertSnippet = (snippet: string) => {
     hasEditedRef.current = true;
-    setContent((prev) => prev + snippet);
+    setContent((prev) => {
+      const next = prev + snippet;
+      latestNoteRef.current = { ...latestNoteRef.current, content: next };
+      return next;
+    });
     contentInputRef.current?.focus();
   };
 

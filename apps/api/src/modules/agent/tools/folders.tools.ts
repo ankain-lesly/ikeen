@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { toolFailure } from '../call-options.js';
 import type { AblyService } from '../../ably/ably.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
 
@@ -86,9 +87,8 @@ export function createFolderTools({
             noteCount: f._count.notes,
           })),
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -165,9 +165,8 @@ export function createFolderTools({
           folderId: folder.id,
           name: folder.name,
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -254,9 +253,8 @@ export function createFolderTools({
           folderId: updated.id,
           name: updated.name,
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -349,9 +347,8 @@ export function createFolderTools({
           folderName: note.folder?.name ?? folderName ?? null,
           tags: note.tags,
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });

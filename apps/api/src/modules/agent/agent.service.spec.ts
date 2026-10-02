@@ -198,6 +198,28 @@ describe('AgentService', () => {
       expect(mutated.size).toBe(2);
     });
 
+    it('should ignore writes that did not return ok: true', () => {
+      const messages: UIMessage[] = [
+        {
+          id: 'm-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-createNote' as 'text',
+              output: { noteId: 'note-1' },
+            } as unknown as UIMessage['parts'][number],
+            {
+              type: 'tool-searchNotes' as 'text',
+              output: { ok: true, count: 1, notes: [] },
+              state: 'output-available',
+            } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ];
+
+      expect(service.extractMutatedEntities(messages).size).toBe(0);
+    });
+
     it('should ignore failed tool executions (ok: false or state: error)', () => {
       const messages: UIMessage[] = [
         {

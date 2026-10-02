@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { toolFailure } from '../call-options.js';
 import type { AuditService } from '../../audit/audit.service.js';
 
 const baseContextSchema = z.object({
@@ -78,9 +79,8 @@ export function createMemoryTools({
           category,
           importance,
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });

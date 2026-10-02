@@ -68,7 +68,7 @@ Create `.env` files in the respective application directories:
 # Backend (apps/backend/.env)
 DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
 PORT=5000
-JWT_SECRET="your-secret-key"
+JWT_SECRET="replace-with-a-long-random-secret"
 
 # Mobile (apps/mobile/.env)
 EXPO_PUBLIC_API_URL="http://localhost:5000"

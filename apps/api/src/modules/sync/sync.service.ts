@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AblyService } from '../ably/ably.service.js';
 import { FoldersService } from '../folders/folders.service.js';
@@ -6,6 +6,11 @@ import { NotesService } from '../notes/notes.service.js';
 import { EnvService } from '../../config/env.service.js';
 import { SyncPushDto } from './dto/sync-push.dto.js';
 import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
+import {
+  DEFAULT_STORE_URL,
+  getLatestRelease,
+  type AppStorePlatform,
+} from './app-updates.registry.js';
 import type {
   SyncPullResponse,
   SyncPushResponse,
@@ -30,7 +35,7 @@ export class SyncService {
     private readonly ablyService: AblyService,
     private readonly foldersService: FoldersService,
     private readonly notesService: NotesService,
-    @Optional() private readonly env?: EnvService,
+    private readonly env: EnvService,
   ) {}
 
   /**
@@ -256,38 +261,41 @@ export class SyncService {
    * Retrieves app update information for mobile clients.
    */
   getAppUpdates(query?: CheckUpdatesQueryDto): AppUpdateInfo {
-    // TODO: Configure to come from a registry(object-with-data)
-    const latestBuild = 2;
-    const minRequiredVersion = this.env?.APP_MIN_REQUIRED_VERSION || '1.0.0';
-    const isGloballyMandatory = this.env?.APP_UPDATE_MANDATORY || false;
+    const release = getLatestRelease();
+    const minRequiredVersion = this.env.APP_MIN_REQUIRED_VERSION;
+    const isGloballyMandatory = this.env.APP_UPDATE_MANDATORY;
 
     let mandatory = isGloballyMandatory;
     if (query?.currentVersion && !mandatory) {
       mandatory = this.isOlderVersion(query.currentVersion, minRequiredVersion);
     }
 
-    const platform = query?.platform?.toLowerCase();
-    let url = 'https://github.com/ankain-lesly/ikeen/releases';
-    if (platform === 'android') {
-      url = this.env?.APP_UPDATE_URL_ANDROID || url;
-    } else if (platform === 'ios') {
-      url = this.env?.APP_UPDATE_URL_IOS || url;
-    }
-
     return {
-      version: minRequiredVersion,
-      build: latestBuild,
+      version: release.version,
+      build: release.build,
       mandatory,
-      title: 'New Update Available 🚀',
-      description: [
-        'Enhanced user-centered design structure for easier navigation',
-        'Enhance search functionality, recent search, and note filtering',
-        'Improved sync performance for faster note updates on all devices',
-        'Smarter, more interactive AI agent chat features based on your feedback',
-        'Bug fixes and general stability improvements for a smoother experience',
-      ].join('\n• '),
-      url,
+      title: release.title,
+      description: release.notes.join('\n• '),
+      url: this.resolveStoreUrl(query?.platform, release.storeUrls),
     };
+  }
+
+  private resolveStoreUrl(
+    platform: string | undefined,
+    storeUrls?: Partial<Record<AppStorePlatform, string>>,
+  ): string {
+    const normalized = platform?.toLowerCase();
+    if (normalized === 'android') {
+      return (
+        this.env.APP_UPDATE_URL_ANDROID ??
+        storeUrls?.android ??
+        DEFAULT_STORE_URL
+      );
+    }
+    if (normalized === 'ios') {
+      return this.env.APP_UPDATE_URL_IOS ?? storeUrls?.ios ?? DEFAULT_STORE_URL;
+    }
+    return DEFAULT_STORE_URL;
   }
 
   private isOlderVersion(

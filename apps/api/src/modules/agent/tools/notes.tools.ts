@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { optionalId, toolFailure } from '../call-options.js';
 import type { AblyService } from '../../ably/ably.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
 
@@ -68,10 +69,9 @@ export function createNotesTools({
         .string()
         .min(1)
         .describe('Search query, keyword, or concept to find in notes'),
-      folderId: z
-        .string()
-        .optional()
-        .describe('Optional folder ID to filter notes within'),
+      folderId: optionalId.describe(
+        'Folder id to filter by. Omit when unused. Do not pass null.',
+      ),
       limit: z
         .number()
         .int()
@@ -108,9 +108,8 @@ export function createNotesTools({
           count: notes.length,
           notes: notes.map(mapDiscoveryNote),
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -155,9 +154,8 @@ export function createNotesTools({
             updatedAt: note.updatedAt,
           },
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -202,9 +200,8 @@ export function createNotesTools({
           count: notes.length,
           notes: notes.map(mapDiscoveryNote),
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -218,10 +215,9 @@ export function createNotesTools({
       content: z
         .string()
         .describe('Markdown content or body of the note'),
-      folderId: z
-        .string()
-        .optional()
-        .describe('Optional folder UUID to place this note into (from listFolders)'),
+      folderId: optionalId.describe(
+        'Folder id from listFolders. Omit to save at root. Do not pass null.',
+      ),
       tags: z
         .array(z.string())
         .default([])
@@ -281,16 +277,15 @@ export function createNotesTools({
           createdAt: note.createdAt,
           ...(warning ? { warning } : {}),
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
 
   const updateNote = tool({
     description:
-      'Update an existing note (modify title, tags, replace content, or append new brainstorm notes/action items). Full content replace requires confirm: true after the user agrees.',
+      'Update an existing note (title, tags, append, or replace content). If the user already asked to rewrite this note, pass content with confirm: true on the first call. Otherwise a replace without confirm returns a preview.',
     contextSchema: baseContextSchema,
     inputSchema: z.object({
       noteId: z.string().describe('The UUID of the note to update'),
@@ -298,7 +293,9 @@ export function createNotesTools({
       content: z
         .string()
         .optional()
-        .describe('Replacement content for the note. Requires confirm: true after user agreement.'),
+        .describe(
+          'Replacement content. Set confirm true on the first call when the user already asked to rewrite.',
+        ),
       appendContent: z
         .string()
         .optional()
@@ -406,9 +403,8 @@ export function createNotesTools({
           version: note.version,
           updatedAt: note.updatedAt,
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -467,9 +463,8 @@ export function createNotesTools({
             isPinned: note.isPinned,
           },
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });
@@ -529,9 +524,8 @@ export function createNotesTools({
             isArchived: note.isArchived,
           },
         };
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err.message : String(err);
-        return { ok: false, error };
+      } catch {
+        return toolFailure();
       }
     },
   });

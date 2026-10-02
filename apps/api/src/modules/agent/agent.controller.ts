@@ -25,6 +25,7 @@ interface AuthenticatedRequest {
 }
 
 @Controller('agent')
+@UseGuards(JwtAuthGuard)
 export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
@@ -45,7 +46,6 @@ export class AgentController {
    * Alias endpoint mounted at POST /agent/chat.
    */
   @Post('chat')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async chatAlias(
     @Req() req: AuthenticatedRequest,
@@ -64,7 +64,6 @@ export class AgentController {
    * Lists conversations for the authenticated user.
    */
   @Get('conversations')
-  @UseGuards(JwtAuthGuard)
   async listConversations(
     @Req() req: AuthenticatedRequest,
     @Query('limit') limit?: string,
@@ -81,7 +80,6 @@ export class AgentController {
    * Retrieves a single conversation thread with full message history.
    */
   @Get('conversations/:id')
-  @UseGuards(JwtAuthGuard)
   async getConversation(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -93,7 +91,6 @@ export class AgentController {
    * Deletes a conversation thread.
    */
   @Delete('conversations/:id')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async deleteConversation(
     @Req() req: AuthenticatedRequest,

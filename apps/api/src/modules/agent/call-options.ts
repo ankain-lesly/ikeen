@@ -30,3 +30,21 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     summarizeKnowledge: baseContext,
   };
 }
+
+
+/**
+ * Optional id the model may omit, pass as null, or pass as "".
+ * Stored calls treat all three as "not set" so Zod does not reject null.
+ */
+export const optionalId = z
+  .union([z.string().min(1), z.null(), z.literal('')])
+  .optional()
+  .transform((value) => (value ? value : undefined));
+
+export function toolFailure(): { ok: false; error: string } {
+  return {
+    ok: false,
+    error:
+      'Could not complete this step. Fix the arguments and retry once, or continue without it.',
+  };
+}

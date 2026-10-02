@@ -4,6 +4,12 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { AblyService } from '../ably/ably.service.js';
 import { FoldersService } from '../folders/folders.service.js';
 import { NotesService } from '../notes/notes.service.js';
+import { EnvService } from '../../config/env.service.js';
+import {
+  APP_RELEASES,
+  DEFAULT_STORE_URL,
+  getLatestRelease,
+} from './app-updates.registry.js';
 
 describe('SyncService', () => {
   let service: SyncService;
@@ -11,6 +17,12 @@ describe('SyncService', () => {
   let ablyService: any;
   let foldersService: any;
   let notesService: any;
+  let env: {
+    APP_MIN_REQUIRED_VERSION: string;
+    APP_UPDATE_MANDATORY: boolean;
+    APP_UPDATE_URL_ANDROID?: string;
+    APP_UPDATE_URL_IOS?: string;
+  };
 
   beforeEach(async () => {
     prisma = {
@@ -40,6 +52,11 @@ describe('SyncService', () => {
       upsertWithLww: vi.fn().mockResolvedValue({ applied: true, noteId: 'n-1' }),
     };
 
+    env = {
+      APP_MIN_REQUIRED_VERSION: '1.2.0',
+      APP_UPDATE_MANDATORY: false,
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SyncService,
@@ -47,6 +64,7 @@ describe('SyncService', () => {
         { provide: AblyService, useValue: ablyService },
         { provide: FoldersService, useValue: foldersService },
         { provide: NotesService, useValue: notesService },
+        { provide: EnvService, useValue: env },
       ],
     }).compile();
 
@@ -171,45 +189,58 @@ describe('SyncService', () => {
     });
   });
 
+  describe('APP_RELEASES', () => {
+    it('is newest-first with unique versions and strictly decreasing builds', () => {
+      expect(APP_RELEASES.length).toBeGreaterThan(0);
+      expect(getLatestRelease()).toEqual(APP_RELEASES[0]);
+
+      const versions = APP_RELEASES.map((release) => release.version);
+      const builds = APP_RELEASES.map((release) => release.build);
+
+      expect(new Set(versions).size).toBe(versions.length);
+      expect(new Set(builds).size).toBe(builds.length);
+
+      for (let i = 1; i < builds.length; i++) {
+        expect(builds[i - 1]).toBeGreaterThan(builds[i]!);
+      }
+    });
+  });
+
   describe('getAppUpdates', () => {
-    const originalEnv = process.env;
-
-    beforeEach(() => {
-      process.env = { ...originalEnv };
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-    });
-
-    it('should return default update info when no query is passed', () => {
+    it('should return the latest registry release when no query is passed', () => {
+      const latest = getLatestRelease();
       const updateInfo = service.getAppUpdates();
-      expect(updateInfo).toHaveProperty('version');
-      expect(updateInfo).toHaveProperty('title');
-      expect(updateInfo).toHaveProperty('description');
-      expect(updateInfo).toHaveProperty('url');
-      expect(typeof updateInfo.mandatory).toBe('boolean');
+
+      expect(updateInfo.version).toBe(latest.version);
+      expect(updateInfo.build).toBe(latest.build);
+      expect(updateInfo.title).toBe(latest.title);
+      expect(updateInfo.description).toBe(latest.notes.join('\n• '));
+      expect(updateInfo.url).toBe(DEFAULT_STORE_URL);
+      expect(updateInfo.mandatory).toBe(false);
     });
 
     it('should mark mandatory as true if currentVersion is older than minRequiredVersion', () => {
-      process.env.APP_MIN_REQUIRED_VERSION = '1.1.0';
+      env.APP_MIN_REQUIRED_VERSION = '1.2.0';
       const updateInfo = service.getAppUpdates({ currentVersion: '1.0.0' });
       expect(updateInfo.mandatory).toBe(true);
     });
 
     it('should mark mandatory as false if currentVersion satisfies minRequiredVersion and no global flag', () => {
-      process.env.APP_MIN_REQUIRED_VERSION = '1.0.0';
-      process.env.APP_UPDATE_MANDATORY = 'false';
+      env.APP_MIN_REQUIRED_VERSION = '1.0.0';
+      env.APP_UPDATE_MANDATORY = false;
       const updateInfo = service.getAppUpdates({ currentVersion: '1.0.0' });
       expect(updateInfo.mandatory).toBe(false);
     });
 
     it('should use platform-specific URL when provided', () => {
-      process.env.APP_UPDATE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.ikeen';
-      process.env.APP_UPDATE_URL_IOS = 'https://apps.apple.com/app/ikeen';
+      env.APP_UPDATE_URL_ANDROID =
+        'https://play.google.com/store/apps/details?id=com.ikeen';
+      env.APP_UPDATE_URL_IOS = 'https://apps.apple.com/app/ikeen';
 
       const androidUpdate = service.getAppUpdates({ platform: 'android' });
-      expect(androidUpdate.url).toBe('https://play.google.com/store/apps/details?id=com.ikeen');
+      expect(androidUpdate.url).toBe(
+        'https://play.google.com/store/apps/details?id=com.ikeen',
+      );
 
       const iosUpdate = service.getAppUpdates({ platform: 'ios' });
       expect(iosUpdate.url).toBe('https://apps.apple.com/app/ikeen');
