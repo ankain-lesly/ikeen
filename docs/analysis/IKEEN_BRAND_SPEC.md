@@ -14,7 +14,7 @@
 The name **ikeen** is built on two interlocked declarations:
 
 1. **Personal Declaration ("I am keen"):** *Keen* denotes being eager, sharp, intellectually curious, and acutely perceptive. Saying *iKeen / ikeen* is an active, first-person declaration of ambition, mental clarity, and readiness to build and achieve.
-2. **The Intelligent Companion ("Eye-Keen"):** The vigilant, proactive companion that stays observant in the background—keeping a keen eye on your habits, tracking your runway, transcribing your spoken thoughts in sub-300ms, and orchestrating your day with bespoke intelligence.
+2. **The Intelligent Companion ("iKeen"):** The vigilant, proactive companion that stays observant in the background—keeping a keen eye on your habits, tracking your runway, transcribing your spoken thoughts in sub-300ms, and orchestrating your day with bespoke intelligence.
 
 ### The Brand Paradox
 * **Calm on the surface** (no notification spam, zero cognitive clutter, distraction-free markdown canvas).

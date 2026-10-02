@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Eye Keen",
-    template: "%s · Eye Keen",
+    default: "iKeen",
+    template: "%s · iKeen",
   },
   description:
-    "Eye Keen is a personal notes and thinking workspace — local-first notes, folders, and an optional AI agent.",
+    "iKeen is a personal notes and thinking workspace — local-first notes, folders, and an optional AI agent.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-black/8 dark:border-white/12">
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
             <Link href="/" className="text-sm font-semibold tracking-tight">
-              Eye Keen
+              iKeen
             </Link>
             <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
               <Link href="/privacy" className="hover:text-foreground">
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <footer className="mt-auto border-t border-black/8 dark:border-white/12">
           <div className="mx-auto flex w-full max-w-3xl justify-between px-6 py-4 text-xs text-zinc-500">
-            <span>© {new Date().getFullYear()} Eye Keen</span>
+            <span>© {new Date().getFullYear()} iKeen</span>
             <Link href="/privacy" className="hover:text-foreground">
               Privacy Policy
             </Link>

@@ -1,6 +1,6 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-const APP_NAME = "Eye Keen";
+const APP_NAME = "iKeen";
 const APP_BUNDLE_IDENTIFIER = "com.techforgelee.ikeen";
 const APP_DEV_BUNDLE_IDENTIFIER = "com.techforgelee.ikeen.dev";
 

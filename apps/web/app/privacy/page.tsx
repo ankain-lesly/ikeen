@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How Eye Keen collects, stores, and shares data on Android and iOS.",
+    "How iKeen collects, stores, and shares data on Android and iOS.",
 };
 
 const UPDATED = "2 October 2026";
@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
         Privacy Policy
       </h1>
       <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-        This policy describes how Eye Keen (“the app”, package{" "}
+        This policy describes how iKeen (“the app”, package{" "}
         <code className="font-mono text-sm">com.techforgelee.ikeen</code>)
         handles information. The app is for people 13 and older. It is not
         directed at children under 13, and we do not knowingly collect data from
@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
 
       <Section title="Who we are">
         <p>
-          Eye Keen is operated by the developer listed on the Google Play
+          iKeen is operated by the developer listed on the Google Play
           listing for this package. Contact us using the email on that listing
           (or the in-app account email you used to register) for privacy
           requests.
