@@ -28,6 +28,8 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     archiveNote: baseContext,
     recordMemory: baseContext,
     summarizeKnowledge: baseContext,
+    webSearch: baseContext,
+    readWebPage: baseContext,
   };
 }
 

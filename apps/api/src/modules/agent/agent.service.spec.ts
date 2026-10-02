@@ -7,6 +7,7 @@ import { AgentProviderService } from './agent-provider.service.js';
 import { ChatPersistenceService } from './chat-persistence.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EnvService } from '../../config/env.service.js';
+import { WebResearchService } from './web-research.service.js';
 
 describe('AgentService', () => {
   let service: AgentService;
@@ -74,6 +75,10 @@ describe('AgentService', () => {
           },
         },
         { provide: EnvService, useValue: { AGENT_MAX_STEPS: 10 } },
+        {
+          provide: WebResearchService,
+          useValue: { isEnabled: () => false },
+        },
       ],
     }).compile();
 
@@ -101,6 +106,8 @@ describe('AgentService', () => {
     expect(toolNames).toContain('archiveNote');
     expect(toolNames).toContain('recordMemory');
     expect(toolNames).toContain('summarizeKnowledge');
+    expect(toolNames).not.toContain('webSearch');
+    expect(toolNames).not.toContain('readWebPage');
   });
 
   describe('extractMutatedEntities (Strategy B)', () => {

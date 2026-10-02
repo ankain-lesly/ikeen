@@ -17,6 +17,7 @@ import { buildIkeenInstructions } from './prompts/index.js';
 import { createIkeenTools, type IkeenTools } from './tools/index.js';
 
 import { ChatPersistenceService } from './chat-persistence.service.js';
+import { WebResearchService } from './web-research.service.js';
 import {
   latestUserTextMessage,
   normalizeUiMessages,
@@ -39,11 +40,13 @@ export class AgentService {
     private readonly chatPersistence: ChatPersistenceService,
     private readonly audit: AuditService,
     private readonly env: EnvService,
+    private readonly webResearch: WebResearchService,
   ) {
     this.tools = createIkeenTools({
       prisma: this.prisma,
       ably: this.ably,
       audit: this.audit,
+      webResearch: this.webResearch,
     });
     this.logger.log('Ikeen AgentService initialized with tool registry');
   }
@@ -131,11 +134,14 @@ export class AgentService {
 
     const memories = await this.chatPersistence.listMemoriesForUser(userId);
     const maxSteps = this.env.AGENT_MAX_STEPS ?? DEFAULT_AGENT_MAX_STEPS;
+    const webResearch = this.webResearch.isEnabled();
     const instructions = buildIkeenInstructions({
       firstName: user.firstName,
       username: user.username,
       memories,
       maxSteps,
+      webResearch,
+      today: webResearch ? new Date().toISOString().slice(0, 10) : undefined,
     });
 
     const agent = new ToolLoopAgent({

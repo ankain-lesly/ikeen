@@ -28,6 +28,7 @@ export const envSchema = z.object({
     .min(4)
     .max(16)
     .default(10),
+  TAVILY_API_KEY: z.string(),
 
   // App Updates
   APP_MIN_REQUIRED_VERSION: z.string().default('1.2.0'),

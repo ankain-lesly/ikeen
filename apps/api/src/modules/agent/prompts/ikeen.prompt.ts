@@ -7,6 +7,7 @@ import {
   PROMPT_SEGMENT_TOOL_ROUTING,
   PROMPT_SEGMENT_WORKSPACE_AND_GUARDRAILS,
   buildExecutionBudgetSegment,
+  buildWebResearchSegment,
 } from './segments.js';
 import { DEFAULT_AGENT_MAX_STEPS } from '../agent-config.js';
 
@@ -20,6 +21,8 @@ export interface UserPromptContext {
   username?: string;
   memories?: KnownMemory[];
   maxSteps?: number;
+  webResearch?: boolean;
+  today?: string;
 }
 
 const MEMORY_DESCRIPTION_MAX = 200;
@@ -50,14 +53,19 @@ export function buildIkeenInstructions(user?: UserPromptContext): string {
   const memorySegment = formatKnownMemories(user?.memories ?? []);
   const executionBudget = buildExecutionBudgetSegment(
     user?.maxSteps ?? DEFAULT_AGENT_MAX_STEPS,
+    { webResearch: Boolean(user?.webResearch) },
   );
+  const webResearchSegment =
+    user?.webResearch && user.today
+      ? `\n${buildWebResearchSegment(user.today)}\n`
+      : '';
 
   return `${PROMPT_SEGMENT_IDENTITY}${greetingSegment}${memorySegment}
 
 ${executionBudget}
 
 ${PROMPT_SEGMENT_PERSONALITY_AND_TONE}
-
+${webResearchSegment}
 ${PROMPT_SEGMENT_LINK_AND_FORMATTING}
 
 ${PROMPT_SEGMENT_TOOL_ROUTING}

@@ -56,4 +56,33 @@ describe('buildIkeenInstructions', () => {
     expect(instructions).not.toContain('Ask probing questions');
     expect(instructions).not.toContain('or Note ID');
   });
+
+  it('includes the web research segment and today when enabled', () => {
+    const today = '2026-10-02';
+    const instructions = buildIkeenInstructions({
+      webResearch: true,
+      today,
+    });
+
+    expect(instructions).toContain('## Web Research');
+    expect(instructions).toContain(`Today's date is ${today}`);
+    expect(instructions).toContain('webSearch');
+    expect(instructions).toContain('readWebPage');
+    expect(instructions).toContain(
+      buildExecutionBudgetSegment(DEFAULT_AGENT_MAX_STEPS, {
+        webResearch: true,
+      }),
+    );
+  });
+
+  it('omits the web research segment when it is not enabled', () => {
+    const instructions = buildIkeenInstructions();
+
+    expect(instructions).not.toContain('## Web Research');
+    expect(instructions).not.toContain("Today's date is");
+    expect(instructions).toContain(
+      buildExecutionBudgetSegment(DEFAULT_AGENT_MAX_STEPS),
+    );
+    expect(instructions).not.toContain('Prefer one `webSearch`');
+  });
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
@@ -15,6 +15,7 @@ import {
   Loader2,
   Pin,
   Archive,
+  Globe,
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -38,6 +39,14 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
       pathname: '/notes/[id]',
       params: { id: noteId },
     });
+  };
+
+  const handleOpenUrl = (url: string) => {
+    if (!url.startsWith('https://')) {
+      return;
+    }
+    Haptics.selectionAsync();
+    Linking.openURL(url);
   };
 
   // 1. Note Creation / Update Tool Card
@@ -527,7 +536,125 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
-  // 9. Generic Tool Fallback
+  if (toolName === 'webSearch') {
+    const searchResult = result as {
+      results?: Array<{ title: string; url: string }>;
+    } | null;
+    const query = (args.query as string) || '';
+    const hits = searchResult?.results || [];
+    const count = hits.length;
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <Pressable
+          onPress={() => hits.length > 0 && setIsExpanded(!isExpanded)}
+          className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Globe size={14} color={colors.textSecondary} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isRunning
+                  ? 'Searching the web...'
+                  : `Searched the web${count > 0 ? ` · ${count}` : ''}`}
+              </Text>
+              {query ? (
+                <Text
+                  className="text-xs text-text-secondary italic"
+                  numberOfLines={1}>
+                  "{query}"
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          {hits.length > 0 && (
+            <View className="p-1">
+              {isExpanded ? (
+                <ChevronUp size={15} color={colors.textSecondary} />
+              ) : (
+                <ChevronDown size={15} color={colors.textSecondary} />
+              )}
+            </View>
+          )}
+        </Pressable>
+
+        {isExpanded && hits.length > 0 && (
+          <View className="mt-2.5 pt-2 border-t border-border/60 gap-1.5">
+            {hits.map((hit) => (
+              <Pressable
+                key={hit.url}
+                onPress={() => handleOpenUrl(hit.url)}
+                className="flex-row items-center justify-between p-2 rounded-xl bg-background border border-border/40 active:bg-background-selected">
+                <View className="flex-row items-center gap-2 flex-1 mr-2">
+                  <Globe size={13} color={colors.textSecondary} />
+                  <Text
+                    className="text-xs font-medium text-text flex-1"
+                    numberOfLines={1}>
+                    {hit.title}
+                  </Text>
+                </View>
+                <ExternalLink size={11} color={colors.primary} />
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  if (toolName === 'readWebPage') {
+    const pageResult = result as {
+      ok?: boolean;
+      url?: string;
+      title?: string;
+    } | null;
+    const url = pageResult?.url || (args.url as string) || '';
+    const title = pageResult?.title || url || 'Web page';
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Globe size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isRunning ? 'Reading page...' : 'Read page'}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {title}
+              </Text>
+            </View>
+          </View>
+
+          {url && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenUrl(url)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Generic Tool Fallback
   return (
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
       <Sparkles size={12} color={colors.primary} />

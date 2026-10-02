@@ -1,4 +1,4 @@
-import { optionalId } from '../call-options.js';
+import { optionalId, ikeenToolContext } from '../call-options.js';
 import { summarizeKnowledgeInputSchema } from './summary.tools.js';
 
 describe('optionalId', () => {
@@ -22,5 +22,15 @@ describe('summarizeKnowledgeInputSchema', () => {
       expect(parsed.data.folderId).toBeUndefined();
       expect(parsed.data.noteIds).toEqual(['note-1']);
     }
+  });
+});
+
+describe('ikeenToolContext', () => {
+  it('includes webSearch and readWebPage keys', () => {
+    const context = ikeenToolContext('user-1', 'conv-1');
+    const bound = { userId: 'user-1', conversationId: 'conv-1' };
+
+    expect(context.webSearch).toEqual(bound);
+    expect(context.readWebPage).toEqual(bound);
   });
 });

@@ -1,0 +1,1 @@
+node -e "const c = require('crypto'); console.log('HEX_64:', c.randomBytes(32).toString('hex')); console.log('BASE64_64:', c.randomBytes(48).toString('base64')); console.log('BASE64URL:', c.randomBytes(32).toString('base64url'));"
