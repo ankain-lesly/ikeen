@@ -1,6 +1,5 @@
 {
-  "name": "api",
-  "name:repo": "@repo/api",
+  "name": "@repo/api",
   "description": "iKeen API",
   "author": "Lesly Chuo",
   "private": true,
