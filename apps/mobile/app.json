@@ -3,7 +3,7 @@
     "name": "iKeen",
     "slug": "ikeen",
     "description": "iKeen is your personal thought partner—helping you brainstorm, organize, and connect ideas as an extension of your mind. Notes, folders, Chats, Agents and ideas are connected to your workspace.",
-    "version": "1.2.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ikeen",
@@ -13,10 +13,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#004040",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "notification": {
+        "icon": "./assets/images/notification-icon.png",
+        "color": "#004040"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.techforgelee.ikeen"
@@ -30,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#008040",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
