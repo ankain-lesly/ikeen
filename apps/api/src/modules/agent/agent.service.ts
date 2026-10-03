@@ -151,13 +151,14 @@ export class AgentService {
       tools: this.tools,
       maxOutputTokens: 8192,
       toolsContext: ikeenToolContext(userId, activeConversationId),
-      stopWhen: [stepCountIs(maxSteps)],
+      // stopWhen: [stepCountIs(maxSteps)],
       callOptionsSchema: ikeenAgentCallOptionsSchema,
       prepareCall: ({ options, ...settings }) => ({
         ...settings,
         instructions,
         toolsContext: ikeenToolContext(options.userId, options.conversationId),
       }),
+
       ...createAgentLifecycle(this.logger, maxSteps),
     });
 

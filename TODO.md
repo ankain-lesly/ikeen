@@ -37,4 +37,8 @@
 - Chage all cosole.error -> cosole.warn
 
 
-- App version
+
+## Markdown Renderer
+
+- https://github.com/software-mansion/enriched-markdown
+- https://github.com/Expensify/react-native-live-markdown

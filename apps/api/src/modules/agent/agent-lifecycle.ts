@@ -43,6 +43,12 @@ export function createAgentLifecycle(
         'unknown';
       logger.log(`[Agent:Start] convId=${convId} userId=${userId}`);
     },
+    // Log the tool calls used in each step
+    onStepFinish({ toolCalls }: { toolCalls: any[] }) {
+      for (const toolCall of toolCalls) {
+        logger.log(` ⚙️ [Using tool: ${toolCall.toolName}]`);
+      }
+    },
 
     onToolExecutionEnd({
       toolCall,

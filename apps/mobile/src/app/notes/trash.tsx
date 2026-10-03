@@ -51,6 +51,7 @@ export default function NoteCreateScreen() {
       </View>
 
       <NoteGridContainer
+        variant="trash"
         showFilter={false}
         data={trashedNotes}
         filter={{}}

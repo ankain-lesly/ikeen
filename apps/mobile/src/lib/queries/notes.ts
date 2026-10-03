@@ -358,6 +358,83 @@ export async function toggleArchiveNote(id: string): Promise<Note> {
 }
 
 /**
+ * Bulk soft deletes multiple notes by stamping deletedAt.
+ */
+export async function bulkSoftDeleteNotes(ids: string[]): Promise<number> {
+  if (!ids || ids.length === 0) return 0;
+  let count = 0;
+  for (const id of ids) {
+    try {
+      await softDeleteNote(id);
+      count++;
+    } catch {
+      // Continue with remaining notes
+    }
+  }
+  return count;
+}
+
+/**
+ * Bulk moves multiple notes to a folder (or removes them from folders if folderId is null).
+ */
+export async function bulkMoveNotesToFolder(
+  ids: string[],
+  folderId: string | null
+): Promise<number> {
+  if (!ids || ids.length === 0) return 0;
+  let count = 0;
+  for (const id of ids) {
+    try {
+      await updateNote(id, { folderId });
+      count++;
+    } catch {
+      // Continue with remaining notes
+    }
+  }
+  return count;
+}
+
+/**
+ * Bulk sets pinned state for multiple notes.
+ */
+export async function bulkSetPinNotes(
+  ids: string[],
+  isPinned: boolean
+): Promise<number> {
+  if (!ids || ids.length === 0) return 0;
+  let count = 0;
+  for (const id of ids) {
+    try {
+      await updateNote(id, { isPinned });
+      count++;
+    } catch {
+      // Continue with remaining notes
+    }
+  }
+  return count;
+}
+
+/**
+ * Bulk sets archived state for multiple notes.
+ */
+export async function bulkSetArchiveNotes(
+  ids: string[],
+  isArchived: boolean
+): Promise<number> {
+  if (!ids || ids.length === 0) return 0;
+  let count = 0;
+  for (const id of ids) {
+    try {
+      await updateNote(id, { isArchived });
+      count++;
+    } catch {
+      // Continue with remaining notes
+    }
+  }
+  return count;
+}
+
+/**
  * Upserts a note incoming from a sync pull with Last-Write-Wins (LWW).
  * Adapts platform boundary: parses native string[] tags into SQLite JSON string.
  */

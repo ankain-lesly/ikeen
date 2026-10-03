@@ -67,7 +67,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -75,7 +75,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <CheckCircle2 size={14} color={colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {toolName === 'createNote' ? 'Note Created' : 'Note Updated'}
               </Text>
@@ -117,11 +117,11 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         <Pressable
           onPress={() => setIsExpanded(!isExpanded)}
           className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               <Search size={14} color={colors.textSecondary} />
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning ? 'Searching Notes...' : `Found ${count} Note${count === 1 ? '' : 's'}`}
               </Text>
@@ -153,10 +153,10 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 key={n.id}
                 onPress={() => handleOpenNote(n.id)}
                 className="flex-row items-center justify-between p-2 rounded-xl bg-background border border-border/40 active:bg-background-selected">
-                <View className="flex-row items-center gap-2 flex-1 mr-2">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
                   <FileText size={13} color={colors.textSecondary} />
                   <Text
-                    className="text-xs font-medium text-text flex-1"
+                    className="text-xs font-medium text-text flex-1 min-w-0"
                     numberOfLines={1}>
                     {n.title}
                   </Text>
@@ -181,7 +181,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
         <Brain size={13} color={colors.primary} />
         <Text
-          className="text-xs text-text-secondary flex-1"
+          className="text-xs text-text-secondary flex-1 min-w-0"
           numberOfLines={2}>
           Saved context: <Text className="text-text font-medium">{memory}</Text>
         </Text>
@@ -223,7 +223,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -231,7 +231,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Folder size={14} color={colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {label}
               </Text>
@@ -274,7 +274,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View
               style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
               className="w-7 h-7 rounded-lg border items-center justify-center">
@@ -284,7 +284,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Folder size={14} color={folderColor} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isAlreadyExisted ? 'Existing Folder Linked' : 'Folder Created'}
               </Text>
@@ -314,7 +314,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
 
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
-        <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+        <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
           <View
             style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
             className="w-7 h-7 rounded-lg border items-center justify-center">
@@ -324,7 +324,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
               <Folder size={14} color={folderColor} />
             )}
           </View>
-          <View className="flex-1">
+          <View className="flex-1 min-w-0">
             <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
               Folder Updated
             </Text>
@@ -358,7 +358,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -366,7 +366,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Pin size={14} color={colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isPinned ? 'Note Pinned' : 'Note Unpinned'}
               </Text>
@@ -413,7 +413,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -421,7 +421,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Archive size={14} color={colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isArchived ? 'Note Archived' : 'Note Restored'}
               </Text>
@@ -464,7 +464,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         ) : (
           <Folder size={13} color={colors.primary} />
         )}
-        <Text className="text-xs text-text flex-1" numberOfLines={1}>
+        <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
           {isRunning
             ? 'Checking workspace folders...'
             : query
@@ -492,7 +492,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         ) : (
           <FileText size={13} color={colors.primary} />
         )}
-        <Text className="text-xs text-text flex-1" numberOfLines={1}>
+        <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
           {isRunning
             ? 'Reading recent workspace notes...'
             : pinnedOnly
@@ -514,13 +514,13 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
 
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2 flex-1 mr-2">
+        <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
           {isRunning ? (
             <Loader2 size={13} color={colors.primary} />
           ) : (
             <FileText size={13} color={colors.primary} />
           )}
-          <Text className="text-xs text-text flex-1" numberOfLines={1}>
+          <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
             {isRunning ? 'Reading note...' : `Inspected "${title}"`}
           </Text>
         </View>
@@ -549,7 +549,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         <Pressable
           onPress={() => hits.length > 0 && setIsExpanded(!isExpanded)}
           className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -557,7 +557,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Globe size={14} color={colors.textSecondary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning
                   ? 'Searching the web...'
@@ -591,10 +591,10 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 key={hit.url}
                 onPress={() => handleOpenUrl(hit.url)}
                 className="flex-row items-center justify-between p-2 rounded-xl bg-background border border-border/40 active:bg-background-selected">
-                <View className="flex-row items-center gap-2 flex-1 mr-2">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
                   <Globe size={13} color={colors.textSecondary} />
                   <Text
-                    className="text-xs font-medium text-text flex-1"
+                    className="text-xs font-medium text-text flex-1 min-w-0"
                     numberOfLines={1}>
                     {hit.title}
                   </Text>
@@ -620,7 +620,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={colors.primary} />
@@ -628,7 +628,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
                 <Globe size={14} color={colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning ? 'Reading page...' : 'Read page'}
               </Text>
@@ -658,7 +658,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   return (
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
       <Sparkles size={12} color={colors.primary} />
-      <Text className="text-[11px] text-text-secondary flex-1">
+      <Text className="text-[11px] text-text-secondary flex-1 min-w-0">
         {isRunning ? 'Working…' : 'Done'}
       </Text>
     </View>

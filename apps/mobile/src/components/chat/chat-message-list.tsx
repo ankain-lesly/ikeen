@@ -126,7 +126,7 @@ export function ChatMessageList({
 
     if (isUser) {
       const bubbleContent = (
-        <View className="px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
+        <View className="min-w-0 px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
           <Text className="shrink text-sm font-normal text-text leading-relaxed">
             {textContent}
           </Text>
@@ -136,8 +136,8 @@ export function ChatMessageList({
       // On iOS and Android, use native @expo/ui MenuView with shouldOpenOnLongPress
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
         return (
-          <View className="mb-4 flex-row justify-end px-4">
-            <View className="max-w-[85%] shrink">
+          <View className="mb-4 w-full flex-row justify-end px-4">
+            <View className="max-w-[85%] shrink min-w-0">
             <MenuView
               title="Message"
               shouldOpenOnLongPress={true}
@@ -169,9 +169,9 @@ export function ChatMessageList({
 
       // Web fallback
       return (
-        <View className="mb-4 flex-row justify-end px-4">
+        <View className="mb-4 w-full flex-row justify-end px-4">
           <Pressable
-            className="max-w-[85%] shrink"
+            className="max-w-[85%] shrink min-w-0"
             onLongPress={() => handleCopy(textContent)}
             delayLongPress={400}>
             {bubbleContent}
@@ -182,7 +182,7 @@ export function ChatMessageList({
 
     // Assistant Message
     return (
-      <View className="mb-6 px-4">
+      <View className="mb-6 w-full min-w-0 px-4">
         {/* Assistant Header Avatar */}
         <View className="flex-row items-center gap-2 mb-2">
           <View className="w-5 h-5 rounded-full bg-background-element border border-border/80 items-center justify-center">
@@ -195,7 +195,7 @@ export function ChatMessageList({
 
         {/* Tool Invocations (if any) */}
         {toolInvocations.length > 0 && (
-          <View className="mb-2.5 pl-7">
+          <View className="mb-2.5 pl-7 min-w-0">
             {toolInvocations.map((t, idx) => (
               <ChatToolPart
                 key={t.toolCallId || `${item.id}-tool-${idx}`}
@@ -210,7 +210,7 @@ export function ChatMessageList({
 
         {/* Text Content */}
         {textContent ? (
-          <View className="pl-7 pr-2">
+          <View className="pl-7 pr-2 w-full min-w-0">
             <Text className="text-sm font-normal text-text leading-relaxed">
               {textContent}
             </Text>
@@ -251,6 +251,7 @@ export function ChatMessageList({
       data={messages}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
+      className="flex-1 min-w-0"
       contentContainerStyle={{
         flexGrow: 1,
         paddingTop: 16,

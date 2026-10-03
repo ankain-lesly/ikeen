@@ -559,9 +559,11 @@ export function NoteEditor({ note }: { note?: Note }) {
               />
             ) : (
               <GestureDetector gesture={combinedGestures}>
-                <Text className="text-base leading-6 flex-1 py-0 pb-24 text-text">
-                  {content || "Start typing..."}
-                </Text>
+                <View className="w-full min-w-0 pb-24">
+                  <Text className="w-full min-w-0 text-base leading-6 text-text">
+                    {content || "Start typing..."}
+                  </Text>
+                </View>
               </GestureDetector>
             )}
           </ScrollView>
