@@ -42,3 +42,7 @@
 
 - https://github.com/software-mansion/enriched-markdown
 - https://github.com/Expensify/react-native-live-markdown
+
+
+- Add a link that users can use to request that their account and associated data is deleted 
+

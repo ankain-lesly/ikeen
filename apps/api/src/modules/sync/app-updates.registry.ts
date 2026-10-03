@@ -15,6 +15,20 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '1.3.0',
+    build: 5,
+    releasedAt: '2026-10-03',
+    title: "What's new in iKeen",
+    notes: [
+      'Smarter agent responses and context organization',
+      'Ask the agent to search the web and read a page',
+      'Connect Gmail and other apps from chat, then save the result as a note',
+      'Richer Markdown in notes and agent replies',
+      'Select several notes at once to move, pin, archive, or delete',
+      'Delete your account from Profile',
+    ],
+  },
+  {
     version: '1.2.0',
     build: 4,
     releasedAt: '2026-09-28',
