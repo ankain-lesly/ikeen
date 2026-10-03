@@ -32,7 +32,7 @@ export const envSchema = z.object({
   COMPOSIO_API_KEY: z.string().min(1),
 
   // App Updates
-  APP_MIN_REQUIRED_VERSION: z.string().default('1.2.0'),
+  APP_MIN_REQUIRED_VERSION: z.string(),
   APP_UPDATE_MANDATORY: z.coerce.boolean().default(false),
   APP_UPDATE_URL_ANDROID: z.string().optional(),
   APP_UPDATE_URL_IOS: z.string().optional(),

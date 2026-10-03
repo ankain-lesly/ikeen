@@ -74,7 +74,7 @@
   },
   "private": true,
   "enriched-markdown": {
-    "enableCodeHighlight": true,
+    "enableCodeHighlight": false,
     "enableMath": false,
     "enableVideo": false,
     "codeHighlightLanguages": ["javascript", "typescript", "python", "json"]
