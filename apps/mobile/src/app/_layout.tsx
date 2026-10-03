@@ -132,7 +132,7 @@ function RootApp() {
       <Stack.Screen name="agent" />
       <Stack.Screen name="search" />
       <Stack.Screen name="notes" />
-      <Stack.Screen name="folders" />
+      <Stack.Screen name="folders/[id]" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="(auth)"

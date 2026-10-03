@@ -15,23 +15,18 @@ import {
   Heading1,
   Italic,
   List,
-  // Undo,
-  // Redo,
   CheckCheck,
   Pencil,
   Pin,
   Share2,
 } from "lucide-react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  // LinearTransition,
-} from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTheme } from "@/hooks/use-theme";
 import { useKeyboardGradualAnimation } from "@/hooks/use-gradual-animation";
+import type { MarkdownFormatAction } from "@/components/markdown";
 
 interface NoteAccessoryBarProps {
-  onInsertSnippet: (snippet: string) => void;
+  onFormat: (action: MarkdownFormatAction) => void;
   onOpenTagPrompt?: () => void;
   onDismiss?: () => void;
   isSaving: boolean;
@@ -51,7 +46,7 @@ interface NoteBottomToolBarProps
 }
 
 export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
-  onInsertSnippet,
+  onFormat,
   onOpenTagPrompt,
   onDismiss,
   isSaving,
@@ -73,7 +68,7 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
           exiting={FadeOut.duration(150)}
           className="flex-1 flex-row items-center">
           <NoteAccessoryBar
-            onInsertSnippet={onInsertSnippet}
+            onFormat={onFormat}
             onOpenTagPrompt={onOpenTagPrompt}
             onDismiss={onDismiss}
             isSaving={isSaving}
@@ -99,7 +94,7 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
 });
 
 export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
-  onInsertSnippet,
+  onFormat,
   onOpenTagPrompt,
   onDismiss,
   isSaving,
@@ -107,18 +102,14 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
   const colors = useTheme();
   const { isVisible } = useKeyboardGradualAnimation();
 
-  const handleAction = (snippet: string) => {
+  const handleAction = (action: MarkdownFormatAction) => {
     Haptics.selectionAsync();
-    onInsertSnippet(snippet);
+    onFormat(action);
   };
 
   const handleTagAction = () => {
     Haptics.selectionAsync();
-    if (onOpenTagPrompt) {
-      onOpenTagPrompt();
-    } else {
-      onInsertSnippet("#");
-    }
+    onOpenTagPrompt?.();
   };
 
   const handleDismiss = () => {
@@ -140,7 +131,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
           accessibilityRole="button"
           accessibilityLabel="Insert checklist item"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("\n- [ ] ")}>
+          onPress={() => handleAction("checklist")}>
           <CheckSquare size={18} color={colors.text} />
         </Pressable>
 
@@ -149,7 +140,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
           accessibilityRole="button"
           accessibilityLabel="Insert bullet list"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("\n- ")}>
+          onPress={() => handleAction("list")}>
           <List size={18} color={colors.text} />
         </Pressable>
 
@@ -158,7 +149,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
           accessibilityRole="button"
           accessibilityLabel="Insert heading"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("\n## ")}>
+          onPress={() => handleAction("heading")}>
           <Heading1 size={18} color={colors.text} />
         </Pressable>
 
@@ -167,7 +158,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
           accessibilityRole="button"
           accessibilityLabel="Insert bold"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("****")}>
+          onPress={() => handleAction("bold")}>
           <Bold size={18} color={colors.text} />
         </Pressable>
 
@@ -176,7 +167,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
           accessibilityRole="button"
           accessibilityLabel="Insert italic"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("**")}>
+          onPress={() => handleAction("italic")}>
           <Italic size={18} color={colors.text} />
         </Pressable>
 

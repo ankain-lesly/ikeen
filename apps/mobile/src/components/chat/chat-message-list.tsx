@@ -8,6 +8,7 @@ import { MenuView } from '@expo/ui/community/menu';
 import { useTheme } from '@/hooks/use-theme';
 import { toast } from '@/lib/toast';
 import { ChatToolPart } from './chat-tool-part';
+import { MarkdownBody } from '@/components/markdown';
 
 interface MessageListProps {
   messages: UIMessage[];
@@ -211,9 +212,11 @@ export function ChatMessageList({
         {/* Text Content */}
         {textContent ? (
           <View className="pl-7 pr-2 w-full min-w-0">
-            <Text className="text-sm font-normal text-text leading-relaxed">
-              {textContent}
-            </Text>
+            <MarkdownBody
+              source={textContent}
+              size={14}
+              streaming={isStreamingThis}
+            />
           </View>
         ) : null}
 

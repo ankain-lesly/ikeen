@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
   ChevronLeft,
@@ -42,6 +42,12 @@ import { formatDate } from "@repo/utils/date";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
+import {
+  MarkdownBody,
+  MarkdownEditor,
+  type MarkdownEditorHandle,
+  type MarkdownFormatAction,
+} from "@/components/markdown";
 
 export function NoteEditor({ note }: { note?: Note }) {
   const colors = useTheme();
@@ -71,9 +77,13 @@ export function NoteEditor({ note }: { note?: Note }) {
 
   const isNewDraft = (!note?.title && !note?.content) || !id;
   const [isEditing, setIsEditing] = useState(isNewDraft);
+  const [editorDefaultValue, setEditorDefaultValue] = useState(content);
+  const isEditingRef = useRef(isEditing);
+  const leavingRef = useRef(false);
+  const navigation = useNavigation();
 
   const titleInputRef = useRef<TextInput>(null);
-  const contentInputRef = useRef<TextInput>(null);
+  const contentInputRef = useRef<MarkdownEditorHandle>(null);
   const tagInputRef = useRef<TextInput>(null);
   const latestNoteRef = useRef({ title, content, tags });
   const hasEditedRef = useRef(false);
@@ -82,6 +92,10 @@ export function NoteEditor({ note }: { note?: Note }) {
   const creatingRef = useRef<Promise<string> | null>(null);
   const isPinnedRef = useRef(isPinned);
   const isArchivedRef = useRef(isArchived);
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
 
   useEffect(() => {
     latestNoteRef.current = { title, content, tags };
@@ -175,14 +189,49 @@ export function NoteEditor({ note }: { note?: Note }) {
     };
   }, []);
 
+  const flushEditorMarkdown = useCallback(async () => {
+    if (!isEditingRef.current) return;
+    try {
+      const markdown = await contentInputRef.current?.getMarkdown();
+      if (markdown == null || markdown === latestNoteRef.current.content) return;
+      hasEditedRef.current = true;
+      latestNoteRef.current = { ...latestNoteRef.current, content: markdown };
+      setContent(markdown);
+    } catch {
+      // Keep the last onChangeMarkdown snapshot.
+    }
+  }, []);
+
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background") {
-        void saveNoteRef.current(undefined, { silent: true });
-      }
+      if (state !== "background") return;
+      void (async () => {
+        await flushEditorMarkdown();
+        await saveNoteRef.current(undefined, { silent: true });
+      })();
     });
     return () => subscription.remove();
-  }, []);
+  }, [flushEditorMarkdown]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (leavingRef.current || !isEditingRef.current) return;
+      e.preventDefault();
+      leavingRef.current = true;
+      void (async () => {
+        try {
+          await flushEditorMarkdown();
+          await saveNoteRef.current(undefined, {
+            silent: true,
+            commitId: false,
+          });
+        } finally {
+          navigation.dispatch(e.data.action);
+        }
+      })();
+    });
+    return unsubscribe;
+  }, [navigation, flushEditorMarkdown]);
 
   const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
     null,
@@ -190,10 +239,11 @@ export function NoteEditor({ note }: { note?: Note }) {
 
   const startEditing = useCallback(
     (target: "title" | "content" = "content") => {
+      setEditorDefaultValue(content);
       setFocusTarget(target);
       setIsEditing(true);
     },
-    [],
+    [content],
   );
 
   useEffect(() => {
@@ -212,12 +262,18 @@ export function NoteEditor({ note }: { note?: Note }) {
 
   const handleDoneEditing = useCallback(async () => {
     Keyboard.dismiss();
+    await flushEditorMarkdown();
+    const snapshot = latestNoteRef.current;
     setIsEditing(false);
     if (hasEditedRef.current) {
-      await saveNote({ title, content, tags });
+      await saveNote({
+        title: snapshot.title,
+        content: snapshot.content,
+        tags: snapshot.tags,
+      });
       toast.success("Note saved");
     }
-  }, [saveNote, title, content, tags]);
+  }, [flushEditorMarkdown, saveNote]);
 
   const handleTitleChange = (newTitle: string) => {
     hasEditedRef.current = true;
@@ -225,11 +281,23 @@ export function NoteEditor({ note }: { note?: Note }) {
     setTitle(newTitle);
   };
 
-  const handleContentChange = (newContent: string) => {
+  const handleContentChange = useCallback((newContent: string) => {
     hasEditedRef.current = true;
     latestNoteRef.current = { ...latestNoteRef.current, content: newContent };
     setContent(newContent);
-  };
+  }, []);
+
+  const formatContent = useCallback((action: MarkdownFormatAction) => {
+    contentInputRef.current?.format(action);
+  }, []);
+
+  const openTagPrompt = useCallback(() => {
+    setNewTagInputVisible(true);
+  }, []);
+
+  const editContent = useCallback(() => {
+    startEditing("content");
+  }, [startEditing]);
 
   const handleTogglePin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -244,16 +312,17 @@ export function NoteEditor({ note }: { note?: Note }) {
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
+    const snapshot = latestNoteRef.current;
     try {
       await Share.share({
-        title: title.trim() || "Untitled Note",
-        message: `${title}\n\n${content}`,
+        title: snapshot.title.trim() || "Untitled Note",
+        message: `${snapshot.title}\n\n${snapshot.content}`,
       });
     } catch {
       // Ignored
     }
-  };
+  }, []);
 
   const handleDelete = () => {
     Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
@@ -299,16 +368,6 @@ export function NoteEditor({ note }: { note?: Note }) {
     setTags(updatedTags);
     hasEditedRef.current = true;
     void saveNote({ title, content, tags: updatedTags });
-  };
-
-  const handleInsertSnippet = (snippet: string) => {
-    hasEditedRef.current = true;
-    setContent((prev) => {
-      const next = prev + snippet;
-      latestNoteRef.current = { ...latestNoteRef.current, content: next };
-      return next;
-    });
-    contentInputRef.current?.focus();
   };
 
   const wordCount = useMemo(() => {
@@ -361,13 +420,17 @@ export function NoteEditor({ note }: { note?: Note }) {
               <Pressable
                 className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({
-                    pathname: "/agent",
-                    params: {
-                      prompt: `Let's brainstorm on my note "${title || "Untitled Note"}":\n\n${content.slice(0, 300)}`,
-                    },
-                  });
+                  void (async () => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    await flushEditorMarkdown();
+                    const snapshot = latestNoteRef.current;
+                    router.push({
+                      pathname: "/agent",
+                      params: {
+                        prompt: `Let's brainstorm on my note "${snapshot.title || "Untitled Note"}":\n\n${snapshot.content.slice(0, 300)}`,
+                      },
+                    });
+                  })();
                 }}
                 hitSlop={8}>
                 <Sparkles size={18} color={colors.primary} />
@@ -540,45 +603,41 @@ export function NoteEditor({ note }: { note?: Note }) {
           {/* Note Writing / Reading Canvas */}
           <ScrollView
             showsVerticalScrollIndicator={false}
-            className="flex-1_ h-screen"
-            contentContainerClassName="flex-1__ px-5 pt-4"
+            className="flex-1"
+            contentContainerClassName="px-5 pt-4"
             keyboardShouldPersistTaps="handled">
             {isEditing ? (
-              <TextInput
+              <MarkdownEditor
                 ref={contentInputRef}
-                className="text-base leading-6 flex-1 py-0 pb-24 text-text"
+                defaultValue={editorDefaultValue}
                 placeholder="Start typing..."
                 placeholderTextColor={colors.textSecondary}
-                value={content}
-                onChangeText={handleContentChange}
-                multiline
-                textAlignVertical="top"
-                scrollEnabled={false}
-                editable={isEditing}
-                pointerEvents={isEditing ? "auto" : "none"}
+                onChangeMarkdown={handleContentChange}
               />
+            ) : content.trim() ? (
+              <View className="w-full min-w-0 pb-24">
+                <MarkdownBody source={content} />
+              </View>
             ) : (
               <GestureDetector gesture={combinedGestures}>
                 <View className="w-full min-w-0 pb-24">
-                  <Text className="w-full min-w-0 text-base leading-6 text-text">
-                    {content || "Start typing..."}
+                  <Text className="text-base leading-6 text-text-secondary">
+                    Start typing...
                   </Text>
                 </View>
               </GestureDetector>
             )}
           </ScrollView>
 
-          {/* <View className="h-11 bg-blue" /> */}
-
           {/* Accessory / Toolbar depending on mode */}
           <NoteBottomToolBar
             isEditing={isEditing}
             isSaving={isSaving}
-            onInsertSnippet={handleInsertSnippet}
-            onOpenTagPrompt={() => setNewTagInputVisible(true)}
+            onFormat={formatContent}
+            onOpenTagPrompt={openTagPrompt}
             onDismiss={handleDoneEditing}
             wordCount={wordCount}
-            onStartEditing={() => startEditing("content")}
+            onStartEditing={editContent}
             onShare={handleShare}
             isPinned={isPinned}
             onTogglePin={handleTogglePin}

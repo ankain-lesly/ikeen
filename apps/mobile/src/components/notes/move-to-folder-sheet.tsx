@@ -130,7 +130,7 @@ export function MoveToFolderSheet({
                       <Pressable
                         onPress={() => handleSelect(null)}
                         className={`flex-1 flex-row items-center justify-between p-3.5 rounded-2xl border ${
-                          !currentFolderId
+                          currentFolderId === null
                             ? "border-primary bg-primary/10"
                             : "border-border bg-background-element active:bg-background-selected"
                         }`}>
@@ -150,7 +150,7 @@ export function MoveToFolderSheet({
                           </View>
                         </View>
 
-                        {!currentFolderId ? (
+                        {currentFolderId === null ? (
                           <View className="absolute right-1.5">
                             <Check
                               size={18}

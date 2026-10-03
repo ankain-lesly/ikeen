@@ -14,15 +14,13 @@ import * as Haptics from "@/lib/haptics";
 import { BottomTabInset } from "@/constants/theme";
 import { NoteCard } from "./note-card";
 import {
-  bulkMoveNotesToFolder,
-  bulkSetArchiveNotes,
-  bulkSetPinNotes,
-  bulkSoftDeleteNotes,
+  applyToNotes,
   hardDeleteNote,
   restoreNote,
   softDeleteNote,
   toggleArchiveNote,
   togglePinNote,
+  updateNote,
 } from "@/lib/queries/notes";
 import { ThemedText } from "../ui/themed-text";
 import { toast } from "@/lib/toast";
@@ -31,6 +29,10 @@ import {
   type NotesGridVariant,
 } from "./notes-bulk-action-bar";
 import { MoveToFolderSheet } from "./move-to-folder-sheet";
+
+function noteLabel(count: number) {
+  return count === 1 ? "note" : "notes";
+}
 
 interface NoteGridContainerProps {
   data: Note[];
@@ -60,27 +62,19 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isMoveSheetVisible, setIsMoveSheetVisible] = useState(false);
-
-  const selectedIdsRef = useRef(selectedIds);
-  selectedIdsRef.current = selectedIds;
-  const isSelectionModeRef = useRef(isSelectionMode);
-  isSelectionModeRef.current = isSelectionMode;
+  const busyRef = useRef(false);
 
   useEffect(() => {
+    if (selectedIds.size === 0) return;
     const visibleIds = new Set(data.map((n) => n.id));
-    setSelectedIds((prev) => {
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of prev) {
-        if (visibleIds.has(id)) {
-          next.add(id);
-        } else {
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [data]);
+    const next = new Set<string>();
+    for (const id of selectedIds) {
+      if (visibleIds.has(id)) next.add(id);
+    }
+    if (next.size === selectedIds.size) return;
+    setSelectedIds(next);
+    if (next.size === 0) setIsSelectionMode(false);
+  }, [data, selectedIds]);
 
   // Single Note Handlers
   const handleTogglePin = useCallback(async (id: string) => {
@@ -123,110 +117,119 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     );
   }, []);
 
-  // Selection Mode Handlers
   const handleSelectNote = useCallback((id: string) => {
+    const removingLast = selectedIds.has(id) && selectedIds.size === 1;
+    if (removingLast) setIsSelectionMode(false);
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      // When zero items remain selected, exit select mode
-      if (next.size === 0) {
-        setIsSelectionMode(false);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
-  }, []);
+  }, [selectedIds]);
 
   const handleLongPressSelect = useCallback((id: string) => {
     setIsSelectionMode(true);
     setSelectedIds(new Set([id]));
   }, []);
 
+  const handleCancelSelection = useCallback(() => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const selectedNotes = useMemo(
+    () => data.filter((n) => selectedIds.has(n.id)),
+    [data, selectedIds],
+  );
+
   const allSelected =
-    data.length > 0 && data.every((n) => selectedIds.has(n.id));
+    data.length > 0 && selectedNotes.length === data.length;
+  const isAllPinned =
+    selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
+  const isAllArchived =
+    selectedNotes.length > 0 && selectedNotes.every((n) => n.isArchived);
+  const sharedFolderId = useMemo(() => {
+    if (selectedNotes.length === 0) return undefined;
+    const first = selectedNotes[0].folderId ?? null;
+    return selectedNotes.every((n) => (n.folderId ?? null) === first)
+      ? first
+      : undefined;
+  }, [selectedNotes]);
 
   const handleToggleSelectAll = useCallback(() => {
     Haptics.selectionAsync();
     if (allSelected) {
       setSelectedIds(new Set());
-      // When deselecting all (zero items selected), exit select mode
       setIsSelectionMode(false);
     } else {
       setSelectedIds(new Set(data.map((n) => n.id)));
     }
   }, [allSelected, data]);
 
-  const handleCancelSelection = useCallback(() => {
-    setIsSelectionMode(false);
-    setSelectedIds(new Set());
-  }, []);
-
-  // Bulk Operations State
-  const selectedNotes = useMemo(() => {
-    return data.filter((n) => selectedIds.has(n.id));
-  }, [data, selectedIds]);
-
-  const isAllPinned = useMemo(() => {
-    return selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
-  }, [selectedNotes]);
-
-  const isAllArchived = useMemo(() => {
-    return selectedNotes.length > 0 && selectedNotes.every((n) => n.isArchived);
-  }, [selectedNotes]);
-
-  // Bulk Actions
-  const handleBulkPin = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    const targetPinState = !isAllPinned;
-    try {
-      await bulkSetPinNotes(ids, targetPinState);
-      toast.success(
-        targetPinState
-          ? `Pinned ${ids.length} ${ids.length === 1 ? "note" : "notes"}`
-          : `Unpinned ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-      );
+  const finishBulk = useCallback(
+    (
+      succeeded: string[],
+      failed: string[],
+      successMessage: (count: number) => string,
+      errorMessage: string,
+    ) => {
+      if (succeeded.length > 0) toast.success(successMessage(succeeded.length));
+      if (failed.length > 0) {
+        Alert.alert("Error", errorMessage);
+        setSelectedIds(new Set(failed));
+        return;
+      }
       handleCancelSelection();
-    } catch {
-      Alert.alert("Error", "Could not update pin state for selected notes");
-    }
-  }, [selectedIds, isAllPinned, handleCancelSelection]);
+    },
+    [handleCancelSelection],
+  );
 
-  const handleBulkArchive = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    const targetArchiveState = !isAllArchived;
-    try {
-      await bulkSetArchiveNotes(ids, targetArchiveState);
-      toast.success(
-        targetArchiveState
-          ? `Archived ${ids.length} ${ids.length === 1 ? "note" : "notes"}`
-          : `Unarchived ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-      );
-      handleCancelSelection();
-    } catch {
-      Alert.alert("Error", "Could not update archive state for selected notes");
-    }
-  }, [selectedIds, isAllArchived, handleCancelSelection]);
-
-  const handleBulkMoveToFolder = useCallback(
-    async (folderId: string | null) => {
+  const runBulk = useCallback(
+    async (
+      apply: (id: string) => Promise<unknown>,
+      successMessage: (count: number) => string,
+      errorMessage: string,
+    ) => {
       const ids = Array.from(selectedIds);
-      if (ids.length === 0) return;
+      if (ids.length === 0 || busyRef.current) return;
+      busyRef.current = true;
       try {
-        await bulkMoveNotesToFolder(ids, folderId);
-        toast.success(
-          `Moved ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-        );
-        handleCancelSelection();
-      } catch {
-        Alert.alert("Error", "Could not move selected notes");
+        const { succeeded, failed } = await applyToNotes(ids, apply);
+        finishBulk(succeeded, failed, successMessage, errorMessage);
+      } finally {
+        busyRef.current = false;
       }
     },
-    [selectedIds, handleCancelSelection],
+    [selectedIds, finishBulk],
+  );
+
+  const handleBulkPin = useCallback(() => {
+    const pin = !isAllPinned;
+    void runBulk(
+      (id) => updateNote(id, { isPinned: pin }),
+      (n) => `${pin ? "Pinned" : "Unpinned"} ${n} ${noteLabel(n)}`,
+      "Could not update pin state for selected notes",
+    );
+  }, [isAllPinned, runBulk]);
+
+  const handleBulkArchive = useCallback(() => {
+    const archived = !isAllArchived;
+    void runBulk(
+      (id) => updateNote(id, { isArchived: archived }),
+      (n) => `${archived ? "Archived" : "Unarchived"} ${n} ${noteLabel(n)}`,
+      "Could not update archive state for selected notes",
+    );
+  }, [isAllArchived, runBulk]);
+
+  const handleBulkMoveToFolder = useCallback(
+    (folderId: string | null) =>
+      runBulk(
+        (id) => updateNote(id, { folderId }),
+        (n) => `Moved ${n} ${noteLabel(n)}`,
+        "Could not move selected notes",
+      ),
+    [runBulk],
   );
 
   const handleBulkDelete = useCallback(() => {
@@ -234,78 +237,56 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     if (ids.length === 0) return;
     Alert.alert(
       "Delete Notes",
-      `Are you sure you want to move ${ids.length} ${ids.length === 1 ? "note" : "notes"} to recently deleted?`,
+      `Are you sure you want to move ${ids.length} ${noteLabel(ids.length)} to recently deleted?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await bulkSoftDeleteNotes(ids);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-              toast.success(
-                `Deleted ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-              );
-              handleCancelSelection();
-            } catch {
-              Alert.alert("Error", "Could not delete selected notes");
-            }
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            void runBulk(
+              softDeleteNote,
+              (n) => `Deleted ${n} ${noteLabel(n)}`,
+              "Could not delete selected notes",
+            );
           },
         },
       ],
     );
-  }, [selectedIds, handleCancelSelection]);
+  }, [selectedIds, runBulk]);
 
-  const handleBulkRestore = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    try {
-      for (const id of ids) {
-        await restoreNote(id);
-      }
-      toast.success(
-        `Restored ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-      );
-      handleCancelSelection();
-    } catch {
-      Alert.alert("Error", "Could not restore selected notes");
-    }
-  }, [selectedIds, handleCancelSelection]);
+  const handleBulkRestore = useCallback(() => {
+    void runBulk(
+      restoreNote,
+      (n) => `Restored ${n} ${noteLabel(n)}`,
+      "Could not restore selected notes",
+    );
+  }, [runBulk]);
 
   const handleBulkHardDelete = useCallback(() => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     Alert.alert(
       "Delete Notes",
-      `Permanently delete ${ids.length} ${ids.length === 1 ? "note" : "notes"}? This cannot be undone.`,
+      `Permanently delete ${ids.length} ${noteLabel(ids.length)}? This cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            try {
-              for (const id of ids) {
-                await hardDeleteNote(id);
-              }
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-              toast.success(
-                `Permanently deleted ${ids.length} ${ids.length === 1 ? "note" : "notes"}`,
-              );
-              handleCancelSelection();
-            } catch {
-              Alert.alert("Error", "Could not delete selected notes");
-            }
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            void runBulk(
+              hardDeleteNote,
+              (n) => `Permanently deleted ${n} ${noteLabel(n)}`,
+              "Could not delete selected notes",
+            );
           },
         },
       ],
     );
-  }, [selectedIds, handleCancelSelection]);
+  }, [selectedIds, runBulk]);
 
   const extraData = useMemo(
     () => ({ isSelectionMode, selectedIds }),
@@ -320,8 +301,8 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
           onTogglePin={handleTogglePin}
           onToggleArchive={handleToggleArchive}
           onDelete={handleDeleteNote}
-          isSelectionMode={isSelectionModeRef.current}
-          isSelected={selectedIdsRef.current.has(item.id)}
+          isSelectionMode={isSelectionMode}
+          isSelected={selectedIds.has(item.id)}
           onSelect={handleSelectNote}
           onLongPressSelect={handleLongPressSelect}
         />
@@ -333,6 +314,8 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
       handleDeleteNote,
       handleSelectNote,
       handleLongPressSelect,
+      isSelectionMode,
+      selectedIds,
     ],
   );
 
@@ -513,7 +496,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         <MoveToFolderSheet
           isPresented={isMoveSheetVisible}
           onDismiss={() => setIsMoveSheetVisible(false)}
-          currentFolderId={filter.folderId}
+          currentFolderId={sharedFolderId}
           onSelectFolder={handleBulkMoveToFolder}
         />
       )}

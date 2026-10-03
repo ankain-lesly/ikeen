@@ -308,10 +308,12 @@ export async function softDeleteNote(id: string): Promise<Note> {
  * Restores a soft-deleted note.
  */
 export async function restoreNote(id: string): Promise<Note> {
+  const existing = await getNoteById(id);
+  const nextVersion = (existing?.version ?? 1) + 1;
   const now = new Date().toISOString();
   const [restored] = await db
     .update(notes)
-    .set({ deletedAt: null, updatedAt: now })
+    .set({ deletedAt: null, updatedAt: now, version: nextVersion })
     .where(eq(notes.id, id))
     .returning();
 
@@ -319,7 +321,7 @@ export async function restoreNote(id: string): Promise<Note> {
     throw new Error(`Note with id "${id}" not found.`);
   }
 
-  await enqueueOutbox('notes', restored.id, 'upsert', { deletedAt: null });
+  await enqueueOutbox('notes', restored.id, 'upsert', { deletedAt: null }, restored.version);
 
   return restored;
 }
@@ -358,80 +360,23 @@ export async function toggleArchiveNote(id: string): Promise<Note> {
 }
 
 /**
- * Bulk soft deletes multiple notes by stamping deletedAt.
+ * Applies one mutation per id. Failed ids stay available for retry.
  */
-export async function bulkSoftDeleteNotes(ids: string[]): Promise<number> {
-  if (!ids || ids.length === 0) return 0;
-  let count = 0;
-  for (const id of ids) {
-    try {
-      await softDeleteNote(id);
-      count++;
-    } catch {
-      // Continue with remaining notes
-    }
-  }
-  return count;
-}
-
-/**
- * Bulk moves multiple notes to a folder (or removes them from folders if folderId is null).
- */
-export async function bulkMoveNotesToFolder(
+export async function applyToNotes(
   ids: string[],
-  folderId: string | null
-): Promise<number> {
-  if (!ids || ids.length === 0) return 0;
-  let count = 0;
+  apply: (id: string) => Promise<unknown>,
+): Promise<{ succeeded: string[]; failed: string[] }> {
+  const succeeded: string[] = [];
+  const failed: string[] = [];
   for (const id of ids) {
     try {
-      await updateNote(id, { folderId });
-      count++;
+      await apply(id);
+      succeeded.push(id);
     } catch {
-      // Continue with remaining notes
+      failed.push(id);
     }
   }
-  return count;
-}
-
-/**
- * Bulk sets pinned state for multiple notes.
- */
-export async function bulkSetPinNotes(
-  ids: string[],
-  isPinned: boolean
-): Promise<number> {
-  if (!ids || ids.length === 0) return 0;
-  let count = 0;
-  for (const id of ids) {
-    try {
-      await updateNote(id, { isPinned });
-      count++;
-    } catch {
-      // Continue with remaining notes
-    }
-  }
-  return count;
-}
-
-/**
- * Bulk sets archived state for multiple notes.
- */
-export async function bulkSetArchiveNotes(
-  ids: string[],
-  isArchived: boolean
-): Promise<number> {
-  if (!ids || ids.length === 0) return 0;
-  let count = 0;
-  for (const id of ids) {
-    try {
-      await updateNote(id, { isArchived });
-      count++;
-    } catch {
-      // Continue with remaining notes
-    }
-  }
-  return count;
+  return { succeeded, failed };
 }
 
 /**

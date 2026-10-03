@@ -1,5 +1,6 @@
 import React from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
 import { Host, Switch } from "@expo/ui/jetpack-compose";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -39,6 +40,8 @@ import {
   type DefaultNoteSort,
 } from "@/lib/settings/settings-store";
 import { NewBadge } from "@/components/ui/new-badge";
+
+const ACCOUNT_DELETION_URL = "https://ikeen.leslychuo.me/delete-account";
 
 export default function ProfileScreen() {
   const colors = useTheme();
@@ -587,6 +590,18 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
         </View>
+
+        <Pressable
+          onPress={() => {
+            if (hapticsEnabled) Haptics.selectionAsync();
+            void openBrowserAsync(ACCOUNT_DELETION_URL, {
+              presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+            });
+          }}
+          className="w-full h-12 rounded-2xl border border-border bg-card flex-row items-center justify-center gap-2 active:opacity-75">
+          <Trash size={16} color={colors.textSecondary} />
+          <Text className="text-text font-semibold text-sm">Delete account</Text>
+        </Pressable>
 
         {/* Sign Out Action (When Authenticated) */}
         {isAuthenticated && (
