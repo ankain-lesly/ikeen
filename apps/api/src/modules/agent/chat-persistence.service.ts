@@ -31,7 +31,14 @@ export class ChatPersistenceService {
     if (!id) return null;
     return this.prisma.chatConversation.findUnique({
       where: { id },
-      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        composioSessionId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
@@ -53,7 +60,31 @@ export class ChatPersistenceService {
         userId,
         title,
       },
-      select: { id: true, title: true, userId: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        composioSessionId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  /**
+   * Stores the Composio session id so later turns in this thread can resume it.
+   */
+  async updateComposioSessionId({
+    conversationId,
+    sessionId,
+  }: {
+    conversationId: string;
+    sessionId: string;
+  }) {
+    return this.prisma.chatConversation.update({
+      where: { id: conversationId },
+      data: { composioSessionId: sessionId },
+      select: { id: true, composioSessionId: true },
     });
   }
 
@@ -373,14 +404,27 @@ export class ChatPersistenceService {
       total,
       limit,
       offset,
-      conversations: conversations.map((c) => ({
+      conversations: conversations.map(
+        (c: {
+          id: string;
+          title: string | null;
+          createdAt: Date;
+          updatedAt: Date;
+          _count: { messages: number };
+          messages: Array<{
+            content: string;
+            role: string;
+            createdAt: Date;
+          }>;
+        }) => ({
         id: c.id,
         title: c.title,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
         messageCount: c._count.messages,
         lastMessage: c.messages[0] || null,
-      })),
+      }),
+      ),
     };
   }
 

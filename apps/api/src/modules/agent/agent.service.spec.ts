@@ -7,6 +7,7 @@ import { AgentProviderService } from './agent-provider.service.js';
 import { ChatPersistenceService } from './chat-persistence.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EnvService } from '../../config/env.service.js';
+import { ComposioService } from './composio.service.js';
 import { WebResearchService } from './web-research.service.js';
 
 describe('AgentService', () => {
@@ -57,6 +58,10 @@ describe('AgentService', () => {
       deleteConversation: vi.fn().mockResolvedValue({ ok: true }),
       listMemoriesForUser: vi.fn().mockResolvedValue([]),
       touchConversation: vi.fn().mockResolvedValue(undefined),
+      updateComposioSessionId: vi.fn().mockResolvedValue({
+        id: 'conv-1',
+        composioSessionId: 'session-1',
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -78,6 +83,15 @@ describe('AgentService', () => {
         {
           provide: WebResearchService,
           useValue: { isEnabled: () => false },
+        },
+        {
+          provide: ComposioService,
+          useValue: {
+            getSessionTools: vi.fn().mockResolvedValue({
+              tools: {},
+              sessionId: null,
+            }),
+          },
         },
       ],
     }).compile();

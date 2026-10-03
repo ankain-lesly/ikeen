@@ -388,11 +388,12 @@ model SyncLog {
 // =====================================
 
 model ChatConversation {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String?  @db.VarChar(255)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  userId            String
+  title             String?  @db.VarChar(255)
+  composioSessionId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -226,7 +226,22 @@ describe('ChatPersistenceService', () => {
         userId: 'user-1',
         title: 'New Brainstorm',
       },
-      select: expect.any(Object),
+      select: expect.objectContaining({
+        composioSessionId: true,
+      }),
+    });
+  });
+
+  it('should persist a Composio session id on the conversation', async () => {
+    await service.updateComposioSessionId({
+      conversationId: 'conv-1',
+      sessionId: 'session-1',
+    });
+
+    expect(mockPrisma.chatConversation.update).toHaveBeenCalledWith({
+      where: { id: 'conv-1' },
+      data: { composioSessionId: 'session-1' },
+      select: { id: true, composioSessionId: true },
     });
   });
 

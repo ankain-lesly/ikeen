@@ -1,5 +1,8 @@
 import { buildIkeenInstructions } from './ikeen.prompt.js';
-import { buildExecutionBudgetSegment } from './segments.js';
+import {
+  PROMPT_SEGMENT_CONNECTED_APPS,
+  buildExecutionBudgetSegment,
+} from './segments.js';
 import { DEFAULT_AGENT_MAX_STEPS } from '../agent-config.js';
 
 describe('buildIkeenInstructions', () => {
@@ -84,5 +87,12 @@ describe('buildIkeenInstructions', () => {
       buildExecutionBudgetSegment(DEFAULT_AGENT_MAX_STEPS),
     );
     expect(instructions).not.toContain('Prefer one `webSearch`');
+  });
+
+  it('includes the connected apps segment', () => {
+    const instructions = buildIkeenInstructions();
+
+    expect(instructions).toContain(PROMPT_SEGMENT_CONNECTED_APPS);
+    expect(instructions).toContain('Connect Link');
   });
 });

@@ -11,13 +11,18 @@ import type {
   UpdateNoteInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
+import { useAuthStore } from '@/lib/auth/auth-store';
+import { currentAuthUserId, ownerCondition } from './owner';
 
 // ============================================================================
 // Internal Query Builder (Shared by listNotes & useLiveNotes)
 // ============================================================================
 
-function buildNotesQuery(options: ListNotesOptions = {}) {
-  const conditions: SQL[] = [];
+function buildNotesQuery(
+  options: ListNotesOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const conditions: SQL[] = [ownerCondition(notes.userId, userId)];
 
   if (!options.includeDeleted) {
     conditions.push(isNull(notes.deletedAt));
@@ -92,8 +97,10 @@ function buildNotesQuery(options: ListNotesOptions = {}) {
  * Reactive hook: Automatically re-renders when notes change in SQLite.
  */
 export function useLiveNotes(options: ListNotesOptions = {}) {
-  const query = buildNotesQuery(options);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const query = buildNotesQuery(options, userId);
   return useLiveQuery(query, [
+    userId,
     options.folderId,
     options.includeDeleted,
     options.includeArchived,
@@ -113,9 +120,14 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
  * Reactive hook for observing a single note by ID.
  */
 export function useLiveNote(id: string) {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const res = useLiveQuery(
-    db.select().from(notes).where(eq(notes.id, id)).limit(1),
-    [id]
+    db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, id), ownerCondition(notes.userId, userId)))
+      .limit(1),
+    [id, userId]
   );
 
   return {
@@ -135,7 +147,7 @@ export async function getNoteById(id: string): Promise<Note | null> {
   const [note] = await db
     .select()
     .from(notes)
-    .where(eq(notes.id, id))
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .limit(1);
 
   return note ?? null;
@@ -181,7 +193,7 @@ export async function createNote(
     .insert(notes)
     .values({
       id,
-      userId: input.userId ?? null,
+      userId: input.userId ?? currentAuthUserId(),
       folderId: input.folderId ?? null,
       title: input.title ?? '',
       content: input.content ?? '',
@@ -263,8 +275,12 @@ export async function updateNote(
   const [updated] = await db
     .update(notes)
     .set(valuesToUpdate)
-    .where(eq(notes.id, id))
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .returning();
+
+  if (!updated) {
+    throw new Error(`Note with id "${id}" not found.`);
+  }
 
   await enqueueOutbox('notes', updated.id, 'upsert', changedFields, updated.version);
 
@@ -292,7 +308,7 @@ export async function softDeleteNote(id: string): Promise<Note> {
   const [deleted] = await db
     .update(notes)
     .set({ deletedAt: now, updatedAt: now, version: nextVersion })
-    .where(eq(notes.id, id))
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .returning();
 
   if (!deleted) {
@@ -314,7 +330,7 @@ export async function restoreNote(id: string): Promise<Note> {
   const [restored] = await db
     .update(notes)
     .set({ deletedAt: null, updatedAt: now, version: nextVersion })
-    .where(eq(notes.id, id))
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .returning();
 
   if (!restored) {
@@ -330,7 +346,10 @@ export async function restoreNote(id: string): Promise<Note> {
  * Permanently removes a note from SQLite.
  */
 export async function hardDeleteNote(id: string): Promise<boolean> {
-  const [deleted] = await db.delete(notes).where(eq(notes.id, id)).returning();
+  const [deleted] = await db
+    .delete(notes)
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
+    .returning();
   if (deleted) {
     await enqueueOutbox('notes', id, 'delete', { deletedAt: new Date().toISOString() });
   }

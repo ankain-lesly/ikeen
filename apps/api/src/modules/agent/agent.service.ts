@@ -1,7 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   pipeAgentUIStreamToResponse,
-  stepCountIs,
   ToolLoopAgent,
 } from 'ai';
 import type { ServerResponse } from 'node:http';
@@ -17,6 +16,7 @@ import { buildIkeenInstructions } from './prompts/index.js';
 import { createIkeenTools, type IkeenTools } from './tools/index.js';
 
 import { ChatPersistenceService } from './chat-persistence.service.js';
+import { ComposioService } from './composio.service.js';
 import { WebResearchService } from './web-research.service.js';
 import {
   latestUserTextMessage,
@@ -41,6 +41,7 @@ export class AgentService {
     private readonly audit: AuditService,
     private readonly env: EnvService,
     private readonly webResearch: WebResearchService,
+    private readonly composio: ComposioService,
   ) {
     this.tools = createIkeenTools({
       prisma: this.prisma,
@@ -135,6 +136,24 @@ export class AgentService {
     const memories = await this.chatPersistence.listMemoriesForUser(userId);
     const maxSteps = this.env.AGENT_MAX_STEPS ?? DEFAULT_AGENT_MAX_STEPS;
     const webResearch = this.webResearch.isEnabled();
+    const session = await this.composio.getSessionTools(
+      userId,
+      chat.composioSessionId,
+    );
+    if (session.sessionId && session.sessionId !== chat.composioSessionId) {
+      try {
+        await this.chatPersistence.updateComposioSessionId({
+          conversationId: activeConversationId,
+          sessionId: session.sessionId,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'unknown error';
+        this.logger.warn(
+          `Failed to persist Composio session for convId=${activeConversationId}: ${message}`,
+        );
+      }
+    }
     const instructions = buildIkeenInstructions({
       firstName: user.firstName,
       username: user.username,
@@ -148,7 +167,10 @@ export class AgentService {
       id: 'ikeen-agent',
       model: this.providerService.getChatModel(),
       instructions,
-      tools: this.tools,
+      tools: {
+        ...this.tools,
+        ...session.tools,
+      },
       maxOutputTokens: 8192,
       toolsContext: ikeenToolContext(userId, activeConversationId),
       // stopWhen: [stepCountIs(maxSteps)],
@@ -201,7 +223,9 @@ export class AgentService {
             where: { conversationId: activeConversationId },
             select: { id: true },
           });
-          const savedIds = new Set(existingInDb.map((row) => row.id));
+          const savedIds = new Set(
+            existingInDb.map((row: { id: string }) => row.id),
+          );
           if (savedUserMessageId) {
             savedIds.add(savedUserMessageId);
           }

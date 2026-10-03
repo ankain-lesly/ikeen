@@ -12,13 +12,27 @@ import type {
   UpdateFolderInput,
 } from '@/lib/types/folders';
 import { enqueueOutbox } from '@/lib/sync/outbox';
+import { useAuthStore } from '@/lib/auth/auth-store';
+import { currentAuthUserId, ownerCondition } from './owner';
+
+function folderNoteJoin(userId: string | null = currentAuthUserId()) {
+  return and(
+    eq(notes.folderId, folders.id),
+    isNull(notes.deletedAt),
+    eq(notes.isArchived, false),
+    ownerCondition(notes.userId, userId),
+  );
+}
 
 // ============================================================================
 // Internal Query Builder for Folders
 // ============================================================================
 
-function buildFoldersQuery(options: ListFoldersOptions = {}) {
-  const conditions: SQL[] = [];
+function buildFoldersQuery(
+  options: ListFoldersOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const conditions: SQL[] = [ownerCondition(folders.userId, userId)];
 
   if (!options.includeDeleted) {
     conditions.push(isNull(folders.deletedAt));
@@ -58,14 +72,7 @@ function buildFoldersQuery(options: ListFoldersOptions = {}) {
       noteCount: sql<number>`count(${notes.id})`.mapWith(Number),
     })
     .from(folders)
-    .leftJoin(
-      notes,
-      and(
-        eq(notes.folderId, folders.id),
-        isNull(notes.deletedAt),
-        eq(notes.isArchived, false)
-      )
-    )
+    .leftJoin(notes, folderNoteJoin(userId))
     .where(whereClause)
     .groupBy(folders.id)
     .orderBy(...orderClauses);
@@ -79,8 +86,10 @@ function buildFoldersQuery(options: ListFoldersOptions = {}) {
  * Reactive hook: Automatically updates when folders or their notes change.
  */
 export function useLiveFolders(options: ListFoldersOptions = {}) {
-  const query = buildFoldersQuery(options);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const query = buildFoldersQuery(options, userId);
   const result = useLiveQuery(query, [
+    userId,
     options.search,
     options.orderBy,
     options.orderDirection,
@@ -97,6 +106,7 @@ export function useLiveFolders(options: ListFoldersOptions = {}) {
  * Reactive hook for a single folder with its active note count.
  */
 export function useLiveFolder(id: string) {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const query = db
     .select({
       id: folders.id,
@@ -112,19 +122,18 @@ export function useLiveFolder(id: string) {
       noteCount: sql<number>`count(${notes.id})`.mapWith(Number),
     })
     .from(folders)
-    .leftJoin(
-      notes,
+    .leftJoin(notes, folderNoteJoin(userId))
+    .where(
       and(
-        eq(notes.folderId, folders.id),
-        isNull(notes.deletedAt),
-        eq(notes.isArchived, false)
-      )
+        eq(folders.id, id),
+        isNull(folders.deletedAt),
+        ownerCondition(folders.userId, userId),
+      ),
     )
-    .where(and(eq(folders.id, id), isNull(folders.deletedAt)))
     .groupBy(folders.id)
     .limit(1);
 
-  const res = useLiveQuery(query, [id]);
+  const res = useLiveQuery(query, [id, userId]);
 
   return {
     ...res,
@@ -155,15 +164,14 @@ export async function getFolderById(id: string): Promise<FolderWithCount | null>
       noteCount: sql<number>`count(${notes.id})`.mapWith(Number),
     })
     .from(folders)
-    .leftJoin(
-      notes,
+    .leftJoin(notes, folderNoteJoin())
+    .where(
       and(
-        eq(notes.folderId, folders.id),
-        isNull(notes.deletedAt),
-        eq(notes.isArchived, false)
-      )
+        eq(folders.id, id),
+        isNull(folders.deletedAt),
+        ownerCondition(folders.userId),
+      ),
     )
-    .where(and(eq(folders.id, id), isNull(folders.deletedAt)))
     .groupBy(folders.id);
 
   return (folder ?? null) as FolderWithCount | null;
@@ -184,6 +192,7 @@ export async function createFolder(input: CreateFolderInput): Promise<Folder> {
     .insert(folders)
     .values({
       id,
+      userId: input.userId ?? currentAuthUserId(),
       name: input.name.trim(),
       color: input.color ?? '#3b82f6',
       icon: input.icon ?? (input.isLocked ? 'lock' : 'folder'),
@@ -266,8 +275,12 @@ export async function updateFolder(
   const [updated] = await db
     .update(folders)
     .set(valuesToUpdate)
-    .where(eq(folders.id, id))
+    .where(and(eq(folders.id, id), ownerCondition(folders.userId)))
     .returning();
+
+  if (!updated) {
+    throw new Error(`Folder with id "${id}" not found.`);
+  }
 
   await enqueueOutbox('folders', updated.id, 'upsert', changedFields, updated.version);
 
@@ -282,13 +295,18 @@ export async function softDeleteFolder(
   id: string,
   options: { deleteNotes?: boolean } = {}
 ): Promise<void> {
+  const existing = await getFolderById(id);
+  if (!existing) {
+    throw new Error(`Folder with id "${id}" not found.`);
+  }
+
   const now = new Date().toISOString();
 
   if (options.deleteNotes) {
     const updatedNotes = await db
       .update(notes)
       .set({ deletedAt: now, updatedAt: now, version: sql`${notes.version} + 1` })
-      .where(eq(notes.folderId, id))
+      .where(and(eq(notes.folderId, id), ownerCondition(notes.userId)))
       .returning();
 
     for (const n of updatedNotes) {
@@ -299,7 +317,7 @@ export async function softDeleteFolder(
     const updatedNotes = await db
       .update(notes)
       .set({ folderId: null, updatedAt: now, version: sql`${notes.version} + 1` })
-      .where(eq(notes.folderId, id))
+      .where(and(eq(notes.folderId, id), ownerCondition(notes.userId)))
       .returning();
 
     for (const n of updatedNotes) {
@@ -310,7 +328,7 @@ export async function softDeleteFolder(
   const [deleted] = await db
     .update(folders)
     .set({ deletedAt: now, updatedAt: now, version: sql`${folders.version} + 1` })
-    .where(eq(folders.id, id))
+    .where(and(eq(folders.id, id), ownerCondition(folders.userId)))
     .returning();
 
   if (deleted) {

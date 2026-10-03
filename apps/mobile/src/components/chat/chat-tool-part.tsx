@@ -105,7 +105,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   if (toolName === 'searchNotes') {
     const searchResult = result as {
       count?: number;
-      notes?: Array<{ id: string; title: string; folderName?: string }>;
+      notes?: { id: string; title: string; folderName?: string }[];
     } | null;
 
     const query = (args.query as string) || '';
@@ -654,6 +654,52 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
+  const connectUrl = findHttpsUrl(result) ?? findHttpsUrl(args);
+  if (connectUrl) {
+    const isConnectLink =
+      /composio\.dev/i.test(connectUrl) || /COMPOSIO_/i.test(toolName);
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <ExternalLink size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1 min-w-0">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isRunning
+                  ? 'Working…'
+                  : isConnectLink
+                    ? 'Connect app'
+                    : 'Open link'}
+              </Text>
+              <Text
+                className="text-xs text-text-secondary"
+                numberOfLines={1}>
+                {isConnectLink
+                  ? 'Open the link to authorize this app'
+                  : connectUrl}
+              </Text>
+            </View>
+          </View>
+          {!isRunning && (
+            <Pressable
+              onPress={() => handleOpenUrl(connectUrl)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   // Generic Tool Fallback
   return (
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
@@ -663,4 +709,36 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
       </Text>
     </View>
   );
+}
+
+function findHttpsUrl(value: unknown, depth = 0): string | null {
+  if (depth > 6 || value == null) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/https:\/\/[^\s"'<>]+/);
+    return match?.[0] ?? null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findHttpsUrl(item, depth + 1);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      const found = findHttpsUrl(nested, depth + 1);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
 }

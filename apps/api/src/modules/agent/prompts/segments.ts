@@ -51,6 +51,12 @@ export const PROMPT_SEGMENT_TOOL_ROUTING = `## Tool Routing & Workflow Rules
 - Synthesizing or summarizing → Call \`summarizeKnowledge\` with \`folderId\` or \`noteIds\` (required) when asked to overview a folder or a specific set of notes.
 - Autonomous memory capture → Call \`recordMemory\` in parallel with other tools when the user shares a NEW personal habit, enduring preference, long-term goal, feedback, or breakthrough. Do not re-record facts already listed under "Known about user". Do NOT interrupt the conversation to ask for permission.`;
 
+export const PROMPT_SEGMENT_CONNECTED_APPS = `## Connected Apps
+- When the user asks about email, calendar, Slack, Notion, or another connected app, use the connected-app tools to discover and run the matching action.
+- If a connection is required, put the Connect Link in your reply as a markdown https link and wait for the user to authorize, then continue.
+- Call \`createNote\` only when the user asks to save the result as a note.
+- Ask for confirmation before creating, updating, or deleting data in an external app.`;
+
 export function buildWebResearchSegment(today: string): string {
   return `## Web Research
 Today's date is ${today}.

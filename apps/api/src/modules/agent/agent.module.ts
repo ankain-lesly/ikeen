@@ -5,6 +5,7 @@ import { AgentController } from './agent.controller.js';
 import { AgentService } from './agent.service.js';
 import { AgentProviderService } from './agent-provider.service.js';
 import { ChatPersistenceService } from './chat-persistence.service.js';
+import { ComposioService } from './composio.service.js';
 import { WebResearchService } from './web-research.service.js';
 
 @Module({
@@ -14,6 +15,7 @@ import { WebResearchService } from './web-research.service.js';
     AgentService,
     AgentProviderService,
     ChatPersistenceService,
+    ComposioService,
     WebResearchService,
   ],
   exports: [AgentService, ChatPersistenceService],
