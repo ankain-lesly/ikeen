@@ -1,6 +1,5 @@
-
+// Add platform specific API URL
 const getDefaultApiUrl = () => {
-  return "http://192.168.0.100:3000/api/v1";
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   } else {
