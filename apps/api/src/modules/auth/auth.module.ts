@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { ApiKeyController } from './api-key.controller.js';
+import { ApiKeyService } from './api-key.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
 import { EnvService } from '../../config/env.service.js';
 
@@ -18,8 +20,8 @@ import { EnvService } from '../../config/env.service.js';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule, PassportModule],
+  controllers: [AuthController, ApiKeyController],
+  providers: [AuthService, ApiKeyService, JwtStrategy],
+  exports: [AuthService, ApiKeyService, JwtModule, PassportModule],
 })
 export class AuthModule {}

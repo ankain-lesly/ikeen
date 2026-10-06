@@ -71,6 +71,7 @@ model User {
   syncLogs            SyncLog[]
   chatConversations   ChatConversation[]
   chatMemories        ChatMemory[]
+  apiKeys             ApiKey[]
   @@map("users")
 }
 
@@ -457,5 +458,29 @@ model ChatConversationData {
   @@index([conversationId])
   @@index([key])
   @@map("chat_conversation_data")
+}
+
+// Personal Access Tokens for MCP and headless agent integration
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String    @db.VarChar(100)
+  keyHash     String    @unique @db.VarChar(255)
+  keyPrefix   String    @db.VarChar(16)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // The following fields are missing and commented out for future use:
+  // description     String?   @db.VarChar(255)
+  // scopes          String[]  @default(["notes:read", "folders:read"]) // Granular permissions matrix
+  // isActive        Boolean   @default(true)
+  // revokedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
 

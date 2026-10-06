@@ -27,6 +27,8 @@ import type { UIMessage } from 'ai';
 import { AuditService } from '../audit/audit.service.js';
 import { EnvService } from '../../config/env.service.js';
 import { DEFAULT_AGENT_MAX_STEPS } from './agent-config.js';
+import { NotesToolService } from '../notes/notes-tool.service.js';
+import { FoldersToolService } from '../folders/folders-tool.service.js';
 
 @Injectable()
 export class AgentService {
@@ -42,12 +44,16 @@ export class AgentService {
     private readonly env: EnvService,
     private readonly webResearch: WebResearchService,
     private readonly composio: ComposioService,
+    private readonly notesToolService: NotesToolService,
+    private readonly foldersToolService: FoldersToolService,
   ) {
     this.tools = createIkeenTools({
       prisma: this.prisma,
       ably: this.ably,
       audit: this.audit,
       webResearch: this.webResearch,
+      notesToolService: this.notesToolService,
+      foldersToolService: this.foldersToolService,
     });
     this.logger.log('Ikeen AgentService initialized with tool registry');
   }

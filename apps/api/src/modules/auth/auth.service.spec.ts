@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 

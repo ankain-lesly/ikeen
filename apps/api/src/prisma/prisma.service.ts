@@ -57,6 +57,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get chatConversationData() {
     return this.prisma.chatConversationData;
   }
+  get apiKey() {
+    return this.prisma.apiKey;
+  }
 
   get client() {
     return this.prisma;

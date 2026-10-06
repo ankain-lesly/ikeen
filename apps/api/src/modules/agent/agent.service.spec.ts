@@ -9,6 +9,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { EnvService } from '../../config/env.service.js';
 import { ComposioService } from './composio.service.js';
 import { WebResearchService } from './web-research.service.js';
+import { NotesToolService } from '../notes/notes-tool.service.js';
+import { FoldersToolService } from '../folders/folders-tool.service.js';
 
 describe('AgentService', () => {
   let service: AgentService;
@@ -92,6 +94,22 @@ describe('AgentService', () => {
               sessionId: null,
             }),
           },
+        },
+        {
+          provide: NotesToolService,
+          useValue: new NotesToolService(
+            mockPrisma as any,
+            { log: vi.fn(), logAgent: vi.fn(), trackChanges: vi.fn().mockReturnValue({}) } as any,
+            mockAbly as any,
+          ),
+        },
+        {
+          provide: FoldersToolService,
+          useValue: new FoldersToolService(
+            mockPrisma as any,
+            { log: vi.fn(), logAgent: vi.fn(), trackChanges: vi.fn().mockReturnValue({}) } as any,
+            mockAbly as any,
+          ),
         },
       ],
     }).compile();

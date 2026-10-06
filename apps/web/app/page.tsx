@@ -18,12 +18,26 @@ export default function Home() {
           com.techforgelee.ikeen
         </code>
       </p>
-      <Link
-        href="/privacy"
-        className="mt-8 inline-flex h-11 items-center rounded-full bg-foreground px-5 text-sm font-medium text-background"
-      >
-        Privacy Policy
-      </Link>
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <Link
+          href="/mcp"
+          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+        >
+          Explore MCP Tools →
+        </Link>
+        <Link
+          href="/dashboard"
+          className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          Developer Dashboard
+        </Link>
+        <Link
+          href="/privacy"
+          className="inline-flex h-10 items-center rounded-lg border border-border bg-card/60 px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Privacy Policy
+        </Link>
+      </div>
     </main>
   );
 }

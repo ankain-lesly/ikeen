@@ -8,8 +8,11 @@ import { ChatPersistenceService } from './chat-persistence.service.js';
 import { ComposioService } from './composio.service.js';
 import { WebResearchService } from './web-research.service.js';
 
+import { NotesModule } from '../notes/notes.module.js';
+import { FoldersModule } from '../folders/folders.module.js';
+
 @Module({
-  imports: [PrismaModule, AblyModule],
+  imports: [PrismaModule, AblyModule, NotesModule, FoldersModule],
   controllers: [AgentController],
   providers: [
     AgentService,

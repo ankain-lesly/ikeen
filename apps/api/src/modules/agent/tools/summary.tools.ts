@@ -60,7 +60,6 @@ export function createSummaryTools({ prisma }: { prisma: PrismaService }) {
             id: true,
             title: true,
             content: true,
-            summary: true,
             tags: true,
             updatedAt: true,
           },

@@ -18,10 +18,6 @@ export default function (options, rspack) {
         if (builtinModules.includes(bare)) {
           return callback(null, `module ${request}`);
         }
-        // Keep native C++ addon external
-        if (request === 'bcrypt') {
-          return callback(null, `module ${request}`);
-        }
         callback();
       },
     ],

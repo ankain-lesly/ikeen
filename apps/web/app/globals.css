@@ -31,6 +31,13 @@
   --radius-xl: 6px;
 }
 
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+} */
+
 :root,
 .dark {
   --background: #0a0a0a;
@@ -111,12 +118,5 @@ input,
 select,
 textarea {
   outline-color: var(--primary);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 

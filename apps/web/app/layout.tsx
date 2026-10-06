@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Space_Grotesk, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+
+import { Providers } from "@/components/providers/query-provider";
+import { UserMenu } from "@/components/auth/user-menu";
+import { AuthDialog } from "@/components/auth/auth-dialog";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -22,34 +32,65 @@ export const metadata: Metadata = {
     "iKeen is a personal notes and thinking workspace — local-first notes, folders, and an optional AI agent.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+      className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <header className="border-b border-black/8 dark:border-white/12">
-          <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
-              iKeen
-            </Link>
-            <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-              <Link href="/privacy" className="hover:text-foreground">
-                Privacy
+        <Providers>
+          <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-40">
+            <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-3.5">
+              <Link
+                href="/"
+                className="text-base font-heading font-medium tracking-tight flex items-center gap-2">
+                <span className="size-2 rounded-full bg-primary animate-pulse" />
+                <span>iKeen</span>
               </Link>
-            </nav>
-          </div>
-        </header>
-        {children}
-        <footer className="mt-auto border-t border-black/8 dark:border-white/12">
-          <div className="mx-auto flex w-full max-w-3xl justify-between px-6 py-4 text-xs text-zinc-500">
-            <span>© {new Date().getFullYear()} iKeen</span>
-            <Link href="/privacy" className="hover:text-foreground">
-              Privacy Policy
-            </Link>
-          </div>
-        </footer>
+              <nav className="flex items-center gap-4 text-sm">
+                <Link
+                  href="/mcp"
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  MCP Showcase
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  Dashboard
+                </Link>
+                <Link
+                  href="/privacy"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
+                  Privacy
+                </Link>
+                <div className="h-4 w-px bg-border/60" />
+                <UserMenu />
+              </nav>
+            </div>
+          </header>
+          {children}
+          <footer className="mt-auto border-t border-border bg-card/40">
+            <div className="mx-auto flex w-full max-w-6xl justify-between items-center px-4 sm:px-6 py-4 text-xs text-muted-foreground">
+              <span>© {new Date().getFullYear()} iKeen Research MCP</span>
+              <div className="flex items-center gap-4">
+                <Link href="/mcp" className="hover:text-foreground">
+                  MCP Showcase
+                </Link>
+                <Link href="/dashboard" className="hover:text-foreground">
+                  Dashboard
+                </Link>
+                <Link href="/privacy" className="hover:text-foreground">
+                  Privacy Policy
+                </Link>
+              </div>
+            </div>
+          </footer>
+          <AuthDialog />
+        </Providers>
       </body>
     </html>
   );
