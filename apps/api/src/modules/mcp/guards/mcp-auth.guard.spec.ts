@@ -25,9 +25,11 @@ describe('McpAuthGuard', () => {
 
   function createMockContext(headers: Record<string, string>) {
     const req: any = { headers };
+    const res: any = { setHeader: vi.fn() };
     return {
       switchToHttp: () => ({
         getRequest: () => req,
+        getResponse: () => res,
       }),
       switchToRpc: () => ({
         getContext: () => ({
@@ -35,6 +37,7 @@ describe('McpAuthGuard', () => {
         }),
       }),
       req,
+      res,
     };
   }
 
@@ -75,10 +78,14 @@ describe('McpAuthGuard', () => {
     expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('eyJhbGciOi...');
   });
 
-  it('throws UnauthorizedException when no credentials are provided', async () => {
+  it('throws UnauthorizedException and sets WWW-Authenticate header when no credentials are provided', async () => {
     const context = createMockContext({});
     await expect(guard.canActivate(context as any)).rejects.toThrow(
       UnauthorizedException,
+    );
+    expect(context.res.setHeader).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      expect.stringContaining('resource_metadata='),
     );
   });
 });

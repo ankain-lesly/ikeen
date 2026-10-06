@@ -30,12 +30,13 @@ function setupApp(app: INestApplication) {
     credentials: true,
   });
 
-  // Set prefix but preserve the base root path '/' and MCP endpoints
+  // Set prefix but preserve the base root path '/', MCP endpoints, and RFC discovery paths
   app.setGlobalPrefix('api/v1', {
     exclude: [
       { path: '/', method: RequestMethod.GET },
       { path: '/mcp', method: RequestMethod.ALL },
       { path: '/mcp/(.*)', method: RequestMethod.ALL },
+      { path: '/.well-known/(.*)', method: RequestMethod.ALL },
     ],
   });
 

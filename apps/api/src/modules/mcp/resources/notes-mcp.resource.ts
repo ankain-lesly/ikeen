@@ -43,11 +43,16 @@ export class NotesMcpResource {
       take: 15,
     });
 
-    const mapped = notes.map((n) => ({
-      ...n,
-      content:
-        n.content.length > 280 ? `${n.content.slice(0, 280).trim()}…` : n.content,
-    }));
+    const mapped = notes.map((n) => {
+      const isTruncated = n.content.trim().length > 280;
+      return {
+        ...n,
+        content: isTruncated
+          ? `${n.content.trim().slice(0, 280)}… [truncated]`
+          : n.content.trim(),
+        isTruncated,
+      };
+    });
 
     return {
       contents: [

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Providers } from "@/components/providers/query-provider";
 import { UserMenu } from "@/components/auth/user-menu";
 import { AuthDialog } from "@/components/auth/auth-dialog";
+import {xenv} from "@/lib/env.client";
 
 import "./globals.css";
 
@@ -24,13 +25,57 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(xenv.NEXT_PUBLIC_SITE_URL),
   title: {
-    default: "iKeen",
+    default: "iKeen — Personal Notes & AI Workspace",
     template: "%s · iKeen",
   },
   description:
-    "iKeen is a personal notes and thinking workspace — local-first notes, folders, and an optional AI agent.",
+    "iKeen is a personal notes and thinking workspace — local-first notes, folders, and an autonomous AI agent with Model Context Protocol (MCP) server. Write everything. Keep it yours.",
+  applicationName: "iKeen",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  keywords: [
+    "iKeen",
+    "personal notes",
+    "local-first notes",
+    "Model Context Protocol",
+    "MCP",
+    "AI agent",
+    "Claude Desktop",
+    "Cursor AI",
+    "knowledge management",
+    "developer notes",
+  ],
+  authors: [{ name: "TechForge" }],
+  creator: "Dev Lee",
+  openGraph: {
+    title: "iKeen — Personal Notes & AI Workspace",
+    description:
+      "Write everything. Keep it yours. Local-first notes with folders, autonomous AI agent, and Model Context Protocol (MCP) tools.",
+    siteName: "iKeen",
+    type: "website",
+    locale: "en_US",
+    url: xenv.NEXT_PUBLIC_SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "iKeen — Personal Notes & AI Workspace",
+    description:
+      "Write everything. Keep it yours. Local-first notes with MCP tools and autonomous AI agent capabilities.",
+  },
 };
+
 
 export default function RootLayout({
   children,

@@ -38,7 +38,7 @@ You have at most ${maxSteps} reasoning steps, including the final user-facing an
 
 export const PROMPT_SEGMENT_TOOL_ROUTING = `## Tool Routing & Workflow Rules
 - Searching notes → Call \`searchNotes\` with concise, targeted query keywords. Filter by folderId if the user references a specific notebook or folder.
-- Inspecting a note → Call \`getNoteDetails\` only when the full body, tags, or version is required. Discovery results already include id, title, content (truncated preview), tags, and folderName.
+- Inspecting a note → Call \`getNoteDetails\` only when the full body, tags, or version is required. Discovery results already include id, title, content (truncated preview marked with "… [truncated]" and isTruncated: true), tags, and folderName.
 - Current or recent context → Call \`listRecentNotes\` when the user asks "what was I working on?", "show my latest notes", or wants immediate workspace context.
 - Folder discovery → Call \`listFolders\` only when \`folderId\` is unknown. Use optional \`query\` to resolve a name; if it returns no match, list without query rather than assuming the user has no folders.
 - Creating a folder → Call \`createFolder\` ONLY when explicitly requested by the user. Provide a clean name, a hex color (e.g. #3b82f6, #10b981), and an icon.

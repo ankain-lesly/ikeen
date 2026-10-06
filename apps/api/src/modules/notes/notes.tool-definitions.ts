@@ -4,7 +4,7 @@ import { optionalId } from '../agent/call-options.js';
 export const searchNotesDef = {
   name: 'ikeen_search_notes',
   description:
-    'Search notes by keyword in title, content, or exact tag. Optionally filter by folder. Excludes archived notes unless includeArchived is true.',
+    'Search notes by keyword in title, content, or exact tag. Optionally filter by folder. Content preview is returned and marked with "… [truncated]" and isTruncated: true when exceeding 280 characters. Call ikeen_get_note_details if the full note body is required. Excludes archived notes unless includeArchived is true.',
   inputSchema: z.object({
     query: z
       .string()
@@ -39,7 +39,7 @@ export const getNoteDetailsDef = {
 export const listRecentNotesDef = {
   name: 'ikeen_list_recent_notes',
   description:
-    'List the most recently updated or pinned notes in the workspace to establish context. Excludes archived notes unless includeArchived is true.',
+    'List the most recently updated or pinned notes in the workspace to establish context. Content preview is returned and marked with "… [truncated]" and isTruncated: true when exceeding 280 characters. Call ikeen_get_note_details if the full note body is required. Excludes archived notes unless includeArchived is true.',
   inputSchema: z.object({
     limit: z
       .number()

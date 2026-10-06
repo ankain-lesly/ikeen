@@ -53,6 +53,7 @@ export class McpAuthGuard implements CanActivate {
     }
 
     if (!rawToken) {
+      this.setAuthenticateHeader(context);
       throw new UnauthorizedException(
         'Missing authentication. Provide "Authorization: Bearer <token>" or "x-api-key: <key>".',
       );
@@ -82,14 +83,29 @@ export class McpAuthGuard implements CanActivate {
       });
 
       if (!user || user.status !== 'active') {
+        this.setAuthenticateHeader(context);
         throw new UnauthorizedException('User account is invalid or inactive');
       }
 
       req.user = user;
       req.mcpClient = (req.headers['x-mcp-client'] as string) || 'jwt-client';
       return true;
-    } catch {
+    } catch (err) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+      this.setAuthenticateHeader(context);
       throw new UnauthorizedException('Invalid or expired authentication token');
+    }
+  }
+
+  private setAuthenticateHeader(context: ExecutionContext): void {
+    const httpRes = context.switchToHttp().getResponse();
+    if (httpRes && typeof httpRes.setHeader === 'function') {
+      httpRes.setHeader(
+        'WWW-Authenticate',
+        'Bearer realm="ikeen", resource_metadata="/.well-known/oauth-protected-resource/mcp"',
+      );
     }
   }
 

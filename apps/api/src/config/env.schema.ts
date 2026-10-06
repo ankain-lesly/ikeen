@@ -36,6 +36,10 @@ export const envSchema = z.object({
   APP_UPDATE_MANDATORY: z.coerce.boolean().default(false),
   APP_UPDATE_URL_ANDROID: z.string().optional(),
   APP_UPDATE_URL_IOS: z.string().optional(),
+
+  // Application & API URLs (Strict, required without defaults)
+  SITE_URL: z.url(),
+  API_URL: z.url(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -55,6 +55,8 @@ describe('NotesToolService', () => {
       if (!result.ok) throw new Error('Expected result.ok to be true');
 
       expect(result.count).toBe(1);
+      expect(result.notes[0].isTruncated).toBe(false);
+      expect(result.notes[0].content).toBe('Meeting notes content here');
       expect(mockPrisma.note.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -64,6 +66,73 @@ describe('NotesToolService', () => {
           }),
         }),
       );
+    });
+
+    it('indicates truncated content when note exceeds 280 characters', async () => {
+      const longContent = 'A'.repeat(300);
+      mockPrisma.note.findMany.mockResolvedValue([
+        {
+          id: 'note-long',
+          title: 'Long Note',
+          content: longContent,
+          tags: ['architecture'],
+          folderId: null,
+          isPinned: false,
+          isArchived: false,
+          updatedAt: new Date(),
+          folder: null,
+        },
+      ]);
+
+      const result = await service.searchNotes('user-1', {
+        query: 'architecture',
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+
+      expect(result.notes[0].isTruncated).toBe(true);
+      expect(result.notes[0].content).toBe(`${'A'.repeat(280)}… [truncated]`);
+    });
+  });
+
+  describe('listRecentNotes', () => {
+    it('returns recent notes with truncation flag', async () => {
+      mockPrisma.note.findMany.mockResolvedValue([
+        {
+          id: 'note-short',
+          title: 'Short',
+          content: 'Short content',
+          tags: [],
+          folderId: null,
+          isPinned: true,
+          isArchived: false,
+          updatedAt: new Date(),
+          folder: null,
+        },
+        {
+          id: 'note-long',
+          title: 'Long',
+          content: 'X'.repeat(350),
+          tags: [],
+          folderId: null,
+          isPinned: false,
+          isArchived: false,
+          updatedAt: new Date(),
+          folder: null,
+        },
+      ]);
+
+      const result = await service.listRecentNotes('user-1', { limit: 5 });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+
+      expect(result.count).toBe(2);
+      expect(result.notes[0].isTruncated).toBe(false);
+      expect(result.notes[0].content).toBe('Short content');
+      expect(result.notes[1].isTruncated).toBe(true);
+      expect(result.notes[1].content).toContain('… [truncated]');
     });
   });
 

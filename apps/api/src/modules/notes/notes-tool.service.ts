@@ -29,7 +29,7 @@ const discoverySelect = {
   isPinned: true,
   isArchived: true,
   updatedAt: true,
-  folder: { select: { name: true, id: true } },
+  folder: { select: { name: true } },
 } as const;
 
 function mapDiscoveryNote(note: {
@@ -41,12 +41,14 @@ function mapDiscoveryNote(note: {
   isPinned: boolean;
   isArchived: boolean;
   updatedAt: Date;
-  folder: { name: string; id: string } | null;
+  folder: { name: string } | null;
 }) {
+  const isTruncated = note.content.trim().length > 280;
   return {
     id: note.id,
     title: note.title,
     content: previewText(note.content, 280),
+    isTruncated,
     tags: note.tags,
     folderId: note.folderId,
     folderName: note.folder?.name ?? null,
@@ -59,7 +61,7 @@ function mapDiscoveryNote(note: {
 function previewText(text: string, max = 280) {
   const trimmed = text.trim();
   if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max)}…`;
+  return `${trimmed.slice(0, max)}… [truncated]`;
 }
 
 @Injectable()
@@ -348,7 +350,9 @@ export class NotesToolService {
       this.audit.logAgent({
         userId,
         conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: isReplace ? `${actionPrefix}.replaceNote` : `${actionPrefix}.updateNote`,
+        action: isReplace
+          ? `${actionPrefix}.replaceNote`
+          : `${actionPrefix}.updateNote`,
         severity: isReplace ? 'WARN' : 'INFO',
         resourceType: 'note',
         resourceId: note.id,

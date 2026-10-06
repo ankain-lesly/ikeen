@@ -21,6 +21,8 @@ export class EnvService implements EnvConfig {
   readonly APP_UPDATE_MANDATORY: boolean;
   readonly APP_UPDATE_URL_ANDROID?: string;
   readonly APP_UPDATE_URL_IOS?: string;
+  readonly SITE_URL: string;
+  readonly API_URL: string;
 
   constructor() {
     const validated = validateEnv(process.env);
@@ -37,5 +39,14 @@ export class EnvService implements EnvConfig {
 
   get isTest(): boolean {
     return this.NODE_ENV === 'test';
+  }
+
+  getMcpResourceUrl(): string {
+    return `${this.API_URL.replace(/\/$/, '')}/mcp`;
+  }
+
+  getMcpDocsUrl(): string {
+    // return `${this.SITE_URL.replace(/\/$/, '')}/docs/mcp`;
+    return `${this.SITE_URL.replace(/\/$/, '')}/mcp`;
   }
 }
