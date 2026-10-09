@@ -15,7 +15,8 @@
     "SITE_URL",
     "API_URL",
     "MCP_ALLOWED_ORIGINS",
-    "MCP_ALLOW_APP_JWT"
+    "MCP_ALLOW_APP_JWT",
+    "COMPOSIO_API_KEY"
   ],
   "globalDependencies": [".env"],
   "tasks": {
