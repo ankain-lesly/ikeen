@@ -9,7 +9,13 @@
     "AI_PROVIDER",
     "OPENROUTER_API_KEY",
     "AI_CHAT_MODEL",
-    "AI_EMBEDDING_MODEL"
+    "AI_EMBEDDING_MODEL",
+    "TAVILY_API_KEY",
+    "APP_MIN_REQUIRED_VERSION",
+    "SITE_URL",
+    "API_URL",
+    "MCP_ALLOWED_ORIGINS",
+    "MCP_ALLOW_APP_JWT"
   ],
   "globalDependencies": [".env"],
   "tasks": {

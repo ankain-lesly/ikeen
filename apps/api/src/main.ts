@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, RequestMethod, ValidationPipe } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { MCP_STRATEGY, type McpStrategy } from '@rekog/mcp-nest';
 import { AppModule } from './app.module.js';
 import { EnvService } from './config/env.service.js';
 
@@ -16,7 +15,6 @@ export async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
     setupApp(app);
-    await setupMcp(app);
 
     await app.init();
     cachedServer = app.getHttpAdapter().getInstance();
@@ -25,8 +23,11 @@ export async function bootstrap() {
 }
 
 function setupApp(app: INestApplication) {
+  const env = app.get(EnvService);
+  const allowedOrigins = env.mcpAllowedOrigins;
+
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true,
     credentials: true,
   });
 
@@ -49,15 +50,8 @@ function setupApp(app: INestApplication) {
   );
 }
 
-async function setupMcp(app: INestApplication) {
-  const mcp = app.get<McpStrategy>(MCP_STRATEGY);
-  mcp.setHttpAdapter(app.getHttpAdapter());
-  app.connectMicroservice({ strategy: mcp });
-  await app.startAllMicroservices();
-}
-
 /**
- * Serverless HTTP handler
+ * Serverless HTTP handler for Vercel
  */
 export default async function handler(req: Request, res: Response) {
   const server = await bootstrap();
@@ -65,13 +59,12 @@ export default async function handler(req: Request, res: Response) {
 }
 
 /**
- * Standalone execution for local development / Docker
+ * Standalone execution for local development / Docker / non-Vercel runtimes
  */
-if (process.env.NODE_ENV === 'development') {
+if (!process.env.VERCEL) {
   (async () => {
     const app = await NestFactory.create(AppModule);
     setupApp(app);
-    await setupMcp(app);
     const env = app.get(EnvService);
     await app.listen(env.PORT);
   })();

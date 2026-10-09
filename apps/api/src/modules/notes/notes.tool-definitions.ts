@@ -135,3 +135,16 @@ export const archiveNoteDef = {
       .describe('True to archive the note, false to restore/unarchive it'),
   }),
 };
+
+export const deleteNoteDef = {
+  name: 'ikeen_delete_note',
+  description:
+    'Permanently delete or soft-delete a note from the workspace. Use with caution.',
+  inputSchema: z.object({
+    noteId: z.string().describe('The UUID of the note to delete'),
+    hardDelete: z
+      .boolean()
+      .default(false)
+      .describe('If true, removes permanently from database; otherwise marks deleted'),
+  }),
+};

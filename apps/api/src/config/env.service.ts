@@ -23,6 +23,8 @@ export class EnvService implements EnvConfig {
   readonly APP_UPDATE_URL_IOS?: string;
   readonly SITE_URL: string;
   readonly API_URL: string;
+  readonly MCP_ALLOWED_ORIGINS?: string;
+  readonly MCP_ALLOW_APP_JWT: boolean;
 
   constructor() {
     const validated = validateEnv(process.env);
@@ -39,6 +41,13 @@ export class EnvService implements EnvConfig {
 
   get isTest(): boolean {
     return this.NODE_ENV === 'test';
+  }
+
+  get mcpAllowedOrigins(): string[] | undefined {
+    if (!this.MCP_ALLOWED_ORIGINS) return undefined;
+    return this.MCP_ALLOWED_ORIGINS.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
   }
 
   getMcpResourceUrl(): string {

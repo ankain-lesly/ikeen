@@ -15,6 +15,7 @@ describe('ApiKeyService', () => {
         findMany: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
+        count: vi.fn().mockResolvedValue(0),
       },
     };
     service = new ApiKeyService(mockPrisma);

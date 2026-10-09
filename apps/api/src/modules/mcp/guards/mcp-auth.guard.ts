@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ApiKeyService } from '../../auth/api-key.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { EnvService } from '../../../config/env.service.js';
 import type { Request } from 'express';
 
 export interface AuthenticatedUser {
@@ -32,6 +33,7 @@ export class McpAuthGuard implements CanActivate {
     private readonly apiKeyService: ApiKeyService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly env: EnvService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -42,7 +44,7 @@ export class McpAuthGuard implements CanActivate {
 
     // Extract authorization header or x-api-key
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-Api-Key'];
+    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-Api-Key'] || req.headers['X-API-KEY'];
 
     let rawToken: string | undefined;
 
@@ -59,15 +61,31 @@ export class McpAuthGuard implements CanActivate {
       );
     }
 
-    // 1. Check if token is a Personal Access Token (ikn_...)
+    // 1. Personal Access Token (ikn_...)
     if (rawToken.startsWith('ikn_')) {
-      const user = await this.apiKeyService.validateApiKey(rawToken);
-      req.user = user;
-      req.mcpClient = (req.headers['x-mcp-client'] as string) || 'mcp-client';
-      return true;
+      try {
+        const user = await this.apiKeyService.validateApiKey(rawToken);
+        req.user = user;
+        req.mcpClient = (req.headers['x-mcp-client'] as string) || 'mcp-client';
+        return true;
+      } catch (err) {
+        this.setAuthenticateHeader(context);
+        if (err instanceof UnauthorizedException) {
+          throw err;
+        }
+        throw new UnauthorizedException('Invalid or expired Personal Access Token');
+      }
     }
 
-    // 2. Check if token is a JWT Bearer token
+    // 2. Reject JWT tokens on MCP endpoint by default (PAT only requirement per MCP RFC 8707)
+    if (!this.env.MCP_ALLOW_APP_JWT) {
+      this.setAuthenticateHeader(context);
+      throw new UnauthorizedException(
+        'JWT tokens are not accepted for MCP endpoints. Use a Personal Access Token (ikn_...).',
+      );
+    }
+
+    // 3. Fallback: JWT Bearer token only if MCP_ALLOW_APP_JWT is explicitly enabled
     try {
       const payload = await this.jwtService.verifyAsync(rawToken);
       const user = await this.prisma.user.findUnique({
@@ -102,10 +120,12 @@ export class McpAuthGuard implements CanActivate {
   private setAuthenticateHeader(context: ExecutionContext): void {
     const httpRes = context.switchToHttp().getResponse();
     if (httpRes && typeof httpRes.setHeader === 'function') {
+      const metadataUrl = `${this.env.API_URL.replace(/\/$/, '')}/.well-known/oauth-protected-resource/mcp`;
       httpRes.setHeader(
         'WWW-Authenticate',
-        'Bearer realm="ikeen", resource_metadata="/.well-known/oauth-protected-resource/mcp"',
+        `Bearer realm="ikeen", resource_metadata="${metadataUrl}", scope="notes:read notes:write folders:read folders:write"`,
       );
+      httpRes.setHeader('Cache-Control', 'no-store');
     }
   }
 

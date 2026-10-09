@@ -40,6 +40,10 @@ export const envSchema = z.object({
   // Application & API URLs (Strict, required without defaults)
   SITE_URL: z.url(),
   API_URL: z.url(),
+
+  // MCP Configuration
+  MCP_ALLOWED_ORIGINS: z.string().optional(),
+  MCP_ALLOW_APP_JWT: z.coerce.boolean().default(false),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

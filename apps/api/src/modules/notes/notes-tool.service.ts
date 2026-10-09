@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { toolFailure } from '../agent/call-options.js';
 import type {
   archiveNoteDef,
+  deleteNoteDef,
   createNoteDef,
   getNoteDetailsDef,
   listRecentNotesDef,
@@ -496,6 +497,67 @@ export class NotesToolService {
       };
     } catch (err) {
       this.logger.error(`Error in archiveNote for user ${userId}:`, err);
+      return toolFailure();
+    }
+  }
+
+  async deleteNote(
+    userId: string,
+    { noteId, hardDelete = false }: z.input<typeof deleteNoteDef.inputSchema>,
+    options?: ToolExecutionOptions,
+  ) {
+    try {
+      const existing = await this.prisma.note.findFirst({
+        where: {
+          id: noteId,
+          userId,
+          deletedAt: null,
+        },
+      });
+
+      if (!existing) {
+        return { ok: false, error: 'Note not found or already deleted.' };
+      }
+
+      if (hardDelete) {
+        await this.prisma.note.delete({
+          where: { id: noteId },
+        });
+      } else {
+        await this.prisma.note.update({
+          where: { id: noteId },
+          data: {
+            deletedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+      }
+
+      const source = options?.source ?? 'mcp';
+      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
+
+      this.audit.logAgent({
+        userId,
+        conversationId: options?.conversationId ?? `${source}-${userId}`,
+        action: `${actionPrefix}.deleteNote`,
+        severity: 'WARN',
+        resourceType: 'note',
+        resourceId: existing.id,
+        details: `${hardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
+        metadata: { hardDelete, source, clientId: options?.clientId },
+      });
+
+      void this.ably.publishInvalidation(userId, ['notes']);
+
+      return {
+        ok: true,
+        noteId: existing.id,
+        title: existing.title,
+        deleted: true,
+        hardDelete,
+      };
+    } catch (err) {
+      this.logger.error(`Error in deleteNote for user ${userId}:`, err);
       return toolFailure();
     }
   }

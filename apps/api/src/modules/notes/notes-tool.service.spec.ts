@@ -14,6 +14,7 @@ describe('NotesToolService', () => {
         findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
+        delete: vi.fn(),
       },
       folder: {
         findFirst: vi.fn(),
@@ -234,6 +235,59 @@ describe('NotesToolService', () => {
 
       expect(mockPrisma.note.update).toHaveBeenCalled();
       expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes']);
+    });
+  });
+
+  describe('deleteNote', () => {
+    it('soft deletes note by default and emits invalidation', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Note to Delete',
+      });
+      mockPrisma.note.update.mockResolvedValue({
+        id: 'note-1',
+        title: 'Note to Delete',
+        deletedAt: new Date(),
+      });
+
+      const result = await service.deleteNote('user-1', { noteId: 'note-1' });
+
+      expect(result.ok).toBe(true);
+      expect(mockPrisma.note.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'note-1' },
+          data: expect.objectContaining({ deletedAt: expect.any(Date) }),
+        }),
+      );
+      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes']);
+    });
+
+    it('hard deletes note when hardDelete is true', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Note to Hard Delete',
+      });
+      mockPrisma.note.delete.mockResolvedValue({ id: 'note-1' });
+
+      const result = await service.deleteNote('user-1', {
+        noteId: 'note-1',
+        hardDelete: true,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockPrisma.note.delete).toHaveBeenCalledWith({
+        where: { id: 'note-1' },
+      });
+    });
+
+    it('returns error when note does not exist', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue(null);
+
+      const result = await service.deleteNote('user-1', { noteId: 'missing-note' });
+
+      expect(result.ok).toBe(false);
+      expect(mockPrisma.note.delete).not.toHaveBeenCalled();
+      expect(mockPrisma.note.update).not.toHaveBeenCalled();
     });
   });
 });

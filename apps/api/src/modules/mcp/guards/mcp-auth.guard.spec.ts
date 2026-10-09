@@ -7,6 +7,7 @@ describe('McpAuthGuard', () => {
   let mockApiKeyService: any;
   let mockJwtService: any;
   let mockPrisma: any;
+  let mockEnv: any;
 
   beforeEach(() => {
     mockApiKeyService = {
@@ -20,7 +21,12 @@ describe('McpAuthGuard', () => {
         findUnique: vi.fn(),
       },
     };
-    guard = new McpAuthGuard(mockApiKeyService, mockJwtService, mockPrisma);
+    mockEnv = {
+      API_URL: 'https://api.ikeen.app',
+      MCP_ALLOW_APP_JWT: false,
+      getMcpResourceUrl: vi.fn().mockReturnValue('https://api.ikeen.app/mcp'),
+    };
+    guard = new McpAuthGuard(mockApiKeyService, mockJwtService, mockPrisma, mockEnv);
   });
 
   function createMockContext(headers: Record<string, string>) {
@@ -65,7 +71,21 @@ describe('McpAuthGuard', () => {
     expect(mockApiKeyService.validateApiKey).toHaveBeenCalledWith('ikn_live_abcdef123456789');
   });
 
-  it('authenticates via Authorization Bearer JWT token', async () => {
+  it('rejects app JWT token by default on MCP endpoint per RFC 8707 / PAT requirement', async () => {
+    const context = createMockContext({ authorization: 'Bearer eyJhbGciOi...' });
+
+    await expect(guard.canActivate(context as any)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(context.res.setHeader).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      expect.stringContaining('resource_metadata="https://api.ikeen.app/.well-known/oauth-protected-resource/mcp"'),
+    );
+    expect(context.res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+  });
+
+  it('allows JWT token when MCP_ALLOW_APP_JWT is explicitly enabled in env', async () => {
+    mockEnv.MCP_ALLOW_APP_JWT = true;
     const user = { id: 'user-jwt', email: 'jwt@ikeen.app', username: 'jwtuser', status: 'active' };
     mockJwtService.verifyAsync.mockResolvedValue({ sub: 'user-jwt' });
     mockPrisma.user.findUnique.mockResolvedValue(user);
@@ -80,6 +100,20 @@ describe('McpAuthGuard', () => {
 
   it('throws UnauthorizedException and sets WWW-Authenticate header when no credentials are provided', async () => {
     const context = createMockContext({});
+    await expect(guard.canActivate(context as any)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(context.res.setHeader).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      expect.stringContaining('resource_metadata="https://api.ikeen.app/.well-known/oauth-protected-resource/mcp"'),
+    );
+    expect(context.res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+  });
+
+  it('sets WWW-Authenticate header when API key validation fails', async () => {
+    mockApiKeyService.validateApiKey.mockRejectedValue(new UnauthorizedException('API key is invalid or revoked'));
+
+    const context = createMockContext({ authorization: 'Bearer ikn_live_invalid' });
     await expect(guard.canActivate(context as any)).rejects.toThrow(
       UnauthorizedException,
     );

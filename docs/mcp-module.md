@@ -10,7 +10,7 @@ Make sure your database is running and start the backend:
 # From the repository root
 bun run --filter=@repo/api start:dev
 ```
-Your server will start (defaulting to `http://localhost:3000` or whatever `PORT` is set in your `.env`).
+Your server will start (defaulting to `http://localhost:3001` or whatever `PORT` is set in your `.env`).
 
 ---
 
@@ -20,16 +20,22 @@ Generate a token for your user account:
 
 ```bash
 # 1. Login to get your JWT (if not already logged in)
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -X POST http://localhost:3001/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "your-email@example.com", "password": "your-password"}'
 
 # 2. Create an MCP API Key (replace <JWT_TOKEN> with your access token)
-curl -X POST http://localhost:3000/api/v1/auth/api-keys \
+curl -X POST http://localhost:3001/api/v1/auth/api-keys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <JWT_TOKEN>" \
   -d '{"name": "Local MCP Test"}'
+  
+# 3. Get MCP API Keys
+curl -X GET http://localhost:3001/api/v1/auth/api-keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
 ```
+
 
 The response will return your raw key:
 ```json
@@ -53,7 +59,7 @@ Anthropic's official MCP Inspector gives you a full GUI to view, test, and debug
 npx @modelcontextprotocol/inspector
 ```
 1. In the browser window that opens, set **Transport Type** to `Streamable HTTP` (or `HTTP`).
-2. **URL**: `http://localhost:3000/mcp`
+2. **URL**: `http://localhost:3001/mcp`
 3. Click **Add Header**:
    - Name: `x-api-key` (or `Authorization`)
    - Value: `ikn_live_...` (or `Bearer ikn_live_...`)
@@ -70,7 +76,7 @@ You can send a direct JSON-RPC request to verify the server answers:
 
 **1. List available tools:**
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "x-api-key: ikn_live_<your_key>" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
@@ -78,7 +84,7 @@ curl -X POST http://localhost:3000/mcp \
 
 **2. Execute a tool (`ikeen_search_notes`):**
 ```bash
-curl -X POST http://localhost:3000/mcp \
+curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "x-api-key: ikn_live_<your_key>" \
   -d '{
@@ -103,7 +109,7 @@ Create or edit `.cursor/mcp.json` in your project or global Cursor settings:
 {
   "mcpServers": {
     "ikeen": {
-      "url": "http://localhost:3000/mcp",
+      "url": "http://localhost:3001/mcp",
       "headers": {
         "Authorization": "Bearer ikn_live_<your_key>"
       }

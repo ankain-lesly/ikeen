@@ -1,4 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
+import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
+import type { z } from 'zod';
 import {
   searchNotesDef,
   getNoteDetailsDef,
@@ -7,6 +9,7 @@ import {
   updateNoteDef,
   pinNoteDef,
   archiveNoteDef,
+  deleteNoteDef,
 } from '../../notes/notes.tool-definitions.js';
 import {
   listFoldersDef,
@@ -99,12 +102,12 @@ function inspectZodField(field: any): {
 @Controller(['mcp', 'api/v1/mcp'])
 export class McpInfoController {
   private formatTool(
-    def: { name: string; description: string; inputSchema: any },
+    def: { name: string; description: string; inputSchema: z.ZodObject<any> | any },
     category: 'notes' | 'folders',
   ): McpToolItem {
     const shape = def.inputSchema?.shape || {};
     const parameters: McpToolParameter[] = Object.entries(shape).map(
-      ([key, field]: [string, any]) => {
+      ([key, field]) => {
         const inspected = inspectZodField(field);
 
         return {
@@ -134,6 +137,7 @@ export class McpInfoController {
       this.formatTool(updateNoteDef, 'notes'),
       this.formatTool(pinNoteDef, 'notes'),
       this.formatTool(archiveNoteDef, 'notes'),
+      this.formatTool(deleteNoteDef, 'notes'),
     ];
 
     const foldersTools = [
@@ -152,7 +156,7 @@ export class McpInfoController {
     return {
       name: 'ikeen-mcp-server',
       version: '1.0.0',
-      protocolVersion: '2026-07-28',
+      protocolVersion: LATEST_PROTOCOL_VERSION,
       transport: 'Streamable HTTP',
       endpoint: '/mcp',
       toolsCount: tools.length,
