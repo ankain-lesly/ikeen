@@ -21,6 +21,19 @@ export interface McpServerInfo {
   transport: string;
   endpoint: string;
   toolsCount: number;
+  promptsCount?: number;
+}
+
+export interface McpPromptArgument {
+  name: string;
+  description: string;
+  required: boolean;
+}
+
+export interface McpPromptItem {
+  name: string;
+  description: string;
+  arguments: McpPromptArgument[];
 }
 
 export async function fetchMcpToolsApi(): Promise<McpToolItem[]> {
@@ -28,7 +41,14 @@ export async function fetchMcpToolsApi(): Promise<McpToolItem[]> {
   return data;
 }
 
+export async function fetchMcpPromptsApi(): Promise<McpPromptItem[]> {
+  const { data } = await apiClient.get<McpPromptItem[]>("/api/v1/mcp/prompts");
+  return data;
+}
+
 export async function fetchMcpInfoApi(): Promise<McpServerInfo> {
   const { data } = await apiClient.get<McpServerInfo>("/api/v1/mcp/info");
   return data;
 }
+
+

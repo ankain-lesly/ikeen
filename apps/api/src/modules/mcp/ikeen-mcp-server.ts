@@ -519,5 +519,175 @@ export function createIkeenMcpServer({
     }),
   );
 
+  server.registerPrompt(
+    'weekly-review',
+    {
+      description: 'Review and synthesize notes from the past week into accomplishments, insights, and next steps',
+      argsSchema: {
+        focus: z.string().optional().describe('Optional specific focus or objective to highlight during the review'),
+      },
+    },
+    async ({ focus }) => {
+      let notesSummary = '(No recent notes found)';
+      try {
+        const recent = await notesToolService.listRecentNotes(userId, { limit: 15 });
+        if (recent.ok && 'notes' in recent && recent.notes.length > 0) {
+          notesSummary = recent.notes
+            .map(
+              (n) =>
+                `- [${n.title || 'Untitled'}] (id: ${n.id}, updated: ${n.updatedAt instanceof Date ? n.updatedAt.toISOString() : String(n.updatedAt)}): ${n.content || ''}`,
+            )
+            .join('\n');
+        }
+      } catch {
+        notesSummary = '(Failed to fetch recent notes automatically; please call `ikeen_list_recent_notes`)';
+      }
+
+      return {
+        description: 'iKeen Weekly Review',
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: [
+                'Please perform a comprehensive weekly review based on my recent iKeen notes below.',
+                focus ? `Specific focus for this review: ${focus}` : '',
+                '',
+                '### Objectives:',
+                '1. **Key Accomplishments & Themes**: Group related updates and summarize major milestones.',
+                '2. **Action Items & Follow-ups**: Identify todos, open questions, commitments, or deadlines.',
+                '3. **Suggested Next Steps**: Propose prioritized priorities for the upcoming week.',
+                '4. If any note needs deeper context, call `ikeen_get_note_details` with the note id.',
+                '',
+                '### Recent Notes in Workspace:',
+                notesSummary,
+              ]
+                .filter(Boolean)
+                .join('\n'),
+            },
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerPrompt(
+    'extract-action-items',
+    {
+      description: 'Extract actionable tasks, deadlines, and owners from notes matching a topic or query',
+      argsSchema: {
+        query: z.string().describe('Search query, topic, or keyword to extract tasks from'),
+      },
+    },
+    async ({ query }) => {
+      let notesSummary = '(No matching notes found)';
+      try {
+        const results = await notesToolService.searchNotes(userId, { query, limit: 10 });
+        if (results.ok && 'notes' in results && results.notes.length > 0) {
+          notesSummary = results.notes
+            .map(
+              (n) =>
+                `- [${n.title || 'Untitled'}] (id: ${n.id}): ${n.content || ''}`,
+            )
+            .join('\n');
+        }
+      } catch {
+        notesSummary = `(Failed to search notes automatically; please call \`ikeen_search_notes\` with query "${query}")`;
+      }
+
+      return {
+        description: 'Extract Action Items from iKeen Notes',
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: [
+                `Analyze the following notes matching "${query}" and extract a prioritized action plan:`,
+                '',
+                '### Format requested:',
+                '- **High Priority / Immediate**: Tasks with urgent deadlines or blockers.',
+                '- **Standard Tasks**: Action items with context, suggested owners, or milestones.',
+                '- **Follow-up Questions**: Ambiguities or unresolved decisions.',
+                '- If deeper content is needed for any note, call `ikeen_get_note_details`.',
+                '',
+                '### Notes Matching Query:',
+                notesSummary,
+              ].join('\n'),
+            },
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerPrompt(
+    'organize-inbox',
+    {
+      description: 'Review uncategorized notes and propose moving them into appropriate folders',
+      argsSchema: {},
+    },
+    async () => {
+      let notesSummary = '(All recent notes are already organized into folders!)';
+      let foldersSummary = '(No folders found)';
+
+      try {
+        const [notesRes, foldersRes] = await Promise.all([
+          notesToolService.listRecentNotes(userId, { limit: 30 }),
+          foldersToolService.listFolders(userId, { limit: 50 }),
+        ]);
+
+        if (notesRes.ok && 'notes' in notesRes) {
+          const uncategorized = notesRes.notes.filter((n) => !n.folderId);
+          if (uncategorized.length > 0) {
+            notesSummary = uncategorized
+              .map(
+                (n) =>
+                  `- [${n.title || 'Untitled'}] (id: ${n.id}): ${n.content || ''}`,
+              )
+              .join('\n');
+          }
+        }
+
+        if (foldersRes.ok && 'folders' in foldersRes && foldersRes.folders.length > 0) {
+          foldersSummary = foldersRes.folders
+            .map((f) => `- **${f.name}** (id: ${f.id})`)
+            .join('\n');
+        }
+      } catch {
+        // Fallback gracefully
+      }
+
+      return {
+        description: 'Organize Uncategorized Notes into Folders',
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: [
+                'Help organize my uncategorized notes into appropriate folders.',
+                '',
+                '### Available Folders:',
+                foldersSummary,
+                '',
+                '### Uncategorized Notes to Categorize:',
+                notesSummary,
+                '',
+                '### Instructions:',
+                '1. Propose which existing folder each note belongs to based on its subject.',
+                '2. If a note does not fit any existing folder, suggest creating a new folder.',
+                '3. Suggest moving notes using `ikeen_organize_note` with `{ noteId, folderId }`.',
+              ].join('\n'),
+            },
+          },
+        ],
+      };
+    },
+  );
+
   return server;
 }
+
+

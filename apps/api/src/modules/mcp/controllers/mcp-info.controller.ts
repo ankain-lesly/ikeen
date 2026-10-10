@@ -32,6 +32,18 @@ export interface McpToolItem {
   parameters: McpToolParameter[];
 }
 
+export interface McpPromptArgument {
+  name: string;
+  description: string;
+  required: boolean;
+}
+
+export interface McpPromptItem {
+  name: string;
+  description: string;
+  arguments: McpPromptArgument[];
+}
+
 export interface McpServerInfo {
   name: string;
   version: string;
@@ -39,9 +51,11 @@ export interface McpServerInfo {
   transport: string;
   endpoint: string;
   toolsCount: number;
+  promptsCount: number;
 }
 
 function inspectZodField(field: any): {
+
   type: string;
   isOptional: boolean;
   description: string;
@@ -150,9 +164,65 @@ export class McpInfoController {
     return [...notesTools, ...foldersTools];
   }
 
+  @Get('prompts')
+  getPrompts(): McpPromptItem[] {
+    return [
+      {
+        name: 'ikeen-workspace',
+        description: 'Instructions on how to navigate, search, and update notes and folders in iKeen',
+        arguments: [
+          {
+            name: 'task',
+            description: 'The user objective, e.g. finding information or drafting a note',
+            required: true,
+          },
+        ],
+      },
+      {
+        name: 'synthesize-notes',
+        description: 'Instructions to synthesize multiple notes into a structured summary or action plan',
+        arguments: [
+          {
+            name: 'topic',
+            description: 'Topic or tag to synthesize notes about',
+            required: true,
+          },
+        ],
+      },
+      {
+        name: 'weekly-review',
+        description: 'Review and synthesize notes from the past week into accomplishments, insights, and next steps',
+        arguments: [
+          {
+            name: 'focus',
+            description: 'Optional specific focus or objective to highlight during the review',
+            required: false,
+          },
+        ],
+      },
+      {
+        name: 'extract-action-items',
+        description: 'Extract actionable tasks, deadlines, and owners from notes matching a topic or query',
+        arguments: [
+          {
+            name: 'query',
+            description: 'Search query, topic, or keyword to extract tasks from',
+            required: true,
+          },
+        ],
+      },
+      {
+        name: 'organize-inbox',
+        description: 'Review uncategorized notes and propose moving them into appropriate folders',
+        arguments: [],
+      },
+    ];
+  }
+
   @Get('info')
   getInfo(): McpServerInfo {
     const tools = this.getTools();
+    const prompts = this.getPrompts();
     return {
       name: 'ikeen-mcp-server',
       version: '1.0.0',
@@ -160,6 +230,8 @@ export class McpInfoController {
       transport: 'Streamable HTTP',
       endpoint: '/mcp',
       toolsCount: tools.length,
+      promptsCount: prompts.length,
     };
   }
 }
+

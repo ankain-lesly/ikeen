@@ -141,4 +141,51 @@ describe('IkeenMcpServer', () => {
     await client.close();
     await server.close();
   });
+
+  it('lists registered prompts and renders weekly-review prompt with notes context', async () => {
+    mockNotesToolService.listRecentNotes.mockResolvedValueOnce({
+      ok: true,
+      notes: [
+        { id: 'note-abc', title: 'Q3 Objectives', content: 'Focus on MCP integration', updatedAt: new Date() },
+      ],
+      total: 1,
+    });
+
+    const server = createIkeenMcpServer({
+      notesToolService: mockNotesToolService,
+      foldersToolService: mockFoldersToolService,
+      prisma: mockPrisma,
+      userId: 'user-prompt-test',
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+
+    const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
+    await client.connect(clientTransport);
+
+    const promptsResult = await client.listPrompts();
+    const promptNames = promptsResult.prompts.map((p) => p.name);
+
+    expect(promptNames).toContain('ikeen-workspace');
+    expect(promptNames).toContain('synthesize-notes');
+    expect(promptNames).toContain('weekly-review');
+    expect(promptNames).toContain('extract-action-items');
+    expect(promptNames).toContain('organize-inbox');
+
+    const prompt = await client.getPrompt({
+      name: 'weekly-review',
+      arguments: { focus: 'Product goals' },
+    });
+
+    expect(prompt.description).toBe('iKeen Weekly Review');
+    expect(prompt.messages.length).toBeGreaterThan(0);
+    const messageText = (prompt.messages[0].content as { type: string; text: string }).text;
+    expect(messageText).toContain('Product goals');
+    expect(messageText).toContain('Q3 Objectives');
+
+    await client.close();
+    await server.close();
+  });
 });
+
