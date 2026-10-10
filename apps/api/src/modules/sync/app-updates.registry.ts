@@ -6,7 +6,6 @@ export interface AppRelease {
   releasedAt: string;
   title: string;
   notes: readonly string[];
-  storeUrls?: Partial<Record<AppStorePlatform, string>>;
 }
 
 export const DEFAULT_STORE_URL =
@@ -48,9 +47,7 @@ export const APP_RELEASES: readonly AppRelease[] = [
     build: 3,
     releasedAt: '2026-10-02',
     title: 'iKeen branding',
-    notes: [
-      'iKeen name, icons, splash, and notification artwork',
-    ],
+    notes: ['iKeen name, icons, splash, and notification artwork'],
   },
   {
     version: '1.0.1',

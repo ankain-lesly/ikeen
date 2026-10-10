@@ -108,6 +108,11 @@ export default function RootLayout({
                   Dashboard
                 </Link>
                 <Link
+                  href="/download"
+                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                  Download
+                </Link>
+                <Link
                   href="/privacy"
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
                   Privacy
@@ -122,6 +127,9 @@ export default function RootLayout({
             <div className="mx-auto flex w-full max-w-6xl justify-between items-center px-4 sm:px-6 py-4 text-xs text-muted-foreground">
               <span>© {new Date().getFullYear()} iKeen Research MCP</span>
               <div className="flex items-center gap-4">
+                <Link href="/download" className="hover:text-foreground">
+                  Download App
+                </Link>
                 <Link href="/mcp" className="hover:text-foreground">
                   MCP Showcase
                 </Link>

@@ -20,20 +20,26 @@ export default function Home() {
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Link
-          href="/mcp"
+          href="/download"
           className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
         >
-          Explore MCP Tools →
+          Download App →
+        </Link>
+        <Link
+          href="/mcp"
+          className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          Explore MCP Tools
         </Link>
         <Link
           href="/dashboard"
-          className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+          className="inline-flex h-10 items-center rounded-lg border border-border bg-card/60 px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           Developer Dashboard
         </Link>
         <Link
           href="/privacy"
-          className="inline-flex h-10 items-center rounded-lg border border-border bg-card/60 px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex h-10 items-center rounded-lg border border-border bg-card/40 px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           Privacy Policy
         </Link>

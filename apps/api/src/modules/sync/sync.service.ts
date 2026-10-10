@@ -276,24 +276,17 @@ export class SyncService {
       mandatory,
       title: release.title,
       description: release.notes.join('\n• '),
-      url: this.resolveStoreUrl(query?.platform, release.storeUrls),
+      url: this.resolveStoreUrl(query?.platform),
     };
   }
 
-  private resolveStoreUrl(
-    platform: string | undefined,
-    storeUrls?: Partial<Record<AppStorePlatform, string>>,
-  ): string {
+  private resolveStoreUrl(platform: string | undefined): string {
     const normalized = platform?.toLowerCase();
     if (normalized === 'android') {
-      return (
-        this.env.APP_UPDATE_URL_ANDROID ??
-        storeUrls?.android ??
-        DEFAULT_STORE_URL
-      );
+      return this.env.APP_UPDATE_URL_ANDROID ?? DEFAULT_STORE_URL;
     }
     if (normalized === 'ios') {
-      return this.env.APP_UPDATE_URL_IOS ?? storeUrls?.ios ?? DEFAULT_STORE_URL;
+      return this.env.APP_UPDATE_URL_IOS ?? this.env.SITE_URL;
     }
     return DEFAULT_STORE_URL;
   }

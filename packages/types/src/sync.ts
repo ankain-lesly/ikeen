@@ -16,7 +16,9 @@ export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
  * - version: Incremental optimistic concurrency version
  * - updatedAt: Client mutation timestamp for LWW conflict resolution
  */
-export interface SyncMutationPayload<TChanges extends FolderChanges | NoteChanges> {
+export interface SyncMutationPayload<
+  TChanges extends FolderChanges | NoteChanges,
+> {
   id: string;
   mutationId: string;
   action: SyncActionType;
