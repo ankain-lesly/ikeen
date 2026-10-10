@@ -37,7 +37,10 @@ function setupApp(app: INestApplication) {
       { path: '/', method: RequestMethod.GET },
       { path: '/mcp', method: RequestMethod.ALL },
       { path: '/mcp/(.*)', method: RequestMethod.ALL },
+      { path: '/api/v1/mcp', method: RequestMethod.ALL },
+      { path: '/api/v1/mcp/(.*)', method: RequestMethod.ALL },
       { path: '/.well-known/(.*)', method: RequestMethod.ALL },
+      { path: '/api/v1/.well-known/(.*)', method: RequestMethod.ALL },
     ],
   });
 

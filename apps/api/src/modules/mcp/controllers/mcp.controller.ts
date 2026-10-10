@@ -17,7 +17,7 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvService } from '../../../config/env.service.js';
 import { createIkeenMcpServer } from '../ikeen-mcp-server.js';
 
-@Controller('mcp')
+@Controller(['mcp', 'api/v1/mcp'])
 @UseGuards(McpAuthGuard)
 export class McpController {
   private readonly logger = new Logger(McpController.name);
