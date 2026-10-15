@@ -17,7 +17,7 @@ import {
 import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { Note } from '@/lib/types/notes';
-import { formatFullDate } from '@repo/utils/date';
+import { formatDate } from '@repo/utils/date';
 import { calculateReadingTime, countWords } from '@repo/utils/string';
 
 interface NoteInfoSheetProps {
@@ -122,7 +122,7 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
                 </Text>
               </View>
               <Text className="text-sm font-medium text-text">
-                {formatFullDate(note.createdAt)}
+                {formatDate(note.createdAt)}
               </Text>
             </View>
 
@@ -134,7 +134,7 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
                 </Text>
               </View>
               <Text className="text-sm font-medium text-text">
-                {formatFullDate(note.updatedAt)}
+                {formatDate(note.updatedAt)}
               </Text>
             </View>
 

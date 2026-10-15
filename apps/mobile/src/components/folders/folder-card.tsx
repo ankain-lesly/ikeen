@@ -1,11 +1,11 @@
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import * as Haptics from '@/lib/haptics';
+import React from "react";
+import { Pressable, Text, View } from "react-native";
+import * as Haptics from "@/lib/haptics";
 
-import { ThemedText } from '@/components/ui/themed-text';
-import type { FolderWithCount } from '@/lib/types/folders';
-import { FolderGlyph } from './folder-glyph';
-import { FolderDetailDropdown } from './folder-detail-dropdown';
+import { ThemedText } from "@/components/ui/themed-text";
+import type { FolderWithCount } from "@/lib/types/folders";
+import { FolderGlyph } from "./folder-glyph";
+import { FolderDetailDropdown } from "./folder-detail-dropdown";
 
 export interface FolderCardProps {
   folder: FolderWithCount;
@@ -47,14 +47,16 @@ export const FolderCard = React.memo(function FolderCard({
           size="md"
         />
 
-        <FolderDetailDropdown
-          folder={folder}
-          isExpanded={isMenuOpen}
-          setIsExpanded={setIsMenuOpen}
-          onEdit={() => onEdit(folder)}
-          onToggleLock={() => onToggleLock(folder)}
-          onDelete={() => onDelete(folder)}
-        />
+        <View className="absolute -top-1 -right-4">
+          <FolderDetailDropdown
+            folder={folder}
+            isExpanded={isMenuOpen}
+            setIsExpanded={setIsMenuOpen}
+            onEdit={() => onEdit(folder)}
+            onToggleLock={() => onToggleLock(folder)}
+            onDelete={() => onDelete(folder)}
+          />
+        </View>
       </View>
 
       {/* Bottom Labels: Folder Name & Notes Count */}
@@ -65,7 +67,7 @@ export const FolderCard = React.memo(function FolderCard({
           {folder.name}
         </ThemedText>
         <Text className="text-xs text-text-secondary mt-1 font-mono">
-          {folder.noteCount} {folder.noteCount === 1 ? 'note' : 'notes'}
+          {folder.noteCount} {folder.noteCount === 1 ? "note" : "notes"}
         </Text>
       </View>
     </Pressable>

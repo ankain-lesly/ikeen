@@ -108,7 +108,7 @@ export async function enqueueOutbox(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'enqueueOutbox', error: message });
-    console.error('[Outbox] Failed to enqueue mutation:', message);
+    console.log('[🚨] [Outbox] Failed to enqueue mutation:', message);
   }
 }
 
@@ -134,7 +134,7 @@ export async function getPendingOutbox(
       .orderBy(syncOutbox.createdAt)
       .limit(limit);
   } catch (err) {
-    console.error('[Outbox] Failed to read pending outbox:', err);
+    console.log('[🚨] [Outbox] Failed to read pending outbox:', err);
     return [];
   }
 }
@@ -155,7 +155,7 @@ export async function markOutboxInFlight(ids: string[]): Promise<void> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxInFlight', error: message });
-    console.error('[Outbox] Failed to mark items in_flight:', message);
+    console.log('[🚨] [Outbox] Failed to mark items in_flight:', message);
   }
 }
 
@@ -170,7 +170,7 @@ export async function markOutboxSuccess(ids: string[]): Promise<void> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxSuccess', error: message });
-    console.error('[Outbox] Failed to clear successful outbox items:', message);
+    console.log('[🚨] [Outbox] Failed to clear successful outbox items:', message);
   }
 }
 
@@ -215,7 +215,7 @@ export async function markOutboxFailed(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxFailed', error: message });
-    console.error('[Outbox] Failed to handle outbox failure state:', message);
+    console.log('[🚨] [Outbox] Failed to handle outbox failure state:', message);
   }
 }
 
@@ -246,7 +246,7 @@ export async function resetInFlightOnStartup(): Promise<void> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'resetInFlightOnStartup', error: message });
-    console.error('[Outbox] Failed to reset in_flight/failed items on startup:', message);
+    console.log('[🚨] [Outbox] Failed to reset in_flight/failed items on startup:', message);
   }
 }
 

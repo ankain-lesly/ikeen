@@ -252,7 +252,7 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
             </Pressable>
           ) : null}
 
-          {onTogglePin ? (
+          {/* {onTogglePin ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={isPinned ? "Unpin note" : "Pin note"}
@@ -265,17 +265,17 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
                 fill={isPinned ? colors.primary : undefined}
               />
             </Pressable>
-          ) : null}
+          ) : null} */}
 
           {/* Quick Edit CTA Button */}
           <Pressable
-            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
+            className="flex-row items-center gap-2 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
             onPress={() => {
               Haptics.selectionAsync();
               onStartEditing();
             }}>
             <Pencil size={13} color="#ffffff" />
-            <Text className="text-xs font-semibold text-white">Edit</Text>
+            <Text className="text-sm font-semibold text-white">Edit</Text>
           </Pressable>
         </View>
       </View>

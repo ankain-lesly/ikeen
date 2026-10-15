@@ -31,6 +31,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { agentQueryKeys } from "@/lib/queries/agents";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ui/themed-text";
+import { Card } from "@/components/ui/card";
 
 interface ActiveSession {
   id: string;
@@ -181,6 +182,9 @@ export default function AgentScreen() {
     title: "Brainstorm",
     initialMessages: [],
   }));
+
+  console.log({ session });
+
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -218,7 +222,7 @@ export default function AgentScreen() {
         initialMessages: Array.isArray(loadedMessages) ? loadedMessages : [],
       });
     } catch (error) {
-      console.error("Failed to load selected conversation:", error);
+      console.log("[🚨] Failed to load selected conversation:", error);
       toast.error("Failed to load selected conversation");
     } finally {
       setIsSwitching(false);
@@ -269,7 +273,7 @@ export default function AgentScreen() {
         </View>
 
         {/* Right: History & New Chat Actions */}
-        <View className="flex-row items-center gap-1.5">
+        <Card className="flex-row items-center gap-4 px-2 rounded-full">
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -277,18 +281,18 @@ export default function AgentScreen() {
             }}
             hitSlop={8}
             accessibilityLabel="Chat History"
-            className="w-9 h-9 rounded-full items-center justify-center">
-            <Clock size={16} color={colors.text} />
+            className="">
+            <Clock size={20} color={colors.text} />
           </Pressable>
 
           <Pressable
             onPress={handleNewChat}
             hitSlop={8}
             accessibilityLabel="New Conversation"
-            className="w-9 h-9 rounded-full items-center justify-center">
-            <Plus size={17} color={colors.text} />
+            className="">
+            <Plus size={20} color={colors.text} />
           </Pressable>
-        </View>
+        </Card>
       </View>
 
       {!isOnline && !session.initialMessages.length && (

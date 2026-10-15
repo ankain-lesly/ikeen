@@ -5,26 +5,14 @@ import {
 import {
   useLiveNotes,
 } from "@/lib/queries/notes";
-import {
-  createFolder,
-  updateFolder,
-} from "@/lib/queries/folders";
 import { hasActiveNotesFilters, type ListNotesOptions } from "@/lib/types/notes";
-import type { CreateFolderInput, FolderWithCount } from "@/lib/types/folders";
 import { NotesHeader } from "@/components/notes/notes-header";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
-import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
 import { NoteGridContainer } from "@/components/notes/notes-grid-container";
 import { NoteEmptyCard } from "@/components/notes/note-empty-card";
 
 export default function NotesScreen() {
-  // Folder Sheets & Modals
-  const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] =
-    useState(false);
-  const [folderToEdit, setFolderToEdit] = useState<FolderWithCount | null>(
-    null,
-  );
-
+ 
   // Notes Filter State
   const [filter, setFilter] = useState<ListNotesOptions>({});
   const [isFilterSheetPresented, setIsFilterSheetPresented] = useState(false);
@@ -57,16 +45,7 @@ export default function NotesScreen() {
   );
 
   const notes = rawNotes ?? [];
-
-  const handleSaveFolder = async (data: CreateFolderInput) => {
-    if (folderToEdit) {
-      await updateFolder(folderToEdit.id, data);
-      setFolderToEdit(null);
-    } else {
-      await createFolder(data);
-    }
-  };
-
+ 
   const handleApplyFilters = (newFilter: ListNotesOptions) => {
     setFilter(newFilter);
     setIsFilterSheetPresented(false);
@@ -107,17 +86,7 @@ export default function NotesScreen() {
           // }
         />
       </View>
-
-      {/* Create / Edit Folder Modal Sheet */}
-      <CreateFolderSheet
-        isPresented={isCreateFolderSheetVisible}
-        onDismiss={() => {
-          setIsCreateFolderSheetVisible(false);
-          setFolderToEdit(null);
-        }}
-        folderToEdit={folderToEdit}
-        onSave={handleSaveFolder}
-      />
+ 
 
       {/* Notes Filter Sheet */}
       <NotesFilterSheet

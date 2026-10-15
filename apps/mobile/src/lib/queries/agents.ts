@@ -57,7 +57,7 @@ export function useDeleteConversationMutation() {
       toast.success('Conversation deleted');
     },
     onError: (err) => {
-      console.error('Delete conversation failed:', err);
+      console.log('[🚨] Delete conversation failed:', err);
       toast.error('Failed to delete conversation');
     },
   });

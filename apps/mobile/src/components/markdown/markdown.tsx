@@ -25,7 +25,9 @@ export type MarkdownEditorHandle = {
 const containerStyle: StyleProp<ViewStyle> = { width: "100%" };
 const editorStyle: StyleProp<ViewStyle> = {
   width: "100%",
-  minHeight: 160,
+  // height: "100%",
+  minHeight: "100%",
+  // minHeight: 160,
   paddingBottom: 96,
 };
 const markdownShortcuts = {

@@ -14,6 +14,7 @@ import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
 import * as Haptics from "expo-haptics";
 import {  } from "react-native";
+import { Card } from "../ui/card";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -56,6 +57,11 @@ export function NotesHeader({
     });
   };
 
+  const handleFolders = () => {
+Haptics.selectionAsync();
+router.push("/(tabs)/notes/folders");
+  }
+
   return (
     <View className="border-b border-border/50 bg-background pb-3">
       {/* TOp Header */}
@@ -64,14 +70,33 @@ export function NotesHeader({
         <ThemedText type="title">My Notes</ThemedText>
 
         {/* Action Cluster: Search -> Filter -> AI */}
-        <View className="flex-row items-center gap-2">
+        <Card className="px-3 rounded-full flex-row items-center gap-4">
+          {/* <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open folders"
+            onPress={() => {
+              
+            }}
+            className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg min-h-11`}>
+            <FolderIcon size={16} color={colors.foreground} />
+            <ThemedText className={`text-sm font-semibold`}>Folders</ThemedText>
+          </Pressable> */}
+          {/* Folders */}
+          {/* <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Folders"
+            hitSlop={8}
+            onPress={handleFolders}
+            className="items-center justify-center rounded-full active:bg-background-selected">
+            <FolderIcon size={20} color={colors.text} strokeWidth={2} />
+          </Pressable> */}
           {/* Search Navigation Trigger */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Search notes"
             hitSlop={8}
             onPress={handleNavigateSearch}
-            className="h-11 w-11 items-center justify-center rounded-full active:bg-background-selected">
+            className="items-center justify-center rounded-full active:bg-background-selected">
             <Search size={20} color={colors.text} strokeWidth={2} />
           </Pressable>
 
@@ -81,7 +106,7 @@ export function NotesHeader({
             accessibilityLabel="Filter and sort notes"
             hitSlop={8}
             onPress={onOpenFilter}
-            className="relative h-11 w-11 items-center justify-center rounded-full active:bg-background-selected">
+            className="relative items-center justify-center rounded-full active:bg-background-selected">
             <SlidersHorizontal size={20} color={colors.text} strokeWidth={2} />
             {hasActiveFilters && (
               <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
@@ -94,10 +119,10 @@ export function NotesHeader({
             accessibilityLabel="Open AI agent"
             hitSlop={8}
             onPress={handleNavigateAI}
-            className="h-11 w-11 items-center justify-center rounded-full border border-primary/20 bg-primary/10 active:bg-primary/20">
+            className="items-center justify-center rounded-full">
             <Sparkles size={20} color={colors.primary} strokeWidth={2.2} />
           </Pressable>
-        </View>
+        </Card>
       </View>
 
       {/* Segmented Filter Pills */}
@@ -113,20 +138,22 @@ export function NotesHeader({
             className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
               isRecentActive
                 ? "bg-foreground border-foreground"
-                : "bg-background-element border-border"
+                : "border-background-selected"
             }`}
             onPress={() => {
-              applyView({ pinnedOnly: false, includeArchived: false, archivedOnly: false });
+              applyView({
+                pinnedOnly: false,
+                includeArchived: false,
+                archivedOnly: false,
+              });
             }}>
             <ListOrdered
               size={12}
               color={isRecentActive ? colors.background : colors.textSecondary}
             />
             <ThemedText
-              className={`text-xs ${
-                isRecentActive
-                  ? "text-background font-semibold"
-                  : "text-text-secondary font-normal"
+              className={`text-xs font-semibold ${
+                isRecentActive ? "text-background" : "text-text"
               }`}>
               Recent
             </ThemedText>
@@ -137,20 +164,22 @@ export function NotesHeader({
             className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
               isPinnedActive
                 ? "bg-foreground border-foreground"
-                : "bg-background-element border-border"
+                : "border-background-selected"
             }`}
             onPress={() => {
-              applyView({ pinnedOnly: true, includeArchived: false, archivedOnly: false });
+              applyView({
+                pinnedOnly: true,
+                includeArchived: false,
+                archivedOnly: false,
+              });
             }}>
             <Pin
               size={12}
               color={isPinnedActive ? colors.background : colors.textSecondary}
             />
             <ThemedText
-              className={`text-xs ${
-                isPinnedActive
-                  ? "text-background font-semibold"
-                  : "text-text-secondary font-normal"
+              className={`text-xs font-semibold ${
+                isPinnedActive ? "text-background" : "text-text"
               }`}>
               Pinned
             </ThemedText>
@@ -161,23 +190,27 @@ export function NotesHeader({
             className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
               isArchivedActive
                 ? "bg-foreground border-foreground"
-                : "bg-background-element border-border"
+                : "border-background-selected"
             }`}
             onPress={() => {
-              applyView({ pinnedOnly: false, includeArchived: true, archivedOnly: true });
+              applyView({
+                pinnedOnly: false,
+                includeArchived: true,
+                archivedOnly: true,
+              });
             }}>
             <ThemedText
-              className={`text-xs ${
-                isArchivedActive
-                  ? "text-background font-semibold"
-                  : "text-text-secondary font-normal"
+              className={`text-xs font-semibold ${
+                isArchivedActive ? "text-background" : "text-text"
               }`}>
               Archived
             </ThemedText>
           </Pressable>
+
+          {/* TODO: Add Filter for Reminders */}
         </ScrollView>
 
-        <Pressable
+        {/* <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open folders"
           onPress={() => {
@@ -185,9 +218,9 @@ export function NotesHeader({
             router.push("/(tabs)/notes/folders");
           }}
           className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg min-h-11`}>
-          <FolderIcon size={16} color={colors.primary} />
-          <Text className={`text-sm font-semibold text-primary`}>Folders</Text>
-        </Pressable>
+          <FolderIcon size={16} color={colors.foreground} />
+          <ThemedText className={`text-sm font-semibold`}>Folders</ThemedText>
+        </Pressable> */}
       </View>
     </View>
   );

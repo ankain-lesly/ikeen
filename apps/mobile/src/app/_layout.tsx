@@ -86,7 +86,7 @@ function RootApp() {
   useEffect(() => {
     if (success) {
       seedDefaultNotes(db)
-        .catch((err) => console.error("Seeding error:", err))
+        .catch((err) => console.log("[🚨] Seeding error:", err))
         .finally(() => {
           SplashScreen.hideAsync();
           syncManager.init();
@@ -138,9 +138,10 @@ function RootApp() {
         name="(auth)"
         options={{
           presentation: "formSheet",
-          sheetAllowedDetents: [0.85, 1.0],
+          sheetAllowedDetents: [0.5, 0.75, 1.0],
           sheetGrabberVisible: true,
           headerShown: false,
+          sheetCornerRadius: 20,
         }}
       />
     </Stack>

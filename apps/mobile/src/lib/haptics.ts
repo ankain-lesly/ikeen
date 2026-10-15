@@ -27,3 +27,9 @@ export async function notificationAsync(
   if (!isEnabled()) return;
   await ExpoHaptics.notificationAsync(type);
 }
+
+export const Haptics = {
+  impactAsync,
+  selectionAsync,
+  notificationAsync,
+};

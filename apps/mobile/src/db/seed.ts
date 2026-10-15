@@ -22,7 +22,7 @@ export async function seedDefaultNotes(
     // 2. Seed Default Notes
     // await seedNotes(db);
   } catch (error) {
-    console.error("Failed to seed default notes:", error);
+    console.log("[🚨] Failed to seed default notes:", error);
   }
 }
 
@@ -183,7 +183,7 @@ export async function seedNotes(
       },
     ]);
   } catch (error) {
-    console.error("Failed to seed default notes:", error);
+    console.log("[🚨] Failed to seed default notes:", error);
   }
 }
 
@@ -251,6 +251,6 @@ export async function seedFolders(
       return;
     }
   } catch (error) {
-    console.error("Failed to seed default folders:", error);
+    console.log("[🚨] Failed to seed default folders:", error);
   }
 }

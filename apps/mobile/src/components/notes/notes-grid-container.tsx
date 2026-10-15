@@ -1,8 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Alert, BackHandler, Pressable, Text, View } from "react-native";
 import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
+  Check,
   Grid2X2,
   List,
 } from "lucide-react-native";
@@ -25,10 +32,12 @@ import {
 import { ThemedText } from "../ui/themed-text";
 import { toast } from "@/lib/toast";
 import {
-  NotesBulkActionBar,
+  NotesBulkActions,
   type NotesGridVariant,
 } from "./notes-bulk-action-bar";
 import { MoveToFolderSheet } from "./move-to-folder-sheet";
+import { AnimatedEntryView } from "../ui/animated";
+import {} from "expo-router";
 
 function noteLabel(count: number) {
   return count === 1 ? "note" : "notes";
@@ -117,16 +126,19 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     );
   }, []);
 
-  const handleSelectNote = useCallback((id: string) => {
-    const removingLast = selectedIds.has(id) && selectedIds.size === 1;
-    if (removingLast) setIsSelectionMode(false);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, [selectedIds]);
+  const handleSelectNote = useCallback(
+    (id: string) => {
+      const removingLast = selectedIds.has(id) && selectedIds.size === 1;
+      if (removingLast) setIsSelectionMode(false);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    [selectedIds],
+  );
 
   const handleLongPressSelect = useCallback((id: string) => {
     setIsSelectionMode(true);
@@ -143,8 +155,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     [data, selectedIds],
   );
 
-  const allSelected =
-    data.length > 0 && selectedNotes.length === data.length;
+  const allSelected = data.length > 0 && selectedNotes.length === data.length;
   const isAllPinned =
     selectedNotes.length > 0 && selectedNotes.every((n) => n.isPinned);
   const isAllArchived =
@@ -157,15 +168,19 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
       : undefined;
   }, [selectedNotes]);
 
+  const resetSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+  }, []);
+
   const handleToggleSelectAll = useCallback(() => {
     Haptics.selectionAsync();
     if (allSelected) {
-      setSelectedIds(new Set());
-      setIsSelectionMode(false);
+      resetSelection();
     } else {
       setSelectedIds(new Set(data.map((n) => n.id)));
     }
-  }, [allSelected, data]);
+  }, [allSelected, data, resetSelection]);
 
   const finishBulk = useCallback(
     (
@@ -217,7 +232,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     const archived = !isAllArchived;
     void runBulk(
       (id) => updateNote(id, { isArchived: archived }),
-      (n) => `${archived ? "Archived" : "Unarchived"} ${n} ${noteLabel(n)}`,
+      (n) => `${archived ? "Archived" : "Un archived"} ${n} ${noteLabel(n)}`,
       "Could not update archive state for selected notes",
     );
   }, [isAllArchived, runBulk]);
@@ -340,44 +355,92 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     );
   };
 
+  // Optionally, usePreventRemove -> Available Only on Expo SDK 58
+  useEffect(() => {
+    const backAction = () => {
+      if (isSelectionMode) {
+        resetSelection();
+      }
+      return !!isSelectionMode; // Return true to prevent default back behavior, or false to let it go back
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [isSelectionMode, resetSelection]);
+
   return (
     <View className={`flex-1 relative ${className || ""}`}>
       {/* Fixed-height toolbar placed outside FlashList to prevent any masonry jitter */}
       {!!data.length && (
-        <View className="h-11 flex-row items-center justify-between px-3.5 mb-1">
+        <View className="h-11.5 flex-row items-center justify-between px-3.5">
           {isSelectionMode ? (
             /* Selection Mode Toolbar */
-            <View className="flex-1 flex-row items-center justify-between">
+            <AnimatedEntryView className="flex-1 flex-row items-center justify-between px-2">
               <View className="flex-row items-center gap-2">
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Done selection"
+                  onPress={handleToggleSelectAll}
+                  hitSlop={8}
+                  className={`items-center justify-center size-6 border-2 rounded-lg ${allSelected ? "border-primary bg-primary" : "border-foreground/60"}`}>
+                  {allSelected && (
+                    <Check size={16} color="#ffffff" strokeWidth={3} />
+                  )}
+                </Pressable>
+                {/* <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Done selection"
                   onPress={handleCancelSelection}
                   hitSlop={8}
-                  className="px-2.5 py-1.5 rounded-lg bg-background-element active:opacity-70">
+                  className="px-2.5 py-1.5 rounded-lg bg-background-element">
                   <Text className="text-sm font-semibold text-text">Done</Text>
-                </Pressable>
-                <Text className="text-sm font-medium text-text-secondary">
+                </Pressable> */}
+                {/* <Text className="text-sm font-medium text-text-secondary">
                   {selectedNotes.length} of {data.length} selected
+                </Text> */}
+
+                <Text className="text-sm font-semibold text-text">
+                  {selectedNotes.length} Selected
+                  {/* <Text className="text-text-secondary font-normal">
+                    selected
+                  </Text> */}
                 </Text>
               </View>
 
-              <Pressable
+              {/* <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={
                   allSelected ? "Deselect all notes" : "Select all notes"
                 }
                 onPress={handleToggleSelectAll}
                 hitSlop={8}
-                className="px-2.5 py-1.5 rounded-lg bg-background-element active:opacity-70">
+                className="px-2.5 py-1.5 rounded-lg bg-background-element">
                 <Text className="text-sm font-semibold text-primary">
                   {allSelected ? "Deselect All" : "Select All"}
                 </Text>
-              </Pressable>
-            </View>
+              </Pressable> */}
+
+              <NotesBulkActions
+                variant={variant}
+                selectedCount={selectedNotes.length}
+                isAllPinned={isAllPinned}
+                isAllArchived={isAllArchived}
+                onPin={handleBulkPin}
+                onMove={() => setIsMoveSheetVisible(true)}
+                onArchive={handleBulkArchive}
+                onDelete={handleBulkDelete}
+                onRestore={handleBulkRestore}
+                onHardDelete={handleBulkHardDelete}
+                onCancel={handleCancelSelection}
+              />
+            </AnimatedEntryView>
           ) : (
             /* Normal Mode Toolbar */
-            <View className="flex-1 flex-row items-center justify-between">
+            <AnimatedEntryView className="flex-1 flex-row items-center justify-between">
               {showFilter ? (
                 <View className="flex-row items-center gap-1.5">
                   <Pressable
@@ -400,7 +463,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                     accessibilityRole="button"
                     accessibilityLabel="Change sort field"
                     onPress={handleCycleFolderSort}
-                    className="flex-row items-center min-h-11 active:opacity-70">
+                    className="flex-row items-center min-h-11">
                     <Text className="text-sm font-semibold text-text">
                       {filter.orderBy === "updatedAt"
                         ? "Last modified"
@@ -418,7 +481,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
 
               {/* Actions Right: Select Mode & Grid/List Toggle */}
               <View className="flex-row items-center gap-1">
-                <Pressable
+                {/* <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Enter selection mode"
                   onPress={() => {
@@ -426,9 +489,9 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                     setIsSelectionMode(true);
                   }}
                   hitSlop={8}
-                  className="h-8 px-2.5 rounded-lg items-center justify-center bg-background-element active:bg-background-selected">
-                  <Text className="text-xs font-semibold text-text">Select</Text>
-                </Pressable>
+                  className="h-8 px-2.5 rounded-lg items-center justify-center bg-background-element_active:bg-background-selected">
+                  <Text className="text-sm font-semibold text-primary">Select</Text>
+                </Pressable> */}
 
                 <Pressable
                   accessibilityRole="button"
@@ -438,7 +501,6 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                       : "Switch to grid view"
                   }
                   onPress={() => {
-                    Haptics.selectionAsync();
                     setGridLayout((prev) =>
                       prev === "grid" ? "list" : "grid",
                     );
@@ -452,10 +514,27 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                   )}
                 </Pressable>
               </View>
-            </View>
+            </AnimatedEntryView>
           )}
         </View>
       )}
+
+      {/* Floating Bulk Action Bar
+      // {isSelectionMode && (
+      //   <NotesBulkActionBar
+      //     variant={variant}
+      //     selectedCount={selectedNotes.length}
+      //     isAllPinned={isAllPinned}
+      //     isAllArchived={isAllArchived}
+      //     onPin={handleBulkPin}
+      //     onMove={() => setIsMoveSheetVisible(true)}
+      //     onArchive={handleBulkArchive}
+      //     onDelete={handleBulkDelete}
+      //     onRestore={handleBulkRestore}
+      //     onHardDelete={handleBulkHardDelete}
+      //     onCancel={handleCancelSelection}
+      //   />
+      // )} */}
 
       <FlashList
         data={data}
@@ -465,7 +544,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         keyExtractor={(item) => item.id}
         extraData={extraData}
         className="flex-1"
-        contentContainerClassName="pt-1 px-2.5"
+        contentContainerClassName="px-2.5"
         contentContainerStyle={{
           paddingBottom: BottomTabInset + 80,
         }}
@@ -473,23 +552,6 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         ListEmptyComponent={empty}
         ListFooterComponent={footer}
       />
-
-      {/* Floating Bulk Action Bar */}
-      {isSelectionMode && (
-        <NotesBulkActionBar
-          variant={variant}
-          selectedCount={selectedNotes.length}
-          isAllPinned={isAllPinned}
-          isAllArchived={isAllArchived}
-          onPin={handleBulkPin}
-          onMove={() => setIsMoveSheetVisible(true)}
-          onArchive={handleBulkArchive}
-          onDelete={handleBulkDelete}
-          onRestore={handleBulkRestore}
-          onHardDelete={handleBulkHardDelete}
-          onCancel={handleCancelSelection}
-        />
-      )}
 
       {/* Move to Folder Sheet */}
       {!isTrash && (

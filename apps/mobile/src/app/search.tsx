@@ -244,7 +244,7 @@ export default function SearchScreen() {
                     handleSearch(term);
                     // inputRef.current?.setSelection(0,-1)
                   }}
-                  className="px-3 py-1.5 rounded-full bg-background-element border border-border flex-row items-center gap-1">
+                  className="pl-3 pr-1 py-1.5 rounded-full bg-background-element border border-border flex-row items-center gap-1">
                   <ThemedText className="text-sm text-text-secondary">
                     {capitalize(term)}
                   </ThemedText>

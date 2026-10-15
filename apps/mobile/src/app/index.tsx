@@ -29,7 +29,7 @@ export default function AppEntryScreen() {
           setIsOnboarded(true);
         }
       } catch (error) {
-        console.error('[Onboarding] Error checking status:', error);
+        console.log('[🚨] [Onboarding] Error checking status:', error);
       } finally {
         setIsReady(true);
       }
@@ -45,7 +45,10 @@ export default function AppEntryScreen() {
 
   // Already onboarded -> jump directly into the main tabs
   if (isOnboarded) {
+    // return <Redirect href="/notes/quick-tips-note" />;
+    // return <Redirect href="/agent" />;
     return <Redirect href="/(tabs)/notes" />;
+    // return <Redirect href="/(tabs)/notes/folders" />;
   }
 
   const handleGetStarted = async () => {
@@ -54,7 +57,7 @@ export default function AppEntryScreen() {
       await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
       router.replace('/(tabs)/notes');
     } catch (error) {
-      console.error('[Onboarding] Error saving status:', error);
+      console.log('[🚨] [Onboarding] Error saving status:', error);
       router.replace('/(tabs)/notes');
     }
   };

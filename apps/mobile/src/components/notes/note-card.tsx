@@ -176,9 +176,9 @@ export const NoteCard = React.memo(function NoteCard({
       <View
         className={`p-3.5 rounded-xl border ${
           isSelected
-            ? "border-primary bg-primary/[0.08]"
-            : "border-border bg-card"
-        } shadow-sm active:opacity-90 active:scale-[0.99] gap-1`}>
+            ? "border-primary bg-transparent"
+            : "border-border bg-card/50"
+        } shadow-sm_ active:opacity-90 active:scale-[0.99] gap-1`}>
         {/* Header Row: Title & Pin/Date/Selection */}
         <View className="flex-row items-center justify-between gap-2">
           <View className="gap-1.5 flex-1">
@@ -255,7 +255,7 @@ export const NoteCard = React.memo(function NoteCard({
 
         {/* Footer: Tags List */}
         {parsedTags.length > 0 && (
-          <View className="flex-row items-center gap-1.5 mt-0.5">
+          <View className="flex-row items-center gap-1.5 mt-0.5 w-full overflow-hidden">
             {parsedTags.slice(0, 2).map((tag, index) => (
               <View
                 key={`${tag}-${index}`}

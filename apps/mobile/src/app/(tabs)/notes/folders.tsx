@@ -26,17 +26,15 @@ import { BottomTabInset } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 import {
-  createFolder,
   softDeleteFolder,
   updateFolder,
   useLiveFolders,
 } from "@/lib/queries/folders";
-import type { CreateFolderInput, FolderWithCount } from "@/lib/types/folders";
+import type { FolderWithCount } from "@/lib/types/folders";
 import { FolderCard } from "@/components/folders/folder-card";
-import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
 import { FolderPinModal } from "@/components/folders/folder-pin-modal";
 
-export default function NotesScreen() {
+export default function FoldersScreen() {
   const colors = useTheme();
 
   // Folders State
@@ -47,12 +45,6 @@ export default function NotesScreen() {
   const [folderSortDir, setFolderSortDir] = useState<"asc" | "desc">("desc");
   const [folderLayout, setFolderLayout] = useState<"grid" | "list">("grid");
 
-  // Folder Sheets & Modals
-  const [isCreateFolderSheetVisible, setIsCreateFolderSheetVisible] =
-    useState(false);
-  const [folderToEdit, setFolderToEdit] = useState<FolderWithCount | null>(
-    null,
-  );
   const [lockedFolderToUnlock, setLockedFolderToUnlock] =
     useState<FolderWithCount | null>(null);
 
@@ -74,20 +66,6 @@ export default function NotesScreen() {
   const handleUnlockedSuccess = (folder: FolderWithCount) => {
     setLockedFolderToUnlock(null);
     router.push(`/folders/${folder.id}` as Href);
-  };
-
-  const handleEditFolder = (folder: FolderWithCount) => {
-    setFolderToEdit(folder);
-    setIsCreateFolderSheetVisible(true);
-  };
-
-  const handleSaveFolder = async (data: CreateFolderInput) => {
-    if (folderToEdit) {
-      await updateFolder(folderToEdit.id, data);
-      setFolderToEdit(null);
-    } else {
-      await createFolder(data);
-    }
   };
 
   const handleDeleteFolder = (folder: FolderWithCount) => {
@@ -142,11 +120,20 @@ export default function NotesScreen() {
   const renderFolderItem = useCallback(
     ({ item }: { item: FolderWithCount }) => (
       <View
-        className={folderLayout === "grid" ? "w-1/2 p-1.5" : "w-full py-1.5"}>
+        className={folderLayout === "grid" ? "w-1/2 p-1" : "w-full py-1"}>
         <FolderCard
           folder={item}
           onPress={handleFolderPress}
-          onEdit={handleEditFolder}
+          // onEdit={handleEditFolder}
+          onEdit={(folder) =>
+            router.push({
+              pathname: "/notes/create-folder",
+              params: {
+                folder: JSON.stringify(folder),
+              },
+            })
+          }
+
           onToggleLock={handleToggleLockFolder}
           onDelete={handleDeleteFolder}
         />
@@ -158,14 +145,14 @@ export default function NotesScreen() {
   return (
     <View className="flex-1 bg-background pt-safe">
       {/* Universal Top Header */}
-      <View className="px-4 pb-3 flex-row items-center justify-between border-b border-border/70">
+      <View className="px-4 pb-1 flex-row items-center justify-between border-b_border-border/70">
         <View className="flex-row items-center gap-3">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
             onPress={() => router.back()}
             hitSlop={8}
-            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-background-element active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center _bg-background-element active:opacity-70">
             <ChevronLeft size={22} color={colors.text} />
           </Pressable>
 
@@ -186,16 +173,16 @@ export default function NotesScreen() {
             accessibilityLabel="Open AI agent"
             onPress={() => router.push("/agent")}
             hitSlop={6}
-            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-primary/10 border border-primary/20 active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center active:opacity-70">
             <Sparkles size={17} color={colors.primary} />
           </Pressable>
         </View>
       </View>
 
       {/* Folders View Mode */}
-      <View className="flex-1 px-4 pt-3">
+      <View className="flex-1 px-4">
         {/* Search Folder Pill Input */}
-        <View className="flex-row items-center h-12 px-4 rounded-full bg-background-element border border-border shadow-xs mb-3">
+        <View className="flex-row items-center h-10 px-4 rounded-full bg-background-element border border-border shadow-xs mb-2">
           <Search size={18} color={colors.textSecondary} />
           <TextInput
             value={folderSearch}
@@ -216,61 +203,6 @@ export default function NotesScreen() {
           )}
         </View>
 
-        {/* Sort & Layout Control Row */}
-        <View className="flex-row items-center justify-between pb-3 pt-1">
-          <View className="flex-row items-center gap-1.5">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                folderSortDir === "desc"
-                  ? "Sort descending, tap to reverse"
-                  : "Sort ascending, tap to reverse"
-              }
-              onPress={handleToggleSortDirection}
-              hitSlop={8}
-              className="min-h-11 min-w-11 items-center justify-center">
-              {folderSortDir === "desc" ? (
-                <ArrowDownWideNarrow size={17} color={colors.text} />
-              ) : (
-                <ArrowUpNarrowWide size={17} color={colors.text} />
-              )}
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Change sort field"
-              onPress={handleCycleFolderSort}
-              className="flex-row items-center min-h-11 active:opacity-70">
-              <Text className="text-sm font-semibold text-text">
-                {folderSortBy === "updatedAt"
-                  ? "Last modified"
-                  : folderSortBy === "name"
-                    ? "Name"
-                    : "Date created"}
-              </Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              folderLayout === "grid"
-                ? "Switch to list view"
-                : "Switch to grid view"
-            }
-            onPress={() => {
-              Haptics.selectionAsync();
-              setFolderLayout((prev) => (prev === "grid" ? "list" : "grid"));
-            }}
-            hitSlop={8}
-            className="min-h-11 min-w-11 rounded-lg items-center justify-center active:bg-background-element">
-            {folderLayout === "grid" ? (
-              <Grid2X2 size={20} color={colors.text} />
-            ) : (
-              <List size={20} color={colors.text} />
-            )}
-          </Pressable>
-        </View>
-
         {/* Folders List/Grid */}
         <FlatList
           key={folderLayout} // Re-render when layout columns change
@@ -283,6 +215,64 @@ export default function NotesScreen() {
             paddingBottom: BottomTabInset + 80,
           }}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            //  {/* Sort & Layout Control Row */}
+            <View className="flex-row items-center justify-between pt-1">
+              <View className="flex-row items-center gap-1.5">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    folderSortDir === "desc"
+                      ? "Sort descending, tap to reverse"
+                      : "Sort ascending, tap to reverse"
+                  }
+                  onPress={handleToggleSortDirection}
+                  hitSlop={8}
+                  className="min-h-11 min-w-11 items-center justify-center">
+                  {folderSortDir === "desc" ? (
+                    <ArrowDownWideNarrow size={17} color={colors.text} />
+                  ) : (
+                    <ArrowUpNarrowWide size={17} color={colors.text} />
+                  )}
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Change sort field"
+                  onPress={handleCycleFolderSort}
+                  className="flex-row items-center min-h-11 active:opacity-70">
+                  <Text className="text-sm font-semibold text-text">
+                    {folderSortBy === "updatedAt"
+                      ? "Last modified"
+                      : folderSortBy === "name"
+                        ? "Name"
+                        : "Date created"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  folderLayout === "grid"
+                    ? "Switch to list view"
+                    : "Switch to grid view"
+                }
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setFolderLayout((prev) =>
+                    prev === "grid" ? "list" : "grid",
+                  );
+                }}
+                hitSlop={8}
+                className="min-h-11 min-w-11 rounded-lg items-center justify-center active:bg-background-element">
+                {folderLayout === "grid" ? (
+                  <Grid2X2 size={20} color={colors.text} />
+                ) : (
+                  <List size={20} color={colors.text} />
+                )}
+              </Pressable>
+            </View>
+          }
           ListEmptyComponent={
             <View className="items-center justify-center py-20 px-6">
               <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
@@ -300,17 +290,6 @@ export default function NotesScreen() {
           }
         />
       </View>
-
-      {/* Create / Edit Folder Modal Sheet */}
-      <CreateFolderSheet
-        isPresented={isCreateFolderSheetVisible}
-        onDismiss={() => {
-          setIsCreateFolderSheetVisible(false);
-          setFolderToEdit(null);
-        }}
-        folderToEdit={folderToEdit}
-        onSave={handleSaveFolder}
-      />
 
       {/* Locked Folder PIN Unlock Modal */}
       <FolderPinModal

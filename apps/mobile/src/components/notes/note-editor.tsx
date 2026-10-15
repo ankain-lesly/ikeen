@@ -15,6 +15,7 @@ import {
 import { router, useNavigation } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
+  ChevronDown,
   ChevronLeft,
   Folder,
   Pin,
@@ -48,6 +49,7 @@ import {
   type MarkdownEditorHandle,
   type MarkdownFormatAction,
 } from "@/components/markdown";
+import { Card } from "../ui/card";
 
 export function NoteEditor({ note }: { note?: Note }) {
   const colors = useTheme();
@@ -183,9 +185,11 @@ export function NoteEditor({ note }: { note?: Note }) {
 
   useEffect(() => {
     return () => {
-      void saveNoteRef.current(undefined, { silent: true, commitId: false }).catch((err) => {
-        console.error("Failed to save note on unmount:", err);
-      });
+      void saveNoteRef
+        .current(undefined, { silent: true, commitId: false })
+        .catch((err) => {
+          console.log("[🚨] Failed to save note on unmount:", err);
+        });
     };
   }, []);
 
@@ -193,7 +197,8 @@ export function NoteEditor({ note }: { note?: Note }) {
     if (!isEditingRef.current) return;
     try {
       const markdown = await contentInputRef.current?.getMarkdown();
-      if (markdown == null || markdown === latestNoteRef.current.content) return;
+      if (markdown == null || markdown === latestNoteRef.current.content)
+        return;
       hasEditedRef.current = true;
       latestNoteRef.current = { ...latestNoteRef.current, content: markdown };
       setContent(markdown);
@@ -355,7 +360,7 @@ export function NoteEditor({ note }: { note?: Note }) {
       hasEditedRef.current = true;
       void saveNote({ title, content, tags: updatedTags });
       Haptics.selectionAsync();
-      tagInputRef?.current?.focus()
+      tagInputRef?.current?.focus();
     } else {
       // setNewTagInputVisible(false);
       setNewTagText("");
@@ -401,13 +406,37 @@ export function NoteEditor({ note }: { note?: Note }) {
           {/* Navigation Bar */}
           <View className="h-12 flex-row items-center justify-between px-3.5">
             {/* Back Button */}
-            <Pressable
-              className="p-1.5 flex-row rounded-lg justify-center items-center active:opacity-70 min-h-9 gap-2"
-              onPress={() => router.back()}
-              hitSlop={8}>
-              <ChevronLeft size={20} color={colors.text} />
-              <Text className="text-text text-base">Notes</Text>
-            </Pressable>
+            <View className="flex-row items-center justify-between gap-2">
+              <Pressable
+                className="flex-row p-2 rounded-full justify-center items-center gap-2"
+                onPress={() => router.back()}
+                hitSlop={8}>
+                <ChevronLeft size={22} color={colors.text} />
+                {/* <Text className="text-text text-xl font-semibold">Notes</Text> */}
+              </Pressable>
+
+              {/* Folder */}
+              <View>
+                <Pressable
+                  onPress={() => setIsMoveFolderSheetVisible(true)}
+                  hitSlop={4}
+                  className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element_border-border active:opacity-70">
+                  <Folder
+                    size={16}
+                    color={currentFolder?.color || colors.textSecondary}
+                  />
+                  <Text
+                    className="text-sm font-semibold"
+                    numberOfLines={1}
+                    style={{
+                      color: currentFolder?.color || colors.textSecondary,
+                    }}>
+                    {currentFolder ? currentFolder.name : "Unorganized"}
+                  </Text>
+                  <ChevronDown size={14} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+            </View>
 
             {/* Center Save / Mode Indicator */}
             {/* <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
@@ -416,53 +445,53 @@ export function NoteEditor({ note }: { note?: Note }) {
 
             {/* Right Header Action Icons */}
             <View className="flex-row items-center gap-2">
-              {/* Brainstorm with iKeen */}
-              <Pressable
-                className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-                onPress={() => {
-                  void (async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    await flushEditorMarkdown();
-                    const snapshot = latestNoteRef.current;
-                    router.push({
-                      pathname: "/agent",
-                      params: {
-                        prompt: `Let's brainstorm on my note "${snapshot.title || "Untitled Note"}":\n\n${snapshot.content.slice(0, 300)}`,
-                      },
-                    });
-                  })();
-                }}
-                hitSlop={8}>
-                <Sparkles size={18} color={colors.primary} />
-              </Pressable>
+              <Card className="px-3 flex-row items-center gap-4 rounded-full">
+                {/* Pin */}
+                <Pressable className="" onPress={handleTogglePin}>
+                  <Pin
+                    size={20}
+                    color={isPinned ? colors.primary : colors.text}
+                    fill={isPinned ? colors.primary : undefined}
+                  />
+                </Pressable>
 
-              {/* Pin */}
-              <Pressable
-                className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-                onPress={handleTogglePin}>
-                <Pin
-                  size={18}
-                  color={isPinned ? colors.primary : colors.text}
-                  fill={isPinned ? colors.primary : undefined}
-                />
-              </Pressable>
-
-              {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
-              {isEditing ? (
+                {/* Brainstorm with iKeen */}
                 <Pressable
-                  className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+                  className=""
+                  onPress={() => {
+                    void (async () => {
+                      await flushEditorMarkdown();
+                      const snapshot = latestNoteRef.current;
+                      router.push({
+                        pathname: "/agent",
+                        params: {
+                          prompt: `Let's brainstorm on my note "${snapshot.title || "Untitled Note"}":\n\n${snapshot.content.slice(0, 300)}`,
+                        },
+                      });
+                    })();
+                  }}
+                  hitSlop={8}>
+                  <Sparkles size={20} color={colors.primary} />
+                </Pressable>
+
+                {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
+                {isEditing ? (
+                <Pressable
+                  className=""
                   onPress={handleDoneEditing}>
-                  <Text className="text-base font-bold text-primary">Done</Text>
+                  <Text className="text-sm h-5 font-bold text-primary">Done</Text>
                 </Pressable>
               ) : (
                 <Pressable
-                  className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
+                  className=""
                   onPress={() => startEditing("content")}>
-                  <Text className="text-base font-semibold text-primary">
+                  <Text className="text-sm h-5 font-semibold text-primary">
                     Edit
                   </Text>
                 </Pressable>
               )}
+              </Card>
+
               {/* Dropdown */}
               <NotesDetailDropdown
                 isDeleted={false}
@@ -489,29 +518,30 @@ export function NoteEditor({ note }: { note?: Note }) {
           </View>
 
           {/* Metadata and Title */}
-          <View className="px-5 pt-4">
+          <View className="px-5 pt-2">
             {/* Metadata Row: Last edit date, word count, and Folder Pill */}
-            <View className="flex-row items-center gap-2 mb-2 flex-wrap">
+            {/* <View className="flex-row items-center justify-between gap-2 mb-2 flex-wrap">
               <Text className="text-xs font-mono text-text-secondary">
                 {formatDate(note?.updatedAt)} · {wordCount} words
               </Text>
               <Pressable
                 onPress={() => setIsMoveFolderSheetVisible(true)}
                 hitSlop={4}
-                className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element border border-border active:opacity-70">
+                className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element_border-border active:opacity-70">
                 <Folder
                   size={11}
                   color={currentFolder?.color || colors.textSecondary}
                 />
                 <Text
-                  className="text-[11px] font-semibold"
+                  className="text-[12px] font-semibold"
+                  numberOfLines={1}
                   style={{
                     color: currentFolder?.color || colors.textSecondary,
                   }}>
                   {currentFolder ? currentFolder.name : "Unorganized"}
                 </Text>
               </Pressable>
-            </View>
+            </View> */}
 
             {/* Title Input */}
             {/* <Pressable onPress={handleCanvasDoubleTap}> */}
@@ -545,15 +575,18 @@ export function NoteEditor({ note }: { note?: Note }) {
               <View className="flex-row flex-wrap items-center gap-1.5 mb-4">
                 {tags.map((tag) =>
                   isEditing ? (
-                    <Pressable
+                    <View
                       key={tag}
-                      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80"
-                      onPress={() => handleRemoveTag(tag)}>
+                      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
                       <Text className="text-xs font-medium text-text">
                         #{tag}
                       </Text>
-                      <X size={12} color={colors.textSecondary} />
-                    </Pressable>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => handleRemoveTag(tag)}>
+                        <X size={12} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
                   ) : (
                     <View
                       key={tag}

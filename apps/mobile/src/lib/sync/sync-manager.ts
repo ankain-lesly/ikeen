@@ -90,7 +90,7 @@ class SyncManager {
           .catch((err: unknown) => {
             const message = err instanceof Error ? err.message : String(err);
             log('[Sync:Auth:Error]', { error: message });
-            console.error('[SyncManager] Auth transition error:', message);
+            console.log('[🚨] [SyncManager] Auth transition error:', message);
           });
       }
 
@@ -192,7 +192,7 @@ class SyncManager {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       log('[Sync:GuestMigration:Error]', { error: message });
-      console.error('[SyncManager] Failed to migrate guest notes:', message);
+      console.log('[🚨] [SyncManager] Failed to migrate guest notes:', message);
     }
   }
 
@@ -390,7 +390,7 @@ class SyncManager {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       log('[Sync:Cycle:Error]', { error: message });
-      console.error('[SyncManager] Sync failed:', message);
+      console.log('[🚨] [SyncManager] Sync failed:', message);
       useSyncStore.getState().setError(message || 'Sync failed');
     } finally {
       this.isSyncing = false;

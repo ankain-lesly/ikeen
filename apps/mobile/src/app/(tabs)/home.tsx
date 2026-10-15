@@ -28,9 +28,8 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { status: syncStatus, pendingCount } = useSyncStore();
 
-  const { data: allNotes = [] } = useLiveNotes();
+  const { data: allNotes = [] } = useLiveNotes({ limit: 5, pinnedFirst: true});
   const { data: folders = [] } = useLiveFolders();
-  // const allNotes = [];
 
   // Sort notes by pinned first, then by other criteria if needed
   // Compute stats & recent slices
