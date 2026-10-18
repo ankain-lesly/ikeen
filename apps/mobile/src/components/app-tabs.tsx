@@ -69,7 +69,7 @@ export default function AppTabs() {
         tabBar={({ state, descriptors, navigation }) => (
           <View className="absolute bottom-safe-offset-2 w-full flex items-center justify-center">
             <Card
-              className="h-16_ h-14 px-4_ px-2 rounded-full flex-row items-center justify-between shadow-xl bg-background-element gap-2"
+              className="h-12 px-4_ px-2 rounded-full flex-row items-center justify-between shadow-xl bg-background-element gap-2 overflow-visible"
               style={{
                 ...Platform.select({
                   ios: {
@@ -179,13 +179,14 @@ const SpeedDialPlusButton = () => {
       accessibilityRole="button"
       accessibilityLabel={isMenuOpen ? "Close create actions" : "Create"}
       onPress={() => toggleMenu()}
-      className="size-12 rounded-full bg-amber-900 items-center justify-center shadow-lg active:scale-95 z-20"
+      className="size-12 rounded-full bg-amber-900 items-center justify-center shadow-lg active:scale-95 z-20 border-2 border-amber-800"
       style={{
         // shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35,
         shadowRadius: 8,
         elevation: 6,
+        transform:[{translateY: -10}]
       }}>
       {isMenuOpen ? (
         <X size={26} color="#ffffff" strokeWidth={2.4} />

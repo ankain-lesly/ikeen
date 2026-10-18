@@ -1,8 +1,7 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Pressable,
   Text,
   TextInput,
@@ -10,15 +9,8 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "@/lib/haptics";
-import {
-  ChevronLeft,
-  FileText,
-  Search,
-  SquarePen,
-  X,
-} from "lucide-react-native";
+import { ChevronLeft, Search, SquarePen, X } from "lucide-react-native";
 
-import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -26,13 +18,8 @@ import {
   updateFolder,
   useLiveFolder,
 } from "@/lib/queries/folders";
-import {
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
-  useLiveNotes,
-} from "@/lib/queries/notes";
-import type { ListNotesOptions, Note } from "@/lib/types/notes";
+import { useLiveNotes } from "@/lib/queries/notes";
+import type { ListNotesOptions } from "@/lib/types/notes";
 import { FolderGlyph } from "@/components/folders/folder-glyph";
 import { FolderDetailDropdown } from "@/components/folders/folder-detail-dropdown";
 import { NoteEmptyCard } from "@/components/notes/note-empty-card";
@@ -58,46 +45,6 @@ export default function FolderDetailScreen() {
   const notes = useMemo(() => {
     return (rawNotes ?? []).filter((n) => !n.isArchived);
   }, [rawNotes]);
-
-  const handleTogglePin = useCallback(async (noteId: string) => {
-    try {
-      await togglePinNote(noteId);
-    } catch {
-      Alert.alert("Error", "Could not update pin state");
-    }
-  }, []);
-
-  const handleToggleArchive = useCallback(async (noteId: string) => {
-    try {
-      await toggleArchiveNote(noteId);
-    } catch {
-      Alert.alert("Error", "Could not update archive state");
-    }
-  }, []);
-
-  const handleDeleteNote = useCallback((noteId: string) => {
-    Alert.alert(
-      "Delete Note",
-      "Are you sure you want to move this note to recently deleted?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await softDeleteNote(noteId);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            } catch {
-              Alert.alert("Error", "Could not delete note");
-            }
-          },
-        },
-      ],
-    );
-  }, []);
 
   const handleNewNote = async () => {
     router.push({
@@ -137,20 +84,6 @@ export default function FolderDetailScreen() {
       isLocked: !folder.isLocked,
     });
   };
-
-  const renderNoteItem = useCallback(
-    ({ item }: { item: Note }) => (
-      <View className="w-1/2 p-1.5">
-        <NoteCard
-          note={item}
-          onTogglePin={handleTogglePin}
-          onToggleArchive={handleToggleArchive}
-          onDelete={handleDeleteNote}
-        />
-      </View>
-    ),
-    [handleTogglePin, handleToggleArchive, handleDeleteNote],
-  );
 
   if (!folder) {
     return (
@@ -239,52 +172,9 @@ export default function FolderDetailScreen() {
         }
         data={notes}
         empty={<NoteEmptyCard />}
-        // empty={
-        //   <View className="items-center justify-center py-20 px-8">
-        //     <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-        //       <FileText size={32} color={colors.textSecondary} />
-        //     </View>
-        //     <ThemedText className="font-semibold text-base text-text text-center">
-        //       {Object.keys(filter).length > 0
-        //         ? "No matching notes"
-        //         : "No notes yet"}
-        //     </ThemedText>
-        //     <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-        //       {Object.keys(filter).length > 0
-        //         ? "Try searching for a different keyword or tag."
-        //         : "Capture your thoughts, ideas, and architecture notes."}
-        //     </Text>
-        //   </View>
-        // }
       />
 
-      {/* <FlatList
-        data={notes}
-        numColumns={2}
-        renderItem={renderNoteItem}
-        keyExtractor={(item) => item.id}
-        className="flex-1"
-        contentContainerClassName="pt-2 px-2.5 pb-safe-offset-20"
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View className="items-center justify-center py-20 px-8">
-            <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-              <FileText size={32} color={colors.textSecondary} />
-            </View>
-            <ThemedText className="font-semibold text-base text-text text-center">
-              {searchQuery.trim() ? "No matching notes" : "Folder is empty"}
-            </ThemedText>
-            <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-              {searchQuery.trim()
-                ? "Try searching for a different keyword."
-                : "Create a note to start organizing in this folder."}
-            </Text>
-          </View>
-        }
-      /> */}
-
       {/* Bottom Floating Bar */}
-
       <View className="absolute bottom-safe-offset-2 items-center justify-center w-full">
         <View className="h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5 gap-4">
           <Text className="text-xs font-medium text-text-secondary font-mono">

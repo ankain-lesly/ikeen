@@ -1,10 +1,10 @@
 import { RNHostView } from "@expo/ui/jetpack-compose";
 import { useTheme } from "@/hooks/use-theme";
 
-import { BottomSheet } from "@expo/ui";
+import { OptionSheet } from "@/components/ui/option-sheet";
 
 import { Copy, ExternalLink } from "lucide-react-native";
-import { View, TouchableOpacity, Text as RNText, Linking } from "react-native";
+import { View, Linking } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { ThemedText } from "../ui/themed-text";
 import { toast } from "@/lib/toast";
@@ -39,76 +39,34 @@ export function OpenURLSheet({
 }: NoteOpenURLSheetProps) {
   const colors = useTheme();
 
-  return (
-    <>
-      {/* Sheet */}
-      <BottomSheet
-        isPresented={isSheetOpen}
-        onDismiss={() => onDismiss()}
-        showDragIndicator
-        snapPoints={["half"]}
-        containerColor={colors.card}>
-        <RNHostView matchContents>
-          <View className="flex-1_ pt-2 w-full p-4">
-            {/* Header: Title + Close Button */}
-            <View className="flex-row items-center justify-between mb-4">
-              <ThemedText
-                type="default"
-                className="text-sm text-text-secondary">
-                {url}
-              </ThemedText>
-            </View>
+  const actions = [
+    {
+      label: "Copy Link",
+      icon: <Copy size={20} color={colors.text} />,
+      onPress: () => {
+        copyToClipboard(url);
+        onDismiss();
+      },
+      color: colors.text,
+    },
+    {
+      label: "Open Link",
+      icon: <ExternalLink size={20} color={colors.text} />,
+      onPress: () => {
+        openLink(url ?? "");
+        onDismiss();
+      },
+      color: colors.text,
+    },
+  ];
 
-            {/* Option Actions */}
-            <View className="gap-1">
-              <SheetButton
-                icon={<Copy size={20} color={colors.text} />}
-                label="Copy Link"
-                onPress={() => {
-                  copyToClipboard(url)
-                  onDismiss()
-                }}
-                color={colors.text}
-              />
-              <SheetButton
-                icon={<ExternalLink size={20} color={colors.text} />}
-                label="Open Link"
-                onPress={() => {
-                  openLink(url ?? "")
-                  onDismiss()
-                }}
-                color={colors.text}
-              />
-            </View>
-          </View>
-        </RNHostView>
-      </BottomSheet>
-    </>
-  );
-}
-
-// Helper sheet action button
-function SheetButton({
-  icon,
-  label,
-  onPress,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-  color?: string;
-}) {
   return (
-    <TouchableOpacity
-      className="flex-row items-center p-3 rounded-lg"
-      style={{ gap: 12 }}
-      onPress={onPress}
-      activeOpacity={0.7}>
-      {icon}
-      <RNText style={{ color: color ?? undefined, fontSize: 14 }}>
-        {label}
-      </RNText>
-    </TouchableOpacity>
+    <OptionSheet
+      isPresented={isSheetOpen}
+      onDismiss={onDismiss}
+      title={url}
+      actions={actions}
+      snapPoints={["half"]}
+    />
   );
 }

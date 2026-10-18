@@ -5,10 +5,8 @@ import {
   Text,
   RNHostView,
 } from "@expo/ui/jetpack-compose";
-import { useMemo, useState, useCallback } from "react";
 import { useTheme } from "@/hooks/use-theme";
-
-import { BottomSheet } from "@expo/ui";
+import { OptionSheet } from "@/components/ui/option-sheet";
 
 import {
   Share2,
@@ -20,101 +18,79 @@ import {
   FolderInput,
 } from "lucide-react-native";
 import {
-  Alert,
   Pressable,
-  View,
-  TouchableOpacity,
-  Text as RNText,
 } from "react-native";
-import { hardDeleteNote, restoreNote } from "@/lib/queries/notes";
-import { toast } from "@/lib/toast";
 import { formatDate } from "@repo/utils";
-import { ThemedText } from "../ui/themed-text";
+import { NoteUpdateStateKey, useNoteActions } from "@/hooks/use-note-actions";
+import { useNoteOptionsDropdown } from "@/hooks/use-note-options-dropdown";
 
 type NotesOptionsDropdownProps = {
   variant?: "sheet" | "dropdown";
   isExpanded?: boolean;
-  isPinned: boolean;
-  isDeleted: boolean;
-  noteId: string;
-  isArchived: boolean;
+  setIsExpanded?: (a: boolean) => void;
+  note: {
+    id: string;
+    title: string;
+    content: string;
+    isPinned: boolean;
+    isArchived: boolean;
+    deletedAt?: string | null;
+  };
   iconStyle?: {
     className?: string;
     size?: number;
   };
-  onTogglePin: () => void;
-  onToggleArchive: () => void;
-  onDelete?: () => void;
-  onShare: () => void;
-  setIsExpanded?: (a: boolean) => void;
-  onShowInfo?: () => void;
-  onMoveToFolder?: () => void;
   customTrigger?: React.ReactNode;
   lastEdited?: string;
+  onUpdateState?: (key: NoteUpdateStateKey, value: any) => void;
+  onDeleteSuccess?: () => void;
+  onRestoreSuccess?: () => void;
+  onMoveToFolder?: () => void;
+  onShowInfo?: () => void;
 };
 
 export function NotesOptionsDropdown({
-  variant = "sheet",
+  variant = "dropdown",
   isExpanded,
   setIsExpanded,
-  isPinned,
-  isArchived,
-  isDeleted,
-  noteId,
-  onTogglePin,
-  onToggleArchive,
-  onDelete,
-  onShare,
-  onShowInfo,
-  onMoveToFolder,
+  note,
   customTrigger,
   iconStyle = {},
   lastEdited,
+  onUpdateState,
+  onDeleteSuccess,
+  onRestoreSuccess,
+  onMoveToFolder,
+  onShowInfo,
 }: NotesOptionsDropdownProps) {
   const colors = useTheme();
-  const [isLocalExpanded, setIsLocalExpanded] = useState(false);
 
-  const localExpanded = useMemo(
-    () => (isExpanded !== undefined ? isExpanded : isLocalExpanded),
-    [isExpanded, isLocalExpanded],
-  );
+  const actions = useNoteActions({
+    noteId: note.id,
+    title: note.title,
+    content: note.content,
+    isPinned: note.isPinned,
+    isArchived: note.isArchived,
+    isDeleted: !!note.deletedAt,
+    onUpdateState,
+    onDeleteSuccess,
+    onRestoreSuccess,
+  });
 
-  const handleHardDelete = (id: string) => {
-    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await hardDeleteNote(id);
-            toast.info("Note deleted");
-          } catch {
-            Alert.alert("Error", "Could not delete note");
-          }
-        },
-      },
-    ]);
-  };
+  const dropdown = useNoteOptionsDropdown({ isExpanded, setIsExpanded });
 
   const { className = "p-4", size = 20 } = iconStyle;
 
   if (variant === "sheet") {
     return (
       <NotesOptionsSheet
-        isPinned={isPinned}
-        isArchived={isArchived}
-        isDeleted={isDeleted}
-        noteId={noteId}
-        onTogglePin={onTogglePin}
-        onToggleArchive={onToggleArchive}
-        onDelete={onDelete}
-        onShare={onShare}
-        onShowInfo={onShowInfo}
-        onMoveToFolder={onMoveToFolder}
+        note={note}
+        actions={actions}
         iconStyle={iconStyle}
         customTrigger={customTrigger}
         lastEdited={lastEdited}
+        onMoveToFolder={onMoveToFolder}
+        onShowInfo={onShowInfo}
       />
     );
   }
@@ -122,18 +98,14 @@ export function NotesOptionsDropdown({
   return (
     <Host matchContents>
       <DropdownMenu
-        expanded={localExpanded}
-        onDismissRequest={() => {
-          setIsExpanded?.(false);
-          setIsLocalExpanded?.(false);
-        }}>
+        expanded={dropdown.isOpen}
+        onDismissRequest={dropdown.close}>
         <DropdownMenu.Trigger>
           <RNHostView matchContents>
             <Pressable
               onPress={(e) => {
                 e?.stopPropagation?.();
-                setIsExpanded?.(true);
-                setIsLocalExpanded?.(true);
+                dropdown.toggle();
               }}
               className={`rounded-full ${className}`}>
               {customTrigger || (
@@ -143,52 +115,57 @@ export function NotesOptionsDropdown({
           </RNHostView>
         </DropdownMenu.Trigger>
         <DropdownMenu.Items>
-          {/* Delete */}
-          {!isDeleted ? (
+          {!note.deletedAt ? (
             <>
-              {/* Pin/Unpin */}
               <DropdownMenuItem
                 onClick={() => {
-                  onTogglePin();
+                  dropdown.close();
+                  actions.handleTogglePin();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
                     <Pin
                       size={20}
-                      color={isPinned ? colors.primary : colors.textSecondary}
-                      fill={isPinned ? colors.primary : "transparent"}
+                      color={
+                        note.isPinned ? colors.primary : colors.textSecondary
+                      }
+                      fill={note.isPinned ? colors.primary : "transparent"}
                     />
                   </RNHostView>
                 </DropdownMenuItem.LeadingIcon>
                 <DropdownMenuItem.Text>
                   <Text color={colors.text}>
-                    {isPinned ? "Unpin Note" : "Pin Note"}
+                    {note.isPinned ? "Unpin Note" : "Pin Note"}
                   </Text>
                 </DropdownMenuItem.Text>
               </DropdownMenuItem>
-              {/* Archive/Unarchive */}
-              {onToggleArchive && <DropdownMenuItem
+
+              <DropdownMenuItem
                 onClick={() => {
-                  onToggleArchive();
+                  dropdown.close();
+                  actions.handleToggleArchive();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
                     <Archive
                       size={20}
-                      color={isArchived ? colors.primary : colors.textSecondary}
+                      color={
+                        note.isArchived ? colors.primary : colors.textSecondary
+                      }
                     />
                   </RNHostView>
                 </DropdownMenuItem.LeadingIcon>
                 <DropdownMenuItem.Text>
                   <Text color={colors.text}>
-                    {isArchived ? "Unarchive" : "Archive"}
+                    {note.isArchived ? "Unarchive" : "Archive"}
                   </Text>
                 </DropdownMenuItem.Text>
-              </DropdownMenuItem>}
-              {/* Share */}
-              {onShare && <DropdownMenuItem
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
                 onClick={() => {
-                  onShare();
+                  dropdown.close();
+                  actions.handleShareNote();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
@@ -198,11 +175,12 @@ export function NotesOptionsDropdown({
                 <DropdownMenuItem.Text>
                   <Text color={colors.text}>Share</Text>
                 </DropdownMenuItem.Text>
-              </DropdownMenuItem>}
-              {/* Move to Folder */}
+              </DropdownMenuItem>
+
               {onMoveToFolder && (
                 <DropdownMenuItem
                   onClick={() => {
+                    dropdown.close();
                     onMoveToFolder();
                   }}>
                   <DropdownMenuItem.LeadingIcon>
@@ -215,10 +193,11 @@ export function NotesOptionsDropdown({
                   </DropdownMenuItem.Text>
                 </DropdownMenuItem>
               )}
-              {/* Info/Details */}
+
               {onShowInfo && (
                 <DropdownMenuItem
                   onClick={() => {
+                    dropdown.close();
                     onShowInfo();
                   }}>
                   <DropdownMenuItem.LeadingIcon>
@@ -231,9 +210,11 @@ export function NotesOptionsDropdown({
                   </DropdownMenuItem.Text>
                 </DropdownMenuItem>
               )}
-              {onDelete && <DropdownMenuItem
+
+              <DropdownMenuItem
                 onClick={() => {
-                  onDelete();
+                  dropdown.close();
+                  actions.handleDeleteNote();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
@@ -243,13 +224,14 @@ export function NotesOptionsDropdown({
                 <DropdownMenuItem.Text>
                   <Text color="#ef4444">Delete Note</Text>
                 </DropdownMenuItem.Text>
-              </DropdownMenuItem>}
+              </DropdownMenuItem>
             </>
           ) : (
             <>
               <DropdownMenuItem
                 onClick={() => {
-                  handleHardDelete(noteId);
+                  dropdown.close();
+                  actions.handleHardDelete();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
@@ -263,9 +245,8 @@ export function NotesOptionsDropdown({
 
               <DropdownMenuItem
                 onClick={() => {
-                  restoreNote(noteId).catch((e) =>
-                    toast.error("Could not restore note"),
-                  );
+                  dropdown.close();
+                  actions.handleRestoreNote();
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
@@ -284,88 +265,126 @@ export function NotesOptionsDropdown({
   );
 }
 
-// Sheet variant implemented
-type NotesOptionsSheetProps = NotesOptionsDropdownProps;
 function NotesOptionsSheet({
-  isPinned,
-  isArchived,
-  isDeleted,
-  noteId,
-  onTogglePin,
-  onToggleArchive,
-  onDelete,
-  onShare,
-  onShowInfo,
-  onMoveToFolder,
-  iconStyle = {},
+  note,
+  actions,
+  iconStyle,
   customTrigger,
   lastEdited,
-}: NotesOptionsSheetProps) {
+  onMoveToFolder,
+  onShowInfo,
+}: {
+  note: NotesOptionsDropdownProps["note"];
+  actions: ReturnType<typeof useNoteActions>;
+  iconStyle: NotesOptionsDropdownProps["iconStyle"];
+  customTrigger: NotesOptionsDropdownProps["customTrigger"];
+  lastEdited?: string;
+  onMoveToFolder?: () => void;
+  onShowInfo?: () => void;
+}) {
   const colors = useTheme();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { className = "p-4", size = 20 } = iconStyle;
+  const sheet = useNoteOptionsDropdown();
+  const { className = "p-4", size = 20 } = iconStyle || {};
 
-  const handleHardDelete = useCallback((id: string) => {
-    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await hardDeleteNote(id);
-            toast.info("Note deleted");
-            setIsSheetOpen(false);
-          } catch {
-            Alert.alert("Error", "Could not delete note");
-          }
-        },
+  const isDeleted = !!note.deletedAt;
+  const sheetActions = [
+    {
+      label: note.isPinned ? "Unpin Note" : "Pin Note",
+      icon: (
+        <Pin
+          size={20}
+          color={note.isPinned ? colors.primary : colors.textSecondary}
+          fill={note.isPinned ? colors.primary : "transparent"}
+        />
+      ),
+      onPress: () => {
+        sheet.close();
+        actions.handleTogglePin();
       },
-    ]);
-  }, []);
-
-  const handleRestore = useCallback((id: string) => {
-    restoreNote(id)
-      .then(() => toast.success("Note restored"))
-      .catch(() => toast.error("Could not restore note"));
-    setIsSheetOpen(false);
-  }, []);
-
-  const handleDelete = useCallback(() => {
-    onDelete?.();
-    setIsSheetOpen(false);
-  }, [onDelete]);
-
-  const handlePin = useCallback(() => {
-    onTogglePin();
-    setIsSheetOpen(false);
-  }, [onTogglePin]);
-
-  const handleArchive = useCallback(() => {
-    onToggleArchive();
-    setIsSheetOpen(false);
-  }, [onToggleArchive]);
-
-  const handleShare = useCallback(() => {
-    onShare();
-    setIsSheetOpen(false);
-  }, [onShare]);
-
-  const handleInfo = useCallback(() => {
-    onShowInfo?.();
-    setIsSheetOpen(false);
-  }, [onShowInfo]);
-
-  const handleMoveToFolder = useCallback(() => {
-    onMoveToFolder?.();
-    setIsSheetOpen(false);
-  }, [onMoveToFolder]);
+      color: colors.text,
+      visible: !isDeleted,
+    },
+    {
+      label: note.isArchived ? "Unarchive" : "Archive",
+      icon: (
+        <Archive
+          size={20}
+          color={note.isArchived ? colors.primary : colors.textSecondary}
+        />
+      ),
+      onPress: () => {
+        sheet.close();
+        actions.handleToggleArchive();
+      },
+      color: colors.text,
+      visible: !isDeleted,
+    },
+    {
+      label: "Share",
+      icon: <Share2 size={20} color={colors.textSecondary} />,
+      onPress: () => {
+        sheet.close();
+        actions.handleShareNote();
+      },
+      color: colors.text,
+      visible: !isDeleted,
+    },
+    {
+      label: "Move to Folder",
+      icon: <FolderInput size={20} color={colors.textSecondary} />,
+      onPress: () => {
+        sheet.close();
+        onMoveToFolder?.();
+      },
+      color: colors.text,
+      visible: !isDeleted && !!onMoveToFolder,
+    },
+    {
+      label: "Info",
+      icon: <Info size={20} color={colors.textSecondary} />,
+      onPress: () => {
+        sheet.close();
+        onShowInfo?.();
+      },
+      color: colors.text,
+      visible: !isDeleted && !!onShowInfo,
+    },
+    {
+      label: "Delete Note",
+      icon: <Trash2 size={20} color="#ef4444" />,
+      onPress: () => {
+        sheet.close();
+        actions.handleDeleteNote();
+      },
+      color: "#ef4444",
+      visible: !isDeleted,
+    },
+    {
+      label: "Delete Note",
+      icon: <Trash2 size={20} color="#ef4444" />,
+      onPress: () => {
+        sheet.close();
+        actions.handleHardDelete();
+      },
+      color: "#ef4444",
+      visible: isDeleted,
+    },
+    {
+      label: "Restore Note",
+      icon: <Trash2 size={20} color={colors.primary} />,
+      onPress: () => {
+        sheet.close();
+        actions.handleRestoreNote();
+      },
+      color: colors.primary,
+      visible: isDeleted,
+    },
+  ];
 
   return (
     <>
-      {/* Trigger */}
       <Pressable
-        onPress={() => setIsSheetOpen(true)}
+        onPress={sheet.open}
         className={`rounded-full ${className}`}
         style={{ alignSelf: "flex-start" }}>
         {customTrigger || (
@@ -373,131 +392,12 @@ function NotesOptionsSheet({
         )}
       </Pressable>
 
-      {/* Sheet */}
-      <BottomSheet
-        isPresented={isSheetOpen}
-        onDismiss={() => setIsSheetOpen(false)}
-        showDragIndicator
-        // snapPoints={["40%", "60%", "90%"]}
-        containerColor={colors.card}>
-        <RNHostView matchContents>
-          <View className="flex-1 pt-2 w-full p-4">
-            {/* Header: Title + Close Button */}
-            <View className="flex-row items-center justify-between mb-4">
-              <ThemedText type="default">
-                {lastEdited ? `Edited ${formatDate(lastEdited)}` : "Options"}
-              </ThemedText>
-              {/* <TouchableOpacity testID="close-sheet" onPress={() => setIsSheetOpen(false)} hitSlop={8}>
-                <X size={24} color={colors.textSecondary} />
-              </TouchableOpacity> */}
-            </View>
-
-            {/* Option Actions */}
-            <View className="gap-1">
-              {!isDeleted ? (
-                <>
-                  <SheetButton
-                    icon={
-                      <Pin
-                        size={20}
-                        color={isPinned ? colors.primary : colors.textSecondary}
-                        fill={isPinned ? colors.primary : "transparent"}
-                      />
-                    }
-                    label={isPinned ? "Unpin Note" : "Pin Note"}
-                    onPress={handlePin}
-                    color={colors.text}
-                  />
-                  <SheetButton
-                    icon={
-                      <Archive
-                        size={20}
-                        color={
-                          isArchived ? colors.primary : colors.textSecondary
-                        }
-                      />
-                    }
-                    label={isArchived ? "Unarchive" : "Archive"}
-                    onPress={handleArchive}
-                    color={colors.text}
-                  />
-                  {handleShare && <SheetButton
-                    icon={<Share2 size={20} color={colors.textSecondary} />}
-                    label="Share"
-                    onPress={handleShare}
-                    color={colors.text}
-                  />}
-                  {onMoveToFolder && (
-                    <SheetButton
-                      icon={
-                        <FolderInput size={20} color={colors.textSecondary} />
-                      }
-                      label="Move to Folder"
-                      onPress={handleMoveToFolder}
-                      color={colors.text}
-                    />
-                  )}
-                  {onShowInfo && (
-                    <SheetButton
-                      icon={<Info size={20} color={colors.textSecondary} />}
-                      label="Info"
-                      onPress={handleInfo}
-                      color={colors.text}
-                    />
-                  )}
-                  {onDelete && <SheetButton
-                    icon={<Trash2 size={20} color="#ef4444" />}
-                    label="Delete Note"
-                    onPress={handleDelete}
-                    color="#ef4444"
-                  />}
-                </>
-              ) : (
-                <>
-                  <SheetButton
-                    icon={<Trash2 size={20} color="#ef4444" />}
-                    label="Delete Note"
-                    onPress={() => handleHardDelete(noteId)}
-                    color="#ef4444"
-                  />
-                  <SheetButton
-                    icon={<Trash2 size={20} color={colors.primary} />}
-                    label="Restore Note"
-                    onPress={() => handleRestore(noteId)}
-                    color={colors.primary}
-                  />
-                </>
-              )}
-            </View>
-          </View>
-        </RNHostView>
-      </BottomSheet>
+      <OptionSheet
+        isPresented={sheet.isOpen}
+        onDismiss={sheet.close}
+        title={lastEdited ? `Edited ${formatDate(lastEdited)}` : "Options"}
+        actions={sheetActions}
+      />
     </>
-  );
-}
-
-// Helper sheet action button
-function SheetButton({
-  icon,
-  label,
-  onPress,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-  color?: string;
-}) {
-  return (
-    <TouchableOpacity
-      className="flex-row items-center p-3 rounded-lg"
-      style={{ gap: 12 }}
-      onPress={onPress}
-      activeOpacity={0.7}>
-      {icon}
-      <RNText style={{ color: color ?? undefined, fontSize: 14 }}>
-        {label}
-      </RNText>
-    </TouchableOpacity>
   );
 }

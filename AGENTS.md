@@ -8,7 +8,19 @@ This is a multi-application Turborepo powered by **Bun** (`1.3.6`) and **Turbore
 
 ---
 
-## 1. Package Naming & Scoping Standard
+## 1. Task & Progress Tracking Standard (IMPORTANT)
+
+- **`TODO.md`**: Contains current issues, high-level requirements, and unorganized ideas. Clean this up by removing implemented features.
+- **`TODO.CHECKLIST.md`**: For every feature implemented or in-progress, maintain a detailed checklist here. This ensures `TODO.md` stays clean and focuses on active problems.
+- **Workflow**: 
+  1. Analyze task from `TODO.md`.
+  2. Implement feature.
+  3. Update `TODO.CHECKLIST.md` with completion status.
+  4. Remove the completed task from `TODO.md`.
+
+---
+
+## 2. Package Naming & Scoping Standard
 
 - **Canonical Scope**: Always use `@repo/<package-name>` for internal packages (e.g. `@repo/ui`, `@repo/validation`, `@repo/db`, `@repo/utils`, `@repo/types`).
 - **Workspace Protocol**: In `package.json` files, reference internal dependencies using `"@repo/<package-name>": "workspace:*"` (or `"*"`).
@@ -16,7 +28,7 @@ This is a multi-application Turborepo powered by **Bun** (`1.3.6`) and **Turbore
 
 ---
 
-## 2. Package Archetypes & Compilation Strategies
+## 3. Package Archetypes & Compilation Strategies
 
 When creating or modifying an internal package, select the exact archetype that fits its purpose:
 

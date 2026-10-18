@@ -20,7 +20,19 @@ Analyze and plan the the system requirements below and implement. /plan
 
 ---
 
+## Logging
+
 Currently, the apps/api server does not have logging with the audit log module. Verify and setup audit log so we know and have mcp usage activities. Also, create an audit log screen in the profile on the mobile app and on the web app and implement the api to get audit logs for an authenticated user. Gate the audit log screen by user.type admin. On the audit log screens, add tabs to filer logs based on maybe log event type or source also verify the audit log model is setup to support the tab filter
+
+## Notes Dropdown Refactor
+
+Analyze and Refactor notes actions and dropdown into hook experience targeting the note dropdown, notes, note grid components.
+
+## Custom Option Sheet - Same as Above but for menu. Later Release
+
+## Add Background Image
+
+onUpdateState?: (key: any, value: any) => void;
 
 ---
 
@@ -31,3 +43,7 @@ Atlassian
 ## Features
 
 - Reminders: Add reminder button on the note-bulk-actions when feature is implemented
+- Scratchpad: A single view For dumping unorganized notes ideas. Also Synced
+
+
+- 9ALC7A

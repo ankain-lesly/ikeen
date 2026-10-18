@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   AppState,
   Keyboard,
   Pressable,
   ScrollView,
-  Share,
   Text,
   TextInput,
   TextInputEndEditingEvent,
@@ -28,9 +26,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/lib/toast";
 import {
   createNote,
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
   updateNote,
 } from "@/lib/queries/notes";
 import { useLiveFolder } from "@/lib/queries/folders";
@@ -50,6 +45,7 @@ import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
 import { log } from "@repo/utils";
 import { useAuthStore } from "@/lib/auth/auth-store";
+import { useNoteActions } from "@/hooks/use-note-actions";
 
 export function NoteEditor({ note: initialNote }: { note?: Note }) {
   const colors = useTheme();
@@ -292,50 +288,23 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
     startEditing("title");
   }, [startEditing]);
 
-  const handleTogglePin = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const nextPinned = !note.isPinned;
-    updateNoteState("isPinned", nextPinned);
-    if (note.id) {
-      try {
-        await togglePinNote(note.id);
-      } catch {
-        updateNoteState("isPinned", !nextPinned);
-      }
-    }
-  };
+  const actions = useNoteActions({
+    noteId: note.id ?? "",
+    title: note.title,
+    content: note.content,
+    isPinned: note.isPinned,
+    isArchived: note.isArchived,
+    isDeleted: false,
+    onUpdateState: updateNoteState,
+    onDeleteSuccess: () => {
+      setIsEditing(false);
+      router.back();
+    },
+  });
 
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        title: note.title.trim() || "Untitled Note",
-        message: `${note.title}\n\n${note.content}`,
-      });
-    } catch {
-      // Ignored
-    }
-  }, [note.title, note.content]);
-
-  const handleDelete = () => {
-    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          setIsEditing(false);
-          try {
-            await softDeleteNote(note.id);
-            toast.info("Note deleted");
-            router.back();
-          } catch {
-            // isDeletedRef.current = false;
-            Alert.alert("Error", "Could not delete note");
-          }
-        },
-      },
-    ]);
-  };
+  const handleTogglePin = actions.handleTogglePin;
+  const handleShare = actions.handleShareNote;
+  const handleDelete = actions.handleDeleteNote;
 
   const handleAddTag = (e: TextInputEndEditingEvent) => {
     const text = e.nativeEvent.text;
@@ -459,23 +428,14 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
           <NotesOptionsDropdown
             variant="sheet"
             lastEdited={note?.updatedAt}
-            isDeleted={false}
-            noteId={note.id ?? ""}
-            isPinned={note.isPinned}
-            onTogglePin={handleTogglePin}
-            isArchived={note.isArchived}
-            onToggleArchive={async () => {
-              updateNoteState("isArchived", !note.isArchived);
-              if (note.id) {
-                try {
-                  await toggleArchiveNote(note.id);
-                } catch {
-                  updateNoteState("isArchived", note.isArchived);
-                }
-              }
+            note={note}
+            onUpdateState={updateNoteState}
+            onDeleteSuccess={() => {
+              setIsEditing(false);
+              router.back();
             }}
-            onDelete={isNewDraft ? undefined : handleDelete}
-            onShare={handleShare}
+            // onDelete={isNewDraft ? undefined : handleDelete}
+            
             onShowInfo={() => setInfoSheetVisible(true)}
             onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
           />

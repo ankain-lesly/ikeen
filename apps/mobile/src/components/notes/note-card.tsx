@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, Share, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import { ArchiveRestore, Check, Pin } from "lucide-react-native";
@@ -7,14 +7,11 @@ import { ArchiveRestore, Check, Pin } from "lucide-react-native";
 import { ThemedText } from "@/components/ui/themed-text";
 import type { Note } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
-import {NotesOptionsDropdown} from "./notes-options-dropdown";
+import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
 
 interface NoteCardProps {
   note: Note;
-  onTogglePin?: (id: string) => void;
-  onToggleArchive?: (id: string) => void;
-  onDelete?: (id: string) => void;
   className?: string;
   isSelectionMode?: boolean;
   isSelected?: boolean;
@@ -38,9 +35,6 @@ function areNoteCardPropsEqual(
     prev.isSelectionMode === next.isSelectionMode &&
     prev.isSelected === next.isSelected &&
     prev.className === next.className &&
-    prev.onTogglePin === next.onTogglePin &&
-    prev.onToggleArchive === next.onToggleArchive &&
-    prev.onDelete === next.onDelete &&
     prev.onSelect === next.onSelect &&
     prev.onLongPressSelect === next.onLongPressSelect
   );
@@ -90,9 +84,6 @@ function areNoteCardPropsEqual(
 export const NoteCard = React.memo(function NoteCard({
   note,
   className,
-  onTogglePin,
-  onToggleArchive,
-  onDelete,
   isSelectionMode = false,
   isSelected = false,
   onSelect,
@@ -119,32 +110,6 @@ export const NoteCard = React.memo(function NoteCard({
       setIsMenuOpen(false);
     }
   }, [isSelectionMode, isMenuOpen]);
-
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        title: displayTitle,
-        message: `${displayTitle}\n\n${note.content}`,
-      });
-    } catch {
-      // Ignored
-    }
-  }, [displayTitle, note.content]);
-
-  const handlePinPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onTogglePin?.(note.id);
-  }, [note.id, onTogglePin]);
-
-  const handleArchivePress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggleArchive?.(note.id);
-  }, [note.id, onToggleArchive]);
-
-  const handleDeletePress = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    onDelete?.(note.id);
-  }, [note.id, onDelete]);
 
   const handlePress = useCallback(() => {
     if (isSelectionMode) {
@@ -210,20 +175,14 @@ export const NoteCard = React.memo(function NoteCard({
                     style={{ opacity: isSelectionMode ? 0 : 1 }}
                     className="absolute inset-0 items-center justify-center">
                     <NotesOptionsDropdown
+                      variant="dropdown"
                       isExpanded={isMenuOpen}
                       setIsExpanded={setIsMenuOpen}
-                      isDeleted={!!note.deletedAt}
-                      noteId={note.id}
+                      note={note}
                       iconStyle={{
                         size: 14,
                         className: "w-5 h-5 items-center justify-center",
                       }}
-                      isPinned={note.isPinned}
-                      isArchived={note.isArchived}
-                      onTogglePin={handlePinPress}
-                      onToggleArchive={handleArchivePress}
-                      onDelete={handleDeletePress}
-                      onShare={handleShare}
                     />
                   </View>
                   <View

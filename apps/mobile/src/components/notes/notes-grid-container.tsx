@@ -313,9 +313,6 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
       <View className="p-1">
         <NoteCard
           note={item}
-          onTogglePin={handleTogglePin}
-          onToggleArchive={handleToggleArchive}
-          onDelete={handleDeleteNote}
           isSelectionMode={isSelectionMode}
           isSelected={selectedIds.has(item.id)}
           onSelect={handleSelectNote}
@@ -323,15 +320,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         />
       </View>
     ),
-    [
-      handleTogglePin,
-      handleToggleArchive,
-      handleDeleteNote,
-      handleSelectNote,
-      handleLongPressSelect,
-      isSelectionMode,
-      selectedIds,
-    ],
+    [handleSelectNote, handleLongPressSelect, isSelectionMode, selectedIds],
   );
 
   // Filters
@@ -391,38 +380,11 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                     <Check size={16} color="#ffffff" strokeWidth={3} />
                   )}
                 </Pressable>
-                {/* <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Done selection"
-                  onPress={handleCancelSelection}
-                  hitSlop={8}
-                  className="px-2.5 py-1.5 rounded-lg bg-background-element">
-                  <Text className="text-sm font-semibold text-text">Done</Text>
-                </Pressable> */}
-                {/* <Text className="text-sm font-medium text-text-secondary">
-                  {selectedNotes.length} of {data.length} selected
-                </Text> */}
 
                 <Text className="text-sm font-semibold text-text">
                   {selectedNotes.length} Selected
-                  {/* <Text className="text-text-secondary font-normal">
-                    selected
-                  </Text> */}
                 </Text>
               </View>
-
-              {/* <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={
-                  allSelected ? "Deselect all notes" : "Select all notes"
-                }
-                onPress={handleToggleSelectAll}
-                hitSlop={8}
-                className="px-2.5 py-1.5 rounded-lg bg-background-element">
-                <Text className="text-sm font-semibold text-primary">
-                  {allSelected ? "Deselect All" : "Select All"}
-                </Text>
-              </Pressable> */}
 
               <NotesBulkActions
                 variant={variant}
@@ -475,24 +437,13 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                 </View>
               ) : (
                 <ThemedText type="subtitle">
-                  {isTrash ? "Recently deleted" : "Notes"}
+                  {/* {isTrash ? "Recently deleted" : "Notes"} */}
+                  Notes
                 </ThemedText>
               )}
 
               {/* Actions Right: Select Mode & Grid/List Toggle */}
               <View className="flex-row items-center gap-1">
-                {/* <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Enter selection mode"
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setIsSelectionMode(true);
-                  }}
-                  hitSlop={8}
-                  className="h-8 px-2.5 rounded-lg items-center justify-center bg-background-element_active:bg-background-selected">
-                  <Text className="text-sm font-semibold text-primary">Select</Text>
-                </Pressable> */}
-
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -518,23 +469,6 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
           )}
         </View>
       )}
-
-      {/* Floating Bulk Action Bar
-      // {isSelectionMode && (
-      //   <NotesBulkActionBar
-      //     variant={variant}
-      //     selectedCount={selectedNotes.length}
-      //     isAllPinned={isAllPinned}
-      //     isAllArchived={isAllArchived}
-      //     onPin={handleBulkPin}
-      //     onMove={() => setIsMoveSheetVisible(true)}
-      //     onArchive={handleBulkArchive}
-      //     onDelete={handleBulkDelete}
-      //     onRestore={handleBulkRestore}
-      //     onHardDelete={handleBulkHardDelete}
-      //     onCancel={handleCancelSelection}
-      //   />
-      // )} */}
 
       <FlashList
         data={data}
