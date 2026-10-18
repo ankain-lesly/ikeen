@@ -176,7 +176,7 @@ export default function LoginScreen() {
         {/* Switch to Register */}
         <View className="flex-row items-center justify-center mt-6 gap-1">
           <Text className="text-sm text-text-secondary">
-            Don't have an account?
+            Don&apos;t have an account?
           </Text>
           <Pressable onPress={handleGoToRegister} hitSlop={6}>
             <Text className="text-sm font-bold text-primary">

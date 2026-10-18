@@ -16,12 +16,12 @@ export function useMarkdownStyle(size: 14 | 16 = 16): MarkdownStyle {
       code: {
         fontSize: size - 2,
         color: colors.text,
-        backgroundColor: colors.backgroundElement,
+        backgroundColor: colors.backgroundSelected,
       },
       blockquote: {
         color: colors.textSecondary,
         borderColor: colors.border,
-        backgroundColor: colors.backgroundElement,
+        backgroundColor: colors.backgroundSelected,
       },
       list: {
         fontSize: size,

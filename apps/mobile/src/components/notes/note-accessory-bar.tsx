@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   Keyboard,
   Pressable,
@@ -17,13 +17,18 @@ import {
   List,
   CheckCheck,
   Pencil,
-  Pin,
   Share2,
+  Plus,
+  LetterText,
+  X,
 } from "lucide-react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTheme } from "@/hooks/use-theme";
 import { useKeyboardGradualAnimation } from "@/hooks/use-gradual-animation";
 import type { MarkdownFormatAction } from "@/components/markdown";
+import { AnimatedEntryView } from "../ui/animated";
+import { Card } from "../ui/card";
+import { NotesEditorToolbarBlocks } from "./editor-toolbar-blocks";
+import { toast } from "@/lib/toast";
 
 interface NoteAccessoryBarProps {
   onFormat: (action: MarkdownFormatAction) => void;
@@ -45,6 +50,8 @@ interface NoteBottomToolBarProps
   isEditing: boolean;
 }
 
+type ToolbarMode = "default" | "color" | "text";
+
 export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
   onFormat,
   onOpenTagPrompt,
@@ -57,29 +64,51 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
   onTogglePin,
   wordCount,
 }: NoteBottomToolBarProps) {
+  const { isVisible } = useKeyboardGradualAnimation();
 
-  return (
-    <View
-      className={`absolute w-full items-center justify-center  pointer-events-box-none bottom-0`}>
-      {isEditing ? (
-        <Animated.View
-          key="editing"
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(150)}
-          className="flex-1 flex-row items-center">
-          <NoteAccessoryBar
+  const [mode, setMode] = useState<ToolbarMode>("default");
+  const [isBlockSheetOpen, setIsBlockSheetOpen] = useState(false);
+
+  const renderMode = useCallback(() => {
+    switch (mode) {
+      case "text":
+        return (
+          <ToolbarModeEditText
             onFormat={onFormat}
-            onOpenTagPrompt={onOpenTagPrompt}
-            onDismiss={onDismiss}
+            setMode={(m) => setMode(m)}
             isSaving={isSaving}
           />
-        </Animated.View>
-      ) : (
-        <Animated.View
-          key="viewing"
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(150)}
-          className="flex-1 flex-row items-center justify-between">
+        );
+
+      case "default":
+      default:
+        return (
+          <ToolbarModeDefault
+            setMode={(m) => setMode(m)}
+            onOpenTagPrompt={onOpenTagPrompt}
+            onDismiss={onDismiss}
+            onOpenBlockSheet={() => setIsBlockSheetOpen(true)}
+            isSaving={isSaving}
+          />
+        );
+    }
+  }, [isSaving, mode, onDismiss, onFormat, onOpenTagPrompt]);
+
+  return (
+    <>
+      <View
+        className={`absolute__bottom-0 w-full items-center justify-center  pointer-events-box-none`}>
+        {isEditing ? (
+          <>
+            <View
+              className={`flex-row items-center border border-border _rounded-full px-2 bg-background-element${!isVisible ? " pb-safe-offset-2" : ""}`}
+
+              // className="flex-1 flex-row items-center"
+            >
+              {renderMode()}
+            </View>
+          </>
+        ) : (
           <NoteMinimalToolbar
             wordCount={wordCount}
             onStartEditing={onStartEditing}
@@ -87,40 +116,51 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
             isPinned={isPinned}
             onTogglePin={onTogglePin}
           />
-        </Animated.View>
+        )}
+      </View>
+
+      {isBlockSheetOpen && (
+        <NotesEditorToolbarBlocks
+          isSheetOpen={isBlockSheetOpen}
+          onDismiss={() => setIsBlockSheetOpen(false)}
+          onAddCheckboxBlock={() => toast.info("Add Checkbox Block")}
+          onAddMedia={() => toast.info("Add Media Block")}
+          onAddTextBlock={() => toast.info("Add Text Note Block")}
+          onTakePhoto={() => toast.info("Take Photo Block")}
+          onRecordAudio={() => toast.info("Record Audio Block")}
+        />
       )}
-    </View>
+    </>
   );
 });
 
-export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
-  onFormat,
+type ToolbarModeDefaultProps = Omit<NoteAccessoryBarProps, "onFormat"> & {
+  setMode: (m: ToolbarMode) => void;
+  onOpenBlockSheet: () => void;
+};
+export const ToolbarModeDefault = React.memo(function NoteAccessoryBar({
   onOpenTagPrompt,
   onDismiss,
+  setMode,
+  onOpenBlockSheet,
   isSaving,
-}: NoteAccessoryBarProps) {
+}: ToolbarModeDefaultProps) {
   const colors = useTheme();
-  const { isVisible } = useKeyboardGradualAnimation();
-
-  const handleAction = (action: MarkdownFormatAction) => {
-    Haptics.selectionAsync();
-    onFormat(action);
-  };
 
   const handleTagAction = () => {
-    Haptics.selectionAsync();
+    // Haptics.selectionAsync();
     onOpenTagPrompt?.();
   };
 
   const handleDismiss = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
     onDismiss?.();
   };
 
   return (
-    <View
-      className={`flex-row items-center border border-border _rounded-full px-2 bg-background-element${!isVisible?" pb-safe-offset-2":""}`}>
+    <AnimatedEntryView
+      className={`w-full flex-row items-center justify-between`}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -130,64 +170,49 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Insert checklist item"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("checklist")}>
-          <CheckSquare size={18} color={colors.text} />
+          onPress={() => onOpenBlockSheet()}>
+          <Card
+            className={
+              "bg-primary rounded-xl size-10 items-center justify-center"
+            }>
+            <Plus size={20} color={colors.text} />
+          </Card>
         </Pressable>
 
+        {/* Bullet List */}
+        {/* <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert bullet list"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => setMode("color")}>
+          <PaintBucket size={20} color={colors.text} />
+        </Pressable> */}
         {/* Bullet List */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Insert bullet list"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("list")}>
-          <List size={18} color={colors.text} />
-        </Pressable>
-
-        {/* Heading */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Insert heading"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("heading")}>
-          <Heading1 size={18} color={colors.text} />
-        </Pressable>
-
-        {/* Bold */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Insert bold"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("bold")}>
-          <Bold size={18} color={colors.text} />
-        </Pressable>
-
-        {/* Italic */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Insert italic"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
-          onPress={() => handleAction("italic")}>
-          <Italic size={18} color={colors.text} />
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => setMode("text")}>
+          <LetterText size={20} color={colors.text} />
         </Pressable>
 
         {/* Tag Pill */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Insert tag"
-          className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-11 min-w-11"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
           onPress={handleTagAction}>
-          <Hash size={18} color={colors.text} />
+          <Hash size={20} color={colors.text} />
         </Pressable>
 
         {/* Undo / Redo — not wired to editor history yet
         <Pressable
-          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 size-9
           hitSlop={8}>
           <Undo size={18} color={colors.textSecondary} />
         </Pressable>
         <Pressable
-          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
+          className="p-1.5 rounded-lg justify-center items-center active:opacity-70 size-9
           hitSlop={8}>
           <Redo size={18} color={colors.textSecondary} />
         </Pressable>
@@ -199,7 +224,7 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Saving note"
-          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-11"
+          className="px-3 py-2 justify-center items-center active:opacity-70 size-10"
           onPress={handleDismiss}>
           <ActivityIndicator size={"small"} color={colors.border} />
         </Pressable>
@@ -207,12 +232,96 @@ export const NoteAccessoryBar = React.memo(function NoteAccessoryBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Done editing"
-          className="px-3 py-2 justify-center items-center active:opacity-70 min-h-11"
+          className="px-3 py-2 justify-center items-center active:opacity-70 size-10"
           onPress={handleDismiss}>
           <CheckCheck size={24} color={colors.primary} />
         </Pressable>
       )}
-    </View>
+    </AnimatedEntryView>
+  );
+});
+
+type ToolbarModeEditTextProps = Omit<
+  NoteAccessoryBarProps,
+  "onDismiss" | "onOpenTagPrompt"
+> & {
+  setMode: (m: ToolbarMode) => void;
+};
+export const ToolbarModeEditText = React.memo(function NoteAccessoryBar({
+  onFormat,
+  setMode,
+  isSaving,
+}: ToolbarModeEditTextProps) {
+  const colors = useTheme();
+
+  const handleAction = (action: MarkdownFormatAction) => {
+    // Haptics.selectionAsync();
+    onFormat(action);
+  };
+
+  return (
+    <AnimatedEntryView
+      className={`w-full flex-row items-center justify-between`}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="items-center gap-3 px-1"
+        keyboardShouldPersistTaps="always">
+        {/* Checklist */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert checklist item"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => handleAction("checklist")}>
+          <CheckSquare size={18} color={colors.text} />
+        </Pressable>
+
+        {/* Bullet List */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert bullet list"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => handleAction("list")}>
+          <List size={18} color={colors.text} />
+        </Pressable>
+
+        {/* Heading */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert heading"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => handleAction("heading")}>
+          <Heading1 size={18} color={colors.text} />
+        </Pressable>
+
+        {/* Bold */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert bold"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => handleAction("bold")}>
+          <Bold size={18} color={colors.text} />
+        </Pressable>
+
+        {/* Italic */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Insert italic"
+          className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
+          onPress={() => handleAction("italic")}>
+          <Italic size={18} color={colors.text} />
+        </Pressable>
+      </ScrollView>
+
+      {/* Close Mode Button */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Done editing"
+        className="px-3 py-2 justify-center items-center active:opacity-70 size-10"
+        onPress={() => setMode("default")}>
+        <X size={24} color={colors.textSecondary} />
+      </Pressable>
+    </AnimatedEntryView>
   );
 });
 
@@ -231,32 +340,34 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
   const { isVisible } = useKeyboardGradualAnimation();
 
   return (
-    <View className={`items-center justify-center w-full${!isVisible ? " pb-safe-offset-2" : ""}`}>
+    <AnimatedEntryView className="absolute bottom-safe-offset-2 flex-1 flex-row items-center justify-between">
       <View
-        className={`h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2`}>
-        {/* Left: Word count badge */}
-        <Text className="text-xs font-mono text-text-secondary">
-          {wordCount} {wordCount === 1 ? "word" : "words"}
-        </Text>
+        className={`items-center justify-center w-full${!isVisible ? " pb-safe-offset-2" : ""}`}>
+        <View
+          className={`h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2`}>
+          {/* Left: Word count badge */}
+          <Text className="text-xs font-mono text-text-secondary">
+            {wordCount} {wordCount === 1 ? "word" : "words"}
+          </Text>
 
-        {/* Right: Quick actions */}
-        <View className="flex-row items-center gap-2">
-          {onShare ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Share note"
-              className="p-2 rounded-full justify-center items-center active:opacity-70 min-h-11 min-w-11"
-              onPress={onShare}
-              hitSlop={8}>
-              <Share2 size={16} color={colors.textSecondary} />
-            </Pressable>
-          ) : null}
+          {/* Right: Quick actions */}
+          <View className="flex-row items-center gap-2">
+            {onShare ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Share note"
+                className="p-2 rounded-full justify-center items-center active:opacity-70 size-10"
+                onPress={onShare}
+                hitSlop={8}>
+                <Share2 size={16} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
 
-          {/* {onTogglePin ? (
+            {/* {onTogglePin ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={isPinned ? "Unpin note" : "Pin note"}
-              className="p-2 rounded-full justify-center items-center active:opacity-70 min-h-11 min-w-11"
+              className="p-2 rounded-full justify-center items-center active:opacity-70 size-10"
               onPress={onTogglePin}
               hitSlop={8}>
               <Pin
@@ -267,18 +378,19 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
             </Pressable>
           ) : null} */}
 
-          {/* Quick Edit CTA Button */}
-          <Pressable
-            className="flex-row items-center gap-2 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
-            onPress={() => {
-              Haptics.selectionAsync();
-              onStartEditing();
-            }}>
-            <Pencil size={13} color="#ffffff" />
-            <Text className="text-sm font-semibold text-white">Edit</Text>
-          </Pressable>
+            {/* Quick Edit CTA Button */}
+            <Pressable
+              className="flex-row items-center gap-2 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
+              onPress={() => {
+                Haptics.selectionAsync();
+                onStartEditing();
+              }}>
+              <Pencil size={13} color="#ffffff" />
+              <Text className="text-sm font-semibold text-white">Edit</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
-    </View>
+    </AnimatedEntryView>
   );
 });

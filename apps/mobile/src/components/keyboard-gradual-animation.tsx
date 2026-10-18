@@ -22,8 +22,10 @@ export const KeyboardGradualAnimation = () => {
 
 export const KeyboardGradualWrapper = ({
   children,
+  className
 }: {
   children: React.ReactNode;
+  className?: string;
 }) => {
   const { isVisible } = useKeyboardGradualAnimation();
   const insets = useSafeAreaInsets();
@@ -62,7 +64,7 @@ export const KeyboardGradualWrapper = ({
 
   return (
     <Animated.View
-      className={`flex-1`}>
+      className={`flex-1 ${className}`}>
       {children}
       <Animated.View style={fakeViewStyle} />
       <KeyboardGradualAnimation />

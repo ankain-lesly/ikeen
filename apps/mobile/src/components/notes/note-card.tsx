@@ -7,7 +7,7 @@ import { ArchiveRestore, Check, Pin } from "lucide-react-native";
 import { ThemedText } from "@/components/ui/themed-text";
 import type { Note } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
-import NotesDetailDropdown from "./notes-detail-dropdown";
+import {NotesOptionsDropdown} from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
 
 interface NoteCardProps {
@@ -76,14 +76,14 @@ function areNoteCardPropsEqual(
  *
  * 3. GEOMETRIC STABILITY (THE 20x20 SLOT):
  *    - The top-right accessory slot is locked to a fixed `w-5 h-5` (20x20 px) box.
- *    - `NotesDetailDropdown` stays mounted; the selection checkbox overlays it
+ *    - `NotesOptionsDropdown` stays mounted; the selection checkbox overlays it
  *      with opacity / pointerEvents so native Host views are not torn down.
  *    - Both unselected and selected states maintain identical border widths and
  *      padding (`p-3.5`, `border 1px`), ensuring 0-pixel height variance.
  *
  * 4. CONTEXT ACTIONS:
  *    - Note actions (Pin, Archive, Share, Delete, Move) are handled by
- *      `NotesDetailDropdown` (accessible via tap or long-press) and the floating
+ *      `NotesOptionsDropdown` (accessible via tap or long-press) and the floating
  *      bulk action bar, avoiding dependency on `<Link.Menu>`.
  * ============================================================================
  */
@@ -209,7 +209,7 @@ export const NoteCard = React.memo(function NoteCard({
                     pointerEvents={isSelectionMode ? "none" : "auto"}
                     style={{ opacity: isSelectionMode ? 0 : 1 }}
                     className="absolute inset-0 items-center justify-center">
-                    <NotesDetailDropdown
+                    <NotesOptionsDropdown
                       isExpanded={isMenuOpen}
                       setIsExpanded={setIsMenuOpen}
                       isDeleted={!!note.deletedAt}

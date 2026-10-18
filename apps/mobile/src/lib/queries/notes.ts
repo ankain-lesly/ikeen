@@ -97,7 +97,7 @@ function buildNotesQuery(
  * Reactive hook: Automatically re-renders when notes change in SQLite.
  */
 export function useLiveNotes(options: ListNotesOptions = {}) {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const userId = useAuthStore((s) => s.user?.id);
   const query = buildNotesQuery(options, userId);
   return useLiveQuery(query, [
     userId,
@@ -120,7 +120,7 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
  * Reactive hook for observing a single note by ID.
  */
 export function useLiveNote(id: string) {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const userId = useAuthStore((s) => s.user?.id);
   const res = useLiveQuery(
     db
       .select()
@@ -132,7 +132,7 @@ export function useLiveNote(id: string) {
 
   return {
     ...res,
-    data: res.data?.[0] ?? null,
+    data: res.data?.[0],
   };
 }
 
@@ -150,7 +150,7 @@ export async function getNoteById(id: string): Promise<Note | null> {
     .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .limit(1);
 
-  return note ?? null;
+  return note;
 }
 
 /**
@@ -194,13 +194,13 @@ export async function createNote(
     .values({
       id,
       userId: input.userId ?? currentAuthUserId(),
-      folderId: input.folderId ?? null,
+      folderId: input.folderId,
       title: input.title ?? '',
       content: input.content ?? '',
       tags,
       isPinned: input.isPinned ?? false,
       isArchived: input.isArchived ?? false,
-      summary: input.summary ?? null,
+      summary: input.summary,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -241,35 +241,35 @@ export async function updateNote(
     updatedAt: now,
     version: nextVersion,
   };
-  const changedFields: Record<string, any> = {};
+  // const changedFields: Record<string, any> = {};
 
   if (input.folderId !== undefined) {
     valuesToUpdate.folderId = input.folderId;
-    changedFields.folderId = input.folderId;
+    // changedFields.folderId = input.folderId;
   }
   if (input.title !== undefined) {
     valuesToUpdate.title = input.title;
-    changedFields.title = input.title;
+    // changedFields.title = input.title;
   }
   if (input.content !== undefined) {
     valuesToUpdate.content = input.content;
-    changedFields.content = input.content;
+    // changedFields.content = input.content;
   }
   if (input.tags !== undefined) {
     valuesToUpdate.tags = JSON.stringify(input.tags);
-    changedFields.tags = input.tags;
+    // changedFields.tags = input.tags;
   }
   if (input.isPinned !== undefined) {
     valuesToUpdate.isPinned = input.isPinned;
-    changedFields.isPinned = input.isPinned;
+    // changedFields.isPinned = input.isPinned;
   }
   if (input.isArchived !== undefined) {
     valuesToUpdate.isArchived = input.isArchived;
-    changedFields.isArchived = input.isArchived;
+    // changedFields.isArchived = input.isArchived;
   }
   if (input.summary !== undefined) {
     valuesToUpdate.summary = input.summary;
-    changedFields.summary = input.summary;
+    // changedFields.summary = input.summary;
   }
 
   const [updated] = await db
@@ -282,7 +282,13 @@ export async function updateNote(
     throw new Error(`Note with id "${id}" not found.`);
   }
 
-  await enqueueOutbox('notes', updated.id, 'upsert', changedFields, updated.version);
+  await enqueueOutbox(
+    "notes",
+    updated.id,
+    "upsert",
+    valuesToUpdate,
+    updated.version,
+  );
 
   return updated;
 }
@@ -439,32 +445,32 @@ export async function upsertNoteFromSync(n: {
     .insert(notes)
     .values({
       id: n.id,
-      userId: n.userId ?? null,
-      folderId: n.folderId ?? null,
+      userId: n.userId,
+      folderId: n.folderId,
       title: n.title ?? '',
       content: n.content ?? '',
       tags: tagsJson,
       isPinned: n.isPinned ?? false,
       isArchived: n.isArchived ?? false,
-      summary: n.summary ?? null,
+      summary: n.summary,
       version: n.version ?? 1,
       createdAt: n.createdAt,
       updatedAt: n.updatedAt,
-      deletedAt: n.deletedAt ?? null,
+      deletedAt: n.deletedAt,
     })
     .onConflictDoUpdate({
       target: notes.id,
       set: {
-        folderId: n.folderId ?? null,
+        folderId: n.folderId,
         title: n.title ?? '',
         content: n.content ?? '',
         tags: tagsJson,
         isPinned: n.isPinned ?? false,
         isArchived: n.isArchived ?? false,
-        summary: n.summary ?? null,
+        summary: n.summary,
         version: n.version ?? 1,
         updatedAt: n.updatedAt,
-        deletedAt: n.deletedAt ?? null,
+        deletedAt: n.deletedAt,
         ...(n.userId ? { userId: n.userId } : {}),
       },
     });

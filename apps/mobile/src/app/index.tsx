@@ -45,7 +45,7 @@ export default function AppEntryScreen() {
 
   // Already onboarded -> jump directly into the main tabs
   if (isOnboarded) {
-    // return <Redirect href="/notes/quick-tips-note" />;
+    // return <Redirect href="/notes/156c0c65-19d8-45e1-b284-3b5974f9d048" />;
     // return <Redirect href="/agent" />;
     return <Redirect href="/(tabs)/notes" />;
     // return <Redirect href="/(tabs)/notes/folders" />;

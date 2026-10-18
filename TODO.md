@@ -24,9 +24,10 @@ Currently, the apps/api server does not have logging with the audit log module. 
 
 ---
 
-
 Atlassian
+ 
+---
 
-- 
+## Features
 
-https://ikeen-connector.letechcg.workers.dev/mcp
+- Reminders: Add reminder button on the note-bulk-actions when feature is implemented

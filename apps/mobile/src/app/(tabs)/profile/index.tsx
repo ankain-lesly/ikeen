@@ -1,6 +1,9 @@
 import React from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
+import {
+  openBrowserAsync,
+  WebBrowserPresentationStyle,
+} from "expo-web-browser";
 import { Host, Switch } from "@expo/ui/jetpack-compose";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -318,13 +321,13 @@ export default function ProfileScreen() {
         </View>
 
         {/* ⚙️ Customizations & App Preferences */}
-        <View className="gap-2.5">
+        {/* <View className="gap-2.5">
           <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
             Customizations
           </Text>
 
           <View className="rounded-2xl bg-card border border-border overflow-hidden">
-            {/* Note Sort Order */}
+            // Note Sort Order
             <Pressable
               onPress={handleSortCycle}
               className="p-3.5 flex-row items-center justify-between active:bg-background-element">
@@ -344,7 +347,7 @@ export default function ProfileScreen() {
 
             <View className="h-px bg-border/60 mx-3.5" />
 
-            {/* Haptic Vibrations Toggle */}
+            // Haptic Vibrations Toggle
             <View className="p-3.5 flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
                 <Vibrate size={17} color={colors.textSecondary} />
@@ -370,7 +373,7 @@ export default function ProfileScreen() {
 
             <View className="h-px bg-border/60 mx-3.5" />
 
-            {/* Sync on Mobile Data Toggle */}
+            // Sync on Mobile Data Toggle
             <View className="p-3.5 flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
                 <Wifi size={17} color={colors.textSecondary} />
@@ -394,7 +397,7 @@ export default function ProfileScreen() {
               </Host>
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* 💾 Local Storage Metrics Section (With Pending Syncs) */}
         <View className="gap-2.5">
@@ -600,7 +603,9 @@ export default function ProfileScreen() {
           }}
           className="w-full h-12 rounded-2xl border border-border bg-card flex-row items-center justify-center gap-2 active:opacity-75">
           <Trash size={16} color={colors.textSecondary} />
-          <Text className="text-text font-semibold text-sm">Delete account</Text>
+          <Text className="text-text font-semibold text-sm">
+            Delete account
+          </Text>
         </Pressable>
 
         {/* Sign Out Action (When Authenticated) */}
