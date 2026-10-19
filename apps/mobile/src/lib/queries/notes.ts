@@ -7,7 +7,7 @@ import { notes } from '@/db/schema';
 import type {
   CreateNoteInput,
   ListNotesOptions,
-  Note,
+  NoteSelect as Note,
   UpdateNoteInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
@@ -99,7 +99,9 @@ function buildNotesQuery(
 export function useLiveNotes(options: ListNotesOptions = {}) {
   const userId = useAuthStore((s) => s.user?.id);
   const query = buildNotesQuery(options, userId);
-  return useLiveQuery(query, [
+
+
+  const res = useLiveQuery(query, [
     userId,
     options.folderId,
     options.includeDeleted,
@@ -114,6 +116,8 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.limit,
     options.offset,
   ]);
+
+  return {...res, isLoading: !res.updatedAt && res.data?.length === 0}  
 }
 
 /**

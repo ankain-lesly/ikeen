@@ -17,7 +17,9 @@ import type {
   SyncEntityType,
   SyncMutationBase,
   AppUpdateInfo,
+  BlockMutationPayload,
 } from '@repo/types/sync';
+import type { NoteBlock } from '@repo/types/notes';
 import { Prisma } from '../../generated/prisma/client.js';
 
 const SYNC_CONSTANTS = {
@@ -130,7 +132,7 @@ export class SyncService {
     const touchedEntities: string[] = [];
 
     this.logger.debug(
-      `[Sync:Push:Received] userId=${userId} folders=${dto.folders?.length ?? 0} notes=${dto.notes?.length ?? 0}`,
+      `[Sync:Push:Received] userId=${userId} folders=${dto.folders?.length ?? 0} notes=${dto.notes?.length ?? 0} note_blocks=${dto.note_blocks?.length ?? 0}`,
     );
 
     try {
@@ -154,6 +156,21 @@ export class SyncService {
           tx,
         );
         if (notesTouched) touchedEntities.push('notes');
+
+        // 3. Process Note Blocks
+        const blocksTouched = await this.processMutations(
+          userId,
+          'note_blocks',
+          dto.note_blocks,
+          (b, t) =>
+            this.notesService.upsertBlockWithLww(
+              userId,
+              b,
+              t,
+            ),
+          tx,
+        );
+        if (blocksTouched) touchedEntities.push('note_blocks');
       });
 
       // Broadcast invalidation ping over Ably to alert other devices of this user
@@ -194,7 +211,7 @@ export class SyncService {
     );
 
     try {
-      const [folders, notes] = await Promise.all([
+      const [folders, notes, noteBlocks] = await Promise.all([
         this.prisma.folder.findMany({
           where: {
             userId,
@@ -211,10 +228,18 @@ export class SyncService {
           take: SYNC_CONSTANTS.PULL_LIMIT,
           orderBy: { updatedAt: 'asc' },
         }),
+        this.prisma.noteBlock.findMany({
+          where: {
+            note: { userId },
+            updatedAt: { gt: sinceDate },
+          },
+          take: SYNC_CONSTANTS.PULL_LIMIT,
+          orderBy: { updatedAt: 'asc' },
+        }),
       ]);
 
       this.logger.log(
-        `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length}`,
+        `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length} note_blocks=${noteBlocks.length}`,
       );
 
       return {
@@ -246,6 +271,17 @@ export class SyncService {
           updatedAt: n.updatedAt.toISOString(),
           deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
         })),
+        note_blocks: noteBlocks.map((b) => ({
+          id: b.id,
+          noteId: b.noteId,
+          // BlockType enum values match the string literals at runtime; cast bridges the gap.
+          type: b.type as 'text' | 'list' | 'media',
+          position: b.position,
+          // JsonValue content is passed through as-is; client deserializes it.
+          content: b.content as unknown,
+          createdAt: b.createdAt.toISOString(),
+          updatedAt: b.updatedAt.toISOString(),
+        })) as NoteBlock[],
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);

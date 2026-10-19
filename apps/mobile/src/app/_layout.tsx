@@ -119,9 +119,9 @@ function RootApp() {
     return (
       <View className="flex-1 justify-center items-center p-6 p-safe">
         <ActivityIndicator size="large" />
-        <Text className="mt-3 text-sm text-gray-500">
+        {/* <Text className="mt-3 text-sm text-gray-500">
           Initializing database...
-        </Text>
+        </Text> */}
       </View>
     );
   }

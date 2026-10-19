@@ -1,31 +1,30 @@
 import { useMemo, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { useLiveNotes } from "@/lib/queries/notes";
 import {
-  View,
-} from "react-native";
-import {
-  useLiveNotes,
-} from "@/lib/queries/notes";
-import { hasActiveNotesFilters, type ListNotesOptions } from "@/lib/types/notes";
+  hasActiveNotesFilters,
+  type ListNotesOptions,
+} from "@/lib/types/notes";
 import { NotesHeader } from "@/components/notes/notes-header";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
 import { NoteGridContainer } from "@/components/notes/notes-grid-container";
 import { NoteEmptyCard } from "@/components/notes/note-empty-card";
+import { AnimatedEntryView } from "@/components/ui/animated";
 
 export default function NotesScreen() {
- 
   // Notes Filter State
   const [filter, setFilter] = useState<ListNotesOptions>({});
   const [isFilterSheetPresented, setIsFilterSheetPresented] = useState(false);
 
   // Reactive Queries
-  const { data: rawNotes = [] } = useLiveNotes({
+  const { data: notes = [] , isLoading} = useLiveNotes({
     ...filter,
   });
 
   // Extract unique available tags from notes
   const availableTags = useMemo(() => {
     const set = new Set<string>();
-    (rawNotes).forEach((n) => {
+    notes.forEach((n) => {
       try {
         const parsed = JSON.parse(n.tags || "[]");
         if (Array.isArray(parsed)) {
@@ -37,15 +36,13 @@ export default function NotesScreen() {
       } catch {}
     });
     return Array.from(set).sort();
-  }, [rawNotes]);
+  }, [notes]);
 
   const hasActiveFilters = useMemo(
     () => hasActiveNotesFilters(filter),
     [filter],
   );
 
-  const notes = rawNotes ?? [];
- 
   const handleApplyFilters = (newFilter: ListNotesOptions) => {
     setFilter(newFilter);
     setIsFilterSheetPresented(false);
@@ -62,31 +59,40 @@ export default function NotesScreen() {
           updateFilter={(newFilter) => setFilter(newFilter)}
         />
 
-        <NoteGridContainer
-        filter={filter}
-        updateFilter={(key,val) =>setFilter(prev=>({...prev,[key]: val}))}
-          data={notes}
-          empty={<NoteEmptyCard />}
-          // empty={
-          //   <View className="items-center justify-center py-20 px-8">
-          //     <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-          //       <FileText size={32} color={colors.textSecondary} />
-          //     </View>
-          //     <ThemedText className="font-semibold text-base text-text text-center">
-          //       {Object.keys(filter).length > 0
-          //         ? "No matching notes"
-          //         : "No notes yet"}
-          //     </ThemedText>
-          //     <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-          //       {Object.keys(filter).length > 0
-          //         ? "Try searching for a different keyword or tag."
-          //         : "Capture your thoughts, ideas, and architecture notes."}
-          //     </Text>
-          //   </View>
-          // }
-        />
+        {isLoading ? (
+          <View className="p-safe-offset-10 flex-1">
+            <AnimatedEntryView className="p-4">
+              <ActivityIndicator color={"grey"} />
+            </AnimatedEntryView>
+          </View>
+        ) : (
+          <NoteGridContainer
+            filter={filter}
+            updateFilter={(key, val) =>
+              setFilter((prev) => ({ ...prev, [key]: val }))
+            }
+            data={notes}
+            empty={<NoteEmptyCard />}
+            // empty={
+            //   <View className="items-center justify-center py-20 px-8">
+            //     <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
+            //       <FileText size={32} color={colors.textSecondary} />
+            //     </View>
+            //     <ThemedText className="font-semibold text-base text-text text-center">
+            //       {Object.keys(filter).length > 0
+            //         ? "No matching notes"
+            //         : "No notes yet"}
+            //     </ThemedText>
+            //     <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
+            //       {Object.keys(filter).length > 0
+            //         ? "Try searching for a different keyword or tag."
+            //         : "Capture your thoughts, ideas, and architecture notes."}
+            //     </Text>
+            //   </View>
+            // }
+          />
+        )}
       </View>
- 
 
       {/* Notes Filter Sheet */}
       <NotesFilterSheet

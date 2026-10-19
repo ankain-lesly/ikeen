@@ -6,7 +6,7 @@ import {
   useState,
   useCallback,
 } from "react";
-import { Dimensions, TextInput, type StyleProp, type ViewStyle } from "react-native";
+import {  TextInput, type StyleProp, type ViewStyle } from "react-native";
 import {
   EnrichedMarkdownText,
   EnrichedMarkdownTextInput,
@@ -16,7 +16,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { useMarkdownStyle } from "./markdown-styles";
 import { OpenURLSheet } from "../notes/open-url-sheet";
-import { log } from "@repo/utils";
+ 
 
 export type MarkdownFormatAction =
   "bold" | "italic" | "heading" | "list" | "checklist";
@@ -26,9 +26,7 @@ export type MarkdownEditorHandle = {
   getMarkdown: () => Promise<string | null>;
   format: (action: MarkdownFormatAction) => void;
 };
-
-// Screen Height
-const screenHeight = Dimensions.get("window").height;
+ 
 
 const containerStyle: StyleProp<ViewStyle> = {
   width: "100%",
@@ -216,7 +214,6 @@ export const MarkdownEditor = memo(
             
             width: "100%",
             // minHeight: "100%",
-            minHeight: screenHeight,
             paddingBottom: 96,
             // backgroundColor: "red",
             verticalAlign: "top",

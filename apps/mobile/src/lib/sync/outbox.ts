@@ -4,11 +4,17 @@ import { db } from '@/db/client';
 import { syncOutbox, type SyncOutboxItem } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
 import { log } from '@repo/utils';
-import type { SyncEntityType, SyncActionType, FolderChanges, NoteChanges } from '@repo/types';
+import type {
+  SyncEntityType,
+  SyncActionType,
+  FolderChanges,
+  NoteChanges,
+  BlockChanges,
+} from '@repo/types';
 import { triggerSync } from './sync-events';
 // import { triggerSync } from './sync-events';
 
-export type OutboxPayloadData = FolderChanges | NoteChanges;
+export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
 
 /**
  * Enqueues a local mutation into SQLite sync_outbox.
@@ -20,7 +26,7 @@ export async function enqueueOutbox(
   entity: SyncEntityType,
   entityId: string,
   action: SyncActionType,
-  changes: FolderChanges | NoteChanges,
+  changes: FolderChanges | NoteChanges | BlockChanges,
   version?: number
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -152,7 +158,7 @@ export async function markOutboxInFlight(ids: string[]): Promise<void> {
       .update(syncOutbox)
       .set({ status: 'in_flight', updatedAt: now })
       .where(inArray(syncOutbox.id, ids));
-    log('[Sync:Outbox:InFlight]', { count: ids.length, ids });
+    log('[Sync:Outbox:InFlight]', { count: ids.length, ids: "ids..." });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxInFlight', error: message });
@@ -167,7 +173,7 @@ export async function markOutboxSuccess(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   try {
     await db.delete(syncOutbox).where(inArray(syncOutbox.id, ids));
-    log('[Sync:Outbox:Success]', { count: ids.length, prunedIds: ids });
+    log('[Sync:Outbox:Success]', { count: ids.length, prunedIds: 'ids...' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxSuccess', error: message });

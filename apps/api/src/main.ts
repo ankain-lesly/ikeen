@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express'; // Import this type
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module.js';
 import { EnvService } from './config/env.service.js';
@@ -12,8 +13,12 @@ let cachedServer: any;
  */
 export async function bootstrap() {
   if (!cachedServer) {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+    // 2. Use the built-in NestJS body parser methods
+    app.useBodyParser('json', { limit: '50mb' });
+    app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
+    
     setupApp(app);
 
     await app.init();

@@ -20,15 +20,14 @@ Analyze and plan the the system requirements below and implement. /plan
 
 ---
 
-## Logging
+## TODOS:
 
-Currently, the apps/api server does not have logging with the audit log module. Verify and setup audit log so we know and have mcp usage activities. Also, create an audit log screen in the profile on the mobile app and on the web app and implement the api to get audit logs for an authenticated user. Gate the audit log screen by user.type admin. On the audit log screens, add tabs to filer logs based on maybe log event type or source also verify the audit log model is setup to support the tab filter
+- Fix block.type media sync issue
 
-## Notes Dropdown Refactor
+## Note Content Legacy
 
-Analyze and Refactor notes actions and dropdown into hook experience targeting the note dropdown, notes, note grid components.
-
-## Custom Option Sheet - Same as Above but for menu. Later Release
+- Eliminate Note.content in future release and rely only on note.blocks
+- ikeen agents tools up to date with the new notes block system
 
 ## Add Background Image
 

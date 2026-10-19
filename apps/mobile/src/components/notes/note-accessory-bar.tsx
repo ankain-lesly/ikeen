@@ -48,6 +48,11 @@ interface NoteMinimalToolbarProps {
 interface NoteBottomToolBarProps
   extends NoteMinimalToolbarProps, NoteAccessoryBarProps {
   isEditing: boolean;
+  onAddTextBlock?: () => void;
+  onAddCheckboxBlock?: () => void;
+  onAddMedia?: () => void;
+  onTakePhoto?: () => void;
+  onRecordAudio?: () => void;
 }
 
 type ToolbarMode = "default" | "color" | "text";
@@ -63,6 +68,11 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
   onShare,
   onTogglePin,
   wordCount,
+  onAddTextBlock,
+  onAddCheckboxBlock,
+  onAddMedia,
+  onTakePhoto,
+  onRecordAudio,
 }: NoteBottomToolBarProps) {
   const { isVisible } = useKeyboardGradualAnimation();
 
@@ -123,11 +133,11 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
         <NotesEditorToolbarBlocks
           isSheetOpen={isBlockSheetOpen}
           onDismiss={() => setIsBlockSheetOpen(false)}
-          onAddCheckboxBlock={() => toast.info("Add Checkbox Block")}
-          onAddMedia={() => toast.info("Add Media Block")}
-          onAddTextBlock={() => toast.info("Add Text Note Block")}
-          onTakePhoto={() => toast.info("Take Photo Block")}
-          onRecordAudio={() => toast.info("Record Audio Block")}
+          onAddCheckboxBlock={onAddCheckboxBlock}
+          onAddMedia={onAddMedia}
+          onAddTextBlock={onAddTextBlock}
+          onTakePhoto={onTakePhoto}
+          onRecordAudio={onRecordAudio}
         />
       )}
     </>

@@ -9,12 +9,15 @@ import { log } from '@repo/utils';
 import type {
   FolderMutationPayload,
   NoteMutationPayload,
+  BlockMutationPayload,
   FolderChanges,
   NoteChanges,
+  BlockChanges,
 } from '@repo/types';
 import { useAuthStore } from '../auth/auth-store';
 import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
 import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
+import { upsertBlockFromSync } from '../queries/note-blocks';
 import {
   getOutboxCount,
   getPendingOutbox,
@@ -34,6 +37,7 @@ class SyncManager {
   private ablyClient: Ably.Realtime | null = null;
   private ablyChannel: Ably.RealtimeChannel | null = null;
   private isInitialized = false;
+  private syncBatchCount = 0;
 
   /**
    * Initializes real-time subscriptions, network listener, and app-state handlers.
@@ -214,6 +218,7 @@ class SyncManager {
 
       const folderMutations: FolderMutationPayload[] = [];
       const noteMutations: NoteMutationPayload[] = [];
+      const blockMutations: BlockMutationPayload[] = [];
 
       for (const item of items) {
         try {
@@ -226,7 +231,8 @@ class SyncManager {
 
           const changes = (payloadData.changes ?? payloadData) as
             | FolderChanges
-            | NoteChanges;
+            | NoteChanges
+            | BlockChanges;
           const version = payloadData.version as number | undefined;
           const updatedAt = (payloadData.updatedAt as string | undefined) || item.updatedAt;
 
@@ -237,7 +243,7 @@ class SyncManager {
               action: item.action,
               version,
               updatedAt,
-              changes: changes,
+              changes: changes as FolderChanges,
             });
           } else if (item.entity === 'notes') {
             const noteChanges = changes as NoteChanges;
@@ -259,6 +265,15 @@ class SyncManager {
               updatedAt,
               changes: noteChanges,
             });
+          } else if (item.entity === 'note_blocks') {
+            blockMutations.push({
+              id: item.entityId,
+              mutationId: item.mutationId || `${item.entity}:${item.action}:${item.id}`,
+              action: item.action,
+              version,
+              updatedAt,
+              changes: changes as BlockChanges,
+            });
           }
         } catch (parseErr: unknown) {
           const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
@@ -267,10 +282,14 @@ class SyncManager {
         }
       }
 
+      this.syncBatchCount++;
+
       log('[Sync:Push:Dispatch]', {
+        syncBatchCount: this.syncBatchCount,
         itemsCount: items.length,
         foldersCount: folderMutations.length,
         notesCount: noteMutations.length,
+        blocksCount: blockMutations.length,
       });
 
       try {
@@ -278,6 +297,7 @@ class SyncManager {
           clientTimestamp: new Date().toISOString(),
           folders: folderMutations,
           notes: noteMutations,
+          note_blocks: blockMutations,
         });
 
         await markOutboxSuccess(batchIds);
@@ -337,6 +357,13 @@ class SyncManager {
         await upsertNoteFromSync({ ...n, userId: user?.id });
       }
 
+      // Apply Note Blocks (LWW — skips if local is newer)
+      if (response.note_blocks?.length) {
+        for (const b of response.note_blocks) {
+          await upsertBlockFromSync(b);
+        }
+      }
+
       // Save new checkpoint
       await db
         .insert(syncMetadata)
@@ -357,6 +384,7 @@ class SyncManager {
       log('[Sync:Pull:Success]', {
         foldersCount: response.folders.length,
         notesCount: response.notes.length,
+        blocksCount: response.note_blocks?.length ?? 0,
         serverTimestamp: response.serverTimestamp,
       });
     } catch (err: unknown) {
@@ -385,6 +413,7 @@ class SyncManager {
     try {
       await this.push();
       await this.pull();
+      // TODO: FEAT:  Add Media Sync Later
       useSyncStore.getState().setStatus('idle');
       log('[Sync:Cycle:Success]');
     } catch (err: unknown) {

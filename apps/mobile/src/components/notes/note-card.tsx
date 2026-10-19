@@ -5,13 +5,13 @@ import * as Haptics from "@/lib/haptics";
 import { ArchiveRestore, Check, Pin } from "lucide-react-native";
 
 import { ThemedText } from "@/components/ui/themed-text";
-import type { Note } from "@/lib/types/notes";
+import type { NoteSelect } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
 import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
 
 interface NoteCardProps {
-  note: Note;
+  note: NoteSelect;
   className?: string;
   isSelectionMode?: boolean;
   isSelected?: boolean;
@@ -102,7 +102,10 @@ export const NoteCard = React.memo(function NoteCard({
   }, [note.tags]);
 
   const displayTitle = note.title.trim() || "Untitled Note";
-  const displaySnippet = note.content.trim() || "No additional text";
+  const displaySnippet =
+    (note.summary && note.summary.trim()) ||
+    note.content.trim() ||
+    "Structured note";
   const formattedDate = formatTimeAgo(note.updatedAt);
 
   useEffect(() => {

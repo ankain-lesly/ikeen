@@ -6,7 +6,7 @@ import { db } from '@/db/client';
 import { folders, notes } from '@/db/schema';
 import type {
   CreateFolderInput,
-  Folder,
+  FolderSelect,
   FolderWithCount,
   ListFoldersOptions,
   UpdateFolderInput,
@@ -184,7 +184,7 @@ export async function getFolderById(id: string): Promise<FolderWithCount | null>
 /**
  * Creates a new folder in SQLite.
  */
-export async function createFolder(input: CreateFolderInput): Promise<Folder> {
+export async function createFolder(input: CreateFolderInput): Promise<FolderSelect> {
   const id = input.id ?? Crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -226,7 +226,7 @@ export async function createFolder(input: CreateFolderInput): Promise<Folder> {
 export async function updateFolder(
   id: string,
   input: UpdateFolderInput
-): Promise<Folder> {
+): Promise<FolderSelect> {
   const existing = await getFolderById(id);
   if (!existing) {
     throw new Error(`Folder with id "${id}" not found.`);

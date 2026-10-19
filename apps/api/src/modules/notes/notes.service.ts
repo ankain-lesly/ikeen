@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { NoteMutationPayload } from '@repo/types';
+import type { BlockMutationPayload, NoteMutationPayload } from '@repo/types';
 // import { log } from '@repo/utils';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
+import { BlockMutationDto } from '../sync/dto/sync-push.dto.js';
 
 export type NoteSyncData = NoteMutationPayload;
 
@@ -204,5 +205,71 @@ export class NotesService {
     );
 
     return { applied: true, noteId: n.id };
+  }
+
+  /**
+   * Reusable Last-Write-Wins (LWW) upsert for note blocks with partial patching and versioning.
+   */
+  async upsertBlockWithLww(
+    userId: string,
+    b: BlockMutationDto,
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<{ applied: boolean; blockId: string }> {
+    const clientUpdatedAt = new Date(b.updatedAt);
+    const existing = await prismaClient.noteBlock.findUnique({
+      where: { id: b.id },
+    });
+
+    if (existing && clientUpdatedAt < existing.updatedAt) {
+      this.logger.debug(
+        `LWW: Skipping older note block mutation for ${b.id} (client: ${b.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
+      );
+      return { applied: false, blockId: b.id };
+    }
+
+    const nextVersion = Math.max((existing?.version ?? 0) + 1, b.version ?? 1);
+
+    // Verify the parent note exists and belongs to the user
+    const parentNote = await prismaClient.note.findFirst({
+      where: { id: b.changes.noteId, userId },
+    });
+
+    if (!parentNote) {
+      this.logger.warn(`Block upsert skipped: parent note ${b.changes.noteId} not found for user ${userId}`);
+      return { applied: false, blockId: b.id };
+    }
+
+    if (existing) {
+      await prismaClient.noteBlock.update({
+        where: { id: b.id },
+        data: {
+          updatedAt: clientUpdatedAt,
+          type: b.changes.type ?? existing.type,
+          position: b.changes.position ?? existing.position,
+          // Cast required: BlockChanges.content is a union (string|ListItem[]|MediaItem[])
+          // and JsonValue includes null — both are valid JSON but don't match
+          // Prisma's recursive InputJsonValue index-signature structurally.
+          content: (b.changes.content ?? existing.content ?? '{}') as unknown as Prisma.InputJsonValue,
+        },
+      });
+    } else {
+      await prismaClient.noteBlock.create({
+        data: {
+          id: b.id,
+          noteId: b.changes.noteId!,
+          type: b.changes.type ?? 'text',
+          position: b.changes.position ?? 0,
+          content: (b.changes.content ?? '{}') as unknown as Prisma.InputJsonValue,
+          createdAt: clientUpdatedAt,
+          updatedAt: clientUpdatedAt,
+        },
+      });
+    }
+
+    this.logger.debug(
+      `[LWW:NoteBlock:Applied] id=${b.id} action=${b.action} version=${nextVersion} isExisting=${!!existing}`,
+    );
+
+    return { applied: true, blockId: b.id };
   }
 }

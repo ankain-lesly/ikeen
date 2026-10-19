@@ -1,9 +1,11 @@
 import type { Folder, FolderChanges } from "./folders";
-import type { Note, NoteChanges } from "./notes";
+import type { Note, NoteChanges, NoteBlock } from "./notes";
 
-export type SyncEntityType = "folders" | "notes";
+export type SyncEntityType = "folders" | "notes" | "note_blocks";
 export type SyncActionType = "upsert" | "delete";
 export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
+
+export type BlockChanges = Partial<NoteBlock>;
 
 // export type { FolderChanges } from "./folders";
 // export type { NoteChanges } from "./notes";
@@ -17,7 +19,7 @@ export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
  * - updatedAt: Client mutation timestamp for LWW conflict resolution
  */
 export interface SyncMutationPayload<
-  TChanges extends FolderChanges | NoteChanges,
+  TChanges extends FolderChanges | NoteChanges | BlockChanges,
 > {
   id: string;
   mutationId: string;
@@ -27,18 +29,20 @@ export interface SyncMutationPayload<
   changes: TChanges;
 }
 
-export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges>;
+export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges | BlockChanges>;
 
 /**
  * Generic sync mutation payload: metadata sits outside, entity fields sit strictly inside `changes`.
  */
 export type FolderMutationPayload = SyncMutationPayload<FolderChanges>;
 export type NoteMutationPayload = SyncMutationPayload<NoteChanges>;
+export type BlockMutationPayload = SyncMutationPayload<BlockChanges>;
 
 export interface SyncPushPayload {
   clientTimestamp: string;
   folders?: FolderMutationPayload[];
   notes?: NoteMutationPayload[];
+  note_blocks?: BlockMutationPayload[];
 }
 
 export interface SyncPushResponse {
@@ -50,6 +54,7 @@ export interface SyncPullResponse {
   serverTimestamp: string;
   folders: Folder[];
   notes: Note[];
+  note_blocks?: NoteBlock[];
 }
 
 export interface RealtimeAuthResponse {

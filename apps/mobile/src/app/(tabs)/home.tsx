@@ -1,5 +1,11 @@
 import React, { useMemo } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
@@ -16,11 +22,12 @@ import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useSyncStore } from "@/lib/sync/use-sync";
-import { useLiveNotes,  } from "@/lib/queries/notes";
+import { useLiveNotes } from "@/lib/queries/notes";
 import { useLiveFolders } from "@/lib/queries/folders";
 import { NotebookHeroIllustration } from "@/components/illustrations";
 import { NoteCard } from "@/components/notes/note-card";
 import { NoteEmptyCard } from "@/components/notes/note-empty-card";
+import { AnimatedEntryView } from "@/components/ui/animated";
 
 export default function HomeScreen() {
   const colors = useTheme();
@@ -28,25 +35,28 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { status: syncStatus, pendingCount } = useSyncStore();
 
-  const { data: allNotes = [] } = useLiveNotes({ limit: 5, pinnedFirst: true});
+  const { data: notes = [], isLoading } = useLiveNotes({
+    limit: 5,
+    pinnedFirst: true,
+  });
   const { data: folders = [] } = useLiveFolders();
 
   // Sort notes by pinned first, then by other criteria if needed
   // Compute stats & recent slices
   const recentNotes = useMemo(
     () =>
-      allNotes
+      notes
         .sort((a, b) => {
           if (a.isPinned === b.isPinned) return 0;
           return a.isPinned ? -1 : 1;
         })
         .slice(0, 5),
-    [allNotes],
+    [notes],
   );
 
   const pinnedNotesCount = useMemo(
-    () => allNotes.filter((n) => n.isPinned).slice(0, 5).length,
-    [allNotes],
+    () => notes.filter((n) => n.isPinned).slice(0, 5).length,
+    [notes],
   );
 
   // // Time-based greeting
@@ -76,8 +86,8 @@ export default function HomeScreen() {
   //     "U"
   //   : "G";
 
-  const handleCreateNote =  () => {
-    router.push("/notes/create")
+  const handleCreateNote = () => {
+    router.push("/notes/create");
   };
 
   const syncStatusText = useMemo(() => {
@@ -86,6 +96,16 @@ export default function HomeScreen() {
     if (pendingCount > 0) return `${pendingCount} Pending`;
     return "All Synced";
   }, [syncStatus, pendingCount]);
+
+  if (isLoading) {
+    return (
+      <View className="p-safe-offset-10 flex-1">
+        <AnimatedEntryView className="p-4">
+          <ActivityIndicator color={colors.textSecondary} />
+        </AnimatedEntryView>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-background pt-safe">
@@ -190,7 +210,7 @@ export default function HomeScreen() {
         </View>
 
         {/* 📊 Executive Glances Grid (Focused on Foreground/Background) */}
-        {allNotes.length > 0 && (
+        {notes.length > 0 && (
           <View className="gap-2.5 px-5">
             <ThemedText type="smallBold">Overview</ThemedText>
 
@@ -209,7 +229,7 @@ export default function HomeScreen() {
                   <ArrowRight size={14} color={colors.textSecondary} />
                 </View>
                 <Text className="text-2xl font-bold text-text font-mono">
-                  {allNotes.length}
+                  {notes.length}
                 </Text>
                 <Text className="text-xs text-text-secondary mt-0.5">
                   Total Notes
@@ -260,10 +280,14 @@ export default function HomeScreen() {
 
               {/* Cloud Sync Status */}
               <Pressable
-                onPress={user?.type ==="admin" ? () => {
-                  Haptics.selectionAsync();
-                  router.push("/(tabs)/profile/sync-outbox");
-                } : undefined}
+                onPress={
+                  user?.type === "admin"
+                    ? () => {
+                        Haptics.selectionAsync();
+                        router.push("/(tabs)/profile/sync-outbox");
+                      }
+                    : undefined
+                }
                 className="flex-1 min-w-[45%] p-4 rounded-2xl bg-card border border-border active:bg-background-element">
                 <View className="flex-row items-center justify-between mb-2">
                   <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
@@ -295,7 +319,7 @@ export default function HomeScreen() {
         )}
 
         {/* 📌 Pinned Highlights (If Any) */}
-        {allNotes.length > 0 && (
+        {notes.length > 0 && (
           <View className="gap-2.5">
             <View className="px-6 flex-row items-center justify-between">
               <ThemedText type="smallBold">Recent Notes</ThemedText>
@@ -331,7 +355,7 @@ export default function HomeScreen() {
           </View>
         )}
         {/* 📝 Recent Notes Feed */}
-        <NoteEmptyCard hide={allNotes.length > 0} />
+        <NoteEmptyCard hide={notes.length > 0} />
       </ScrollView>
     </View>
   );

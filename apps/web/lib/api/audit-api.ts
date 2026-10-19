@@ -9,8 +9,8 @@ export interface AuditLog {
   isSystem: boolean;
   resourceType?: string | null;
   resourceId?: string | null;
-  metadata?: Record<string, unknown> | null;
-  changes?: Record<string, { old: unknown; new: unknown }> | null;
+  metadata?: Record<string, any> | null;
+  changes?: Record<string, { old: any; new: any }> | null;
   details?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;

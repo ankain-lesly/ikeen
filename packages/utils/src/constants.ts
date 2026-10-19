@@ -12,7 +12,7 @@ export const FOLDER_PRESET_COLORS = [
 export const DEFAULT_FOLDER_COLOR = '#3b82f6';
 
 export const SYNC_CONSTANTS = {
-  BATCH_SIZE: 100, // Max outbox items pushed per HTTP request
-  PULL_LIMIT: 250, // Max records pulled per delta request
+  BATCH_SIZE: 10, // Max outbox items pushed per HTTP request
+  PULL_LIMIT: 150, // Max records pulled per delta request
   MAX_RETRIES: 5,  // Max retries before outbox status transitions to 'failed'
 } as const;

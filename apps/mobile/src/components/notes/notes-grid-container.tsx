@@ -14,7 +14,7 @@ import {
   List,
 } from "lucide-react-native";
 import { FlashList } from "@shopify/flash-list";
-import type { ListNotesOptions, Note } from "@/lib/types/notes";
+import type { ListNotesOptions, NoteSelect } from "@/lib/types/notes";
 
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
@@ -24,9 +24,7 @@ import {
   applyToNotes,
   hardDeleteNote,
   restoreNote,
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
+  softDeleteNote, 
   updateNote,
 } from "@/lib/queries/notes";
 import { ThemedText } from "../ui/themed-text";
@@ -37,14 +35,13 @@ import {
 } from "./notes-bulk-action-bar";
 import { MoveToFolderSheet } from "./move-to-folder-sheet";
 import { AnimatedEntryView } from "../ui/animated";
-import {} from "expo-router";
 
 function noteLabel(count: number) {
   return count === 1 ? "note" : "notes";
 }
 
 interface NoteGridContainerProps {
-  data: Note[];
+  data: NoteSelect[];
   empty?: React.ReactElement;
   footer?: React.ReactElement;
   showFilter?: boolean;
@@ -84,48 +81,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     setSelectedIds(next);
     if (next.size === 0) setIsSelectionMode(false);
   }, [data, selectedIds]);
-
-  // Single Note Handlers
-  const handleTogglePin = useCallback(async (id: string) => {
-    try {
-      await togglePinNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update pin state");
-    }
-  }, []);
-
-  const handleToggleArchive = useCallback(async (id: string) => {
-    try {
-      await toggleArchiveNote(id);
-    } catch {
-      Alert.alert("Error", "Could not update archive state");
-    }
-  }, []);
-
-  const handleDeleteNote = useCallback((id: string) => {
-    Alert.alert(
-      "Delete Note",
-      "Are you sure you want to move this note to recently deleted?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await softDeleteNote(id);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            } catch {
-              Alert.alert("Error", "Could not delete note");
-            }
-          },
-        },
-      ],
-    );
-  }, []);
-
+ 
   const handleSelectNote = useCallback(
     (id: string) => {
       const removingLast = selectedIds.has(id) && selectedIds.size === 1;
@@ -309,7 +265,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Note }) => (
+    ({ item }: { item: NoteSelect }) => (
       <View className="p-1">
         <NoteCard
           note={item}

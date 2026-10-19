@@ -24,30 +24,27 @@ import { NoteBottomToolBar } from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/lib/toast";
-import {
-  createNote,
-  updateNote,
-} from "@/lib/queries/notes";
+import { createNote, updateNote } from "@/lib/queries/notes";
 import { useLiveFolder } from "@/lib/queries/folders";
-import type { Note } from "@/lib/types/notes";
+import type { NoteSelect } from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
 import {
-  MarkdownBody,
-  MarkdownEditor,
   type MarkdownEditorHandle,
   type MarkdownFormatAction,
 } from "@/components/markdown";
+import { BlockContainer } from "@/components/notes/blocks";
+import { createBlock } from "@/lib/queries/note-blocks";
 import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
 import { log } from "@repo/utils";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useNoteActions } from "@/hooks/use-note-actions";
 
-export function NoteEditor({ note: initialNote }: { note?: Note }) {
+export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const colors = useTheme();
 
   const { user } = useAuthStore();
@@ -70,6 +67,8 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
     isArchived: !!initialNote?.isArchived,
     folderId: initialNote?.folderId,
     userId: user?.id,
+    createdAt: "",
+    updatedAt: "",
   });
 
   // Track Notes Edit, Touched State
@@ -269,13 +268,6 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
     updateNoteState("title", newTitle);
   };
 
-  const handleContentChange = useCallback(
-    (newContent: string) => {
-      updateNoteState("content", newContent);
-    },
-    [updateNoteState],
-  );
-
   const formatContent = useCallback((action: MarkdownFormatAction) => {
     contentInputRef.current?.format(action);
   }, []);
@@ -287,6 +279,64 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
   const editContent = useCallback(() => {
     startEditing("title");
   }, [startEditing]);
+
+  const ensureNotePersisted = useCallback(async () => {
+    if (isNewDraft) {
+      saveNote();
+    }
+    return note.id;
+  }, [isNewDraft, note.id, saveNote]);
+
+  const handleAddTextBlock = useCallback(async () => {
+    try {
+      const noteId = await ensureNotePersisted();
+      await createBlock(noteId, {
+        type: "text",
+        content: "",
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error("[NoteEditor] Failed to add text block:", err);
+      toast.error("Failed to add text block");
+    }
+  }, [ensureNotePersisted]);
+
+  const handleAddCheckboxBlock = useCallback(async () => {
+    try {
+      const noteId = await ensureNotePersisted();
+      await createBlock(noteId, {
+        type: "list",
+        listType: "checkbox",
+        content: [{ id: Crypto.randomUUID(), content: "", checked: false }],
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error("[NoteEditor] Failed to add checkbox block:", err);
+      toast.error("Failed to add checkbox block");
+    }
+  }, [ensureNotePersisted]);
+
+  const handleAddMediaBlock = useCallback(async () => {
+    try {
+      const noteId = await ensureNotePersisted();
+      await createBlock(noteId, {
+        type: "media",
+        content: [
+          {
+            id: Crypto.randomUUID(),
+            mediaType: "image",
+            localUri: "https://picsum.photos/800/600",
+            caption: "",
+            synced: false,
+          },
+        ],
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error("[NoteEditor] Failed to add media block:", err);
+      toast.error("Failed to add media block");
+    }
+  }, [ensureNotePersisted]);
 
   const actions = useNoteActions({
     noteId: note.id ?? "",
@@ -304,7 +354,6 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
 
   const handleTogglePin = actions.handleTogglePin;
   const handleShare = actions.handleShareNote;
-  const handleDelete = actions.handleDeleteNote;
 
   const handleAddTag = (e: TextInputEndEditingEvent) => {
     const text = e.nativeEvent.text;
@@ -435,7 +484,7 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
               router.back();
             }}
             // onDelete={isNewDraft ? undefined : handleDelete}
-            
+
             onShowInfo={() => setInfoSheetVisible(true)}
             onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
           />
@@ -545,27 +594,14 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
             ) : null}
           </View>
 
-          {/* Editor Content | Blocks */}
-          {isEditing ? (
-            <MarkdownEditor
-              ref={contentInputRef}
-              defaultValue={note.content}
-              placeholder="Start typing..."
-              onChangeText={handleContentChange}
-            />
-          ) : note.content.trim() ? (
-            <View className="w-full min-w-0 pb-24">
-              <MarkdownBody source={note.content} />
-            </View>
-          ) : (
-            <GestureDetector gesture={combinedGestures}>
-              <View className="w-full min-w-0 pb-24">
-                <Text className="text-base leading-6 text-text-secondary">
-                  Start typing...
-                </Text>
-              </View>
-            </GestureDetector>
-          )}
+          {/* Block-Based Content Experience */}
+          <BlockContainer
+            note={note}
+            isEditing={isEditing}
+            onContentConverted={() => updateNoteState("content", "")}
+            onContentChange={(t) => updateNoteState("content", t)}
+            onStartEditing={() => startEditing("title")}
+          />
         </ScrollView>
       </View>
       {/* Accessory / Toolbar depending on mode */}
@@ -580,6 +616,12 @@ export function NoteEditor({ note: initialNote }: { note?: Note }) {
         onShare={handleShare}
         isPinned={note.isPinned}
         onTogglePin={handleTogglePin}
+        onAddTextBlock={handleAddTextBlock}
+        onAddCheckboxBlock={handleAddCheckboxBlock}
+        onAddMedia={handleAddMediaBlock}
+        // TODO: -- to be implemented
+        onTakePhoto={() => toast.info("Taking A Photo")}
+        onRecordAudio={() => toast.info("Recording Audio")}
       />
       {/* Note Info Details Modal Sheet */}
       <NoteInfoSheet

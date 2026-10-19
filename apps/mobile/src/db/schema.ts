@@ -50,11 +50,30 @@ export const notes = sqliteTable(
   ]
 );
 
+export const noteBlocks = sqliteTable(
+  'note_blocks',
+  {
+    id: text('id').primaryKey(),
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: ['text', 'list', 'media'] }).notNull(),
+    position: integer('position').notNull(),
+    content: text('content').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    index('idx_note_blocks_note_id_position').on(table.noteId, table.position),
+    index('idx_note_blocks_note_id').on(table.noteId),
+  ]
+);
+
 export const syncOutbox = sqliteTable(
   'sync_outbox',
   {
     id: text('id').primaryKey(),
-    entity: text('entity', { enum: ['folders', 'notes'] }).notNull(),
+    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks'] }).notNull(),
     entityId: text('entity_id').notNull(),
     action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
     status: text('status', { enum: ['pending', 'in_flight', 'success', 'failed'] })
@@ -80,12 +99,13 @@ export const syncMetadata = sqliteTable('sync_metadata', {
   updatedAt: text('updated_at').notNull(),
 });
 
-
-
-export type Note = typeof notes.$inferSelect;
+export type NoteSelect = typeof notes.$inferSelect;
 export type InsertNote = typeof notes.$inferInsert;
 
-export type Folder = typeof folders.$inferSelect;
+export type NoteBlockSelect = typeof noteBlocks.$inferSelect;
+export type InsertNoteBlock = typeof noteBlocks.$inferInsert;
+
+export type FolderSelect = typeof folders.$inferSelect;
 export type InsertFolder = typeof folders.$inferInsert;
 
 export type SyncOutboxItem = typeof syncOutbox.$inferSelect;
