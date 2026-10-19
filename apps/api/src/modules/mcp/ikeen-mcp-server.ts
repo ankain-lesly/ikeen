@@ -31,6 +31,11 @@ export interface IkeenMcpServerOptions {
   prisma: PrismaService;
   userId: string;
   clientId?: string;
+  apiKey?: {
+    id: string;
+    name: string;
+    keyPrefix: string;
+  };
 }
 
 function formatResult(data: unknown): CallToolResult {
@@ -64,6 +69,7 @@ export function createIkeenMcpServer({
   prisma,
   userId,
   clientId = 'mcp-client',
+  apiKey,
 }: IkeenMcpServerOptions): McpServer {
   const server = new McpServer(
     {
@@ -82,6 +88,7 @@ export function createIkeenMcpServer({
   const toolExecutionOpts = {
     source: 'mcp' as const,
     clientId,
+    apiKey,
   };
 
   // --- 1. NOTES TOOLS (Canonical ikeen_* registration with annotations) ---

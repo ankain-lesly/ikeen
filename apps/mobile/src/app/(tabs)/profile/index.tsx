@@ -481,69 +481,78 @@ export default function ProfileScreen() {
               </Pressable>
             )}
 
-            <View className="h-px bg-border/60" />
-
-            {/* 🔄 Pending Syncs (Local SQLite Outbox Count) */}
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
-                  <RefreshCw
-                    size={16}
-                    color={pendingCount > 0 ? "#f59e0b" : colors.text}
-                  />
-                </View>
-                <View>
-                  <Text className="text-sm font-medium text-text">
-                    Pending Syncs
-                  </Text>
-                  <Text className="text-[10px] text-text-secondary">
-                    Queued outbox mutations
-                  </Text>
-                </View>
-              </View>
-              <View
-                className="px-2 py-0.5 rounded-full border"
-                style={{
-                  backgroundColor:
-                    pendingCount > 0
-                      ? "rgba(245, 158, 11, 0.1)"
-                      : colors.backgroundElement,
-                  borderColor:
-                    pendingCount > 0
-                      ? "rgba(245, 158, 11, 0.3)"
-                      : colors.border,
-                }}>
-                <Text
-                  className="text-xs font-bold font-mono"
-                  style={{
-                    color: pendingCount > 0 ? "#f59e0b" : colors.textSecondary,
-                  }}>
-                  {pendingCount > 0 ? `${pendingCount} queued` : "0 (Clean)"}
-                </Text>
-              </View>
-            </View>
+            {/* <View className="h-px bg-border/60" /> */}
           </View>
 
           {/* 🔗 Dedicated Interactive Link to Sync Outbox Page */}
           {user?.type === "admin" && (
-            <Pressable
-              onPress={handleOpenSyncOutbox}
-              className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
-                  <HardDrive size={18} color={colors.text} />
+            <View className="gap-2">
+              <Pressable
+                onPress={handleOpenSyncOutbox}
+                className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
+                    <HardDrive size={18} color={colors.text} />
+                  </View>
+                  <View className="">
+                    <Text className="text-sm font-bold text-text">
+                      Sync Outbox
+                    </Text>
+                    <Text className="text-xs text-text-secondary mt-0.5">
+                      Inspect Sync Progress
+                    </Text>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-text">
-                    Sync Outbox
-                  </Text>
-                  <Text className="text-xs text-text-secondary mt-0.5">
-                    Inspect Sync Progress
-                  </Text>
+                <View className="flex-row gap-2 items-center">
+                  <View
+                    className="px-2 py-0.5 rounded-full border"
+                    style={{
+                      backgroundColor:
+                        pendingCount > 0
+                          ? "rgba(245, 158, 11, 0.1)"
+                          : colors.backgroundElement,
+                      borderColor:
+                        pendingCount > 0
+                          ? "rgba(245, 158, 11, 0.3)"
+                          : colors.border,
+                    }}>
+                    <Text
+                      className="text-xs font-bold font-mono"
+                      style={{
+                        color:
+                          pendingCount > 0 ? "#f59e0b" : colors.textSecondary,
+                      }}>
+                      {pendingCount > 0
+                        ? `${pendingCount} queued`
+                        : "0 (Clean)"}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.textSecondary} />
                 </View>
-              </View>
-              <ChevronRight size={16} color={colors.textSecondary} />
-            </Pressable>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  if (hapticsEnabled) Haptics.selectionAsync();
+                  router.push("/(tabs)/profile/audit");
+                }}
+                className="p-4 rounded-3xl bg-card border border-border flex-row items-center justify-between active:opacity-70">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-2xl bg-background-element border border-border items-center justify-center">
+                    <ShieldCheck size={18} color={colors.text} />
+                  </View>
+                  <View>
+                    <ThemedText className="text-sm font-bold text-text">
+                      Audit Logs
+                    </ThemedText>
+                    <Text className="text-xs text-text-secondary">
+                      View MCP and agent system activities
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.textSecondary} />
+              </Pressable>
+            </View>
           )}
         </View>
 

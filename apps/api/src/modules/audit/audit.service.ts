@@ -99,6 +99,73 @@ export class AuditService {
 
     return changes;
   }
+
+  async getLogs(params: {
+    page?: number;
+    limit?: number;
+    action?: string;
+    severity?: string;
+    resourceType?: string;
+    userId?: string;
+    search?: string;
+  }) {
+    const page = params.page && params.page > 0 ? params.page : 1;
+    const limit = params.limit && params.limit > 0 ? Math.min(params.limit, 100) : 50;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (params.action) {
+      where.action = { contains: params.action, mode: 'insensitive' };
+    }
+    if (params.severity) {
+      where.severity = params.severity;
+    }
+    if (params.resourceType) {
+      where.resourceType = params.resourceType;
+    }
+    if (params.userId) {
+      where.userId = params.userId;
+    }
+    if (params.search) {
+      where.OR = [
+        { action: { contains: params.search, mode: 'insensitive' } },
+        { details: { contains: params.search, mode: 'insensitive' } },
+        { resourceId: { contains: params.search, mode: 'insensitive' } },
+        { resourceType: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [logs, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      data: logs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }
 
 function extractRequestContext(req?: Request): {

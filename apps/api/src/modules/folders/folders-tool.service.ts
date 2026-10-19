@@ -134,7 +134,7 @@ export class FoldersToolService {
         resourceType: 'folder',
         resourceId: folder.id,
         details: `Created folder "${folder.name}"`,
-        metadata: { source, clientId: options?.clientId },
+        metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
       void this.ably.publishInvalidation(userId, ['folders']);
@@ -223,7 +223,7 @@ export class FoldersToolService {
           },
           ['name', 'color', 'icon', 'sortOrder'],
         ),
-        metadata: { source, clientId: options?.clientId },
+        metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
       void this.ably.publishInvalidation(userId, ['folders']);
@@ -308,6 +308,7 @@ export class FoldersToolService {
           previousFolderId: existingNote.folderId,
           source,
           clientId: options?.clientId,
+          apiKey: options?.apiKey,
         },
       });
 

@@ -45,9 +45,11 @@ async function main() {
   }
 
   let resolvedUserId: string;
+  let resolvedApiKey: { id: string; name: string; keyPrefix: string } | undefined;
   try {
-    const user = await apiKeyService.validateApiKey(apiKey);
+    const { user, apiKey: keyInfo } = await apiKeyService.validateApiKey(apiKey);
     resolvedUserId = user.id;
+    resolvedApiKey = keyInfo;
     process.stderr.write(`[ikeen-mcp-stdio] Authenticated successfully as user ${user.id}\n`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -62,6 +64,7 @@ async function main() {
     prisma: prismaService,
     userId: resolvedUserId,
     clientId: 'claude-desktop-stdio',
+    apiKey: resolvedApiKey,
   });
 
   const transport = new StdioServerTransport();

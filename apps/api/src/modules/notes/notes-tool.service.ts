@@ -19,6 +19,11 @@ export interface ToolExecutionOptions {
   conversationId?: string;
   source?: 'agent' | 'mcp';
   clientId?: string;
+  apiKey?: {
+    id: string;
+    name: string;
+    keyPrefix: string;
+  };
 }
 
 const discoverySelect = {
@@ -241,6 +246,7 @@ export class NotesToolService {
           warning,
           source,
           clientId: options?.clientId,
+          apiKey: options?.apiKey,
         },
       });
 
@@ -364,6 +370,7 @@ export class NotesToolService {
         metadata: {
           source,
           clientId: options?.clientId,
+          apiKey: options?.apiKey,
         },
       });
 
@@ -420,7 +427,7 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: note.id,
         details: `${isPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
-        metadata: { isPinned, source, clientId: options?.clientId },
+        metadata: { isPinned, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
       void this.ably.publishInvalidation(userId, ['notes']);
@@ -479,7 +486,7 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: note.id,
         details: `${isArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
-        metadata: { isArchived, source, clientId: options?.clientId },
+        metadata: { isArchived, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
       void this.ably.publishInvalidation(userId, ['notes']);
@@ -533,7 +540,7 @@ export class NotesToolService {
         });
       }
 
-      const source = options?.source ?? 'mcp';
+      const source = options?.source ?? 'agent';
       const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
 
       this.audit.logAgent({
@@ -544,7 +551,7 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: existing.id,
         details: `${hardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
-        metadata: { hardDelete, source, clientId: options?.clientId },
+        metadata: { hardDelete, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
       void this.ably.publishInvalidation(userId, ['notes']);

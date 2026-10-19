@@ -34,12 +34,14 @@ export class McpController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
   ): Promise<void> {
+
     const server = createIkeenMcpServer({
       notesToolService: this.notesToolService,
       foldersToolService: this.foldersToolService,
       prisma: this.prisma,
       userId: req.user.id,
       clientId: req.mcpClient,
+      apiKey: req.apiKey,
     });
 
     // Stateless mode with single-JSON response for serverless deployments

@@ -3,7 +3,7 @@ const getDefaultApiUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   } else {
-    throw new Error('API_BASE_URL is not set');
+    throw new Error("API_BASE_URL is not set");
   }
   // // Android emulator uses 10.0.2.2 to access host machine localhost
   // if (Platform.OS === 'android') {

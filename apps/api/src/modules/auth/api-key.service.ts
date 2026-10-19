@@ -74,7 +74,7 @@ export class ApiKeyService {
 
   /**
    * Validates an incoming API key against stored SHA-256 hashes.
-   * Returns the authenticated user if valid.
+   * Returns the authenticated user and the matched API key metadata.
    */
   async validateApiKey(rawKey: string) {
     if (!rawKey || !rawKey.startsWith('ikn_')) {
@@ -120,7 +120,14 @@ export class ApiKeyService {
         this.logger.warn(`Failed to update lastUsedAt for key ${apiKey.id}:`, err);
       });
 
-    return apiKey.user;
+    return {
+      user: apiKey.user,
+      apiKey: {
+        id: apiKey.id,
+        name: apiKey.name,
+        keyPrefix: apiKey.keyPrefix,
+      },
+    };
   }
 
   /**
