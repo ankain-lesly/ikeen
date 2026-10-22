@@ -9,7 +9,6 @@ import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
 import {
   DEFAULT_STORE_URL,
   getLatestRelease,
-  type AppStorePlatform,
 } from './app-updates.registry.js';
 import type {
   SyncPullResponse,
@@ -17,9 +16,8 @@ import type {
   SyncEntityType,
   SyncMutationBase,
   AppUpdateInfo,
-  BlockMutationPayload,
 } from '@repo/types/sync';
-import type { NoteBlock } from '@repo/types/notes';
+import { unpackServerNoteBlock } from '../notes/block-content.codec.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 const SYNC_CONSTANTS = {
@@ -271,17 +269,7 @@ export class SyncService {
           updatedAt: n.updatedAt.toISOString(),
           deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
         })),
-        note_blocks: noteBlocks.map((b) => ({
-          id: b.id,
-          noteId: b.noteId,
-          // BlockType enum values match the string literals at runtime; cast bridges the gap.
-          type: b.type as 'text' | 'list' | 'media',
-          position: b.position,
-          // JsonValue content is passed through as-is; client deserializes it.
-          content: b.content as unknown,
-          createdAt: b.createdAt.toISOString(),
-          updatedAt: b.updatedAt.toISOString(),
-        })) as NoteBlock[],
+        note_blocks: noteBlocks.map(unpackServerNoteBlock),
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);

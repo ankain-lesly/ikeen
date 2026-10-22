@@ -1,11 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { BlockMutationPayload, NoteMutationPayload } from '@repo/types';
-// import { log } from '@repo/utils';
+import type { NoteMutationPayload } from '@repo/types';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
 import { BlockMutationDto } from '../sync/dto/sync-push.dto.js';
+import { packServerBlockContent } from './block-content.codec.js';
 
 export type NoteSyncData = NoteMutationPayload;
 
@@ -229,37 +229,79 @@ export class NotesService {
 
     const nextVersion = Math.max((existing?.version ?? 0) + 1, b.version ?? 1);
 
+    // Handle block deletion
+    if (b.action === 'delete') {
+      if (!existing) {
+        return { applied: false, blockId: b.id };
+      }
+
+      const targetNoteId = b.changes?.noteId ?? existing.noteId;
+      const parentNote = await prismaClient.note.findFirst({
+        where: { id: targetNoteId, userId },
+      });
+
+      if (!parentNote) {
+        this.logger.warn(
+          `Block delete skipped: parent note ${targetNoteId} not found for user ${userId}`,
+        );
+        return { applied: false, blockId: b.id };
+      }
+
+      await prismaClient.noteBlock.delete({
+        where: { id: b.id },
+      });
+
+      this.logger.debug(
+        `[LWW:NoteBlock:Deleted] id=${b.id} noteId=${targetNoteId}`,
+      );
+
+      return { applied: true, blockId: b.id };
+    }
+
+    const targetNoteId = b.changes?.noteId ?? existing?.noteId;
+    if (!targetNoteId) {
+      this.logger.warn(`Block upsert skipped: missing noteId for block ${b.id}`);
+      return { applied: false, blockId: b.id };
+    }
+
     // Verify the parent note exists and belongs to the user
     const parentNote = await prismaClient.note.findFirst({
-      where: { id: b.changes.noteId, userId },
+      where: { id: targetNoteId, userId },
     });
 
     if (!parentNote) {
-      this.logger.warn(`Block upsert skipped: parent note ${b.changes.noteId} not found for user ${userId}`);
+      this.logger.warn(`Block upsert skipped: parent note ${targetNoteId} not found for user ${userId}`);
       return { applied: false, blockId: b.id };
     }
+
+    const resolvedType = b.changes.type ?? existing?.type ?? 'text';
+    const nextContent = packServerBlockContent(
+      resolvedType,
+      b.changes,
+      existing?.content,
+    );
 
     if (existing) {
       await prismaClient.noteBlock.update({
         where: { id: b.id },
         data: {
           updatedAt: clientUpdatedAt,
-          type: b.changes.type ?? existing.type,
+          type: resolvedType,
           position: b.changes.position ?? existing.position,
           // Cast required: BlockChanges.content is a union (string|ListItem[]|MediaItem[])
           // and JsonValue includes null — both are valid JSON but don't match
           // Prisma's recursive InputJsonValue index-signature structurally.
-          content: (b.changes.content ?? existing.content ?? '{}') as unknown as Prisma.InputJsonValue,
+          content: nextContent as unknown as Prisma.InputJsonValue,
         },
       });
     } else {
       await prismaClient.noteBlock.create({
         data: {
           id: b.id,
-          noteId: b.changes.noteId!,
-          type: b.changes.type ?? 'text',
+          noteId: targetNoteId,
+          type: resolvedType,
           position: b.changes.position ?? 0,
-          content: (b.changes.content ?? '{}') as unknown as Prisma.InputJsonValue,
+          content: nextContent as unknown as Prisma.InputJsonValue,
           createdAt: clientUpdatedAt,
           updatedAt: clientUpdatedAt,
         },

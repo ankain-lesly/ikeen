@@ -23,30 +23,45 @@ import {
 import { NoteBottomToolBar } from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
+import { useDoubleTap } from "@/hooks/use-double-tap";
 import { toast } from "@/lib/toast";
-import { createNote, updateNote } from "@/lib/queries/notes";
+import {
+  createNote,
+  getNoteById,
+  moveNoteToFolder,
+  updateNote,
+} from "@/lib/queries/notes";
 import { useLiveFolder } from "@/lib/queries/folders";
-import type { NoteSelect } from "@/lib/types/notes";
+import type {
+  CreateBlockInput,
+  NoteSelect,
+} from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { scheduleOnRN } from "react-native-worklets";
+import { GestureDetector } from "react-native-gesture-handler";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
+import { type MarkdownFormatAction } from "@/components/markdown";
 import {
-  type MarkdownEditorHandle,
-  type MarkdownFormatAction,
-} from "@/components/markdown";
-import { BlockContainer } from "@/components/notes/blocks";
-import { createBlock } from "@/lib/queries/note-blocks";
+  BlockContainer,
+  createDefaultChecklistBlockInput,
+  createDefaultMediaBlockInput,
+  createDefaultTextBlockInput,
+  type BlockContainerHandle,
+} from "@/components/notes/blocks";
+import {
+  createBlock,
+  formatNoteWithBlocks,
+  useLiveNoteBlocks,
+} from "@/lib/queries/note-blocks";
 import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
 import { log } from "@repo/utils";
+import { countWords } from "@repo/utils/string";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useNoteActions } from "@/hooks/use-note-actions";
 
 export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const colors = useTheme();
-
   const { user } = useAuthStore();
 
   // Local note state
@@ -67,17 +82,14 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     isArchived: !!initialNote?.isArchived,
     folderId: initialNote?.folderId,
     userId: user?.id,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: initialNote?.createdAt || "",
+    updatedAt: initialNote?.updatedAt || "",
   });
 
   // Track Notes Edit, Touched State
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
   const [isEditing, setIsEditing] = useState(!initialNote);
-  // const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
-  //   null,
-  // );
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -85,48 +97,30 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     setHasEdited(true);
   }, []);
 
-  // Sheet
+  // Sheets & Tag Input
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
+  const { data: liveBlocks } = useLiveNoteBlocks(note.id);
 
-  // const isEditingRef = useRef(isEditing);
+  // Once any block is created, `createBlock` has already persisted the parent note in SQLite
+  const isUnpersistedDraft = isNewDraft && liveBlocks.length === 0;
+
   const navigation = useNavigation();
 
-  // const leavingRef = useRef(false);
   const titleInputRef = useRef<TextInput>(null);
-  const contentInputRef = useRef<MarkdownEditorHandle>(null);
   const tagInputRef = useRef<TextInput>(null);
+  const blockContainerRef = useRef<BlockContainerHandle>(null);
   const leavingRef = useRef(false);
 
-  // Refs for persistence and effect dependencies
-  // const latestNoteRef = useRef({ ...note });
-  // const hasEditedRef = useRef(hasEdited);
-  // const isDeletedRef = useRef(false);
-  // const idRef = useRef(note.id);
-  // const creatingRef = useRef<Promise<string> | null>(null);
-
-  // Keep refs up-to-date with state
-  // useEffect(() => {
-  //   isEditingRef.current = isEditing;
-  // }, [isEditing]);
-  // useEffect(() => {
-  //   latestNoteRef.current = { ...note };
-  // }, [note]);
-  // useEffect(() => {
-  //   hasEditedRef.current = hasEdited;
-  // }, [hasEdited]);
-  // useEffect(() => {
-  //   idRef.current = note.id;
-  // }, [note.id]);
-
-  // Save function: uses up-to-date refs and state
+  // Save function: flushes staged block edits and persists note metadata
   const saveNote = useCallback(
     async (_data?: typeof note) => {
-      // Check State
+      await blockContainerRef.current?.flushBlocks();
+
       if (!hasEdited) return;
 
       const data = note;
@@ -138,12 +132,16 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
       const isEmpty =
         !data.title?.trim() &&
         !data.content?.trim() &&
-        (!data.tags || data.tags.length === 0);
-
-      if (isEmpty) return;
+        (!data.tags || data.tags.length === 0) &&
+        liveBlocks.length === 0;
 
       try {
-        if (isNewDraft) {
+        const existingNote = isNewDraft ? await getNoteById(data.id) : null;
+        const shouldCreate = isNewDraft && !existingNote;
+
+        if (shouldCreate && isEmpty) return;
+
+        if (shouldCreate) {
           const created = await createNote({
             id: data.id,
             title: data.title || "",
@@ -157,7 +155,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           setNote((prev) => ({
             ...prev,
             createdAt: created.createdAt,
-            updateAt: created.updatedAt,
+            updatedAt: created.updatedAt,
           }));
           setIsNewDraft(false);
         } else {
@@ -180,29 +178,8 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         });
       }
     },
-    [hasEdited, isNewDraft, note],
+    [hasEdited, isNewDraft, liveBlocks.length, note],
   );
-
-  // useEffect(() => {
-  //   return () => {
-  //     log({ message: ">>> LOG: Save Note on unmount" });
-  //     void saveNote().catch((err) => {
-  //       console.log("[🚨] Failed to save note on unmount:", err);
-  //     });
-  //   };
-  // }, [saveNote]);
-
-  // NOTES: Keep Until further notice
-  // const flushEditorMarkdown = useCallback(async () => {
-  //   if (!isEditingRef.current) return;
-  //   try {
-  //     const markdown = await contentInputRef.current?.getMarkdown();
-  //     if (markdown == null || markdown === note.content) return;
-  //     updateNoteState("content", markdown);
-  //   } catch {
-  //     // Keep the last onChangeMarkdown snapshot.
-  //   }
-  // }, [note.content, updateNoteState]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -217,7 +194,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (leavingRef.current || !hasEdited) return;
+      if (leavingRef.current) return;
       e.preventDefault();
       leavingRef.current = true;
       void (async () => {
@@ -230,38 +207,16 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
       })();
     });
     return unsubscribe;
-  }, [hasEdited, navigation, saveNote]);
+  }, [navigation, saveNote]);
 
-  const startEditing = useCallback(
-    (target: "title" | "content" = "content") => {
-      // setFocusTarget(target);
-      setIsEditing(true);
-    },
-    [],
-  );
-
-  // useEffect(() => {
-  //   if (isEditing && focusTarget) {
-  //     const timer = setTimeout(() => {
-  //       if (focusTarget === "title") {
-  //         titleInputRef.current?.focus();
-  //       } else {
-  //         contentInputRef.current?.focus();
-  //       }
-  //       setFocusTarget(null);
-  //     }, 50);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [isEditing, focusTarget]);
+  const startEditing = useCallback(() => {
+    setIsEditing(true);
+  }, []);
 
   const handleDoneEditing = useCallback(async () => {
     Keyboard.dismiss();
-    // await flushEditorMarkdown();
-    setIsEditing(false);
-    // if (hasEditedRef.current) {
     await saveNote(note);
-    // toast.success("Note saved");
-    // }
+    setIsEditing(false);
   }, [saveNote, note]);
 
   const handleTitleChange = (newTitle: string) => {
@@ -269,87 +224,63 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   };
 
   const formatContent = useCallback((action: MarkdownFormatAction) => {
-    contentInputRef.current?.format(action);
+    blockContainerRef.current?.formatContent(action);
   }, []);
 
   const openTagPrompt = useCallback(() => {
     setNewTagInputVisible(true);
   }, []);
 
-  const editContent = useCallback(() => {
-    startEditing("title");
-  }, [startEditing]);
+  const handleAddBlock = useCallback(
+    async (input: CreateBlockInput, label: string) => {
+      try {
+        await createBlock(note.id, input);
+        setHasEdited(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {
+        console.error(`[NoteEditor] Failed to add ${label}:`, err);
+        toast.error(`Failed to add ${label}`);
+      }
+    },
+    [note.id],
+  );
 
-  const ensureNotePersisted = useCallback(async () => {
-    if (isNewDraft) {
-      saveNote();
-    }
-    return note.id;
-  }, [isNewDraft, note.id, saveNote]);
+  const handleAddTextBlock = useCallback(
+    () => handleAddBlock(createDefaultTextBlockInput(), "text block"),
+    [handleAddBlock],
+  );
 
-  const handleAddTextBlock = useCallback(async () => {
-    try {
-      const noteId = await ensureNotePersisted();
-      await createBlock(noteId, {
-        type: "text",
-        content: "",
-      });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.error("[NoteEditor] Failed to add text block:", err);
-      toast.error("Failed to add text block");
-    }
-  }, [ensureNotePersisted]);
+  const handleAddCheckboxBlock = useCallback(
+    () => handleAddBlock(createDefaultChecklistBlockInput(), "checkbox block"),
+    [handleAddBlock],
+  );
 
-  const handleAddCheckboxBlock = useCallback(async () => {
-    try {
-      const noteId = await ensureNotePersisted();
-      await createBlock(noteId, {
-        type: "list",
-        listType: "checkbox",
-        content: [{ id: Crypto.randomUUID(), content: "", checked: false }],
-      });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.error("[NoteEditor] Failed to add checkbox block:", err);
-      toast.error("Failed to add checkbox block");
-    }
-  }, [ensureNotePersisted]);
+  const handleAddMediaBlock = useCallback(
+    () => handleAddBlock(createDefaultMediaBlockInput(), "media block"),
+    [handleAddBlock],
+  );
 
-  const handleAddMediaBlock = useCallback(async () => {
-    try {
-      const noteId = await ensureNotePersisted();
-      await createBlock(noteId, {
-        type: "media",
-        content: [
-          {
-            id: Crypto.randomUUID(),
-            mediaType: "image",
-            localUri: "https://picsum.photos/800/600",
-            caption: "",
-            synced: false,
-          },
-        ],
-      });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.error("[NoteEditor] Failed to add media block:", err);
-      toast.error("Failed to add media block");
-    }
-  }, [ensureNotePersisted]);
+  const shareableContent = useMemo(
+    () => formatNoteWithBlocks(note.content, liveBlocks),
+    [liveBlocks, note.content],
+  );
+
+  const handleDeleteSuccess = useCallback(() => {
+    leavingRef.current = true;
+    setIsEditing(false);
+    router.back();
+  }, []);
 
   const actions = useNoteActions({
     noteId: note.id ?? "",
     title: note.title,
-    content: note.content,
+    content: shareableContent,
     isPinned: note.isPinned,
     isArchived: note.isArchived,
     isDeleted: false,
+    isNewDraft: isUnpersistedDraft,
     onUpdateState: updateNoteState,
-    onDeleteSuccess: () => {
-      setIsEditing(false);
-      router.back();
-    },
+    onDeleteSuccess: handleDeleteSuccess,
   });
 
   const handleTogglePin = actions.handleTogglePin;
@@ -361,10 +292,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     if (trimmed && !note.tags.includes(trimmed)) {
       const updatedTags = [...note.tags, trimmed];
       updateNoteState("tags", updatedTags);
-
       tagInputRef.current?.clear();
-      // tagInputRef?.current?.focus();
-    } else {
     }
   };
 
@@ -374,24 +302,17 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     updateNoteState("tags", updatedTags);
   };
 
-  const wordCount = useMemo(() => {
-    const trimmed = note.content.trim();
-    return trimmed ? trimmed.split(/\s+/).length : 0;
-  }, [note.content]);
+  const wordCount = useMemo(
+    () => countWords(shareableContent),
+    [shareableContent],
+  );
 
-  // Handle Tap Gestures
-  // CODE: Only implemented for title
-  const combinedGestures = useMemo(() => {
-    const singleTap = Gesture.Tap();
-    const doubleTap = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd(() => {
-        "worklet";
-        scheduleOnRN(startEditing, "title");
-      });
+  const noteWithFullContent = useMemo(
+    () => ({ ...note, content: shareableContent }),
+    [note, shareableContent],
+  );
 
-    return Gesture.Exclusive(doubleTap, singleTap);
-  }, [startEditing]);
+  const titleDoubleTapGesture = useDoubleTap(startEditing);
 
   return (
     <View className="flex-1 bg-background pt-safe w-full">
@@ -411,7 +332,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             <Pressable
               onPress={() => setIsMoveFolderSheetVisible(true)}
               hitSlop={4}
-              className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element_border-border active:opacity-70">
+              className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md active:opacity-70">
               <Folder
                 size={16}
                 color={currentFolder?.color || colors.textSecondary}
@@ -433,7 +354,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         <View className="flex-row items-center gap-2">
           <Card className="px-3 flex-row items-center gap-4 rounded-full">
             {/* Pin */}
-            <Pressable className="" onPress={handleTogglePin}>
+            <Pressable onPress={handleTogglePin}>
               <Pin
                 size={20}
                 color={note.isPinned ? colors.primary : colors.text}
@@ -443,17 +364,13 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
             {/* Brainstorm with iKeen */}
             <Pressable
-              className=""
               onPress={() => {
-                void (async () => {
-                  // await flushEditorMarkdown();
-                  router.push({
-                    pathname: "/agent",
-                    params: {
-                      prompt: `Let's brainstorm on my note "${note.title || "Untitled Note"}" with ID "${note.id}"`,
-                    },
-                  });
-                })();
+                router.push({
+                  pathname: "/agent",
+                  params: {
+                    prompt: `Let's brainstorm on my note "${note.title || "Untitled Note"}" with ID "${note.id}"`,
+                  },
+                });
               }}
               hitSlop={8}>
               <Sparkles size={20} color={colors.primary} />
@@ -461,13 +378,13 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
             {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
             {isEditing ? (
-              <Pressable className="" onPress={handleDoneEditing}>
+              <Pressable onPress={handleDoneEditing}>
                 <Text className="text-sm h-5 font-bold text-foreground">
                   Done
                 </Text>
               </Pressable>
             ) : (
-              <Pressable className="" onPress={() => startEditing("content")}>
+              <Pressable onPress={startEditing}>
                 <Text className="text-sm h-5 font-semibold text-foreground">
                   Edit
                 </Text>
@@ -478,14 +395,10 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           <NotesOptionsDropdown
             variant="sheet"
             lastEdited={note?.updatedAt}
-            note={note}
+            isNewDraft={isUnpersistedDraft}
+            note={noteWithFullContent}
             onUpdateState={updateNoteState}
-            onDeleteSuccess={() => {
-              setIsEditing(false);
-              router.back();
-            }}
-            // onDelete={isNewDraft ? undefined : handleDelete}
-
+            onDeleteSuccess={handleDeleteSuccess}
             onShowInfo={() => setInfoSheetVisible(true)}
             onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
           />
@@ -496,7 +409,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
       <View className="flex-1 px-2">
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 border_border-border rounded-2xl"
+          className="flex-1 rounded-2xl"
           contentContainerClassName="px-3 pt-4"
           keyboardShouldPersistTaps="handled">
           {/* Metadata and Title */}
@@ -506,21 +419,21 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
               <TextInput
                 ref={titleInputRef}
                 className="text-2xl font-bold leading-8 tracking-tight py-1 text-text"
-                placeholder={"Untitled note"}
+                placeholder="Untitled note"
                 placeholderTextColor={colors.textSecondary}
                 value={note.title}
                 onChangeText={handleTitleChange}
                 returnKeyType="next"
-                onSubmitEditing={() => contentInputRef.current?.focus()}
+                onSubmitEditing={() =>
+                  blockContainerRef.current?.focusContent()
+                }
                 multiline
                 editable={isEditing}
                 pointerEvents={isEditing ? "auto" : "none"}
               />
             ) : (
-              <GestureDetector gesture={combinedGestures}>
-                <Text
-                  // onPress={() => setFocusTarget("title")}
-                  className="text-2xl font-bold leading-8 tracking-tight py-1 text-text">
+              <GestureDetector gesture={titleDoubleTapGesture}>
+                <Text className="text-2xl font-bold leading-8 tracking-tight py-1 text-text">
                   {note.title || "Untitled note"}
                 </Text>
               </GestureDetector>
@@ -565,14 +478,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
                         className="text-xs py-0 px-0.5 min-w-10 text-text"
                         placeholder="tag"
                         placeholderTextColor={colors.textSecondary}
-                        // value={newTagText}
-                        // onChangeText={setNewTagText}
                         autoFocus
-                        // blurOnSubmit={false}
                         submitBehavior="submit"
-                        // onSubmitEditing handles when the user presses the keyboard "Done" / "Return" button
                         onSubmitEditing={handleAddTag}
-                        // onEndEditing handles when the user clicks away or dismisses the input
                         onEndEditing={handleAddTag}
                         returnKeyType="done"
                         autoCapitalize="none"
@@ -597,11 +505,11 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
           {/* Block-Based Content Experience */}
           <BlockContainer
+            ref={blockContainerRef}
             note={note}
             isEditing={isEditing}
-            onContentConverted={() => updateNoteState("content", "")}
             onContentChange={(t) => updateNoteState("content", t)}
-            onStartEditing={() => setIsEditing(true)}
+            onStartEditing={startEditing}
           />
         </ScrollView>
       </View>
@@ -613,21 +521,17 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         onOpenTagPrompt={openTagPrompt}
         onDismiss={handleDoneEditing}
         wordCount={wordCount}
-        onStartEditing={editContent}
+        onStartEditing={startEditing}
         onShare={handleShare}
         isPinned={note.isPinned}
         onTogglePin={handleTogglePin}
         onAddTextBlock={handleAddTextBlock}
         onAddCheckboxBlock={handleAddCheckboxBlock}
         onAddMedia={handleAddMediaBlock}
-        // TODO: -- to be implemented
-        // This will be implemented later
-        onTakePhoto={() => toast.info("Taking A Photo")}
-        onRecordAudio={() => toast.info("Recording Audio")}
       />
       {/* Note Info Details Modal Sheet */}
       <NoteInfoSheet
-        note={note}
+        note={noteWithFullContent}
         visible={infoSheetVisible}
         folderName={currentFolder?.name}
         onClose={() => setInfoSheetVisible(false)}
@@ -641,8 +545,10 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         onSelectFolder={async (newFolderId) => {
           if (!note.id) return;
           try {
-            // await moveNoteToFolder(note.id, newFolderId);
             updateNoteState("folderId", newFolderId);
+            if (!isUnpersistedDraft && !isEditing) {
+              await moveNoteToFolder(note.id, newFolderId);
+            }
             toast.success("Folder updated");
           } catch {
             toast.error("Failed to move note");

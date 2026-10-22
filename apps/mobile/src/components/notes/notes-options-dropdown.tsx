@@ -28,6 +28,7 @@ type NotesOptionsDropdownProps = {
   variant?: "sheet" | "dropdown";
   isExpanded?: boolean;
   setIsExpanded?: (a: boolean) => void;
+  isNewDraft?: boolean;
   note: {
     id: string;
     title: string;
@@ -53,6 +54,7 @@ export function NotesOptionsDropdown({
   variant = "dropdown",
   isExpanded,
   setIsExpanded,
+  isNewDraft = false,
   note,
   customTrigger,
   iconStyle = {},
@@ -72,6 +74,7 @@ export function NotesOptionsDropdown({
     isPinned: note.isPinned,
     isArchived: note.isArchived,
     isDeleted: !!note.deletedAt,
+    isNewDraft,
     onUpdateState,
     onDeleteSuccess,
     onRestoreSuccess,

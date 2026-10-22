@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { MarkdownBody, MarkdownEditor } from "@/components/markdown";
@@ -8,6 +8,7 @@ export interface TextBlockProps {
   block: TextBlockType;
   isEditing: boolean;
   onChangeContent: (newContent: string) => void;
+  onBlur?: () => void;
   onFocus?: () => void;
 }
 
@@ -15,30 +16,20 @@ export const TextBlock = React.memo(function TextBlock({
   block,
   isEditing,
   onChangeContent,
+  onBlur,
   onFocus,
 }: TextBlockProps) {
   const colors = useTheme();
-  // const inputRef = useRef<TextInput>(null);
-
-  const handleChangeText = useCallback(
-    (text: string) => {
-      onChangeContent(text);
-    },
-    [onChangeContent],
-  );
 
   if (isEditing) {
     return (
       <View className="w-full min-h-11">
         <MarkdownEditor
-          // ref={inputRef}
           defaultValue={block.content}
-          onChangeText={handleChangeText}
+          onChangeText={onChangeContent}
+          onBlur={onBlur}
           placeholder="Start typing markdown..."
           placeholderTextColor={colors.textSecondary}
-          // multiline
-          // scrollEnabled={false}
-          // onFocus={onFocus}
           style={{
             color: colors.foreground,
             fontSize: 15,

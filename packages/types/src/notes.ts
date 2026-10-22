@@ -14,10 +14,6 @@ export interface Note {
   deletedAt?: string | null;
 }
 
-// export type NoteForm = Partial<Note> & {
-//   id: string;
-// }
-
 export type NoteChanges = Partial<Note>;
 
 export type CreateNoteInput = Partial<
@@ -138,7 +134,7 @@ export type UpdateBlockInput = Partial<{
   type: BlockType;
   position: number;
   listType: ListType;
-  header: string;
-  footer: string;
+  header: string | null;
+  footer: string | null;
   content: string | ListItem[] | MediaItem[];
 }>;

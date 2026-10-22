@@ -67,3 +67,35 @@ Grouped by todo topic / issue for clearer tracking and context.
 - [x] Web: Create `AuditPage` (`apps/web/app/dashboard/audit/page.tsx`)
 - [x] Web: Update `dashboard-sidebar.tsx` to gate audit log link by `admin` role
 - [x] Run Monorepo Typecheck & Lint verification
+
+---
+
+## 🔄 Note Block Sync Optimization, Integrity & Wrapper Action Injection (Phase 1) — 2026-10-22
+* **Status**: Completed
+* **Scope**: Zero per-keystroke SQLite/outbox writes (commit on blur & done via `useStagedBlockUpdates`), full parent note & block sync pipeline integrity (parent existence in `createBlock`, server-side block delete, list metadata codecs, strict outbox status failure classification), contextual block action injection into `BlockWrapper` via `useRegisterBlockActions`, and modular editor refactor.
+
+- [x] Commit-on-Blur & Commit-on-Done State Management:
+  - [x] Extract `useStagedBlockUpdates` hook (`apps/mobile/src/components/notes/blocks/use-staged-block-updates.ts`) with synchronous `dirtyBlocksRef` and in-memory `dirtyOverlay`
+  - [x] Stage typing updates in memory across `TextBlock`, `ListBlock`, and `MediaBlock` captions without per-keystroke SQLite or outbox writes
+  - [x] Commit individual block edits on input `onBlur` (`commitBlock`)
+  - [x] Immediately persist discrete structural updates (`handleImmediateUpdate`) merging any active staged edits
+  - [x] Expose `flushBlocks()` via `BlockContainerHandle` (`BlockContainer`) and await it in `NoteEditor.saveNote()` before switching to view mode, on navigation back (`beforeRemove`), and on app backgrounding (`AppState`)
+- [x] Block Sync Pipeline Integrity:
+  - [x] Enforce parent note existence directly inside `createBlock(noteId, input)` in `apps/mobile/src/lib/queries/note-blocks.ts`
+  - [x] Handle `b.action === 'delete'` in backend `upsertBlockWithLww` (`apps/api/src/modules/notes/notes.service.ts`) with note ownership validation
+  - [x] Implement app-local server block content codec (`packServerBlockContent`, `unpackServerNoteBlock`) in `apps/api/src/modules/notes/block-content.codec.ts` with explicit `null` removal semantics
+  - [x] Implement mobile block content codec (`unpackNoteBlock`, `serializeBlockContent`, `toBlockOutboxPayload`, `formatNoteWithBlocks`) in `apps/mobile/src/lib/queries/block-content.codec.ts`
+  - [x] Add list validation on `BlockChangesDto` in `apps/api/src/modules/sync/dto/sync-push.dto.ts`
+  - [x] Two-phase SQLite position re-indexing and outbox enqueueing in `deleteBlock` and `reorderBlocks` to eliminate mid-loop sync race conditions
+  - [x] Implement `classifySyncPushFailure(status)` in `outbox.ts`: reset transient / offline (status 0, 401, 403, 408, 429) to `pending` without penalty; increment retry count on 5xx and client rejections
+  - [x] Restored `lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)` in `getPendingOutbox` to halt poison pills
+- [x] Contextual Block Actions in `BlockWrapper`:
+  - [x] Create `BlockWrapperContext` and idempotent `useRegisterBlockActions` hook with structural signature check (`block-wrapper.tsx`)
+  - [x] Register list-type switching and header/footer actions from `ListBlock` into `BlockWrapper`'s `OptionSheet`
+  - [x] Display dynamic block type badge (`LIST • CHECKBOX`, `LIST • BULLET`, `LIST • ORDERED`) when editing
+- [x] Clean Architecture & Monorepo Refactor:
+  - [x] Centralize `createDefault*BlockInput` and `cloneBlockInput` in `block-factories.ts`
+  - [x] Unify block creation boilerplate in `NoteEditor` (`handleAddBlock`)
+  - [x] Unify block position shifting in `BlockContainer` (`handleMoveBlock`)
+  - [x] Reusable agent skill created in `.agents/skills/ikeen-mobile-patterns/SKILL.md`
+  - [x] Verified full monorepo typechecks pass cleanly (`bun run check-types`)

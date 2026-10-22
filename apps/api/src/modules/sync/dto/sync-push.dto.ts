@@ -7,6 +7,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import type {
@@ -189,19 +190,21 @@ export class BlockChangesDto {
 
   // Content is a markdown string for text blocks, or a JSON array for list/media blocks.
   @IsOptional()
-  content?: any;
+  content?: unknown;
 
+  @IsIn(['checkbox', 'bullet', 'ordered'])
+  @IsOptional()
+  listType?: 'checkbox' | 'bullet' | 'ordered';
+
+  @ValidateIf((_, value) => value !== null)
   @IsString()
   @IsOptional()
-  listType?: string;
+  header?: string | null;
 
+  @ValidateIf((_, value) => value !== null)
   @IsString()
   @IsOptional()
-  header?: string;
-
-  @IsString()
-  @IsOptional()
-  footer?: string;
+  footer?: string | null;
 
   @IsString()
   @IsOptional()

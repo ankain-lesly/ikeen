@@ -1,8 +1,5 @@
-import { RNHostView } from "@expo/ui/jetpack-compose";
 import { useTheme } from "@/hooks/use-theme";
-
 import { OptionSheet } from "@/components/ui/option-sheet";
-
 import {
   Camera,
   ImageIcon,
@@ -10,13 +7,10 @@ import {
   Type as TextIcon,
   Mic,
 } from "lucide-react-native";
-import { View } from "react-native";
 
-// These can be extended with props as needed, currently placeholders
 type NotesEditorToolbarBlocksProps = {
   isSheetOpen: boolean;
   onDismiss: () => void;
-  // Optionally add callbacks for the new actions for better extensibility
   onTakePhoto?: () => void;
   onAddMedia?: () => void;
   onAddCheckboxBlock?: () => void;

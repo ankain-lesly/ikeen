@@ -7,6 +7,7 @@
 - https://github.com/software-mansion/enriched-markdown
 - https://github.com/Expensify/react-native-live-markdown
 - Expo UI: https://github.com/SchroederNathan/expo-ui-examples/blob/main/src/examples/rich-text-editor/index.tsx?trk=public_post_comment-text
+- [ ] Fix `EnrichedMarkdownTextInput` stripping markdown snippets (e.g., codeblocks converted to plain text) when editing; `MarkdownEditor` currently uses `TextInput` until a finite rich-text/markdown editor solution is finalized.
 
 - Add a link that users can use to request that their account and associated data is deleted 
 
@@ -16,16 +17,7 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 
 ################
 
-Analyze and plan the the system requirements below and implement. /plan
-
----
-
 ## Note Block Issues
-
-### Phase 1: Sync Optimization, Block Sync Integrity & Wrapper Action Injection
-- [ ] **Debounce Block Updates & Sync Triggers**: Prevent individual block property/text edits from triggering SQLite writes and network sync on every keystroke; debounce typing updates and coalesce outbox sync triggers with immediate flush on editor exit/blur. Simply passing a shouldSync to the update   function depending on input.
-- [ ] **Fix Media & Block Sync Pipeline**: Ensure parent draft notes persist before block creation (preventing foreign-key/unfound parent errors), handle `delete` block mutations on the server, preserve `list` metadata (`listType`, `header`, `footer`), and update `media` item `synced` state.
-- [ ] **Inject Block Actions into `BlockWrapper`**: Allow child blocks to register contextual actions into the parent `BlockWrapper` `OptionSheet` (moving `ListBlock` type switching, `+ Header`, and `+ Footer` out of inline block UI into the wrapper menu).
 
 ### Phase 2: Interactive List Block Experience
 - [ ] **Enter Key Newline Creation**: Pressing `Enter` on a list block item input creates a new list item directly below and focuses it; pressing `Backspace` on an empty item removes it and focuses the previous item; Pasting text should automatically separate into items if valid.
@@ -62,4 +54,4 @@ Atlassian
 - Sides when integrating reminders
 
 
-RL9R89
+AL9X7E

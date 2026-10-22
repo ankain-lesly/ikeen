@@ -22,54 +22,65 @@ import type {
   ListType,
 } from "@/lib/types/notes";
 import { AnimatedEntryView } from "@/components/ui/animated";
-import { MarkdownEditor } from "@/components/markdown";
+import {
+  MarkdownEditor,
+  type MarkdownEditorHandle,
+} from "@/components/markdown";
+import { useRegisterBlockActions } from "./block-wrapper";
+import type { SheetAction } from "@/components/ui/option-sheet";
+
+export type ListBlockUpdateInput = {
+  content?: ListItem[];
+  listType?: ListType;
+  header?: string | null;
+  footer?: string | null;
+};
 
 export interface ListBlockProps {
   block: ListBlockType;
   isEditing: boolean;
-  onUpdateBlock: (updates: {
-    content?: ListItem[];
-    listType?: ListType;
-    header?: string;
-    footer?: string;
-  }) => void;
+  onStageUpdate: (updates: ListBlockUpdateInput) => void;
+  onImmediateUpdate: (updates: ListBlockUpdateInput) => void;
+  onCommit: () => void;
 }
 
 export const ListBlock = React.memo(function ListBlock({
   block,
   isEditing,
-  onUpdateBlock,
+  onStageUpdate,
+  onImmediateUpdate,
+  onCommit,
 }: ListBlockProps) {
   const colors = useTheme();
-  const inputRefs = useRef<{ [id: string]: TextInput | null }>({});
+  const inputRefs = useRef<{ [id: string]: MarkdownEditorHandle | null }>({});
 
   const items = useMemo(() => block.content || [], [block.content]);
   const listType = block.listType || "checkbox";
 
-  // Toggle checklist item
+  // Toggle checklist item (immediate update)
   const handleToggleCheck = useCallback(
     (itemId: string) => {
       Haptics.selectionAsync();
       const nextItems = items.map((item) =>
         item.id === itemId ? { ...item, checked: !item.checked } : item
       );
-      onUpdateBlock({ content: nextItems });
+      onImmediateUpdate({ content: nextItems });
     },
-    [items, onUpdateBlock]
+    [items, onImmediateUpdate]
   );
 
-  // Edit item text
+  // Edit item text (staged in memory until onBlur or Done)
   const handleItemTextChange = useCallback(
     (itemId: string, text: string) => {
       const nextItems = items.map((item) =>
         item.id === itemId ? { ...item, content: text } : item
       );
-      onUpdateBlock({ content: nextItems });
+      onStageUpdate({ content: nextItems });
     },
-    [items, onUpdateBlock]
+    [items, onStageUpdate]
   );
 
-  // Add new item below
+  // Add new item below (immediate update)
   const handleAddItem = useCallback(
     (afterIndex?: number) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -90,78 +101,80 @@ export const ListBlock = React.memo(function ListBlock({
         nextItems = [...items, newItem];
       }
 
-      onUpdateBlock({ content: nextItems });
+      onImmediateUpdate({ content: nextItems });
 
-      // Focus the newly added item
       setTimeout(() => {
         inputRefs.current[newItem.id]?.focus();
       }, 50);
     },
-    [items, onUpdateBlock]
+    [items, onImmediateUpdate]
   );
 
-  // Delete item
+  // Delete item (immediate update)
   const handleDeleteItem = useCallback(
     (itemId: string) => {
       const nextItems = items.filter((item) => item.id !== itemId);
-      onUpdateBlock({ content: nextItems });
+      onImmediateUpdate({ content: nextItems });
     },
-    [items, onUpdateBlock]
+    [items, onImmediateUpdate]
   );
 
-  // Switch list type
-  const handleCycleListType = useCallback(() => {
-    Haptics.selectionAsync();
-    const cycle: ListType[] = ["checkbox", "bullet", "ordered"];
-    const currentIndex = cycle.indexOf(listType);
-    const nextType = cycle[(currentIndex + 1) % cycle.length];
-    onUpdateBlock({ listType: nextType });
-  }, [listType, onUpdateBlock]);
+  // Register contextual actions into parent BlockWrapper OptionSheet
+  const blockActions = useMemo<SheetAction[]>(
+    () => [
+      {
+        label: "Switch to Checklist",
+        icon: <CheckSquare size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ listType: "checkbox" }),
+        visible: listType !== "checkbox",
+      },
+      {
+        label: "Switch to Bullet List",
+        icon: <ListIcon size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ listType: "bullet" }),
+        visible: listType !== "bullet",
+      },
+      {
+        label: "Switch to Numbered List",
+        icon: <ListOrdered size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ listType: "ordered" }),
+        visible: listType !== "ordered",
+      },
+      {
+        label: "Add Header",
+        icon: <Plus size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ header: "" }),
+        visible: block.header === undefined,
+      },
+      {
+        label: "Remove Header",
+        icon: <X size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ header: null }),
+        visible: block.header !== undefined,
+      },
+      {
+        label: "Add Footer",
+        icon: <Plus size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ footer: "" }),
+        visible: block.footer === undefined,
+      },
+      {
+        label: "Remove Footer",
+        icon: <X size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ footer: null }),
+        visible: block.footer !== undefined,
+      },
+    ],
+    [block.footer, block.header, colors.text, listType, onImmediateUpdate]
+  );
+
+  useRegisterBlockActions(blockActions);
 
   // Completed items count
   const completedCount = items.filter((i) => i.checked).length;
 
   return (
     <View className="w-full">
-      {/* List Type Switcher when editing */}
-      {isEditing && (
-        <View className="flex-row items-center justify-between mb-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cycle list type"
-            onPress={handleCycleListType}
-            className="flex-row items-center gap-1.5 px-2 py-1 rounded-lg bg-background-element border border-border/60 active:opacity-70"
-          >
-            {listType === "checkbox" && <CheckSquare size={14} color={colors.primary} />}
-            {listType === "bullet" && <ListIcon size={14} color={colors.primary} />}
-            {listType === "ordered" && <ListOrdered size={14} color={colors.primary} />}
-            <Text className="text-xs font-semibold capitalize text-foreground">
-              {listType} List
-            </Text>
-          </Pressable>
-
-          {/* Quick Header / Footer add buttons if not present */}
-          <View className="flex-row items-center gap-2">
-            {block.header === undefined && (
-              <Pressable
-                onPress={() => onUpdateBlock({ header: "" })}
-                className="px-2 py-0.5 rounded bg-background-element border border-dashed border-border"
-              >
-                <Text className="text-[11px] text-text-secondary">+ Header</Text>
-              </Pressable>
-            )}
-            {block.footer === undefined && (
-              <Pressable
-                onPress={() => onUpdateBlock({ footer: "" })}
-                className="px-2 py-0.5 rounded bg-background-element border border-dashed border-border"
-              >
-                <Text className="text-[11px] text-text-secondary">+ Footer</Text>
-              </Pressable>
-            )}
-          </View>
-        </View>
-      )}
-
       {/* Header Display / Edit */}
       {block.header !== undefined && (
         <View className="mb-2">
@@ -169,13 +182,14 @@ export const ListBlock = React.memo(function ListBlock({
             <View className="flex-row items-center gap-1 border-b border-border/40 pb-1">
               <TextInput
                 value={block.header}
-                onChangeText={(header) => onUpdateBlock({ header })}
+                onChangeText={(header) => onStageUpdate({ header })}
+                onBlur={onCommit}
                 placeholder="Section header..."
                 placeholderTextColor={colors.textSecondary}
                 className="flex-1 text-sm font-bold text-foreground py-0.5"
               />
               <Pressable
-                onPress={() => onUpdateBlock({ header: undefined })}
+                onPress={() => onImmediateUpdate({ header: null })}
                 hitSlop={8}
                 className="p-1"
               >
@@ -232,32 +246,14 @@ export const ListBlock = React.memo(function ListBlock({
               {/* Text Input / Display */}
               {isEditing ? (
                 <MarkdownEditor
-                  // ref={(ref) => {
-                  //   inputRefs.current[item.id] = ref;
-                  // }}
+                  ref={(el) => {
+                    inputRefs.current[item.id] = el;
+                  }}
                   defaultValue={item.content}
                   onChangeText={(text) => handleItemTextChange(item.id, text)}
+                  onBlur={onCommit}
                   placeholder="List item..."
                   placeholderTextColor={colors.textSecondary}
-                  // multiline
-                  // blurOnSubmit={false}
-                  // onSubmitEditing={() => handleAddItem(index)}
-                  // onKeyPress={({ nativeEvent }) => {
-                  //   if (
-                  //     nativeEvent.key === "Backspace" &&
-                  //     !item.content &&
-                  //     items.length > 1
-                  //   ) {
-                  //     handleDeleteItem(item.id);
-                  //   }
-                  // }}
-                  style={{}}
-                  // TODO: Move Checked to a filtered `Checked Items` Section Down 
-                  // className={`flex-1 text-sm leading-5 py-0.5 text-foreground ${
-                  //   item.checked && listType === "checkbox"
-                  //     ? "line-through text-text-secondary"
-                  //     : ""
-                  // }`}
                 />
               ) : (
                 <Text
@@ -290,7 +286,7 @@ export const ListBlock = React.memo(function ListBlock({
           );
         })}
 
-        {/* Empty state or Add Item button */}
+        {/* Add Item button */}
         {isEditing && (
           <Pressable
             onPress={() => handleAddItem()}
@@ -311,13 +307,14 @@ export const ListBlock = React.memo(function ListBlock({
             <View className="flex-row items-center gap-1">
               <TextInput
                 value={block.footer}
-                onChangeText={(footer) => onUpdateBlock({ footer })}
+                onChangeText={(footer) => onStageUpdate({ footer })}
+                onBlur={onCommit}
                 placeholder="Section footer..."
                 placeholderTextColor={colors.textSecondary}
                 className="flex-1 text-xs text-text-secondary py-0.5"
               />
               <Pressable
-                onPress={() => onUpdateBlock({ footer: undefined })}
+                onPress={() => onImmediateUpdate({ footer: null })}
                 hitSlop={8}
                 className="p-1"
               >

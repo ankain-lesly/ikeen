@@ -12,9 +12,41 @@ import type {
   BlockChanges,
 } from '@repo/types';
 import { triggerSync } from './sync-events';
-// import { triggerSync } from './sync-events';
 
 export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
+
+export type SyncFailureCategory =
+  | 'transient_no_penalty'
+  | 'server_error'
+  | 'client_rejected';
+
+/**
+ * Strictly classifies HTTP / network push failures before mutating outbox retry state:
+ * - `transient_no_penalty` (offline status 0, 401/403 auth expiry, 408 timeout, 429 rate-limit):
+ *   Resets `in_flight` -> `pending` WITHOUT incrementing `retryCount`.
+ * - `server_error` (5xx):
+ *   Increments `retryCount`; stays `pending` until `MAX_RETRIES` is reached.
+ * - `client_rejected` (400, 404, 409, 422):
+ *   Explicit server rejection; increments `retryCount` and marks `failed` at `MAX_RETRIES`.
+ */
+export function classifySyncPushFailure(
+  status?: number,
+): SyncFailureCategory {
+  if (
+    status === undefined ||
+    status === 0 ||
+    status === 401 ||
+    status === 403 ||
+    status === 408 ||
+    status === 429
+  ) {
+    return 'transient_no_penalty';
+  }
+  if (status >= 500 && status < 600) {
+    return 'server_error';
+  }
+  return 'client_rejected';
+}
 
 /**
  * Enqueues a local mutation into SQLite sync_outbox.
@@ -109,8 +141,7 @@ export async function enqueueOutbox(
       });
     }
 
-    // Sync triggers are orchestrated exclusively by the SyncManager (network transitions,
-    // app foregrounding, auth changes, and Ably real-time invalidations) rather than firing on every granular enqueue.
+    // Notify SyncManager that new pending mutations are available in the outbox.
     triggerSync();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -133,8 +164,8 @@ export async function getPendingOutbox(
         or(
           eq(syncOutbox.status, 'pending'),
           and(
-            eq(syncOutbox.status, 'failed')
-            // lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+            eq(syncOutbox.status, 'failed'),
+            lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
           )
         )
       )
@@ -182,19 +213,39 @@ export async function markOutboxSuccess(ids: string[]): Promise<void> {
 }
 
 /**
- * Handles mutation failure:
- * - If terminal error (e.g. 4xx) or retryCount reaches MAX_RETRIES: marks FAILED.
- * - Otherwise: resets status to PENDING for retry and increments retryCount.
+ * Handles mutation failure using strict HTTP status classification:
+ * - `transient_no_penalty` (offline, 401/403, 408, 429): resets to `pending` without incrementing `retryCount`.
+ * - `server_error` (5xx) & `client_rejected` (400/404/409/422): increments `retryCount` and marks `failed`
+ *   only when `retryCount >= SYNC_CONSTANTS.MAX_RETRIES`.
  */
 export async function markOutboxFailed(
   ids: string[],
-  isTerminal: boolean,
+  status: number | undefined,
   errorMessage: string
 ): Promise<void> {
   if (ids.length === 0) return;
   const now = new Date().toISOString();
+  const category = classifySyncPushFailure(status);
 
   try {
+    if (category === 'transient_no_penalty') {
+      await db
+        .update(syncOutbox)
+        .set({
+          status: 'pending',
+          lastError: errorMessage,
+          updatedAt: now,
+        })
+        .where(inArray(syncOutbox.id, ids));
+
+      log('[Sync:Outbox:TransientDefer]', {
+        count: ids.length,
+        status,
+        error: errorMessage,
+      });
+      return;
+    }
+
     const items = await db
       .select()
       .from(syncOutbox)
@@ -202,7 +253,7 @@ export async function markOutboxFailed(
 
     for (const item of items) {
       const nextRetries = item.retryCount + 1;
-      const shouldFail = isTerminal || nextRetries >= SYNC_CONSTANTS.MAX_RETRIES;
+      const shouldFail = nextRetries >= SYNC_CONSTANTS.MAX_RETRIES;
 
       await db
         .update(syncOutbox)
@@ -216,7 +267,8 @@ export async function markOutboxFailed(
     }
     log('[Sync:Outbox:Failed]', {
       count: ids.length,
-      isTerminal,
+      category,
+      status,
       error: errorMessage,
     });
   } catch (err: unknown) {

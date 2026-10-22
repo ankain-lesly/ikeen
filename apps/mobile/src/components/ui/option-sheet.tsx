@@ -4,7 +4,7 @@ import { View, Text as RNText, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 
-type SheetAction = {
+export type SheetAction = {
   label: string;
   icon: React.ReactNode;
   onPress: () => void;
@@ -43,7 +43,7 @@ export function OptionSheet({
         snapPoints={snapPoints}
         containerColor={colors.card}>
         <RNHostView matchContents>
-          <View className="flex-1 pt_2 w-full p-4">
+          <View className="flex-1 w-full p-4">
             {/* Header */}
             {title ? (
               <View className="flex-row items-center justify-between mb-4">

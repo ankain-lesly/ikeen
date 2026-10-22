@@ -29,7 +29,6 @@ import {
 import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
-import { toast } from '../toast';
 
 class SyncManager {
   private isSyncing = false;
@@ -37,7 +36,6 @@ class SyncManager {
   private ablyClient: Ably.Realtime | null = null;
   private ablyChannel: Ably.RealtimeChannel | null = null;
   private isInitialized = false;
-  private syncBatchCount = 0;
 
   /**
    * Initializes real-time subscriptions, network listener, and app-state handlers.
@@ -141,7 +139,6 @@ class SyncManager {
 
       this.ablyChannel = this.ablyClient.channels.get(`user:${userId}`);
       this.ablyChannel.subscribe('sync:invalidate', () => {
-        toast.info('(A) Syncing...');
         log('[Sync:Realtime:InvalidateReceived]', { userId });
         this.pull().catch(() => {});
       });
@@ -206,6 +203,8 @@ class SyncManager {
   async push(): Promise<void> {
     const { isAuthenticated } = useAuthStore.getState();
     if (!isAuthenticated) return;
+
+    let batchIndex = 0;
 
     while (true) {
       const items = await getPendingOutbox(SYNC_CONSTANTS.BATCH_SIZE);
@@ -282,10 +281,10 @@ class SyncManager {
         }
       }
 
-      this.syncBatchCount++;
+      batchIndex++;
 
       log('[Sync:Push:Dispatch]', {
-        syncBatchCount: this.syncBatchCount,
+        syncBatchCount: batchIndex,
         itemsCount: items.length,
         foldersCount: folderMutations.length,
         notesCount: noteMutations.length,
@@ -308,23 +307,20 @@ class SyncManager {
           response?: { status?: number };
           message?: string;
         };
-        const status = errorObj?.status || errorObj?.response?.status;
-        const isTerminal = typeof status === 'number' && status >= 400 && status < 500;
+        const status = errorObj?.status ?? errorObj?.response?.status;
         const errorMessage = errorObj?.message || 'Push failed';
 
         log('[Sync:Push:Error]', {
           batchCount: batchIds.length,
-          isTerminal,
           status,
           error: errorMessage,
         });
 
-        await markOutboxFailed(batchIds, isTerminal, errorMessage);
+        await markOutboxFailed(batchIds, status, errorMessage);
         throw err;
       }
     }
 
-    this.syncBatchCount = 0
     await this.updatePendingCount();
   }
 

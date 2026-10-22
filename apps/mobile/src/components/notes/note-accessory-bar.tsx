@@ -28,7 +28,6 @@ import type { MarkdownFormatAction } from "@/components/markdown";
 import { AnimatedEntryView } from "../ui/animated";
 import { Card } from "../ui/card";
 import { NotesEditorToolbarBlocks } from "./editor-toolbar-blocks";
-import { toast } from "@/lib/toast";
 
 interface NoteAccessoryBarProps {
   onFormat: (action: MarkdownFormatAction) => void;
@@ -55,7 +54,7 @@ interface NoteBottomToolBarProps
   onRecordAudio?: () => void;
 }
 
-type ToolbarMode = "default" | "color" | "text";
+type ToolbarMode = "default" | "text";
 
 export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
   onFormat,
@@ -106,18 +105,12 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
 
   return (
     <>
-      <View
-        className={`absolute__bottom-0 w-full items-center justify-center  pointer-events-box-none`}>
+      <View className="w-full items-center justify-center pointer-events-box-none">
         {isEditing ? (
-          <>
-            <View
-              className={`flex-row items-center border border-border _rounded-full px-2 bg-background-element${!isVisible ? " pb-safe-offset-2" : ""}`}
-
-              // className="flex-1 flex-row items-center"
-            >
-              {renderMode()}
-            </View>
-          </>
+          <View
+            className={`flex-row items-center border border-border px-2 bg-background-element${!isVisible ? " pb-safe-offset-2" : ""}`}>
+            {renderMode()}
+          </View>
         ) : (
           <NoteMinimalToolbar
             wordCount={wordCount}
@@ -158,33 +151,27 @@ export const ToolbarModeDefault = React.memo(function NoteAccessoryBar({
   const colors = useTheme();
 
   const handleTagAction = () => {
-    // Haptics.selectionAsync();
     onOpenTagPrompt?.();
   };
 
   const handleDismiss = () => {
-    // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
     onDismiss?.();
   };
 
   return (
-    <AnimatedEntryView
-      className={`w-full flex-row items-center justify-between`}>
+    <AnimatedEntryView className="w-full flex-row items-center justify-between">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerClassName="items-center gap-3 px-1"
         keyboardShouldPersistTaps="always">
-        {/* Checklist */}
+        {/* Add Block Sheet Trigger */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Insert checklist item"
+          accessibilityLabel="Add block"
           onPress={() => onOpenBlockSheet()}>
-          <Card
-            className={
-              "bg-primary rounded-xl size-10 items-center justify-center"
-            }>
+          <Card className="bg-primary rounded-xl size-10 items-center justify-center">
             <Plus size={20} color={colors.text} />
           </Card>
         </Pressable>
@@ -200,7 +187,7 @@ export const ToolbarModeDefault = React.memo(function NoteAccessoryBar({
         {/* Bullet List */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Insert bullet list"
+          accessibilityLabel="Text formatting"
           className="p-2 rounded-lg justify-center items-center active:opacity-70 size-10"
           onPress={() => setMode("text")}>
           <LetterText size={20} color={colors.text} />
@@ -236,7 +223,7 @@ export const ToolbarModeDefault = React.memo(function NoteAccessoryBar({
           accessibilityLabel="Saving note"
           className="px-3 py-2 justify-center items-center active:opacity-70 size-10"
           onPress={handleDismiss}>
-          <ActivityIndicator size={"small"} color={colors.border} />
+          <ActivityIndicator size="small" color={colors.border} />
         </Pressable>
       ) : (
         <Pressable
@@ -260,18 +247,15 @@ type ToolbarModeEditTextProps = Omit<
 export const ToolbarModeEditText = React.memo(function NoteAccessoryBar({
   onFormat,
   setMode,
-  isSaving,
 }: ToolbarModeEditTextProps) {
   const colors = useTheme();
 
   const handleAction = (action: MarkdownFormatAction) => {
-    // Haptics.selectionAsync();
     onFormat(action);
   };
 
   return (
-    <AnimatedEntryView
-      className={`w-full flex-row items-center justify-between`}>
+    <AnimatedEntryView className="w-full flex-row items-center justify-between">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -343,8 +327,6 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
   onStartEditing,
   wordCount = 0,
   onShare,
-  isPinned,
-  onTogglePin,
 }: NoteMinimalToolbarProps) {
   const colors = useTheme();
   const { isVisible } = useKeyboardGradualAnimation();
@@ -353,8 +335,7 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
     <AnimatedEntryView className="absolute bottom-safe-offset-2 flex-1 flex-row items-center justify-between">
       <View
         className={`items-center justify-center w-full${!isVisible ? " pb-safe-offset-2" : ""}`}>
-        <View
-          className={`h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2`}>
+        <View className="h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2">
           {/* Left: Word count badge */}
           <Text className="text-xs font-mono text-text-secondary">
             {wordCount} {wordCount === 1 ? "word" : "words"}
@@ -372,21 +353,6 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
                 <Share2 size={16} color={colors.textSecondary} />
               </Pressable>
             ) : null}
-
-            {/* {onTogglePin ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={isPinned ? "Unpin note" : "Pin note"}
-              className="p-2 rounded-full justify-center items-center active:opacity-70 size-10"
-              onPress={onTogglePin}
-              hitSlop={8}>
-              <Pin
-                size={16}
-                color={isPinned ? colors.primary : colors.textSecondary}
-                fill={isPinned ? colors.primary : undefined}
-              />
-            </Pressable>
-          ) : null} */}
 
             {/* Quick Edit CTA Button */}
             <Pressable

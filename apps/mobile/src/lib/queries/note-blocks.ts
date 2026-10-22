@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import * as Crypto from 'expo-crypto';
 import { and, asc, eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
@@ -6,115 +7,22 @@ import { db } from '@/db/client';
 import { noteBlocks, type NoteBlockSelect } from '@/db/schema';
 import type {
   CreateBlockInput,
-  ListBlock,
-  MediaBlock,
-  Note,
   NoteBlock,
-  TextBlock,
   UpdateBlockInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-import { updateNote } from './notes';
+import {
+  formatNoteWithBlocks,
+  serializeBlockContent,
+  toBlockOutboxPayload,
+  unpackNoteBlock,
+} from './block-content.codec';
+import { createNote, getNoteById } from './notes';
 
-// ============================================================================
-// Serialization / Deserialization Helpers
-// ============================================================================
+export { formatNoteWithBlocks, serializeBlockContent };
 
 export function rowToNoteBlock(row: NoteBlockSelect): NoteBlock {
-  const base = {
-    id: row.id,
-    noteId: row.noteId,
-    position: row.position,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-
-  if (row.type === 'text') {
-    return {
-      ...base,
-      type: 'text',
-      content: row.content,
-    } as TextBlock;
-  }
-
-  if (row.type === 'list') {
-    try {
-      const parsed = JSON.parse(row.content);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return {
-          ...base,
-          type: 'list',
-          listType: parsed.listType || 'checkbox',
-          header: parsed.header,
-          footer: parsed.footer,
-          content: Array.isArray(parsed.content) ? parsed.content : [],
-        } as ListBlock;
-      }
-      return {
-        ...base,
-        type: 'list',
-        listType: 'checkbox',
-        content: Array.isArray(parsed) ? parsed : [],
-      } as ListBlock;
-    } catch {
-      return {
-        ...base,
-        type: 'list',
-        listType: 'checkbox',
-        content: [],
-      } as ListBlock;
-    }
-  }
-
-  if (row.type === 'media') {
-    try {
-      const parsed = JSON.parse(row.content);
-      return {
-        ...base,
-        type: 'media',
-        content: Array.isArray(parsed) ? parsed : [],
-      } as MediaBlock;
-    } catch {
-      return {
-        ...base,
-        type: 'media',
-        content: [],
-      } as MediaBlock;
-    }
-  }
-
-  // Fallback as text block
-  return {
-    ...base,
-    type: 'text',
-    content: row.content,
-  } as TextBlock;
-}
-
-export function serializeBlockContent(
-  type: 'text' | 'list' | 'media',
-  content: any,
-  meta?: { listType?: string; header?: string; footer?: string }
-): string {
-  if (type === 'text') {
-    return typeof content === 'string' ? content : '';
-  }
-
-  if (type === 'list') {
-    const payload = {
-      listType: meta?.listType || 'checkbox',
-      header: meta?.header,
-      footer: meta?.footer,
-      content: Array.isArray(content) ? content : [],
-    };
-    return JSON.stringify(payload);
-  }
-
-  if (type === 'media') {
-    return JSON.stringify(Array.isArray(content) ? content : []);
-  }
-
-  return typeof content === 'string' ? content : JSON.stringify(content ?? {});
+  return unpackNoteBlock(row);
 }
 
 // ============================================================================
@@ -123,6 +31,7 @@ export function serializeBlockContent(
 
 /**
  * Reactive hook: Automatically updates when blocks for a note change in SQLite.
+ * Memoizes the mapped array so consumers do not re-render when SQLite rows are unchanged.
  */
 export function useLiveNoteBlocks(noteId: string | undefined | null) {
   const query = noteId
@@ -139,7 +48,10 @@ export function useLiveNoteBlocks(noteId: string | undefined | null) {
 
   const result = useLiveQuery(query, [noteId]);
 
-  const blocks: NoteBlock[] = (result.data ?? []).map(rowToNoteBlock);
+  const blocks = useMemo<NoteBlock[]>(
+    () => (result.data ?? []).map(rowToNoteBlock),
+    [result.data],
+  );
 
   return {
     ...result,
@@ -166,15 +78,20 @@ export async function getNoteBlocks(noteId: string): Promise<NoteBlock[]> {
 
 /**
  * Creates a discrete block under a note.
+ * Enforces that the parent note exists in SQLite before inserting the block.
  */
 export async function createBlock(
   noteId: string,
-  input: CreateBlockInput
+  input: CreateBlockInput,
 ): Promise<NoteBlock> {
+  const existingNote = await getNoteById(noteId);
+  if (!existingNote) {
+    await createNote({ id: noteId });
+  }
+
   const id = input.id ?? Crypto.randomUUID();
   const now = new Date().toISOString();
 
-  // If position is not provided, append at end
   let position = input.position;
   if (position === undefined) {
     const existing = await getNoteBlocks(noteId);
@@ -202,8 +119,7 @@ export async function createBlock(
 
   const block = rowToNoteBlock(row);
 
-  // Enqueue discrete outbox mutation
-  await enqueueOutbox('note_blocks', id, 'upsert', block);
+  await enqueueOutbox('note_blocks', id, 'upsert', toBlockOutboxPayload(block));
 
   return block;
 }
@@ -213,7 +129,7 @@ export async function createBlock(
  */
 export async function updateBlock(
   blockId: string,
-  updates: UpdateBlockInput
+  updates: UpdateBlockInput,
 ): Promise<NoteBlock> {
   const [existing] = await db
     .select()
@@ -231,29 +147,41 @@ export async function updateBlock(
 
   let nextRawContent = existing.content;
   if (
-    updates.content !== undefined ||
-    updates.listType !== undefined ||
-    updates.header !== undefined ||
-    updates.footer !== undefined
+    'content' in updates ||
+    'listType' in updates ||
+    'header' in updates ||
+    'footer' in updates
   ) {
-    let currentContent: any = updates.content;
-    let currentMeta: any = {
-      listType: updates.listType,
-      header: updates.header,
-      footer: updates.footer,
-    };
+    const existingBlock = rowToNoteBlock(existing);
+    const currentContent =
+      updates.content !== undefined ? updates.content : existingBlock.content;
 
-    if (currentContent === undefined) {
-      const existingBlock = rowToNoteBlock(existing);
-      currentContent = existingBlock.content;
-      if (existingBlock.type === 'list') {
-        currentMeta.listType = currentMeta.listType ?? existingBlock.listType;
-        currentMeta.header = currentMeta.header ?? existingBlock.header;
-        currentMeta.footer = currentMeta.footer ?? existingBlock.footer;
-      }
-    }
+    const currentMeta =
+      existingBlock.type === 'list' || nextType === 'list'
+        ? {
+            listType:
+              updates.listType ??
+              (existingBlock.type === 'list' ? existingBlock.listType : 'checkbox'),
+            header:
+              'header' in updates
+                ? updates.header
+                : existingBlock.type === 'list'
+                  ? existingBlock.header
+                  : undefined,
+            footer:
+              'footer' in updates
+                ? updates.footer
+                : existingBlock.type === 'list'
+                  ? existingBlock.footer
+                  : undefined,
+          }
+        : undefined;
 
-    nextRawContent = serializeBlockContent(nextType, currentContent, currentMeta);
+    nextRawContent = serializeBlockContent(
+      nextType as 'text' | 'list' | 'media',
+      currentContent,
+      currentMeta,
+    );
   }
 
   const [updated] = await db
@@ -269,7 +197,7 @@ export async function updateBlock(
 
   const block = rowToNoteBlock(updated);
 
-  await enqueueOutbox('note_blocks', blockId, 'upsert', block);
+  await enqueueOutbox('note_blocks', blockId, 'upsert', toBlockOutboxPayload(block));
 
   return block;
 }
@@ -288,21 +216,36 @@ export async function deleteBlock(blockId: string): Promise<void> {
 
   await db.delete(noteBlocks).where(eq(noteBlocks.id, blockId));
 
-  await enqueueOutbox('note_blocks', blockId, 'delete', { id: blockId, noteId: existing.noteId });
+  await enqueueOutbox('note_blocks', blockId, 'delete', {
+    id: blockId,
+    noteId: existing.noteId,
+  });
 
-  // Re-index remaining blocks for this note
   const remaining = await getNoteBlocks(existing.noteId);
+  const now = new Date().toISOString();
+  const reindexedBlocks: NoteBlock[] = [];
+
   for (let i = 0; i < remaining.length; i++) {
     if (remaining[i].position !== i) {
       await db
         .update(noteBlocks)
-        .set({ position: i, updatedAt: new Date().toISOString() })
+        .set({ position: i, updatedAt: now })
         .where(eq(noteBlocks.id, remaining[i].id));
-      await enqueueOutbox('note_blocks', remaining[i].id, 'upsert', {
+      reindexedBlocks.push({
         ...remaining[i],
         position: i,
+        updatedAt: now,
       });
     }
+  }
+
+  for (const reindexed of reindexedBlocks) {
+    await enqueueOutbox(
+      'note_blocks',
+      reindexed.id,
+      'upsert',
+      toBlockOutboxPayload(reindexed),
+    );
   }
 }
 
@@ -311,74 +254,36 @@ export async function deleteBlock(blockId: string): Promise<void> {
  */
 export async function reorderBlocks(
   noteId: string,
-  orderedBlockIds: string[]
+  orderedBlockIds: string[],
 ): Promise<void> {
+  const existingBlocks = await getNoteBlocks(noteId);
+  const positionById = new Map(existingBlocks.map((b) => [b.id, b.position]));
   const now = new Date().toISOString();
+  const changedBlocks: NoteBlock[] = [];
 
   for (let index = 0; index < orderedBlockIds.length; index++) {
     const blockId = orderedBlockIds[index];
-    await db
+    if (positionById.get(blockId) === index) continue;
+
+    const [updated] = await db
       .update(noteBlocks)
       .set({ position: index, updatedAt: now })
-      .where(and(eq(noteBlocks.id, blockId), eq(noteBlocks.noteId, noteId)));
+      .where(and(eq(noteBlocks.id, blockId), eq(noteBlocks.noteId, noteId)))
+      .returning();
 
-    await enqueueOutbox('note_blocks', blockId, 'upsert', {
-      id: blockId,
-      noteId,
-      position: index,
-    });
-  }
-}
-
-/**
- * Idempotent Prepend Conversion:
- * If note.content is non-empty, creates a TextBlock at position 0,
- * shifts any existing blocks, and clears note.content to enforce mutual exclusivity.
- */
-export async function convertNoteContentToBlock(
-  note: Note
-): Promise<NoteBlock | null> {
-  const rawText = (note.content || '').trim();
-  if (!rawText) return null;
-
-  const now = new Date().toISOString();
-
-  // Shift existing blocks if any
-  const existing = await getNoteBlocks(note.id);
-  for (const b of existing) {
-    const nextPos = b.position + 1;
-    await db
-      .update(noteBlocks)
-      .set({ position: nextPos, updatedAt: now })
-      .where(eq(noteBlocks.id, b.id));
-    await enqueueOutbox('note_blocks', b.id, 'upsert', {
-      ...b,
-      position: nextPos,
-    });
+    if (updated) {
+      changedBlocks.push(rowToNoteBlock(updated));
+    }
   }
 
-  // Prepend TextBlock at position 0
-  const legacyBlockId = Crypto.randomUUID();
-  const [createdRow] = await db
-    .insert(noteBlocks)
-    .values({
-      id: legacyBlockId,
-      noteId: note.id,
-      type: 'text',
-      position: 0,
-      content: rawText,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
-
-  const legacyBlock = rowToNoteBlock(createdRow);
-  await enqueueOutbox('note_blocks', legacyBlockId, 'upsert', legacyBlock);
-
-  // Clear note.content to satisfy mutual exclusivity rule
-  await updateNote(note.id, { content: '' });
-
-  return legacyBlock;
+  for (const block of changedBlocks) {
+    await enqueueOutbox(
+      'note_blocks',
+      block.id,
+      'upsert',
+      toBlockOutboxPayload(block),
+    );
+  }
 }
 
 /**
@@ -386,7 +291,6 @@ export async function convertNoteContentToBlock(
  * Skips the write if the locally-stored block is already newer than the server copy.
  */
 export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
-  // LWW: skip if local is newer
   const [existing] = await db
     .select({ updatedAt: noteBlocks.updatedAt })
     .from(noteBlocks)
@@ -397,38 +301,37 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
     return;
   }
 
+  const normalized = unpackNoteBlock(block);
   const rawContent = serializeBlockContent(
-    block.type,
-    block.content,
-    block.type === 'list'
+    normalized.type,
+    normalized.content,
+    normalized.type === 'list'
       ? {
-          listType: (block as ListBlock).listType,
-          header: (block as ListBlock).header,
-          footer: (block as ListBlock).footer,
+          listType: normalized.listType,
+          header: normalized.header,
+          footer: normalized.footer,
         }
-      : undefined
+      : undefined,
   );
 
   await db
     .insert(noteBlocks)
     .values({
-      id: block.id,
-      noteId: block.noteId,
-      type: block.type,
-      position: block.position,
+      id: normalized.id,
+      noteId: normalized.noteId,
+      type: normalized.type,
+      position: normalized.position,
       content: rawContent,
-      createdAt: block.createdAt,
-      updatedAt: block.updatedAt,
+      createdAt: normalized.createdAt,
+      updatedAt: normalized.updatedAt,
     })
     .onConflictDoUpdate({
       target: noteBlocks.id,
       set: {
-        type: block.type,
-        position: block.position,
+        type: normalized.type,
+        position: normalized.position,
         content: rawContent,
-        updatedAt: block.updatedAt,
+        updatedAt: normalized.updatedAt,
       },
     });
 }
-
-

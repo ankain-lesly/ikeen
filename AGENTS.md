@@ -12,11 +12,11 @@ This repository uses **Bun** (`1.3.6`) and **Turborepo v2** (`^2.10.12`) to effi
 ## 1. Task Tracking Workflow
 
 - **`TODO.md`**: Central, in-progress requirements and problems. Keep clean by removing completed items.
-- **`TODO.CHECKLIST.md`**: Detailed checklists per feature or bug; update as you make progress.
+- **`FEATURE-CHECKLIST.md`**: Detailed checklists per feature or bug; update as you make progress.
 - **Recommended workflow:**
   1. Review and triage `TODO.md`.
   2. Implement the feature or fix.
-  3. Track granular progress in `TODO.CHECKLIST.md`.
+  3. Track granular progress in `FEATURE-CHECKLIST.md`.
   4. Remove resolved tasks from `TODO.md`.
 
 ---
@@ -115,7 +115,7 @@ bun run dev:mobile                    # Mobile only
 
 - **Structure**: See above; `apps/*`, `packages/*`, `plans/`
 - **Development**: Use only permitted APIs in universal packages; enforce all package and archetype guidelines.
-- **Tracking**: Use `TODO.md` for active items, `TODO.CHECKLIST.md` for checklists.
+- **Tracking**: Use `TODO.md` for active items, `FEATURE-CHECKLIST.md` for checklists.
 - **PRs/Commits by Claude**: Must follow repository’s attribution rules.
 - **Architecture**:
   - Mobile component sources: `apps/mobile/src/components/notes/`

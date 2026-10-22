@@ -1,186 +1,198 @@
-import React, { useCallback, useMemo } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { Pressable, Text, View } from "react-native";
 import { Plus } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { useDoubleTap } from "@/hooks/use-double-tap";
 import * as Haptics from "@/lib/haptics";
 import type { Note, NoteBlock } from "@/lib/types/notes";
 import {
   createBlock,
   deleteBlock,
   reorderBlocks,
-  updateBlock,
   useLiveNoteBlocks,
 } from "@/lib/queries/note-blocks";
 import { BlockWrapper } from "./block-wrapper";
 import { TextBlock } from "./text-block";
 import { ListBlock } from "./list-block";
 import { MediaBlock } from "./media-block";
-import { MarkdownBody, MarkdownEditor } from "@/components/markdown";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { scheduleOnRN } from "react-native-worklets";
+import {
+  cloneBlockInput,
+  createDefaultChecklistBlockInput,
+  createDefaultTextBlockInput,
+} from "./block-factories";
+import { useStagedBlockUpdates } from "./use-staged-block-updates";
+import {
+  MarkdownBody,
+  MarkdownEditor,
+  type MarkdownEditorHandle,
+  type MarkdownFormatAction,
+} from "@/components/markdown";
+import { GestureDetector } from "react-native-gesture-handler";
+
+export type BlockContainerHandle = {
+  flushBlocks: () => Promise<void>;
+  focusContent: () => void;
+  formatContent: (action: MarkdownFormatAction) => void;
+};
 
 export interface BlockContainerProps {
   note: Note;
   isEditing: boolean;
-  onContentConverted?: () => void;
   onStartEditing: () => void;
   onContentChange?: (t: string) => void;
 }
 
-export const BlockContainer = React.memo(function BlockContainer({
-  note,
-  isEditing,
-  onStartEditing,
-  onContentChange,
-}: BlockContainerProps) {
-  const colors = useTheme();
-  const { data: blocks } = useLiveNoteBlocks(note.id);
+export const BlockContainer = React.memo(
+  forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
+    { note, isEditing, onStartEditing, onContentChange },
+    ref,
+  ) {
+    const colors = useTheme();
+    const { data: liveBlocks } = useLiveNoteBlocks(note.id);
+    const contentEditorRef = useRef<MarkdownEditorHandle>(null);
 
-  // Invariant: Idempotent Prepend Conversion of legacy note.content
-  // CODE: Keep Content
-  // useEffect(() => {
-  //   if (note.id && note.content && note.content.trim()) {
-  //     void (async () => {
-  //       try {
-  //         await convertNoteContentToBlock(note);
-  //         onContentConverted?.();
-  //       } catch (err) {
-  //         console.error(
-  //           "[BlockContainer] Failed to convert legacy note content:",
-  //           err,
-  //         );
-  //       }
-  //     })();
-  //   }
-  // }, [note.id, note.content, onContentConverted, note]);
+    const {
+      blocks,
+      clearDirtyEntry,
+      handleStageUpdate,
+      commitBlock,
+      handleImmediateUpdate,
+      flushBlocks,
+    } = useStagedBlockUpdates(liveBlocks);
 
-  // Update block content / metadata
-  const handleUpdate = useCallback(async (blockId: string, updates: any) => {
-    try {
-      await updateBlock(blockId, updates);
-    } catch (err) {
-      console.error("[BlockContainer] Update block error:", err);
-    }
-  }, []);
+    useImperativeHandle(
+      ref,
+      () => ({
+        flushBlocks,
+        focusContent: () => {
+          contentEditorRef.current?.focus();
+        },
+        formatContent: (action: MarkdownFormatAction) => {
+          contentEditorRef.current?.format(action);
+        },
+      }),
+      [flushBlocks],
+    );
 
-  // Delete block
-  const handleDelete = useCallback(async (blockId: string) => {
-    try {
-      await deleteBlock(blockId);
-    } catch (err) {
-      console.error("[BlockContainer] Delete block error:", err);
-    }
-  }, []);
+    // Delete block
+    const handleDelete = useCallback(
+      async (blockId: string) => {
+        clearDirtyEntry(blockId);
+        try {
+          await deleteBlock(blockId);
+        } catch (err) {
+          console.error("[BlockContainer] Delete block error:", err);
+        }
+      },
+      [clearDirtyEntry],
+    );
 
-  // Duplicate block
-  const handleDuplicate = useCallback(
-    async (block: NoteBlock, currentIndex: number) => {
-      try {
-        await createBlock(note.id, {
-          type: block.type,
-          position: currentIndex + 1,
-          content: block.content,
-          ...(block.type === "list"
-            ? {
-                listType: block.listType,
-                header: block.header,
-                footer: block.footer,
+    // Duplicate block with fresh child UUIDs and re-indexed positions
+    const handleDuplicate = useCallback(
+      async (block: NoteBlock, currentIndex: number) => {
+        try {
+          await commitBlock(block.id);
+          const created = await createBlock(
+            note.id,
+            cloneBlockInput(block, currentIndex + 1),
+          );
+
+          const nextIds = blocks.map((b) => b.id);
+          nextIds.splice(currentIndex + 1, 0, created.id);
+          await reorderBlocks(note.id, nextIds);
+        } catch (err) {
+          console.error("[BlockContainer] Duplicate block error:", err);
+        }
+      },
+      [blocks, commitBlock, note.id],
+    );
+
+    // Move block up (-1) or down (+1)
+    const handleMoveBlock = useCallback(
+      async (index: number, direction: -1 | 1) => {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= blocks.length) return;
+        await flushBlocks();
+        const ids = blocks.map((b) => b.id);
+        [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
+        await reorderBlocks(note.id, ids);
+      },
+      [blocks, flushBlocks, note.id],
+    );
+
+    // Quick initial block creation when empty
+    const handleAddInitialBlock = useCallback(
+      async (type: "text" | "list" = "text") => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        const payload =
+          type === "text"
+            ? createDefaultTextBlockInput()
+            : createDefaultChecklistBlockInput();
+        await createBlock(note.id, payload);
+      },
+      [note.id],
+    );
+
+    // Render individual block content by type
+    const renderBlockContent = (block: NoteBlock) => {
+      switch (block.type) {
+        case "text":
+          return (
+            <TextBlock
+              block={block}
+              isEditing={isEditing}
+              onChangeContent={(newContent) =>
+                handleStageUpdate(block.id, { content: newContent })
               }
-            : {}),
-        });
-      } catch (err) {
-        console.error("[BlockContainer] Duplicate block error:", err);
+              onBlur={() => {
+                void commitBlock(block.id);
+              }}
+              onFocus={onStartEditing}
+            />
+          );
+        case "list":
+          return (
+            <ListBlock
+              block={block}
+              isEditing={isEditing}
+              onStageUpdate={(updates) => handleStageUpdate(block.id, updates)}
+              onImmediateUpdate={(updates) => {
+                void handleImmediateUpdate(block.id, updates);
+              }}
+              onCommit={() => {
+                void commitBlock(block.id);
+              }}
+            />
+          );
+        case "media":
+          return (
+            <MediaBlock
+              block={block}
+              isEditing={isEditing}
+              onStageContent={(items) =>
+                handleStageUpdate(block.id, { content: items })
+              }
+              onImmediateContent={(items) => {
+                void handleImmediateUpdate(block.id, { content: items });
+              }}
+              onCommit={() => {
+                void commitBlock(block.id);
+              }}
+            />
+          );
+        default:
+          return null;
       }
-    },
-    [note.id],
-  );
+    };
 
-  // Move block up
-  const handleMoveUp = useCallback(
-    async (index: number) => {
-      if (index <= 0 || !blocks) return;
-      const ids = blocks.map((b) => b.id);
-      const temp = ids[index - 1];
-      ids[index - 1] = ids[index];
-      ids[index] = temp;
-      await reorderBlocks(note.id, ids);
-    },
-    [blocks, note.id],
-  );
-
-  // Move block down
-  const handleMoveDown = useCallback(
-    async (index: number) => {
-      if (!blocks || index >= blocks.length - 1) return;
-      const ids = blocks.map((b) => b.id);
-      const temp = ids[index + 1];
-      ids[index + 1] = ids[index];
-      ids[index] = temp;
-      await reorderBlocks(note.id, ids);
-    },
-    [blocks, note.id],
-  );
-
-  // Quick initial block creation when empty
-  const handleAddInitialBlock = useCallback(
-    async (type: "text" | "list" = "text") => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      if (type === "text") {
-        await createBlock(note.id, {
-          type: "text",
-          content: "",
-        });
-      } else {
-        await createBlock(note.id, {
-          type: "list",
-          listType: "checkbox",
-          content: [{ id: "item-1", content: "", checked: false }],
-        });
-      }
-    },
-    [note.id],
-  );
-
-  // Render individual block content by type
-  const renderBlockContent = (block: NoteBlock) => {
-    switch (block.type) {
-      case "text":
-        return (
-          <TextBlock
-            block={block}
-            isEditing={isEditing}
-            onChangeContent={(newContent) =>
-              handleUpdate(block.id, { content: newContent })
-            }
-            onFocus={onStartEditing}
-          />
-        );
-      case "list":
-        return (
-          <ListBlock
-            block={block}
-            isEditing={isEditing}
-            onUpdateBlock={(updates) => handleUpdate(block.id, updates)}
-          />
-        );
-      case "media":
-        return (
-          <MediaBlock
-            block={block}
-            isEditing={isEditing}
-            onUpdateContent={(items) =>
-              handleUpdate(block.id, { content: items })
-            }
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Render DEMO BLock Actions
-  const renderBlockActions = () => {
-    if (isEditing) {
+    // Empty state actions only when editing and no blocks exist yet
+    const renderBlockActions = () => {
+      if (!isEditing || blocks.length > 0) return null;
       return (
         <View className="py-6 items-center justify-center gap-3">
           <Text className="text-sm text-text-secondary text-center">
@@ -206,60 +218,49 @@ export const BlockContainer = React.memo(function BlockContainer({
           </View>
         </View>
       );
-    }
-  };
+    };
 
-  // Handle Tap Gestures
-  const combinedGestures = useMemo(() => {
-    const singleTap = Gesture.Tap();
-    const doubleTap = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd(() => {
-        "worklet";
-        scheduleOnRN(onStartEditing);
-      });
+    const doubleTapGesture = useDoubleTap(onStartEditing);
 
-    return Gesture.Exclusive(doubleTap, singleTap);
-  }, [onStartEditing]);
+    return (
+      <View className="w-full pb-32">
+        {/* Editor Content | Blocks */}
+        {isEditing ? (
+          <MarkdownEditor
+            ref={contentEditorRef}
+            defaultValue={note.content}
+            placeholder="Start typing..."
+            onChangeText={onContentChange}
+          />
+        ) : note.content.trim() ? (
+          <MarkdownBody source={note.content} />
+        ) : (
+          <GestureDetector gesture={doubleTapGesture}>
+            <Text className="text-base leading-6 text-text-secondary">
+              Start typing...
+            </Text>
+          </GestureDetector>
+        )}
 
-  return (
-    <View className="w-full pb-32">
-      {/* Editor Content | Blocks */}
-      {isEditing ? (
-        <MarkdownEditor
-          // ref={contentInputRef}
-          defaultValue={note.content}
-          placeholder="Start typing..."
-          onChangeText={onContentChange}
-        />
-      ) : note.content.trim() ? (
-        <MarkdownBody source={note.content} />
-      ) : (
-        <GestureDetector gesture={combinedGestures}>
-          <Text className="text-base leading-6 text-text-secondary">
-            Start typing...
-          </Text>
-        </GestureDetector>
-      )}
+        {blocks.map((block, index) => {
+          return (
+            <BlockWrapper
+              key={block.id}
+              block={block}
+              isEditing={isEditing}
+              canMoveUp={index > 0}
+              canMoveDown={index < blocks.length - 1}
+              onMoveUp={() => handleMoveBlock(index, -1)}
+              onMoveDown={() => handleMoveBlock(index, 1)}
+              onDelete={() => handleDelete(block.id)}
+              onDuplicate={() => handleDuplicate(block, index)}>
+              {renderBlockContent(block)}
+            </BlockWrapper>
+          );
+        })}
 
-      {blocks.map((block, index) => {
-        return (
-          <BlockWrapper
-            key={block.id}
-            block={block}
-            isEditing={isEditing}
-            canMoveUp={index > 0}
-            canMoveDown={index < blocks.length - 1}
-            onMoveUp={() => handleMoveUp(index)}
-            onMoveDown={() => handleMoveDown(index)}
-            onDelete={() => handleDelete(block.id)}
-            onDuplicate={() => handleDuplicate(block, index)}>
-            {renderBlockContent(block)}
-          </BlockWrapper>
-        );
-      })}
-
-      {renderBlockActions()}
-    </View>
-  );
-});
+        {renderBlockActions()}
+      </View>
+    );
+  }),
+);

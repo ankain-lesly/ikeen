@@ -20,6 +20,7 @@ export interface NoteActionsOptions {
   isPinned: boolean;
   isArchived: boolean;
   isDeleted: boolean;
+  isNewDraft?: boolean;
   onUpdateState?: (key: NoteUpdateStateKey, value: any) => void;
   onDeleteSuccess?: () => void;
   onRestoreSuccess?: () => void;
@@ -32,6 +33,7 @@ export function useNoteActions({
   isPinned,
   isArchived,
   isDeleted,
+  isNewDraft = false,
   onUpdateState,
   onDeleteSuccess,
   onRestoreSuccess,
@@ -39,27 +41,33 @@ export function useNoteActions({
   const handleTogglePin = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onUpdateState?.("isPinned", !isPinned);
+    if (isNewDraft) return;
     try {
       await togglePinNote(noteId);
     } catch {
       onUpdateState?.("isPinned", isPinned);
       Alert.alert("Error", "Could not update pin state");
     }
-  }, [noteId, isPinned, onUpdateState]);
+  }, [isNewDraft, noteId, isPinned, onUpdateState]);
 
   const handleToggleArchive = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onUpdateState?.("isArchived", !isArchived);
+    if (isNewDraft) return;
     try {
       await toggleArchiveNote(noteId);
     } catch {
       onUpdateState?.("isArchived", isArchived);
       Alert.alert("Error", "Could not update archive state");
     }
-  }, [noteId, isArchived, onUpdateState]);
+  }, [isNewDraft, noteId, isArchived, onUpdateState]);
 
   const handleDeleteNote = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (isNewDraft) {
+      onDeleteSuccess?.();
+      return;
+    }
     Alert.alert(
       "Delete Note",
       "Are you sure you want to move this note to recently deleted?",
@@ -80,7 +88,7 @@ export function useNoteActions({
         },
       ],
     );
-  }, [noteId, onDeleteSuccess]);
+  }, [isNewDraft, noteId, onDeleteSuccess]);
 
   const handleHardDelete = useCallback(() => {
     Alert.alert("Delete Note", "Are you sure you want to delete this note?", [

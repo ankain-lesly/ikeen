@@ -245,35 +245,27 @@ export async function updateNote(
     updatedAt: now,
     version: nextVersion,
   };
-  // const changedFields: Record<string, any> = {};
 
   if (input.folderId !== undefined) {
     valuesToUpdate.folderId = input.folderId;
-    // changedFields.folderId = input.folderId;
   }
   if (input.title !== undefined) {
     valuesToUpdate.title = input.title;
-    // changedFields.title = input.title;
   }
   if (input.content !== undefined) {
     valuesToUpdate.content = input.content;
-    // changedFields.content = input.content;
   }
   if (input.tags !== undefined) {
     valuesToUpdate.tags = JSON.stringify(input.tags);
-    // changedFields.tags = input.tags;
   }
   if (input.isPinned !== undefined) {
     valuesToUpdate.isPinned = input.isPinned;
-    // changedFields.isPinned = input.isPinned;
   }
   if (input.isArchived !== undefined) {
     valuesToUpdate.isArchived = input.isArchived;
-    // changedFields.isArchived = input.isArchived;
   }
   if (input.summary !== undefined) {
     valuesToUpdate.summary = input.summary;
-    // changedFields.summary = input.summary;
   }
 
   const [updated] = await db

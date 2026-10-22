@@ -7,12 +7,10 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import * as Crypto from "expo-crypto";
 import {
   CheckCircle2,
   CloudOff,
   Image as ImageIcon,
-  Plus,
   Trash2,
   X,
 } from "lucide-react-native";
@@ -23,44 +21,35 @@ import type { MediaBlock as MediaBlockType, MediaItem } from "@/lib/types/notes"
 export interface MediaBlockProps {
   block: MediaBlockType;
   isEditing: boolean;
-  onUpdateContent: (items: MediaItem[]) => void;
+  onStageContent: (items: MediaItem[]) => void;
+  onImmediateContent: (items: MediaItem[]) => void;
+  onCommit: () => void;
 }
 
 export const MediaBlock = React.memo(function MediaBlock({
   block,
   isEditing,
-  onUpdateContent,
+  onStageContent,
+  onImmediateContent,
+  onCommit,
 }: MediaBlockProps) {
   const colors = useTheme();
   const items = block.content || [];
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
 
-  // Add sample/custom image
-  const handleAddMedia = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newMedia: MediaItem = {
-      id: Crypto.randomUUID(),
-      mediaType: "image",
-      localUri: "https://picsum.photos/800/600",
-      caption: "",
-      synced: false,
-    };
-    onUpdateContent([...items, newMedia]);
-  };
-
-  // Remove media item
+  // Remove media item (immediate update)
   const handleRemoveMedia = (id: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     const nextItems = items.filter((item) => item.id !== id);
-    onUpdateContent(nextItems);
+    onImmediateContent(nextItems);
   };
 
-  // Update caption
+  // Update caption (staged in memory until onBlur or Done)
   const handleUpdateCaption = (id: string, caption: string) => {
     const nextItems = items.map((item) =>
       item.id === id ? { ...item, caption } : item
     );
-    onUpdateContent(nextItems);
+    onStageContent(nextItems);
   };
 
   if (items.length === 0 && !isEditing) {
@@ -136,6 +125,7 @@ export const MediaBlock = React.memo(function MediaBlock({
                   <TextInput
                     value={item.caption || ""}
                     onChangeText={(text) => handleUpdateCaption(item.id, text)}
+                    onBlur={onCommit}
                     placeholder="Add a caption..."
                     placeholderTextColor={colors.textSecondary}
                     className="text-xs text-foreground py-0.5"
@@ -152,17 +142,13 @@ export const MediaBlock = React.memo(function MediaBlock({
           );
         })}
 
-        {/* Add Media Action Button */}
-        {isEditing && (
-          <Pressable
-            onPress={handleAddMedia}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-border active:bg-background-element"
-          >
-            <Plus size={16} color={colors.primary} />
-            <Text className="text-xs font-semibold text-primary">
-              Add Image
+        {items.length === 0 && isEditing && (
+          <View className="flex-row items-center justify-center gap-2 py-4 px-4 rounded-xl border border-dashed border-border">
+            <ImageIcon size={16} color={colors.textSecondary} />
+            <Text className="text-xs text-text-secondary">
+              Media block ready
             </Text>
-          </Pressable>
+          </View>
         )}
       </View>
 
