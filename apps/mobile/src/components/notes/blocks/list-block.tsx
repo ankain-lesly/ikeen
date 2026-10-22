@@ -21,6 +21,8 @@ import type {
   ListItem,
   ListType,
 } from "@/lib/types/notes";
+import { AnimatedEntryView } from "@/components/ui/animated";
+import { MarkdownEditor } from "@/components/markdown";
 
 export interface ListBlockProps {
   block: ListBlockType;
@@ -194,7 +196,7 @@ export const ListBlock = React.memo(function ListBlock({
       <View className="gap-2">
         {items.map((item, index) => {
           return (
-            <View
+            <AnimatedEntryView
               key={item.id}
               className="flex-row items-start gap-2.5 min-h-8"
             >
@@ -229,31 +231,33 @@ export const ListBlock = React.memo(function ListBlock({
 
               {/* Text Input / Display */}
               {isEditing ? (
-                <TextInput
-                  ref={(ref) => {
-                    inputRefs.current[item.id] = ref;
-                  }}
-                  value={item.content}
+                <MarkdownEditor
+                  // ref={(ref) => {
+                  //   inputRefs.current[item.id] = ref;
+                  // }}
+                  defaultValue={item.content}
                   onChangeText={(text) => handleItemTextChange(item.id, text)}
                   placeholder="List item..."
                   placeholderTextColor={colors.textSecondary}
-                  multiline
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => handleAddItem(index)}
-                  onKeyPress={({ nativeEvent }) => {
-                    if (
-                      nativeEvent.key === "Backspace" &&
-                      !item.content &&
-                      items.length > 1
-                    ) {
-                      handleDeleteItem(item.id);
-                    }
-                  }}
-                  className={`flex-1 text-sm leading-5 py-0.5 text-foreground ${
-                    item.checked && listType === "checkbox"
-                      ? "line-through text-text-secondary"
-                      : ""
-                  }`}
+                  // multiline
+                  // blurOnSubmit={false}
+                  // onSubmitEditing={() => handleAddItem(index)}
+                  // onKeyPress={({ nativeEvent }) => {
+                  //   if (
+                  //     nativeEvent.key === "Backspace" &&
+                  //     !item.content &&
+                  //     items.length > 1
+                  //   ) {
+                  //     handleDeleteItem(item.id);
+                  //   }
+                  // }}
+                  style={{}}
+                  // TODO: Move Checked to a filtered `Checked Items` Section Down 
+                  // className={`flex-1 text-sm leading-5 py-0.5 text-foreground ${
+                  //   item.checked && listType === "checkbox"
+                  //     ? "line-through text-text-secondary"
+                  //     : ""
+                  // }`}
                 />
               ) : (
                 <Text
@@ -282,7 +286,7 @@ export const ListBlock = React.memo(function ListBlock({
                   <X size={14} color={colors.textSecondary} />
                 </Pressable>
               )}
-            </View>
+            </AnimatedEntryView>
           );
         })}
 
@@ -290,11 +294,11 @@ export const ListBlock = React.memo(function ListBlock({
         {isEditing && (
           <Pressable
             onPress={() => handleAddItem()}
-            className="flex-row items-center gap-2 py-1.5 px-2 rounded-lg border border-dashed border-border/80 active:bg-background-element self-start mt-1"
+            className="flex-row items-center gap-2 py-1.5 px-2 rounded-lg self-start mt-1"
           >
-            <Plus size={14} color={colors.primary} />
-            <Text className="text-xs font-semibold text-primary">
-              Add item
+            <Plus size={16} color={colors.textSecondary} />
+            <Text className="text-xs font-semibold text-text-secondary">
+              List item
             </Text>
           </Pressable>
         )}

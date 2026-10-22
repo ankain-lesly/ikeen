@@ -1,12 +1,7 @@
-import React, { useCallback, useRef } from "react";
-import {
-  TextInput,
-  View,
-  Text,
-  Pressable,
-} from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, Pressable } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
-import { MarkdownBody } from "@/components/markdown";
+import { MarkdownBody, MarkdownEditor } from "@/components/markdown";
 import type { TextBlock as TextBlockType } from "@/lib/types/notes";
 
 export interface TextBlockProps {
@@ -23,27 +18,27 @@ export const TextBlock = React.memo(function TextBlock({
   onFocus,
 }: TextBlockProps) {
   const colors = useTheme();
-  const inputRef = useRef<TextInput>(null);
+  // const inputRef = useRef<TextInput>(null);
 
   const handleChangeText = useCallback(
     (text: string) => {
       onChangeContent(text);
     },
-    [onChangeContent]
+    [onChangeContent],
   );
 
   if (isEditing) {
     return (
       <View className="w-full min-h-11">
-        <TextInput
-          ref={inputRef}
-          value={block.content}
+        <MarkdownEditor
+          // ref={inputRef}
+          defaultValue={block.content}
           onChangeText={handleChangeText}
           placeholder="Start typing markdown..."
           placeholderTextColor={colors.textSecondary}
-          multiline
-          scrollEnabled={false}
-          onFocus={onFocus}
+          // multiline
+          // scrollEnabled={false}
+          // onFocus={onFocus}
           style={{
             color: colors.foreground,
             fontSize: 15,
@@ -60,9 +55,7 @@ export const TextBlock = React.memo(function TextBlock({
   if (!block.content.trim()) {
     return (
       <Pressable onPress={onFocus} className="w-full py-2">
-        <Text className="text-sm italic text-text-secondary">
-          Edit text
-        </Text>
+        <Text className="text-sm italic text-text-secondary">Edit text</Text>
       </Pressable>
     );
   }

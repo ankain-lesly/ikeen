@@ -233,16 +233,12 @@ export const BlockContainer = React.memo(function BlockContainer({
           onChangeText={onContentChange}
         />
       ) : note.content.trim() ? (
-        <View className="w-full min-w-0 pb-24">
-          <MarkdownBody source={note.content} />
-        </View>
+        <MarkdownBody source={note.content} />
       ) : (
         <GestureDetector gesture={combinedGestures}>
-          <View className="w-full min-w-0 pb-24">
-            <Text className="text-base leading-6 text-text-secondary">
-              Start typing...
-            </Text>
-          </View>
+          <Text className="text-base leading-6 text-text-secondary">
+            Start typing...
+          </Text>
         </GestureDetector>
       )}
 

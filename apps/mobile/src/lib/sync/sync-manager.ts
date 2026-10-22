@@ -324,6 +324,7 @@ class SyncManager {
       }
     }
 
+    this.syncBatchCount = 0
     await this.updatePendingCount();
   }
 

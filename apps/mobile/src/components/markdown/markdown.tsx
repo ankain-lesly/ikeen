@@ -6,7 +6,7 @@ import {
   useState,
   useCallback,
 } from "react";
-import {  TextInput, type StyleProp, type ViewStyle } from "react-native";
+import { TextInput, TextStyle, type StyleProp, type ViewStyle } from "react-native";
 import {
   EnrichedMarkdownText,
   EnrichedMarkdownTextInput,
@@ -16,7 +16,6 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { useMarkdownStyle } from "./markdown-styles";
 import { OpenURLSheet } from "../notes/open-url-sheet";
- 
 
 export type MarkdownFormatAction =
   "bold" | "italic" | "heading" | "list" | "checklist";
@@ -26,26 +25,31 @@ export type MarkdownEditorHandle = {
   getMarkdown: () => Promise<string | null>;
   format: (action: MarkdownFormatAction) => void;
 };
- 
 
 const containerStyle: StyleProp<ViewStyle> = {
   width: "100%",
+  // backgroundColor: "green",
+
   // minHeight: screenHeight,
 };
-const editorStyle: StyleProp<ViewStyle> = {
+const editorStyle = {
   width: "100%",
   // minHeight: "100%",
   // minHeight: screenHeight,
-  paddingBottom: 96,
-};
+  // paddingBottom: 96,
+
+  // width: "100%",
+  // minHeight: "100%",
+  // paddingBottom: 96,
+  // backgroundColor: "red",
+  verticalAlign: "top",
+} as const;
 
 const markdownShortcuts = {
   heading: true,
   unorderedList: true,
   orderedList: true,
 } as const;
-
- 
 
 // function openLink({ url }: LinkPressEvent) {
 //   if (!url.startsWith("https://") && !url.startsWith("http://")) return;
@@ -101,6 +105,7 @@ export const MarkdownEditor = memo(
   forwardRef<
     MarkdownEditorHandle,
     {
+      style?: TextStyle;
       defaultValue?: string;
       placeholder?: string;
       placeholderTextColor?: string;
@@ -108,14 +113,13 @@ export const MarkdownEditor = memo(
       onChangeText?: (text: string) => void;
     }
   >(function MarkdownEditor(
-    { defaultValue = "", placeholder, onChangeText, onChangeMarkdown },
+    { defaultValue = "", style, placeholder, onChangeText, onChangeMarkdown },
     ref,
   ) {
     // const nativeRef = useRef<EnrichedMarkdownTextInputInstance>(null);
     const nativeRef = useRef<TextInput>(null);
     const colors = useTheme();
     const markdownStyle = useMarkdownStyle();
-
 
     // Fix: Use correct method names for React Native's TextInput, which does not have toggleBold, toggleItalic, toggleHeading etc.
     // Also, .value() is not a method on TextInput. Instead, access .value via .current?.props.value or use a controlled value.
@@ -130,7 +134,9 @@ export const MarkdownEditor = memo(
       () => ({
         focus: () => nativeRef.current?.focus(),
         getMarkdown: async () => internalValue,
-        format: (action: "bold" | "italic" | "heading" | "list" | "checklist") => {
+        format: (
+          action: "bold" | "italic" | "heading" | "list" | "checklist",
+        ) => {
           let newValue = internalValue;
           switch (action) {
             case "bold":
@@ -201,7 +207,7 @@ export const MarkdownEditor = memo(
         // }}
         onChangeText={(e) => {
           onChangeText?.(e);
-          setInternalValue(e)
+          setInternalValue(e);
           // log({ e });
         }}
         multiline
@@ -210,13 +216,9 @@ export const MarkdownEditor = memo(
         // markdownStyle={markdownStyle}
         // markdownShortcuts={markdownShortcuts}
         style={[
+          editorStyle,
+          style,
           {
-            
-            width: "100%",
-            // minHeight: "100%",
-            paddingBottom: 96,
-            // backgroundColor: "red",
-            verticalAlign: "top",
             color: colors.foreground,
           },
         ]}

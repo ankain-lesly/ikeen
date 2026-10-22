@@ -75,9 +75,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
   const [isEditing, setIsEditing] = useState(!initialNote);
-  const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
-    null,
-  );
+  // const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
+  //   null,
+  // );
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -234,25 +234,25 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
   const startEditing = useCallback(
     (target: "title" | "content" = "content") => {
-      setFocusTarget(target);
+      // setFocusTarget(target);
       setIsEditing(true);
     },
     [],
   );
 
-  useEffect(() => {
-    if (isEditing && focusTarget) {
-      const timer = setTimeout(() => {
-        if (focusTarget === "title") {
-          titleInputRef.current?.focus();
-        } else {
-          contentInputRef.current?.focus();
-        }
-        setFocusTarget(null);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isEditing, focusTarget]);
+  // useEffect(() => {
+  //   if (isEditing && focusTarget) {
+  //     const timer = setTimeout(() => {
+  //       if (focusTarget === "title") {
+  //         titleInputRef.current?.focus();
+  //       } else {
+  //         contentInputRef.current?.focus();
+  //       }
+  //       setFocusTarget(null);
+  //     }, 50);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [isEditing, focusTarget]);
 
   const handleDoneEditing = useCallback(async () => {
     Keyboard.dismiss();
@@ -380,13 +380,14 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   }, [note.content]);
 
   // Handle Tap Gestures
+  // CODE: Only implemented for title
   const combinedGestures = useMemo(() => {
     const singleTap = Gesture.Tap();
     const doubleTap = Gesture.Tap()
       .numberOfTaps(2)
       .onEnd(() => {
         "worklet";
-        scheduleOnRN(startEditing, "content");
+        scheduleOnRN(startEditing, "title");
       });
 
     return Gesture.Exclusive(doubleTap, singleTap);
@@ -518,7 +519,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             ) : (
               <GestureDetector gesture={combinedGestures}>
                 <Text
-                  onPress={() => setFocusTarget("title")}
+                  // onPress={() => setFocusTarget("title")}
                   className="text-2xl font-bold leading-8 tracking-tight py-1 text-text">
                   {note.title || "Untitled note"}
                 </Text>
@@ -600,7 +601,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             isEditing={isEditing}
             onContentConverted={() => updateNoteState("content", "")}
             onContentChange={(t) => updateNoteState("content", t)}
-            onStartEditing={() => startEditing("title")}
+            onStartEditing={() => setIsEditing(true)}
           />
         </ScrollView>
       </View>
@@ -620,6 +621,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         onAddCheckboxBlock={handleAddCheckboxBlock}
         onAddMedia={handleAddMediaBlock}
         // TODO: -- to be implemented
+        // This will be implemented later
         onTakePhoto={() => toast.info("Taking A Photo")}
         onRecordAudio={() => toast.info("Recording Audio")}
       />
