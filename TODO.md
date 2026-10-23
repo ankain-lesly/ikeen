@@ -19,11 +19,6 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 
 ## Note Block Issues
 
-### Phase 2: Interactive List Block Experience
-- [ ] **Enter Key Newline Creation**: Pressing `Enter` on a list block item input creates a new list item directly below and focuses it; pressing `Backspace` on an empty item removes it and focuses the previous item; Pasting text should automatically separate into items if valid.
-- [ ] **Checked Items Section & Slide Animation**: Checking a checkbox item filters it down into a dedicated `Checked Items` section with a smooth Reanimated slide-in/slide-out transition.
-- [ ] **Intra-List Item Reordering**: Support drag-and-drop reordering for individual items inside a `ListBlock`.
-
 ### Phase 3: Media Block Layout Overhaul
 - [ ] **Horizontal Media Carousel**: Replace vertical stacked media cards in `MediaBlock` with a horizontal scrollable carousel for images/visual media.
 - [ ] **Dedicated Vertical Audio Layout**: Render audio files (`mediaType === "audio"`) in a separate vertical stack inside `MediaBlock` below visual media.

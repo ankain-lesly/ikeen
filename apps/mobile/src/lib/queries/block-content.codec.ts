@@ -13,10 +13,9 @@ import type { BlockChanges } from '@repo/types';
 const VALID_LIST_TYPES: readonly ListType[] = ['checkbox', 'bullet', 'ordered'];
 
 function normalizeListType(value: unknown): ListType {
-  if (typeof value === 'string' && (VALID_LIST_TYPES as readonly string[]).includes(value)) {
-    return value as ListType;
-  }
-  return 'checkbox';
+  return typeof value === 'string' && (VALID_LIST_TYPES as readonly string[]).includes(value)
+    ? (value as ListType)
+    : 'checkbox';
 }
 
 function parseJsonSafe(raw: unknown): unknown {
@@ -28,10 +27,33 @@ function parseJsonSafe(raw: unknown): unknown {
   }
 }
 
-/**
- * Unpacks a raw database or sync block record into a strongly-typed NoteBlock.
- * Handles legacy array list payloads, structured list objects, and JSON strings.
- */
+function extractListFields(
+  rawContent: unknown,
+  meta?: { listType?: unknown; header?: unknown; footer?: unknown },
+): { listType: ListType; header?: string; footer?: string; content: ListItem[] } {
+  const parsed = parseJsonSafe(rawContent);
+  const obj =
+    parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+
+  const content: ListItem[] = Array.isArray(parsed)
+    ? (parsed as ListItem[])
+    : Array.isArray(obj?.content)
+      ? (obj.content as ListItem[])
+      : [];
+
+  const rawHeader = meta && 'header' in meta ? meta.header : obj?.header;
+  const rawFooter = meta && 'footer' in meta ? meta.footer : obj?.footer;
+
+  return {
+    listType: normalizeListType(meta?.listType ?? obj?.listType),
+    ...(typeof rawHeader === 'string' ? { header: rawHeader } : {}),
+    ...(typeof rawFooter === 'string' ? { footer: rawFooter } : {}),
+    content,
+  };
+}
+
 export function unpackNoteBlock(row: {
   id: string;
   noteId: string;
@@ -53,27 +75,14 @@ export function unpackNoteBlock(row: {
   };
 
   if (row.type === 'list') {
-    const parsed = parseJsonSafe(row.content);
-    const isObj =
-      parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
-    const obj = isObj ? (parsed as Record<string, unknown>) : undefined;
-
-    const items: ListItem[] = Array.isArray(parsed)
-      ? (parsed as ListItem[])
-      : Array.isArray(obj?.content)
-        ? (obj.content as ListItem[])
-        : [];
-
-    const rawHeader = row.header !== undefined ? row.header : obj?.header;
-    const rawFooter = row.footer !== undefined ? row.footer : obj?.footer;
-
+    const meta: { listType?: unknown; header?: unknown; footer?: unknown } = {};
+    if (row.listType !== undefined) meta.listType = row.listType;
+    if (row.header !== undefined) meta.header = row.header;
+    if (row.footer !== undefined) meta.footer = row.footer;
     return {
       ...base,
       type: 'list',
-      listType: normalizeListType(row.listType ?? obj?.listType),
-      header: typeof rawHeader === 'string' ? rawHeader : undefined,
-      footer: typeof rawFooter === 'string' ? rawFooter : undefined,
-      content: items,
+      ...extractListFields(row.content, meta),
     } satisfies ListBlock;
   }
 
@@ -93,107 +102,45 @@ export function unpackNoteBlock(row: {
   } satisfies TextBlock;
 }
 
-/**
- * Serializes block content and metadata into a SQLite TEXT column string.
- */
 export function serializeBlockContent(
   type: BlockType,
   content: unknown,
-  meta?: {
-    listType?: ListType | string;
-    header?: string | null;
-    footer?: string | null;
-  }
+  meta?: { listType?: ListType | string; header?: string | null; footer?: string | null },
 ): string {
-  if (type === 'text') {
-    return typeof content === 'string' ? content : '';
-  }
-
-  if (type === 'list') {
-    const parsed = parseJsonSafe(content);
-    const isObj =
-      parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
-    const obj = isObj ? (parsed as Record<string, unknown>) : undefined;
-
-    const items = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray(obj?.content)
-        ? obj.content
-        : [];
-
-    const header =
-      meta && 'header' in meta
-        ? meta.header ?? undefined
-        : typeof obj?.header === 'string'
-          ? obj.header
-          : undefined;
-
-    const footer =
-      meta && 'footer' in meta
-        ? meta.footer ?? undefined
-        : typeof obj?.footer === 'string'
-          ? obj.footer
-          : undefined;
-
-    return JSON.stringify({
-      listType: normalizeListType(meta?.listType ?? obj?.listType),
-      ...(header !== undefined ? { header } : {}),
-      ...(footer !== undefined ? { footer } : {}),
-      content: items,
-    });
-  }
-
+  if (type === 'text') return typeof content === 'string' ? content : '';
+  if (type === 'list') return JSON.stringify(extractListFields(content, meta));
   if (type === 'media') {
     const parsed = parseJsonSafe(content);
     return JSON.stringify(Array.isArray(parsed) ? parsed : []);
   }
-
   return typeof content === 'string' ? content : JSON.stringify(content ?? {});
 }
 
-/**
- * Prepares a NoteBlock for the sync outbox payload, converting undefined list
- * header/footer to null so JSON serialization preserves explicit removals.
- */
 export function toBlockOutboxPayload(block: NoteBlock): BlockChanges {
-  if (block.type === 'list') {
-    return {
-      ...block,
-      header: block.header ?? (null as unknown as string | undefined),
-      footer: block.footer ?? (null as unknown as string | undefined),
-    };
-  }
-  return block;
+  if (block.type !== 'list') return block;
+  return {
+    ...block,
+    header: block.header ?? (null as unknown as string | undefined),
+    footer: block.footer ?? (null as unknown as string | undefined),
+  };
 }
 
-/**
- * Formats a note's legacy markdown content and structured blocks into a single
- * plain-text / markdown string for sharing and word/character count calculation.
- */
-export function formatNoteWithBlocks(
-  noteContent: string,
-  blocks: NoteBlock[],
-): string {
+export function formatNoteWithBlocks(noteContent: string, blocks: NoteBlock[]): string {
   const blockText = blocks
     .map((b) => {
       if (b.type === 'text') return b.content;
       if (b.type === 'list') {
-        const lines = b.content.map((item, idx) => {
-          if (b.listType === 'checkbox') {
-            return `${item.checked ? '[x]' : '[ ]'} ${item.content}`;
-          }
-          if (b.listType === 'ordered') {
-            return `${idx + 1}. ${item.content}`;
-          }
-          return `• ${item.content}`;
-        });
+        const lines = b.content.map((item, idx) =>
+          b.listType === 'checkbox'
+            ? `${item.checked ? '[x]' : '[ ]'} ${item.content}`
+            : b.listType === 'ordered'
+              ? `${idx + 1}. ${item.content}`
+              : `• ${item.content}`,
+        );
         return [b.header, ...lines, b.footer].filter(Boolean).join('\n');
       }
       if (b.type === 'media') {
-        return b.content
-          .map((item) => item.caption || '')
-          .filter(Boolean)
-          .join('\n');
+        return b.content.map((i) => i.caption || '').filter(Boolean).join('\n');
       }
       return '';
     })

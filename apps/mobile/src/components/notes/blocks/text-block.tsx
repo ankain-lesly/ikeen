@@ -32,7 +32,6 @@ export const TextBlock = React.memo(function TextBlock({
           placeholderTextColor={colors.textSecondary}
           style={{
             color: colors.foreground,
-            fontSize: 15,
             lineHeight: 22,
             minHeight: 44,
             paddingVertical: 4,

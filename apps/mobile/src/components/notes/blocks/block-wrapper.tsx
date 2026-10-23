@@ -1,12 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import {
   ChevronDown,
@@ -14,38 +6,27 @@ import {
   Copy,
   GripVertical,
   MoreVertical,
+  PanelBottom,
   Trash2,
 } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
 import { OptionSheet, type SheetAction } from "@/components/ui/option-sheet";
 import type { NoteBlock } from "@/lib/types/notes";
+import { capitalize } from "@repo/utils";
 
-type BlockWrapperContextValue = {
-  registerActions: (actions: SheetAction[]) => void;
-  clearActions: () => void;
-};
-
-const BlockWrapperContext = createContext<BlockWrapperContextValue | null>(null);
+const BlockWrapperContext =
+  createContext<React.MutableRefObject<SheetAction[]> | null>(null);
 
 /**
- * Allows child blocks (e.g., ListBlock) to register contextual actions
- * directly into the parent BlockWrapper OptionSheet without causing parent re-render loops.
+ * Registers contextual actions from a child block into the parent BlockWrapper's
+ * OptionSheet via a ref (zero extra state updates or effect cycles).
  */
 export function useRegisterBlockActions(actions: SheetAction[]) {
-  const ctx = useContext(BlockWrapperContext);
-
-  useEffect(() => {
-    if (!ctx) return;
-    ctx.registerActions(actions);
-  }, [ctx, actions]);
-
-  useEffect(() => {
-    if (!ctx) return;
-    return () => {
-      ctx.clearActions();
-    };
-  }, [ctx]);
+  const actionsRef = useContext(BlockWrapperContext);
+  useLayoutEffect(() => {
+    if (actionsRef) actionsRef.current = actions;
+  }, [actionsRef, actions]);
 }
 
 export interface BlockWrapperProps {
@@ -74,143 +55,104 @@ export const BlockWrapper = React.memo(function BlockWrapper({
   children,
 }: BlockWrapperProps) {
   const colors = useTheme();
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const [contextualActions, setContextualActions] = useState<SheetAction[]>([]);
-  const signatureRef = useRef<string>("");
-  const latestActionsRef = useRef<SheetAction[]>([]);
-
-  const registerActions = useCallback((nextActions: SheetAction[]) => {
-    latestActionsRef.current = nextActions;
-    const nextSignature = nextActions
-      .map((a) => `${a.label}:${a.visible !== false}`)
-      .join("|");
-    if (signatureRef.current !== nextSignature) {
-      signatureRef.current = nextSignature;
-      setContextualActions(nextActions);
-    }
-  }, []);
-
-  const clearActions = useCallback(() => {
-    latestActionsRef.current = [];
-    if (signatureRef.current !== "") {
-      signatureRef.current = "";
-      setContextualActions([]);
-    }
-  }, []);
-
-  const contextValue = useMemo(
-    () => ({ registerActions, clearActions }),
-    [registerActions, clearActions],
-  );
+  const [optionsActions, setOptionsActions] = useState<SheetAction[] | null>(null);
+  const contextualActionsRef = useRef<SheetAction[]>([]);
 
   const badgeText =
     block.type === "list"
-      ? `LIST • ${(block.listType || "checkbox").toUpperCase()}`
-      : block.type.toUpperCase();
+      ? `List • Block - (${(block.listType || "checkbox")})`
+      : `${block.type} Block`;
 
-  const optionsActions: SheetAction[] = [
-    ...contextualActions.map((action, index) => ({
-      ...action,
-      onPress: () => {
-        setIsOptionsOpen(false);
-        Haptics.selectionAsync();
-        const latest = latestActionsRef.current[index] ?? action;
-        latest.onPress();
+  const wrapAction = (fn?: () => void, destructive = false) => () => {
+    setOptionsActions(null);
+    if (destructive) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } else {
+      Haptics.selectionAsync();
+    }
+    fn?.();
+  };
+
+  // Build sheet actions strictly inside event handler so refs are never accessed during render
+  const handleOpenOptions = () => {
+    Haptics.selectionAsync();
+    const contextual = contextualActionsRef.current;
+    const actions: SheetAction[] = [
+      ...contextual.map((action) => ({
+        ...action,
+        onPress: wrapAction(action.onPress),
+      }))                       ,
+      {
+        label: "Move Up",
+        icon: <ChevronUp size={18} color={colors.text} />,
+        onPress: wrapAction(onMoveUp),
+        visible: canMoveUp,
       },
-    })),
-    {
-      label: "Move Up",
-      icon: <ChevronUp size={18} color={colors.text} />,
-      onPress: () => {
-        setIsOptionsOpen(false);
-        Haptics.selectionAsync();
-        onMoveUp?.();
+      {
+        label: "Move Down",
+        icon: <ChevronDown size={18} color={colors.text} />,
+        onPress: wrapAction(onMoveDown),
+        visible: canMoveDown,
       },
-      visible: canMoveUp,
-    },
-    {
-      label: "Move Down",
-      icon: <ChevronDown size={18} color={colors.text} />,
-      onPress: () => {
-        setIsOptionsOpen(false);
-        Haptics.selectionAsync();
-        onMoveDown?.();
+      {
+        label: "Duplicate",
+        icon: <Copy size={18} color={colors.text} />,
+        onPress: wrapAction(onDuplicate),
+        visible: !!onDuplicate,
       },
-      visible: canMoveDown,
-    },
-    {
-      label: "Duplicate",
-      icon: <Copy size={18} color={colors.text} />,
-      onPress: () => {
-        setIsOptionsOpen(false);
-        Haptics.selectionAsync();
-        onDuplicate?.();
+      {
+        label: "Delete Block",
+        icon: <Trash2 size={18} color="#ef4444" />,
+        color: "#ef4444",
+        onPress: wrapAction(onDelete, true),
+        visible: !!onDelete,
       },
-      visible: !!onDuplicate,
-    },
-    {
-      label: "Delete Block",
-      icon: <Trash2 size={18} color="#ef4444" />,
-      color: "#ef4444",
-      onPress: () => {
-        setIsOptionsOpen(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        onDelete?.();
-      },
-      visible: !!onDelete,
-    },
-  ];
+    ];
+    setOptionsActions(actions);
+  };
 
   return (
-    <BlockWrapperContext.Provider value={contextValue}>
+    <BlockWrapperContext.Provider value={contextualActionsRef}>
       <View
-        className={`group relative w-full mb-3 rounded-2xl ${
-          isEditing ? "border border-border/60 bg-card/40 p-2.5" : "py-1"
-        }`}
-      >
-        {/* Header Bar when Editing: Drag Handle + Block Type & Actions */}
+        className={`group relative w-full mb-1 ${isEditing ? "mb-1" : "py-1"}`}>
         {isEditing && (
-          <View className="flex-row items-center justify-between pb-1.5 border-b border-border/30 mb-2">
+          <View className="flex-row items-center justify-between py-1.5 bg-card_rounded-md">
             <Pressable
               {...dragHandleProps}
               accessibilityRole="button"
               accessibilityLabel="Reorder block"
               className="flex-row items-center gap-1.5 py-1 px-1.5 rounded-md active:bg-background-element active:opacity-70"
-              hitSlop={8}
-            >
-              <GripVertical size={16} color={colors.textSecondary} />
-              <View className="px-1.5 py-0.5 rounded bg-background-element border border-border/40">
-                <Text className="text-[10px] font-bold tracking-wider text-text-secondary">
-                  {badgeText}
+              hitSlop={8}>
+              {/* TODO: Drag Does not work -> SKip For Later Review */}
+              {/* <GripVertical size={20} color={colors.textSecondary} /> */}
+              <PanelBottom size={20} color={colors.primary} />
+
+              <View className="px-1.5 py-0.5 rounded bg-background-element">
+                <Text className="text-xs font-bold tracking-wider text-primary">
+                  {capitalize(badgeText.toString())}{" "}
                 </Text>
               </View>
             </Pressable>
 
-            {/* Block Options Trigger */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Block options"
               className="p-1.5 rounded-full active:bg-background-element"
               hitSlop={8}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setIsOptionsOpen(true);
-              }}
-            >
+              onPress={handleOpenOptions}>
               <MoreVertical size={16} color={colors.textSecondary} />
             </Pressable>
           </View>
         )}
 
-        {/* Block Body */}
         <View className="w-full">{children}</View>
 
-        {/* Block Options Sheet */}
-        {isOptionsOpen && (
+        {optionsActions !== null && (
           <OptionSheet
-            isPresented={isOptionsOpen}
-            onDismiss={() => setIsOptionsOpen(false)}
-            title={`Block Options (${block.type})`}
+            isPresented={true}
+            onDismiss={() => setOptionsActions(null)}
+            // title={`Block Options (${block.type})`}
+            // title={`${capitalize(block.type)} Block`.split(" ").join(" ")}
             actions={optionsActions}
           />
         )}

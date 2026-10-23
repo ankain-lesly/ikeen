@@ -89,7 +89,8 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   // Track Notes Edit, Touched State
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
-  const [isEditing, setIsEditing] = useState(!initialNote);
+  // const [isEditing, setIsEditing] = useState(!initialNote);
+  const [isEditing, setIsEditing] = useState(true);
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -418,7 +419,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             {isEditing ? (
               <TextInput
                 ref={titleInputRef}
-                className="text-2xl font-bold leading-8 tracking-tight py-1 text-text"
+                className="text-2xl font-normal leading-8 tracking-tight py-1 text-text"
                 placeholder="Untitled note"
                 placeholderTextColor={colors.textSecondary}
                 value={note.title}
@@ -433,7 +434,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
               />
             ) : (
               <GestureDetector gesture={titleDoubleTapGesture}>
-                <Text className="text-2xl font-bold leading-8 tracking-tight py-1 text-text">
+                <Text className="text-2xl font-normal leading-8 tracking-tight py-1 text-text">
                   {note.title || "Untitled note"}
                 </Text>
               </GestureDetector>

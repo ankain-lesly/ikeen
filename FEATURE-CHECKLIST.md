@@ -99,3 +99,22 @@ Grouped by todo topic / issue for clearer tracking and context.
   - [x] Unify block position shifting in `BlockContainer` (`handleMoveBlock`)
   - [x] Reusable agent skill created in `.agents/skills/ikeen-mobile-patterns/SKILL.md`
   - [x] Verified full monorepo typechecks pass cleanly (`bun run check-types`)
+
+---
+
+## ✅ Interactive List Block Experience (Phase 2) — 2026-10-22
+* **Status**: Completed
+* **Scope**: Enter-key item creation, Backspace deletion on empty items, multi-line paste parsing & splitting, collapsible Checked Items section with Reanimated transitions, and intra-list item drag-and-drop reordering.
+
+- [x] Enter Key Newline Creation, Backspace Deletion & Multi-Line Paste Splitting:
+  - [x] Extend `MarkdownEditor` (`apps/mobile/src/components/markdown/markdown.tsx`) with `singleLine` and `onKeyPress` support while preserving `\n` detection before resetting `internalValue`
+  - [x] Implement pure list manipulation helpers (`parsePastedListLine`, `applyItemTextOrSplit`, `removeEmptyItemOnBackspace`, `reorderListGroup`) in `apps/mobile/src/components/notes/blocks/list-block.utils.ts`
+  - [x] Support `Enter` newline splitting and multi-line paste into discrete `ListItem`s with automatic prefix stripping (`- [ ]`, `- [x]`, `* `, `• `, `1. `) and focus propagation
+  - [x] Support `Backspace` on empty items to remove the item and focus the previous item within the same group
+- [x] Checked Items Section & Slide Animation:
+  - [x] Partition `checkbox` list items into `activeItems` and `checkedItems` while keeping `bullet` and `number` list items in a single list
+  - [x] Add collapsible `Checked (N)` section in `ListBlock` (`apps/mobile/src/components/notes/blocks/list-block.tsx`) with animated chevron and Reanimated `LinearTransition`, `FadeInDown`, and `FadeOutUp`
+- [x] Intra-List Item Reordering:
+  - [x] Extract memoized `ListItemRow` (`apps/mobile/src/components/notes/blocks/list-item-row.tsx`) with `GripVertical` drag handle and `Gesture.Pan()` via `scheduleOnRN` (`react-native-worklets`)
+  - [x] Persist structural item mutations (`Enter` split, multi-line paste, `Backspace` delete, checkbox toggle, and drag reorder) via `onImmediateUpdate`, while keeping regular typing on `onStageUpdate` + `onBlur` (`onCommit`)
+- [x] Verified full monorepo typechecks pass cleanly (`bun run check-types`)

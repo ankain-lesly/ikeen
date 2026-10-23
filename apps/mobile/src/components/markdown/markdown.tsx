@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   TextInput,
+  type TextInputProps,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
@@ -20,13 +21,10 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { useMarkdownStyle } from "./markdown-styles";
 import { OpenURLSheet } from "../notes/open-url-sheet";
+import type { MarkdownStyle } from "react-native-enriched-markdown";
 
 export type MarkdownFormatAction =
-  | "bold"
-  | "italic"
-  | "heading"
-  | "list"
-  | "checklist";
+  "bold" | "italic" | "heading" | "list" | "checklist";
 
 export type MarkdownEditorHandle = {
   focus: () => void;
@@ -41,18 +39,9 @@ const containerStyle: StyleProp<ViewStyle> = {
 const editorStyle = {
   width: "100%",
   verticalAlign: "top",
+  textAlignVertical: "top",
+  fontSize: 16,
 } as const;
-
-const markdownShortcuts = {
-  heading: true,
-  unorderedList: true,
-  orderedList: true,
-} as const;
-
-// function openLink({ url }: LinkPressEvent) {
-//   if (!url.startsWith("https://") && !url.startsWith("http://")) return;
-//   void Linking.openURL(url).catch(() => {});
-// }
 
 export const MarkdownBody = memo(function MarkdownBody({
   source,
@@ -71,13 +60,15 @@ export const MarkdownBody = memo(function MarkdownBody({
     setUrlSheetOpen(true);
   }, []);
 
-  const markdownStyle = useMarkdownStyle(size);
+  const style = useMarkdownStyle(size);
   return (
     <>
       <EnrichedMarkdownText
         markdown={source}
         flavor="github"
-        markdownStyle={markdownStyle}
+        markdownStyle={{
+          ...style,
+        }}
         containerStyle={containerStyle}
         streamingAnimation={streaming}
         enableTaskListItemToggle={false}
@@ -103,16 +94,32 @@ export const MarkdownEditor = memo(
       defaultValue?: string;
       placeholder?: string;
       placeholderTextColor?: string;
+      multiline?: boolean;
       onChangeText?: (text: string) => void;
       onBlur?: () => void;
+      onFocus?: () => void;
+      onKeyPress?: TextInputProps["onKeyPress"];
     }
   >(function MarkdownEditor(
-    { defaultValue = "", style, placeholder, placeholderTextColor, onChangeText, onBlur },
+    {
+      defaultValue = "",
+      style,
+      placeholder,
+      placeholderTextColor,
+      multiline = true,
+      onChangeText,
+      onFocus,
+      onBlur,
+      onKeyPress,
+    },
     ref,
   ) {
     const nativeRef = useRef<TextInput>(null);
     const colors = useTheme();
     const [internalValue, setInternalValue] = useState(defaultValue);
+    const [contentHeight, setContentHeight] = useState<number | undefined>(
+      undefined,
+    );
 
     useEffect(() => {
       setInternalValue(defaultValue);
@@ -159,39 +166,30 @@ export const MarkdownEditor = memo(
           setInternalValue(text);
           onChangeText?.(text);
         }}
+        onContentSizeChange={
+          multiline
+            ? (e) => {
+                const h = Math.ceil(e.nativeEvent.contentSize.height);
+                if (h > 0 && Math.abs(h - (contentHeight ?? 0)) > 1) {
+                  setContentHeight(h);
+                }
+              }
+            : undefined
+        }
         onBlur={onBlur}
-        multiline
+        onFocus={onFocus}
+        onKeyPress={onKeyPress}
+        multiline={multiline}
         scrollEnabled={false}
         style={[
           editorStyle,
           style,
+          contentHeight ? { height: contentHeight } : undefined,
           {
             color: colors.foreground,
           },
         ]}
       />
     );
-    // return (
-    //   <EnrichedMarkdownTextInput
-    //     ref={nativeRef}
-    //     defaultValue={defaultValue}
-    //     placeholder={placeholder}
-    //     placeholderTextColor={colors.textSecondary}
-    //     onChangeMarkdown={(e) => {
-    //       onChangeMarkdown?.(e);
-    //       log({ e });
-    //     }}
-    //     onChangeText={(e) => {
-    //       onChangeText?.(e);
-    //       log({ e });
-    //     }}
-    //     multiline
-    //     scrollEnabled={false}
-    //     // Style
-    //     markdownStyle={markdownStyle}
-    //     markdownShortcuts={markdownShortcuts}
-    //     style={editorStyle}
-    //   />
-    // );
   }),
 );

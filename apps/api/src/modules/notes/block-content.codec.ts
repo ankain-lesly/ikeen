@@ -25,13 +25,25 @@ export const storedListContentSchema = z.object({
   content: z.array(listItemSchema).catch([]),
 });
 
-/**
- * Packs incoming block mutation changes + existing stored JSON into the canonical
- * Prisma JSON value for `note_blocks.content`.
- *
- * Uses `null` in incoming DTO fields to represent explicit removal of `header`/`footer`,
- * avoiding reliance on `'key' in dto` (which is always true on ES2022+ DTO instances).
- */
+function parseStoredList(raw: unknown) {
+  const parsed = storedListContentSchema.safeParse(
+    Array.isArray(raw) ? { listType: 'checkbox', content: raw } : raw,
+  );
+  return parsed.success
+    ? parsed.data
+    : { listType: 'checkbox' as ListType, header: undefined, footer: undefined, content: [] };
+}
+
+function resolveOptionalText(
+  explicit: string | null | undefined,
+  fromObj: unknown,
+  fallback: string | null | undefined,
+): string | undefined {
+  const candidate =
+    explicit !== undefined ? explicit : fromObj !== undefined ? fromObj : fallback;
+  return typeof candidate === 'string' ? candidate : undefined;
+}
+
 export function packServerBlockContent(
   type: BlockType,
   changes: {
@@ -44,8 +56,7 @@ export function packServerBlockContent(
 ): unknown {
   if (type === 'text') {
     if (typeof changes.content === 'string') return changes.content;
-    if (typeof existingContent === 'string') return existingContent;
-    return '';
+    return typeof existingContent === 'string' ? existingContent : '';
   }
 
   if (type === 'media') {
@@ -57,77 +68,40 @@ export function packServerBlockContent(
   }
 
   if (type === 'list') {
-    const prevParsed = storedListContentSchema.safeParse(
-      Array.isArray(existingContent)
-        ? { listType: 'checkbox', content: existingContent }
-        : existingContent,
-    );
-    const prev = prevParsed.success
-      ? prevParsed.data
-      : { listType: 'checkbox' as ListType, header: undefined, footer: undefined, content: [] };
-
+    const prev = parseStoredList(existingContent);
     const incomingRaw = changes.content;
-    const incomingIsObj =
-      incomingRaw !== null &&
-      typeof incomingRaw === 'object' &&
-      !Array.isArray(incomingRaw);
-    const incomingObj = incomingIsObj
-      ? (incomingRaw as Record<string, unknown>)
-      : undefined;
+    const incomingObj =
+      incomingRaw !== null && typeof incomingRaw === 'object' && !Array.isArray(incomingRaw)
+        ? (incomingRaw as Record<string, unknown>)
+        : undefined;
 
     const rawItems = Array.isArray(incomingRaw)
       ? incomingRaw
       : Array.isArray(incomingObj?.content)
         ? incomingObj.content
         : prev.content;
-
     const validatedItems = z.array(listItemSchema).safeParse(rawItems);
-    const items = validatedItems.success ? validatedItems.data : prev.content;
 
     const rawListType =
       changes.listType ??
       (typeof incomingObj?.listType === 'string' ? incomingObj.listType : undefined) ??
       prev.listType;
     const parsedListType = listTypeSchema.safeParse(rawListType);
-    const listType: ListType = parsedListType.success ? parsedListType.data : 'checkbox';
 
-    // Explicit `null` clears header/footer; `undefined` preserves existing
-    const nextHeader =
-      changes.header === null
-        ? undefined
-        : typeof changes.header === 'string'
-          ? changes.header
-          : incomingObj?.header === null
-            ? undefined
-            : typeof incomingObj?.header === 'string'
-              ? incomingObj.header
-              : prev.header ?? undefined;
-
-    const nextFooter =
-      changes.footer === null
-        ? undefined
-        : typeof changes.footer === 'string'
-          ? changes.footer
-          : incomingObj?.footer === null
-            ? undefined
-            : typeof incomingObj?.footer === 'string'
-              ? incomingObj.footer
-              : prev.footer ?? undefined;
+    const header = resolveOptionalText(changes.header, incomingObj?.header, prev.header);
+    const footer = resolveOptionalText(changes.footer, incomingObj?.footer, prev.footer);
 
     return {
-      listType,
-      ...(nextHeader !== undefined ? { header: nextHeader } : {}),
-      ...(nextFooter !== undefined ? { footer: nextFooter } : {}),
-      content: items,
+      listType: parsedListType.success ? parsedListType.data : 'checkbox',
+      ...(header !== undefined ? { header } : {}),
+      ...(footer !== undefined ? { footer } : {}),
+      content: validatedItems.success ? validatedItems.data : prev.content,
     };
   }
 
   return changes.content ?? existingContent ?? {};
 }
 
-/**
- * Unpacks a Prisma `NoteBlock` row into the canonical `NoteBlock` DTO returned on `/sync/pull`.
- */
 export function unpackServerNoteBlock(row: {
   id: string;
   noteId: string;
@@ -146,15 +120,7 @@ export function unpackServerNoteBlock(row: {
   };
 
   if (row.type === 'list') {
-    const parsed = storedListContentSchema.safeParse(
-      Array.isArray(row.content)
-        ? { listType: 'checkbox', content: row.content }
-        : row.content,
-    );
-    const data = parsed.success
-      ? parsed.data
-      : { listType: 'checkbox' as ListType, header: undefined, footer: undefined, content: [] };
-
+    const data = parseStoredList(row.content);
     return {
       ...base,
       type: 'list',
