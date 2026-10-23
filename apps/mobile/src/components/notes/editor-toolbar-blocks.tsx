@@ -6,6 +6,7 @@ import {
   CheckSquare,
   Type as TextIcon,
   Mic,
+  FilePlus,
 } from "lucide-react-native";
 
 type NotesEditorToolbarBlocksProps = {
@@ -16,6 +17,7 @@ type NotesEditorToolbarBlocksProps = {
   onAddCheckboxBlock?: () => void;
   onAddTextBlock?: () => void;
   onRecordAudio?: () => void;
+  onAttachFile?: () => void;
 };
 
 export function NotesEditorToolbarBlocks({
@@ -26,6 +28,7 @@ export function NotesEditorToolbarBlocks({
   onAddCheckboxBlock,
   onAddTextBlock,
   onRecordAudio,
+  onAttachFile,
 }: NotesEditorToolbarBlocksProps) {
   const colors = useTheme();
 
@@ -41,7 +44,7 @@ export function NotesEditorToolbarBlocks({
       visible: !!onTakePhoto,
     },
     {
-      label: "Add Media",
+      label: "Add Photos",
       icon: <ImageIcon size={20} color={colors.text} />,
       onPress: () => {
         onAddMedia?.();
@@ -49,6 +52,26 @@ export function NotesEditorToolbarBlocks({
       },
       color: colors.text,
       visible: !!onAddMedia,
+    },
+    {
+      label: "Attach File",
+      icon: <FilePlus size={20} color={colors.text} />,
+      onPress: () => {
+        onAttachFile?.();
+        onDismiss();
+      },
+      color: colors.text,
+      visible: !!onAttachFile,
+    },
+    {
+      label: "Record Audio",
+      icon: <Mic size={20} color={colors.text} />,
+      onPress: () => {
+        onRecordAudio?.();
+        onDismiss();
+      },
+      color: colors.text,
+      visible: !!onRecordAudio,
     },
     {
       label: "Checkbox Block",
@@ -69,16 +92,6 @@ export function NotesEditorToolbarBlocks({
       },
       color: colors.text,
       visible: !!onAddTextBlock,
-    },
-    {
-      label: "Record Audio",
-      icon: <Mic size={20} color={colors.text} />,
-      onPress: () => {
-        onRecordAudio?.();
-        onDismiss();
-      },
-      color: colors.text,
-      visible: !!onRecordAudio,
     },
   ];
 

@@ -13,8 +13,10 @@ export const mediaItemSchema = z.object({
   id: z.string(),
   mediaType: z.enum(['image', 'audio', 'file']),
   localUri: z.string(),
+  name: z.string().optional(),
   url: z.string().optional(),
   caption: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   synced: z.boolean().default(false),
 });
 

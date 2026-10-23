@@ -118,3 +118,59 @@ Grouped by todo topic / issue for clearer tracking and context.
   - [x] Extract memoized `ListItemRow` (`apps/mobile/src/components/notes/blocks/list-item-row.tsx`) with `GripVertical` drag handle and `Gesture.Pan()` via `scheduleOnRN` (`react-native-worklets`)
   - [x] Persist structural item mutations (`Enter` split, multi-line paste, `Backspace` delete, checkbox toggle, and drag reorder) via `onImmediateUpdate`, while keeping regular typing on `onStageUpdate` + `onBlur` (`onCommit`)
 - [x] Verified full monorepo typechecks pass cleanly (`bun run check-types`)
+
+---
+
+## 📦 Media Pickers, FileSystem & Audio Streaming (Phase 2.0-beta) — 2026-10-23
+* **Status**: Completed
+* **Scope**: Native device integration for picking, saving, streaming, and manipulating all supported media block types (`image`, `audio`, `file`).
+
+- [x] Native Pickers & Permissions:
+  - [x] Implement `ImagePicker` integration (`apps/mobile/src/lib/media/pickers.ts`) for camera capture and gallery multi-selection
+  - [x] Implement `FilePicker` / document picker integration (`expo-document-picker`) for general attachments with metadata extraction (`mimeType`, `size`, `name`)
+  - [x] Implement permissions management with OS settings prompt (`apps/mobile/src/lib/media/permissions.ts`)
+- [x] Local FileSystem Storage & Sandboxing:
+  - [x] Copy picked media to app-sandboxed permanent storage (`FileSystem.documentDirectory + "media/"`) to prevent cache purging and invalid local URIs (`apps/mobile/src/lib/media/file-system.ts`)
+  - [x] Implement safe asset deletion on item/block removal and human-readable `formatFileSize`
+- [x] Audio Streaming & Media Player Engine:
+  - [x] Integrate hardware-accelerated audio streaming/playback handler (`expo-audio`) with `useAudioPlayerState` (`apps/mobile/src/lib/media/use-audio-player.ts`)
+  - [x] Implement playback state machine (loading, playing, paused, scrubbing, duration tracking, auto-pause on unmount)
+  - [x] Implement `AudioRecordingSheet` with real-time second counter, cancel/save controls, and sandboxed audio persistence
+- [x] Block Integration & Purposeful UI/UX:
+  - [x] Refactor `MediaBlock` (`apps/mobile/src/components/notes/blocks/media-block.tsx`) to partition visual images, audio cards (`MediaAudioCard`), and document attachments (`MediaFileCard`)
+  - [x] Wire contextual block actions (`BlockWrapper`) and bottom toolbar actions for Take Photo, Add Photos, Attach File, and Record Audio
+  - [x] Configure production iOS `infoPlist` usage descriptions and Android permissions in `app.json`
+- [x] Verified full monorepo typechecks pass cleanly (`bun run check-types`)
+
+---
+
+---
+
+## 🎨 Media Block Layout Overhaul & Card Redesign (Phase 3) — 2026-10-23
+* **Status**: In Progress
+* **Scope**: Complete redesign of media cards system, horizontal visual media carousel, and dedicated vertical audio stack.
+
+- [ ] Modern Media Cards Redesign:
+  - [ ] Redesign `VisualImageCard`: Elevated edge-to-edge or rounded card treatment, fluid aspect ratio handling, refined badge chips, and streamlined markdown caption overlay/underlay
+  - [ ] Redesign `MediaAudioCard`: Sleek player with subtle waveforms, modern pill scrubbers, compact time indicators, and polished play/pause interactions
+  - [ ] Redesign `MediaFileCard`: Clean attachment chip/card with high-contrast file type glyphs, compact metadata hierarchy, and smooth tap-to-open feedback
+- [ ] Layout Overhaul:
+  - [ ] Implement smooth horizontal snap-carousel for visual images
+  - [ ] Separate visual carousel from vertical audio & document stacks
+
+---
+
+## ☁️ Background Media Upload & Cloud Sync Pipeline (Phase 2.0-preview) — 2026-10-23
+* **Status**: Pending
+* **Scope**: Background media asset uploads, backend upload endpoints / storage integration, and sync outbox pipeline reconciliation.
+
+- [ ] Backend Media Ingestion & Storage:
+  - [ ] Implement media upload endpoints or pre-signed upload URLs in `apps/api` (supporting local disk / S3 / R2 storage providers)
+  - [ ] Add ownership validation and file type/size limits in NestJS upload controllers
+- [ ] Mobile Background Upload Service:
+  - [ ] Create background upload queue service using `expo-file-system` upload tasks or background fetch
+  - [ ] Track upload progress, speed, and retry state per media item
+- [ ] Outbox Sync Pipeline Reconciliation:
+  - [ ] Connect media upload state (`pending` -> `uploading` -> `uploaded` / `failed`) to `sync_outbox`
+  - [ ] Optimistically render local URIs while uploading; swap to remote URLs once upload is confirmed
+  - [ ] Handle offline queuing, network change retries, and cleanup of orphaned local files on block deletion

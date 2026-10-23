@@ -46,6 +46,7 @@ export interface BlockContainerProps {
   isEditing: boolean;
   onStartEditing: () => void;
   onContentChange?: (t: string) => void;
+  onRequestRecordAudio?: () => void;
 }
 
 interface BlockRowProps {
@@ -60,6 +61,7 @@ interface BlockRowProps {
   onMoveBlock: (index: number, direction: -1 | 1) => Promise<void>;
   onDelete: (blockId: string) => Promise<void>;
   onDuplicate: (block: NoteBlock, index: number) => Promise<void>;
+  onRequestRecordAudio?: () => void;
 }
 
 /**
@@ -77,6 +79,7 @@ const BlockRow = React.memo(function BlockRow({
   onMoveBlock,
   onDelete,
   onDuplicate,
+  onRequestRecordAudio,
 }: BlockRowProps) {
   const handleStage = useCallback(
     (updates: UpdateBlockInput) => onStageUpdate(block.id, updates),
@@ -126,6 +129,7 @@ const BlockRow = React.memo(function BlockRow({
           onStageContent={(content) => handleStage({ content })}
           onImmediateContent={(content) => handleImmediate({ content })}
           onCommit={handleCommit}
+          onRequestRecordAudio={onRequestRecordAudio}
         />
       ) : null}
     </BlockWrapper>
@@ -134,7 +138,7 @@ const BlockRow = React.memo(function BlockRow({
 
 export const BlockContainer = React.memo(
   forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
-    { note, isEditing, onStartEditing, onContentChange },
+    { note, isEditing, onStartEditing, onContentChange, onRequestRecordAudio },
     ref,
   ) {
     const colors = useTheme();
@@ -257,6 +261,7 @@ export const BlockContainer = React.memo(
             onMoveBlock={handleMoveBlock}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
+            onRequestRecordAudio={onRequestRecordAudio}
           />
         ))}
 

@@ -140,7 +140,10 @@ export function formatNoteWithBlocks(noteContent: string, blocks: NoteBlock[]): 
         return [b.header, ...lines, b.footer].filter(Boolean).join('\n');
       }
       if (b.type === 'media') {
-        return b.content.map((i) => i.caption || '').filter(Boolean).join('\n');
+        return b.content
+          .map((i) => i.caption || i.name || '')
+          .filter(Boolean)
+          .join('\n');
       }
       return '';
     })

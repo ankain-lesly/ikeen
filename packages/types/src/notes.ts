@@ -83,12 +83,38 @@ export interface ListItem {
   checked?: boolean;
 }
 
+export type MediaType = "image" | "audio" | "file";
+
+export interface ImageMetadata {
+  width?: number;
+  height?: number;
+}
+
+export interface AudioMetadata {
+  duration?: number;
+  sampleRate?: number;
+  bitrate?: number;
+}
+
+export interface FileMetadata {
+  size?: number;
+  mimeType?: string;
+}
+
+export type MediaMetadata =
+  | ImageMetadata
+  | AudioMetadata
+  | FileMetadata
+  | Record<string, unknown>;
+
 export interface MediaItem {
   id: string;
-  mediaType: "image" | "audio" | "file";
+  mediaType: MediaType;
   localUri: string;
+  name?: string;
   url?: string;
   caption?: string;
+  metadata?: MediaMetadata;
   synced: boolean;
 }
 

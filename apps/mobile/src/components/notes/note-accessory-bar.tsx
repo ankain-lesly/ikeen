@@ -52,6 +52,7 @@ interface NoteBottomToolBarProps
   onAddMedia?: () => void;
   onTakePhoto?: () => void;
   onRecordAudio?: () => void;
+  onAttachFile?: () => void;
 }
 
 type ToolbarMode = "default" | "text";
@@ -72,6 +73,7 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
   onAddMedia,
   onTakePhoto,
   onRecordAudio,
+  onAttachFile,
 }: NoteBottomToolBarProps) {
   const { isVisible } = useKeyboardGradualAnimation();
 
@@ -131,6 +133,7 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
           onAddTextBlock={onAddTextBlock}
           onTakePhoto={onTakePhoto}
           onRecordAudio={onRecordAudio}
+          onAttachFile={onAttachFile}
         />
       )}
     </>

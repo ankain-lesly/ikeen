@@ -34,10 +34,13 @@ import {
 import { useLiveFolder } from "@/lib/queries/folders";
 import type {
   CreateBlockInput,
+  MediaBlock as MediaBlockType,
+  MediaItem,
   NoteSelect,
 } from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
+import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
 import { GestureDetector } from "react-native-gesture-handler";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
 import { type MarkdownFormatAction } from "@/components/markdown";
@@ -51,8 +54,14 @@ import {
 import {
   createBlock,
   formatNoteWithBlocks,
+  updateBlock,
   useLiveNoteBlocks,
 } from "@/lib/queries/note-blocks";
+import {
+  pickDocumentFile,
+  pickImagesFromLibrary,
+  takePhotoWithCamera,
+} from "@/lib/media/pickers";
 import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
 import { log } from "@repo/utils";
@@ -103,6 +112,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
+  const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
   const { data: liveBlocks } = useLiveNoteBlocks(note.id);
@@ -260,6 +270,45 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     () => handleAddBlock(createDefaultMediaBlockInput(), "media block"),
     [handleAddBlock],
   );
+
+  const handleAppendMediaItems = useCallback(
+    async (newItems: MediaItem[]) => {
+      if (newItems.length === 0) return;
+      try {
+        const existingMediaBlock = liveBlocks.find(
+          (b): b is MediaBlockType => b.type === "media",
+        );
+        if (existingMediaBlock) {
+          await updateBlock(existingMediaBlock.id, {
+            content: [...existingMediaBlock.content, ...newItems],
+          });
+        } else {
+          await createBlock(note.id, createDefaultMediaBlockInput(newItems));
+        }
+        setHasEdited(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {
+        console.error("[NoteEditor] Failed to append media items:", err);
+        toast.error("Failed to add media");
+      }
+    },
+    [liveBlocks, note.id],
+  );
+
+  const handleTakePhoto = useCallback(async () => {
+    const photo = await takePhotoWithCamera();
+    if (photo) await handleAppendMediaItems([photo]);
+  }, [handleAppendMediaItems]);
+
+  const handlePickMedia = useCallback(async () => {
+    const picked = await pickImagesFromLibrary({ allowsMultiple: true });
+    if (picked.length > 0) await handleAppendMediaItems(picked);
+  }, [handleAppendMediaItems]);
+
+  const handleAttachFile = useCallback(async () => {
+    const files = await pickDocumentFile();
+    if (files.length > 0) await handleAppendMediaItems(files);
+  }, [handleAppendMediaItems]);
 
   const shareableContent = useMemo(
     () => formatNoteWithBlocks(note.content, liveBlocks),
@@ -511,6 +560,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             isEditing={isEditing}
             onContentChange={(t) => updateNoteState("content", t)}
             onStartEditing={startEditing}
+            onRequestRecordAudio={() => setIsAudioRecordingOpen(true)}
           />
         </ScrollView>
       </View>
@@ -528,7 +578,10 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         onTogglePin={handleTogglePin}
         onAddTextBlock={handleAddTextBlock}
         onAddCheckboxBlock={handleAddCheckboxBlock}
-        onAddMedia={handleAddMediaBlock}
+        onAddMedia={handlePickMedia}
+        onTakePhoto={handleTakePhoto}
+        onAttachFile={handleAttachFile}
+        onRecordAudio={() => setIsAudioRecordingOpen(true)}
       />
       {/* Note Info Details Modal Sheet */}
       <NoteInfoSheet
@@ -555,6 +608,12 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             toast.error("Failed to move note");
           }
         }}
+      />
+      {/* Audio Recording Sheet */}
+      <AudioRecordingSheet
+        visible={isAudioRecordingOpen}
+        onDismiss={() => setIsAudioRecordingOpen(false)}
+        onFinished={(recordingItem) => handleAppendMediaItems([recordingItem])}
       />
       <KeyboardGradualAnimation />
     </View>

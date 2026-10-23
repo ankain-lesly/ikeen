@@ -338,7 +338,7 @@ export const ListBlock = React.memo(function ListBlock({
       {renderMetaField(
         "header",
         block.header,
-        "Section header (markdown)...",
+        "Section header ",
         "bg-card px-2 py-1 rounded-md mb-3",
       )}
 
@@ -386,7 +386,7 @@ export const ListBlock = React.memo(function ListBlock({
       {renderMetaField(
         "footer",
         block.footer,
-        "Section footer (markdown)...",
+        "Section footer ",
         "bg-card px-2 py-1 mt-2 rounded-md",
       )}
     </View>

@@ -1,3 +1,5 @@
+
+
 import { BottomSheet } from "@expo/ui";
 import { RNHostView } from "@expo/ui/jetpack-compose";
 import { View, Text as RNText, TouchableOpacity } from "react-native";
@@ -16,18 +18,20 @@ type OptionSheetProps = {
   isPresented: boolean;
   onDismiss: () => void;
   title?: string | React.ReactNode;
-  actions: SheetAction[];
+  actions?: SheetAction[];
   children?: React.ReactNode;
   snapPoints?: Array<"half" | "full">;
+  showDragIndicator?: boolean;
 };
 
 export function OptionSheet({
   isPresented,
   onDismiss,
   title,
-  actions,
+  actions = [],
   children,
   snapPoints = ["half"],
+  showDragIndicator = true,
 }: OptionSheetProps) {
   const colors = useTheme();
 
@@ -39,7 +43,7 @@ export function OptionSheet({
       <BottomSheet
         isPresented={isPresented}
         onDismiss={onDismiss}
-        showDragIndicator
+        showDragIndicator={showDragIndicator}
         snapPoints={snapPoints}
         containerColor={colors.card}>
         <RNHostView matchContents>

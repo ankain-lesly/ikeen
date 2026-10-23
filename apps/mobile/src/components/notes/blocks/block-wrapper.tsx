@@ -140,7 +140,7 @@ export const BlockWrapper = React.memo(function BlockWrapper({
               className="p-1.5 rounded-full active:bg-background-element"
               hitSlop={8}
               onPress={handleOpenOptions}>
-              <MoreVertical size={16} color={colors.textSecondary} />
+              <MoreVertical size={20} color={colors.textSecondary} />
             </Pressable>
           </View>
         )}
