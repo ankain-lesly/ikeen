@@ -154,9 +154,7 @@ Grouped by todo topic / issue for clearer tracking and context.
   - [ ] Redesign `VisualImageCard`: Elevated edge-to-edge or rounded card treatment, fluid aspect ratio handling, refined badge chips, and streamlined markdown caption overlay/underlay
   - [ ] Redesign `MediaAudioCard`: Sleek player with subtle waveforms, modern pill scrubbers, compact time indicators, and polished play/pause interactions
   - [ ] Redesign `MediaFileCard`: Clean attachment chip/card with high-contrast file type glyphs, compact metadata hierarchy, and smooth tap-to-open feedback
-- [ ] Layout Overhaul:
-  - [ ] Implement smooth horizontal snap-carousel for visual images
-  - [ ] Separate visual carousel from vertical audio & document stacks
+
 
 ---
 

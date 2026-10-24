@@ -69,6 +69,7 @@ class SyncManager {
         useSyncStore.getState().setStatus('idle');
         // toast.success('Syncing...');
         this.sync().catch(() => {});
+        void processMediaUploadQueue();
       } else {
         // toast.error('Offline');
         useSyncStore.getState().setStatus('offline');
@@ -80,6 +81,7 @@ class SyncManager {
       log('[Sync:AppState]', { appState: state });
       if (state === 'active') {
         this.sync().catch(() => {});
+        void processMediaUploadQueue();
       }
     });
 

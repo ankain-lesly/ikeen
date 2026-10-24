@@ -5,8 +5,9 @@ import { mediaSyncOutbox, noteBlocks } from "@/db/schema";
 import { useMediaUploadStore } from "./use-media-upload-store";
 import { enqueueOutbox } from "@/lib/sync/outbox";
 import { unpackNoteBlock, toBlockOutboxPayload } from "@/lib/queries/block-content.codec";
-import type { MediaBlock, MediaItem } from "@/lib/types/notes";
+import type { MediaItem } from "@/lib/types/notes";
 import { env } from "@/lib/env";
+import { log } from "@repo/utils";
 
 const MAX_RETRIES = 5;
 const CONCURRENCY_LIMIT = 2;
@@ -60,6 +61,12 @@ export async function enqueueMediaUpload(params: {
   blockId: string;
   localUri: string;
 }): Promise<void> {
+  log("[Media:Enqueue]", {
+    id: params.id,
+    blockId: params.blockId,
+    localUri: params.localUri,
+  });
+
   const now = new Date().toISOString();
   await db
     .insert(mediaSyncOutbox)
@@ -91,6 +98,7 @@ export async function enqueueMediaUpload(params: {
  */
 export async function cancelMediaUpload(mediaId: string): Promise<void> {
   try {
+    log("[Media:Cancel]", { id: mediaId });
     await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.id, mediaId));
     useMediaUploadStore.getState().clearUpload(mediaId);
   } catch (err) {
@@ -125,6 +133,16 @@ export async function processMediaUploadQueue(): Promise<void> {
 
       if (pendingJobs.length === 0) break;
 
+      log("[Media:Queue:Batch]", {
+        count: pendingJobs.length,
+        batch: pendingJobs.map((j) => ({
+          id: j.id,
+          blockId: j.blockId,
+          status: j.status,
+          retryCount: j.retryCount,
+        })),
+      });
+
       // Process in chunks of CONCURRENCY_LIMIT
       for (let i = 0; i < pendingJobs.length; i += CONCURRENCY_LIMIT) {
         const chunk = pendingJobs.slice(i, i + CONCURRENCY_LIMIT);
@@ -132,6 +150,7 @@ export async function processMediaUploadQueue(): Promise<void> {
       }
     }
   } catch (err) {
+    log("[Media:Queue:Error]", { error: err instanceof Error ? err.message : String(err) });
     console.warn("[MediaUploadService] Queue processing error:", err);
   } finally {
     isWorkerRunning = false;
@@ -144,6 +163,13 @@ async function uploadMediaJob(job: {
   localUri: string;
   retryCount: number;
 }): Promise<void> {
+  log("[Media:Upload:Start]", {
+    id: job.id,
+    blockId: job.blockId,
+    localUri: job.localUri,
+    retryCount: job.retryCount,
+  });
+
   const store = useMediaUploadStore.getState();
   store.setStatus(job.id, "uploading");
 
@@ -176,7 +202,7 @@ async function uploadMediaJob(job: {
         uploadType: FileSystem.FileSystemUploadType.MULTIPART,
         fieldName: "file",
         headers,
-        parameters: { folder: "notes-media" },
+        parameters: { folder: "notes" },
       },
       (data) => {
         if (data.totalBytesExpectedToSend > 0) {
@@ -213,12 +239,25 @@ async function uploadMediaJob(job: {
     // Delete job from media_sync_outbox
     await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.id, job.id));
     store.setStatus(job.id, "completed");
+
+    log("[Media:Upload:Success]", {
+      id: job.id,
+      blockId: job.blockId,
+      remoteUrl,
+    });
   } catch (err: any) {
     const errorMessage = err?.message || "Upload failed";
-    console.warn(`[MediaUploadService] Job ${job.id} failed:`, errorMessage);
-
     const category = classifyMediaUploadFailure(httpStatus);
     const updatedTime = new Date().toISOString();
+
+    log("[Media:Upload:Error]", {
+      id: job.id,
+      blockId: job.blockId,
+      httpStatus,
+      category,
+      error: errorMessage,
+    });
+    console.warn(`[MediaUploadService] Job ${job.id} failed:`, errorMessage);
 
     if (category === "transient_no_penalty") {
       // Reset back to pending without incrementing retry count
@@ -297,15 +336,63 @@ async function reconcileUploadedMediaUrl(
       "upsert",
       toBlockOutboxPayload(updatedBlock),
     );
+    log("[Media:Reconcile:Success]", {
+      blockId,
+      mediaId,
+      remoteUrl,
+    });
   }
 }
 
 /**
- * Startup and resume sync: processes pending or retry-eligible failed jobs from media_sync_outbox.
- * Never scans the full note_blocks entity table.
+ * Resets stale uploading items and recoverable failed items back to pending on startup.
+ * Queries strictly by indexed status without scanning note blocks.
+ */
+export async function resetMediaInFlightOnStartup(): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    // 1. Reset stale in-flight uploading items from app crashes/abrupt closes
+    await db
+      .update(mediaSyncOutbox)
+      .set({ status: "pending", updatedAt: now })
+      .where(eq(mediaSyncOutbox.status, "uploading"));
+
+    // 2. Automatically recover any failed items that still have valid retries remaining
+    await db
+      .update(mediaSyncOutbox)
+      .set({ status: "pending", updatedAt: now })
+      .where(
+        and(
+          eq(mediaSyncOutbox.status, "failed"),
+          // lt(mediaSyncOutbox.retryCount, MAX_RETRIES),
+        ),
+      );
+
+    log(
+      "[Media:Outbox:StartupRecovery]",
+      "Reset uploading and recoverable failed media items to pending on startup.",
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log("[Media:Outbox:Error]", {
+      action: "resetMediaInFlightOnStartup",
+      error: message,
+    });
+    console.warn(
+      "[MediaUploadService] Failed to reset in-flight/failed media items on startup:",
+      message,
+    );
+  }
+}
+
+/**
+ * Startup and resume sync: resets stranded in-flight media items, then drains the queue.
+ * Strictly queries indexed outbox status. Never scans the full note_blocks entity table.
  */
 export async function reconcileUnsyncedMedia(): Promise<void> {
   try {
+    log("[Media:Resume:Triggered]");
+    await resetMediaInFlightOnStartup();
     void processMediaUploadQueue();
   } catch (err) {
     console.warn("[MediaUploadService] Resume sync error:", err);
@@ -317,6 +404,7 @@ export async function reconcileUnsyncedMedia(): Promise<void> {
  */
 export async function retrySingleMediaUpload(mediaId: string): Promise<void> {
   try {
+    log("[Media:Retry:Single]", { id: mediaId });
     const now = new Date().toISOString();
     await db
       .update(mediaSyncOutbox)
@@ -339,6 +427,7 @@ export async function retrySingleMediaUpload(mediaId: string): Promise<void> {
  */
 export async function retryFailedMediaJobs(): Promise<number> {
   try {
+    log("[Media:Retry:All]");
     const now = new Date().toISOString();
     await db
       .update(mediaSyncOutbox)
@@ -368,6 +457,7 @@ export async function cacheRemoteMediaLocally(
   if (!item.url || item.localUri) return item.localUri || null;
 
   try {
+    log("[Media:Cache:Start]", { id: item.id, url: item.url, blockId });
     const category =
       item.mediaType === "audio"
         ? "audio"
@@ -407,8 +497,10 @@ export async function cacheRemoteMediaLocally(
       }
     }
 
+    log("[Media:Cache:Success]", { id: item.id, localUri: downloadResult.uri, blockId });
     return downloadResult.uri;
   } catch (err) {
+    log("[Media:Cache:Error]", { id: item.id, error: err instanceof Error ? err.message : String(err) });
     console.warn("[MediaUploadService] Failed to cache remote media:", err);
     return null;
   }

@@ -22,7 +22,6 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 ### Phase 3: Media Block Layout Overhaul & Card Redesign
 - [ ] **Modern Media Cards Redesign**: Completely overhaul the UI/UX visual design for media items (`VisualImageCard`, `MediaAudioCard`, and `MediaFileCard`) to be modern, sleek, and high craft (subtle glass/card surfaces, polished audio waveforms/scrubbers, refined document chips, and intentional hierarchy without boilerplate/clutter). Best experience for caption, Modal, Transcript, Using SVG, Audio Wave/Curl Line, Clean UI
 - [ ] **Horizontal Media Carousel**: Replace vertical stacked media cards in `MediaBlock` with a horizontal scrollable carousel for images/visual media.
-- [ ] **Dedicated Vertical Audio Layout**: Render audio files (`mediaType === "audio"`) in a separate vertical stack inside `MediaBlock` below visual media.
 
 ### Phase 4: NoteCard Structured Block & Media Previews
 - [ ] **First Block Preview Fallback**: When `note.content` is empty, render a structured preview of the first block in `note.blocks` (e.g., text excerpt or compact checklist preview) inside `NoteCard`.

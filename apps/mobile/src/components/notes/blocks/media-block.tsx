@@ -26,11 +26,7 @@ import {
   pickImagesFromLibrary,
   takePhotoWithCamera,
 } from "@/lib/media/pickers";
-import {
-  cancelMediaUpload,
-  enqueueMediaUpload,
-  retrySingleMediaUpload,
-} from "@/lib/media/upload-service";
+import { retrySingleMediaUpload } from "@/lib/media/upload-service";
 import { useMediaUploadProgress } from "@/lib/media/use-media-upload-store";
 import { useRegisterBlockActions } from "./block-wrapper";
 import { MediaAudioCard } from "./media-audio-card";
@@ -79,23 +75,14 @@ export const MediaBlock = React.memo(function MediaBlock({
     itemsRef.current = items;
   });
 
-  // Append new media items and automatically enqueue for upload
+  // Append new media items
   const appendMediaItems = useCallback(
     (newItems: MediaItem[]) => {
       if (newItems.length === 0) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onImmediateContent([...itemsRef.current, ...newItems]);
-      for (const item of newItems) {
-        if (item.localUri && !item.url) {
-          void enqueueMediaUpload({
-            id: item.id,
-            blockId: block.id,
-            localUri: item.localUri,
-          });
-        }
-      }
     },
-    [block.id, onImmediateContent],
+    [onImmediateContent],
   );
 
   // Action handlers
@@ -114,12 +101,11 @@ export const MediaBlock = React.memo(function MediaBlock({
     appendMediaItems(files);
   }, [appendMediaItems]);
 
-  // Remove media item safely from block and cancel any pending upload job
+  // Remove media item safely from block
   const handleRemoveMedia = useCallback(
     (id: string) => {
       const nextItems = itemsRef.current.filter((item) => item.id !== id);
       onImmediateContent(nextItems);
-      void cancelMediaUpload(id);
     },
     [onImmediateContent],
   );

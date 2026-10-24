@@ -7,11 +7,16 @@ import { db } from '@/db/client';
 import { mediaSyncOutbox, noteBlocks, type NoteBlockSelect } from '@/db/schema';
 import type {
   CreateBlockInput,
+  MediaItem,
   NoteBlock,
   UpdateBlockInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-import { cacheRemoteMediaLocally } from '@/lib/media/upload-service';
+import {
+  cacheRemoteMediaLocally,
+  cancelMediaUpload,
+  enqueueMediaUpload,
+} from '@/lib/media/upload-service';
 import {
   formatNoteWithBlocks,
   serializeBlockContent,
@@ -120,6 +125,19 @@ export async function createBlock(
 
   const block = rowToNoteBlock(row);
 
+  // Centralized media enqueue: when a new media block is created, enqueue any local media items
+  if (block.type === 'media') {
+    for (const item of block.content) {
+      if (item.localUri && !item.url) {
+        void enqueueMediaUpload({
+          id: item.id,
+          blockId: block.id,
+          localUri: item.localUri,
+        });
+      }
+    }
+  }
+
   await enqueueOutbox('note_blocks', id, 'upsert', toBlockOutboxPayload(block));
 
   return block;
@@ -197,6 +215,40 @@ export async function updateBlock(
     .returning();
 
   const block = rowToNoteBlock(updated);
+
+  // Centralized media sync management: diff items when updating a media block
+  if (
+    (existing.type === 'media' || nextType === 'media') &&
+    'content' in updates &&
+    Array.isArray(updates.content)
+  ) {
+    const existingBlock = rowToNoteBlock(existing);
+    const existingItems = (
+      existingBlock.type === 'media' ? existingBlock.content : []
+    ) as MediaItem[];
+    const incomingItems = updates.content as MediaItem[];
+
+    const existingIds = new Set(existingItems.map((i) => i.id));
+    const incomingIds = new Set(incomingItems.map((i) => i.id));
+
+    // 1. Newly added items -> enqueue for upload
+    for (const item of incomingItems) {
+      if (!existingIds.has(item.id) && item.localUri && !item.url) {
+        void enqueueMediaUpload({
+          id: item.id,
+          blockId,
+          localUri: item.localUri,
+        });
+      }
+    }
+
+    // 2. Removed items -> cancel upload jobs
+    for (const item of existingItems) {
+      if (!incomingIds.has(item.id)) {
+        void cancelMediaUpload(item.id);
+      }
+    }
+  }
 
   await enqueueOutbox('note_blocks', blockId, 'upsert', toBlockOutboxPayload(block));
 
