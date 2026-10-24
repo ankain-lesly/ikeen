@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { Play, Pause, Trash2, Mic } from "lucide-react-native";
+import { Play, Pause, Trash2, Mic, CheckCircle2, AlertCircle } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
 import type { AudioMetadata, MediaItem } from "@/lib/types/notes";
@@ -8,6 +8,8 @@ import {
   formatDuration,
   useAudioPlayerState,
 } from "@/lib/media/use-audio-player";
+import { useMediaUploadProgress } from "@/lib/media/use-media-upload-store";
+import { retrySingleMediaUpload } from "@/lib/media/upload-service";
 import { MediaCaptionField } from "./media-caption-field";
 
 export interface MediaAudioCardProps {
@@ -30,6 +32,10 @@ export const MediaAudioCard = React.memo(function MediaAudioCard({
   const audioMeta = item.metadata as AudioMetadata | undefined;
 
   const [localCaption, setLocalCaption] = useState(item.caption || "");
+  const uploadState = useMediaUploadProgress(item.id);
+  const isUploading = uploadState?.status === "uploading";
+  const isFailed = uploadState?.status === "failed";
+  const progressPercent = Math.round((uploadState?.progress || 0) * 100);
 
   useEffect(() => {
     setLocalCaption(item.caption || "");
@@ -105,6 +111,23 @@ export const MediaAudioCard = React.memo(function MediaAudioCard({
               >
                 {item.name || "Audio recording"}
               </Text>
+              {isUploading ? (
+                <View className="flex-row items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                  <ActivityIndicator size={8} color={colors.primary} />
+                  <Text className="text-[9px] text-primary font-medium">{progressPercent}%</Text>
+                </View>
+              ) : isFailed ? (
+                <Pressable
+                  onPress={() => void retrySingleMediaUpload(item.id)}
+                  hitSlop={6}
+                  className="flex-row items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded-full"
+                >
+                  <AlertCircle size={9} color="#ef4444" />
+                  <Text className="text-[9px] text-red-500 font-medium">Retry</Text>
+                </Pressable>
+              ) : item.url ? (
+                <CheckCircle2 size={11} color="#22c55e" />
+              ) : null}
             </View>
 
             {/* Time Indicator with tabular nums */}

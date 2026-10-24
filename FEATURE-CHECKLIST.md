@@ -160,17 +160,25 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
-## ☁️ Background Media Upload & Cloud Sync Pipeline (Phase 2.0-preview) — 2026-10-23
-* **Status**: Pending
-* **Scope**: Background media asset uploads, backend upload endpoints / storage integration, and sync outbox pipeline reconciliation.
+## ☁️ Background Media Upload & Cloud Sync Pipeline (Phase 2.0-preview) — 2026-10-24
+* **Status**: Completed
+* **Scope**: Background media asset uploads directly to `mediadock.leslychuo.me`, dedicated `media_sync_outbox` table, reactive Zustand progress store, startup resume scanning, queue drain loop, and outbox reconciliation.
 
-- [ ] Backend Media Ingestion & Storage:
-  - [ ] Implement media upload endpoints or pre-signed upload URLs in `apps/api` (supporting local disk / S3 / R2 storage providers)
-  - [ ] Add ownership validation and file type/size limits in NestJS upload controllers
-- [ ] Mobile Background Upload Service:
-  - [ ] Create background upload queue service using `expo-file-system` upload tasks or background fetch
-  - [ ] Track upload progress, speed, and retry state per media item
-- [ ] Outbox Sync Pipeline Reconciliation:
-  - [ ] Connect media upload state (`pending` -> `uploading` -> `uploaded` / `failed`) to `sync_outbox`
-  - [ ] Optimistically render local URIs while uploading; swap to remote URLs once upload is confirmed
-  - [ ] Handle offline queuing, network change retries, and cleanup of orphaned local files on block deletion
+- [x] Schema & Outbox Alignment:
+  - [x] Dropped redundant `synced` property from `MediaItem` in `@repo/types`, API codecs, and mobile codecs (presence of `url` indicates cloud availability)
+  - [x] Added `media_sync_outbox` table in mobile Drizzle schema with status enum (`pending`, `uploading`, `failed`), retry counters, indices, and generated migration `0006_safe_nova.sql`
+- [x] Direct Mobile Upload & Queue Worker:
+  - [x] Created `useMediaUploadStore` Zustand store for reactive in-flight upload progress tracking (`0–100%`) without thrashing SQLite
+  - [x] Implemented `upload-service.ts` with `FileSystem.createUploadTask` targeting `https://mediadock.leslychuo.me/api/v1/upload` with `folder: "notes-media"` parameter
+  - [x] Implemented queue worker drain loop (`while (true)`) with bounded concurrency (2 uploads in parallel)
+  - [x] Automatic block reconciliation on upload completion: patches `note_blocks.content` with the remote URL and enqueues note block sync into `sync_outbox`
+  - [x] Wired `enqueueMediaUpload` into media ingestion (`handleAppendMediaItems` in `NoteEditor` and `appendMediaItems` in `MediaBlock`)
+  - [x] Connected cancellation and cleanup of pending/failed media jobs on block/item deletion
+- [x] Startup & Cross-Device Sync Caching:
+  - [x] Implemented indexed `reconcileUnsyncedMedia()` wired into `syncManager.init()` on app launch and network changes
+  - [x] Hardened `upsertBlockFromSync` to preserve local sandbox `localUri` across cross-device pulls and trigger background `cacheRemoteMediaLocally` for incoming cloud media
+- [x] UI/UX & Performance:
+  - [x] Isolated caption keystroke updates to preserve `React.memo` boundaries ($O(1)$ render isolation)
+  - [x] Wired `useMediaUploadProgress` into `VisualImageCard`, `MediaAudioCard`, and `MediaFileCard` with progress %, error state, and retry action
+- [x] Verification:
+  - [x] Verified targeted mobile typecheck passes cleanly (`bun run --cwd apps/mobile check-types` -> 0 errors)

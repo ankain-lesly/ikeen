@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   Text,
@@ -7,6 +8,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import {
+  AlertCircle,
   Camera,
   CheckCircle2,
   CloudOff,
@@ -24,6 +26,12 @@ import {
   pickImagesFromLibrary,
   takePhotoWithCamera,
 } from "@/lib/media/pickers";
+import {
+  cancelMediaUpload,
+  enqueueMediaUpload,
+  retrySingleMediaUpload,
+} from "@/lib/media/upload-service";
+import { useMediaUploadProgress } from "@/lib/media/use-media-upload-store";
 import { useRegisterBlockActions } from "./block-wrapper";
 import { MediaAudioCard } from "./media-audio-card";
 import { MediaFileCard } from "./media-file-card";
@@ -66,14 +74,28 @@ export const MediaBlock = React.memo(function MediaBlock({
     [items],
   );
 
-  // Append new media items
+  const itemsRef = useRef(items);
+  useLayoutEffect(() => {
+    itemsRef.current = items;
+  });
+
+  // Append new media items and automatically enqueue for upload
   const appendMediaItems = useCallback(
     (newItems: MediaItem[]) => {
       if (newItems.length === 0) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onImmediateContent([...items, ...newItems]);
+      onImmediateContent([...itemsRef.current, ...newItems]);
+      for (const item of newItems) {
+        if (item.localUri && !item.url) {
+          void enqueueMediaUpload({
+            id: item.id,
+            blockId: block.id,
+            localUri: item.localUri,
+          });
+        }
+      }
     },
-    [items, onImmediateContent],
+    [block.id, onImmediateContent],
   );
 
   // Action handlers
@@ -92,24 +114,25 @@ export const MediaBlock = React.memo(function MediaBlock({
     appendMediaItems(files);
   }, [appendMediaItems]);
 
-  // Remove media item safely from block
+  // Remove media item safely from block and cancel any pending upload job
   const handleRemoveMedia = useCallback(
     (id: string) => {
-      const nextItems = items.filter((item) => item.id !== id);
+      const nextItems = itemsRef.current.filter((item) => item.id !== id);
       onImmediateContent(nextItems);
+      void cancelMediaUpload(id);
     },
-    [items, onImmediateContent],
+    [onImmediateContent],
   );
 
-  // Update caption
+  // Update caption with stable callback dependency (O(1) keystroke render isolation)
   const handleUpdateCaption = useCallback(
     (id: string, caption: string) => {
-      const nextItems = items.map((item) =>
+      const nextItems = itemsRef.current.map((item) =>
         item.id === id ? { ...item, caption } : item,
       );
       onStageContent(nextItems);
     },
-    [items, onStageContent],
+    [onStageContent],
   );
 
   // Register contextual block actions into parent BlockWrapper OptionSheet
@@ -272,6 +295,7 @@ const VisualImageCard = React.memo(function VisualImageCard({
 }: VisualImageCardProps) {
   const colors = useTheme();
   const [localCaption, setLocalCaption] = useState(item.caption || "");
+  const uploadState = useMediaUploadProgress(item.id);
 
   useEffect(() => {
     setLocalCaption(item.caption || "");
@@ -280,6 +304,16 @@ const VisualImageCard = React.memo(function VisualImageCard({
   const handleCaptionChange = (text: string) => {
     setLocalCaption(text);
     onUpdateCaption(item.id, text);
+  };
+
+  const isUploading = uploadState?.status === "uploading";
+  const isFailed = uploadState?.status === "failed";
+  const progressPercent = Math.round((uploadState?.progress || 0) * 100);
+
+  const handleRetryUpload = (e: any) => {
+    e.stopPropagation();
+    Haptics.selectionAsync();
+    void retrySingleMediaUpload(item.id);
   };
 
   return (
@@ -302,13 +336,41 @@ const VisualImageCard = React.memo(function VisualImageCard({
           <ImageIcon size={32} color={colors.textSecondary} />
         )}
 
-        {/* Synced / Local Status Badge */}
-        <View className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 flex-row items-center gap-1">
-          {item.synced ? (
+        {/* Upload / Cloud / Local Status Badge */}
+        <Pressable
+          onPress={isFailed ? handleRetryUpload : undefined}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isUploading
+              ? `Uploading ${progressPercent}%`
+              : isFailed
+                ? "Upload failed, tap to retry"
+                : item.url
+                  ? "Synced to cloud"
+                  : "Saved locally"
+          }
+          className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 flex-row items-center gap-1"
+        >
+          {isUploading ? (
+            <>
+              <ActivityIndicator size={10} color="#38bdf8" />
+              <Text className="text-[10px] text-white font-medium">
+                {progressPercent}%
+              </Text>
+            </>
+          ) : isFailed ? (
+            <>
+              <AlertCircle size={11} color="#ef4444" />
+              <Text className="text-[10px] text-white font-medium">
+                Retry
+              </Text>
+            </>
+          ) : item.url ? (
             <>
               <CheckCircle2 size={11} color="#22c55e" />
               <Text className="text-[10px] text-white font-medium">
-                Synced
+                Cloud
               </Text>
             </>
           ) : (
@@ -319,7 +381,7 @@ const VisualImageCard = React.memo(function VisualImageCard({
               </Text>
             </>
           )}
-        </View>
+        </Pressable>
 
         {/* Delete button in edit mode */}
         {isEditing && (

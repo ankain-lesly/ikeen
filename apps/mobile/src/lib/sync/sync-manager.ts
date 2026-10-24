@@ -18,6 +18,7 @@ import { useAuthStore } from '../auth/auth-store';
 import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
 import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
 import { upsertBlockFromSync } from '../queries/note-blocks';
+import { reconcileUnsyncedMedia, processMediaUploadQueue } from '../media/upload-service';
 import {
   getOutboxCount,
   getPendingOutbox,
@@ -48,6 +49,10 @@ class SyncManager {
     registerSyncTrigger(() => {
       this.sync().catch(() => {});
     });
+
+    // Scan and resume pending media uploads
+    void reconcileUnsyncedMedia();
+    void processMediaUploadQueue();
 
     // Reset any stranded in_flight mutations from previous app session crash
     resetInFlightOnStartup()

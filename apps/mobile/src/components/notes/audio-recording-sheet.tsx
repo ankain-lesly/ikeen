@@ -92,7 +92,6 @@ export function AudioRecordingSheet({
           metadata: {
             duration: seconds,
           },
-          synced: false,
         };
 
         onFinished(item);

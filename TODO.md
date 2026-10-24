@@ -19,14 +19,8 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 
 ## Note Block Issues
 
-### Phase 2.0-preview: Background Media Upload & Cloud Sync Pipeline
-- [ ] **Background Media Upload Service**: Implement robust background chunked/resumable upload pipeline (`expo-file-system` upload or background task).
-- [ ] **Backend Media Ingestion Endpoints**: Expose secure multipart upload endpoints or signed S3/R2 upload URLs in `apps/api`.
-- [ ] **Outbox Media Sync Integration**: Wire media asset upload status (`pending`, `uploading`, `uploaded`, `failed`) into `sync_outbox` so blocks only reference remote cloud URLs once synced, while rendering local URI optimistically.
-- [ ] **Retry & Offline Sync Reconciliation**: Handle network disconnection, resume partial uploads, and garbage collect deleted local media files.
-
 ### Phase 3: Media Block Layout Overhaul & Card Redesign
-- [ ] **Modern Media Cards Redesign**: Completely overhaul the UI/UX visual design for media items (`VisualImageCard`, `MediaAudioCard`, and `MediaFileCard`) to be modern, sleek, and high craft (subtle glass/card surfaces, polished audio waveforms/scrubbers, refined document chips, and intentional hierarchy without boilerplate/clutter).
+- [ ] **Modern Media Cards Redesign**: Completely overhaul the UI/UX visual design for media items (`VisualImageCard`, `MediaAudioCard`, and `MediaFileCard`) to be modern, sleek, and high craft (subtle glass/card surfaces, polished audio waveforms/scrubbers, refined document chips, and intentional hierarchy without boilerplate/clutter). Best experience for caption, Modal, Transcript, Using SVG, Audio Wave/Curl Line, Clean UI
 - [ ] **Horizontal Media Carousel**: Replace vertical stacked media cards in `MediaBlock` with a horizontal scrollable carousel for images/visual media.
 - [ ] **Dedicated Vertical Audio Layout**: Render audio files (`mediaType === "audio"`) in a separate vertical stack inside `MediaBlock` below visual media.
 

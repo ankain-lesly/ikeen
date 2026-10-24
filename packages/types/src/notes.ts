@@ -115,7 +115,6 @@ export interface MediaItem {
   url?: string;
   caption?: string;
   metadata?: MediaMetadata;
-  synced: boolean;
 }
 
 export interface BaseBlock {

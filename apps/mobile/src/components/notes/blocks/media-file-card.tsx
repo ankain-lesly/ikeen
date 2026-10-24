@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 // import * as Sharing from "expo-sharing";
 import {
   FileText,
@@ -9,11 +9,15 @@ import {
   File,
   Trash2,
   ExternalLink,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
 import type { FileMetadata, MediaItem } from "@/lib/types/notes";
 import { formatFileSize } from "@/lib/media/file-system";
+import { useMediaUploadProgress } from "@/lib/media/use-media-upload-store";
+import { retrySingleMediaUpload } from "@/lib/media/upload-service";
 import { MediaCaptionField } from "./media-caption-field";
 import { toast } from "@/lib/toast";
 
@@ -55,6 +59,10 @@ export const MediaFileCard = React.memo(function MediaFileCard({
   const sizeString = formatFileSize(fileMeta?.size);
 
   const [localCaption, setLocalCaption] = useState(item.caption || "");
+  const uploadState = useMediaUploadProgress(item.id);
+  const isUploading = uploadState?.status === "uploading";
+  const isFailed = uploadState?.status === "failed";
+  const progressPercent = Math.round((uploadState?.progress || 0) * 100);
 
   useEffect(() => {
     setLocalCaption(item.caption || "");
@@ -99,12 +107,31 @@ export const MediaFileCard = React.memo(function MediaFileCard({
 
         {/* File Details */}
         <View className="flex-1 min-w-0 justify-center">
-          <Text
-            numberOfLines={1}
-            className="text-xs font-semibold text-foreground truncate"
-          >
-            {displayName}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text
+              numberOfLines={1}
+              className="text-xs font-semibold text-foreground truncate flex-1"
+            >
+              {displayName}
+            </Text>
+            {isUploading ? (
+              <View className="flex-row items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded-full">
+                <ActivityIndicator size={8} color={colors.primary} />
+                <Text className="text-[9px] text-primary font-medium">{progressPercent}%</Text>
+              </View>
+            ) : isFailed ? (
+              <Pressable
+                onPress={() => void retrySingleMediaUpload(item.id)}
+                hitSlop={6}
+                className="flex-row items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded-full"
+              >
+                <AlertCircle size={9} color="#ef4444" />
+                <Text className="text-[9px] text-red-500 font-medium">Retry</Text>
+              </Pressable>
+            ) : item.url ? (
+              <CheckCircle2 size={11} color="#22c55e" />
+            ) : null}
+          </View>
 
           <View className="flex-row items-center gap-2 mt-0.5">
             {sizeString ? (

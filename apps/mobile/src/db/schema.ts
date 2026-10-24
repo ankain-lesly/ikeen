@@ -99,6 +99,29 @@ export const syncMetadata = sqliteTable('sync_metadata', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const mediaSyncOutbox = sqliteTable(
+  'media_sync_outbox',
+  {
+    id: text('id').primaryKey(),
+    blockId: text('block_id').notNull(),
+    localUri: text('local_uri').notNull(),
+    status: text('status', { enum: ['pending', 'uploading', 'failed'] })
+      .notNull()
+      .default('pending'),
+    retryCount: integer('retry_count').notNull().default(0),
+    lastError: text('last_error'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    index('idx_media_sync_outbox_status').on(table.status),
+    index('idx_media_sync_outbox_block_id').on(table.blockId),
+  ]
+);
+
+export type MediaSyncOutboxSelect = typeof mediaSyncOutbox.$inferSelect;
+export type InsertMediaSyncOutbox = typeof mediaSyncOutbox.$inferInsert;
+
 export type NoteSelect = typeof notes.$inferSelect;
 export type InsertNote = typeof notes.$inferInsert;
 

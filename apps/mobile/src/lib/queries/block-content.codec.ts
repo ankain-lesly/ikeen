@@ -117,12 +117,24 @@ export function serializeBlockContent(
 }
 
 export function toBlockOutboxPayload(block: NoteBlock): BlockChanges {
-  if (block.type !== 'list') return block;
-  return {
-    ...block,
-    header: block.header ?? (null as unknown as string | undefined),
-    footer: block.footer ?? (null as unknown as string | undefined),
-  };
+  if (block.type === 'list') {
+    return {
+      ...block,
+      header: block.header ?? (null as unknown as string | undefined),
+      footer: block.footer ?? (null as unknown as string | undefined),
+    };
+  }
+
+  if (block.type === 'media') {
+    // Sanitize payload: strip device-specific localUri so remote devices receive pure cloud URLs
+    const sanitizedContent = block.content.map(({ localUri, ...rest }) => rest);
+    return {
+      ...block,
+      content: sanitizedContent as unknown as typeof block.content,
+    };
+  }
+
+  return block;
 }
 
 export function formatNoteWithBlocks(noteContent: string, blocks: NoteBlock[]): string {

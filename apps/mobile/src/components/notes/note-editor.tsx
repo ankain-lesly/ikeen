@@ -62,6 +62,7 @@ import {
   pickImagesFromLibrary,
   takePhotoWithCamera,
 } from "@/lib/media/pickers";
+import { enqueueMediaUpload } from "@/lib/media/upload-service";
 import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
 import { log } from "@repo/utils";
@@ -278,13 +279,31 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         const existingMediaBlock = liveBlocks.find(
           (b): b is MediaBlockType => b.type === "media",
         );
+        let targetBlockId: string;
         if (existingMediaBlock) {
+          targetBlockId = existingMediaBlock.id;
           await updateBlock(existingMediaBlock.id, {
             content: [...existingMediaBlock.content, ...newItems],
           });
         } else {
-          await createBlock(note.id, createDefaultMediaBlockInput(newItems));
+          const created = await createBlock(
+            note.id,
+            createDefaultMediaBlockInput(newItems),
+          );
+          targetBlockId = created.id;
         }
+
+        // Enqueue local items for background cloud upload
+        for (const item of newItems) {
+          if (item.localUri && !item.url) {
+            void enqueueMediaUpload({
+              id: item.id,
+              blockId: targetBlockId,
+              localUri: item.localUri,
+            });
+          }
+        }
+
         setHasEdited(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch (err) {

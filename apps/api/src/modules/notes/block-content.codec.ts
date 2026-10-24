@@ -17,7 +17,6 @@ export const mediaItemSchema = z.object({
   url: z.string().optional(),
   caption: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  synced: z.boolean().default(false),
 });
 
 export const storedListContentSchema = z.object({

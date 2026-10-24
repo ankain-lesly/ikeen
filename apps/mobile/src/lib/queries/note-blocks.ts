@@ -4,13 +4,14 @@ import { and, asc, eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
-import { noteBlocks, type NoteBlockSelect } from '@/db/schema';
+import { mediaSyncOutbox, noteBlocks, type NoteBlockSelect } from '@/db/schema';
 import type {
   CreateBlockInput,
   NoteBlock,
   UpdateBlockInput,
 } from '@/lib/types/notes';
 import { enqueueOutbox } from '@/lib/sync/outbox';
+import { cacheRemoteMediaLocally } from '@/lib/media/upload-service';
 import {
   formatNoteWithBlocks,
   serializeBlockContent,
@@ -215,6 +216,7 @@ export async function deleteBlock(blockId: string): Promise<void> {
   if (!existing) return;
 
   await db.delete(noteBlocks).where(eq(noteBlocks.id, blockId));
+  await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.blockId, blockId));
 
   await enqueueOutbox('note_blocks', blockId, 'delete', {
     id: blockId,
@@ -292,7 +294,11 @@ export async function reorderBlocks(
  */
 export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
   const [existing] = await db
-    .select({ updatedAt: noteBlocks.updatedAt })
+    .select({
+      updatedAt: noteBlocks.updatedAt,
+      content: noteBlocks.content,
+      type: noteBlocks.type,
+    })
     .from(noteBlocks)
     .where(eq(noteBlocks.id, block.id))
     .limit(1);
@@ -302,6 +308,39 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
   }
 
   const normalized = unpackNoteBlock(block);
+
+  // If this is a media block, preserve any existing localUri already in local SQLite
+  if (normalized.type === 'media') {
+    let localUriMap: Map<string, string> | undefined;
+    if (existing && existing.type === 'media') {
+      try {
+        const localItems = JSON.parse(existing.content || '[]');
+        if (Array.isArray(localItems)) {
+          localUriMap = new Map();
+          for (const item of localItems) {
+            if (item?.id && item?.localUri) {
+              localUriMap.set(item.id, item.localUri);
+            }
+          }
+        }
+      } catch {
+        // Ignore parse error
+      }
+    }
+
+    normalized.content = normalized.content.map((incomingItem) => {
+      const existingUri = localUriMap?.get(incomingItem.id);
+      return existingUri ? { ...incomingItem, localUri: existingUri } : incomingItem;
+    });
+
+    // Background download for items that have cloud URL but no localUri on this device
+    for (const item of normalized.content) {
+      if (item.url && !item.localUri) {
+        void cacheRemoteMediaLocally(item, normalized.id);
+      }
+    }
+  }
+
   const rawContent = serializeBlockContent(
     normalized.type,
     normalized.content,

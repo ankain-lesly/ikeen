@@ -51,7 +51,6 @@ export async function pickImagesFromLibrary(
           width: asset.width,
           height: asset.height,
         },
-        synced: false,
       });
     }
 
@@ -96,7 +95,6 @@ export async function takePhotoWithCamera(): Promise<MediaItem | null> {
         width: asset.width,
         height: asset.height,
       },
-      synced: false,
     };
   } catch (err) {
     console.warn("[MediaPickers] Failed to capture photo with camera:", err);
@@ -132,7 +130,6 @@ export async function pickDocumentFile(): Promise<MediaItem[]> {
           size: asset.size ?? saved.size,
           mimeType: asset.mimeType ?? undefined,
         },
-        synced: false,
       });
     }
 
