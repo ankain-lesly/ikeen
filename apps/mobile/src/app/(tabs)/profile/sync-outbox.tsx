@@ -16,7 +16,9 @@ import { syncOutbox } from "@/db/schema";
 import { db } from "@/db/client";
 import { log } from "@repo/utils";
 import { router } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Trash2 } from "lucide-react-native";
+import { clearSuccessfulOutbox } from "@/lib/sync/outbox";
+import * as Haptics from "@/lib/haptics";
 
 export default function SyncMonitorPage() {
   const { width } = useWindowDimensions();
@@ -44,20 +46,37 @@ export default function SyncMonitorPage() {
   );
 
   if (activeRow) {
-    log('[SyncOutbox:SelectedRow]', activeRow.payload);
+    log("[SyncOutbox:SelectedRow]", activeRow.payload);
   }
+
+  const handleClearSuccessful = () => {
+    Haptics.selectionAsync();
+    void clearSuccessfulOutbox();
+    if (activeRow?.status === "success") setSelectedId(null);
+  };
+
   return (
     <View style={styles.screen}>
       {/* Navigation Top Header */}
       <View style={styles.topHeader}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ChevronLeft size={20} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Delivery Ledger</Text>
-        <View style={{ width: 48 }} />
+        <View style={styles.headerActions}>
+          {metrics.success > 0 ? (
+            <Pressable
+              onPress={handleClearSuccessful}
+              hitSlop={6}
+              style={styles.headerActionBtn}
+              accessibilityLabel="Clear successful sync records">
+              <Trash2 size={16} color="#A0AEC0" />
+            </Pressable>
+          ) : (
+            <View style={{ width: 32 }} />
+          )}
+        </View>
       </View>
 
       {/* 🚀 Runway Metrics Monitor Header Layout */}
@@ -213,10 +232,11 @@ export default function SyncMonitorPage() {
                           typeof obj === "object" &&
                           Object.prototype.hasOwnProperty.call(obj, "content")
                         ) {
-                          obj = {
-                            ...obj,
-                            content: "***REDACTED***",
-                          };
+                          if (activeRow.entity !== "note_blocks")
+                            obj = {
+                              ...obj,
+                              content: "***REDACTED***",
+                            };
                         }
 
                         // Redact 'lastError' if it exists in activeRow
@@ -299,6 +319,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#1A2333",
+    alignItems: "center",
+    justifyContent: "center",
   },
   metricsBar: { flexDirection: "row", gap: 10, marginBottom: 16 },
   metricCard: { flex: 1, padding: 12, borderRadius: 12, alignItems: "center" },

@@ -45,6 +45,7 @@ import {
 } from "@/lib/settings/settings-store";
 import { NewBadge } from "@/components/ui/new-badge";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { or, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { mediaSyncOutbox } from "@/db/schema";
 
@@ -55,7 +56,15 @@ export default function ProfileScreen() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const { status: syncStatus, pendingCount, lastSyncedAt } = useSyncStore();
   const { data: pendingMediaJobs = [] } = useLiveQuery(
-    db.select({ id: mediaSyncOutbox.id }).from(mediaSyncOutbox),
+    db
+      .select({ id: mediaSyncOutbox.id })
+      .from(mediaSyncOutbox)
+      .where(
+        or(
+          eq(mediaSyncOutbox.status, "pending"),
+          eq(mediaSyncOutbox.status, "uploading"),
+        ),
+      ),
   );
   const pendingMediaCount = pendingMediaJobs.length;
   const {

@@ -117,7 +117,7 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.offset,
   ]);
 
-  return {...res, isLoading: !res.updatedAt && res.data?.length === 0}  
+  return {...res, isLoading: !res.updatedAt && res.data?.length === 0}
 }
 
 /**

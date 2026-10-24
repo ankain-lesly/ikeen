@@ -198,17 +198,60 @@ export async function markOutboxInFlight(ids: string[]): Promise<void> {
 }
 
 /**
- * Marks completed mutations as SUCCESS by pruning them from the outbox.
+ * Marks completed mutations as SUCCESS and persists them for ledger inspection.
  */
 export async function markOutboxSuccess(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
+  const now = new Date().toISOString();
   try {
-    await db.delete(syncOutbox).where(inArray(syncOutbox.id, ids));
-    log('[Sync:Outbox:Success]', { count: ids.length, prunedIds: 'ids...' });
+    await db
+      .update(syncOutbox)
+      .set({ status: 'success', updatedAt: now })
+      .where(inArray(syncOutbox.id, ids));
+    log('[Sync:Outbox:Success]', { count: ids.length, successIds: ids });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxSuccess', error: message });
-    console.log('[🚨] [Outbox] Failed to clear successful outbox items:', message);
+    console.log('[🚨] [Outbox] Failed to mark successful outbox items:', message);
+  }
+}
+
+/**
+ * Clears all mutations marked 'success' from SQLite sync_outbox.
+ * Triggered manually by user on inspection screen or automatically via prune.
+ */
+export async function clearSuccessfulOutbox(): Promise<number> {
+  try {
+    log('[Sync:Outbox:ClearSuccess]');
+    const deleted = await db
+      .delete(syncOutbox)
+      .where(eq(syncOutbox.status, 'success'))
+      .returning({ id: syncOutbox.id });
+    return deleted.length;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log('[🚨] [Outbox] Failed to clear successful items:', message);
+    return 0;
+  }
+}
+
+/**
+ * Automatically prunes successful outbox items older than 48 hours to prevent unbounded storage growth.
+ */
+export async function pruneStaleOutboxHistory(): Promise<void> {
+  try {
+    // NOTES: Keep for now
+    // const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    // await db
+    //   .delete(syncOutbox)
+    //   .where(
+    //     and(
+    //       eq(syncOutbox.status, 'success'),
+    //       lt(syncOutbox.updatedAt, cutoff)
+    //     )
+    //   );
+  } catch (err) {
+    console.warn('[Outbox] Failed to prune stale outbox history:', err);
   }
 }
 

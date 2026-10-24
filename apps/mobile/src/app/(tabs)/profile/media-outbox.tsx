@@ -9,7 +9,6 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc } from "drizzle-orm";
@@ -21,17 +20,13 @@ import {
   RotateCw,
   Play,
   Trash2,
-  AlertCircle,
-  FileText,
-  Image as ImageIcon,
-  Mic,
-  CheckCircle2,
 } from "lucide-react-native";
 import {
   processMediaUploadQueue,
   retryFailedMediaJobs,
   retrySingleMediaUpload,
   cancelMediaUpload,
+  clearCompletedMediaJobs,
 } from "@/lib/media/upload-service";
 import { useMediaUploadStore } from "@/lib/media/use-media-upload-store";
 import * as Haptics from "@/lib/haptics";
@@ -57,7 +52,7 @@ export default function MediaOutboxMonitorPage() {
 
   // 2. Metrics summary
   const metrics = useMemo(() => {
-    const counts = { pending: 0, uploading: 0, failed: 0, total: 0 };
+    const counts = { pending: 0, uploading: 0, completed: 0, failed: 0, total: 0 };
     mediaRows?.forEach((row) => {
       counts.total++;
       if (row.status in counts) {
@@ -115,6 +110,14 @@ export default function MediaOutboxMonitorPage() {
     if (selectedId === id) setSelectedId(null);
   };
 
+  const handleClearCompleted = () => {
+    Haptics.selectionAsync();
+    void clearCompletedMediaJobs();
+    if (activeRow?.status === "completed") {
+      setSelectedId(null);
+    }
+  };
+
   return (
     <View style={styles.screen}>
       {/* Top Header */}
@@ -126,6 +129,16 @@ export default function MediaOutboxMonitorPage() {
         <Text style={styles.headerTitle}>Media Sync Ledger</Text>
 
         <View style={styles.headerActions}>
+          {metrics.completed > 0 && (
+            <Pressable
+              onPress={handleClearCompleted}
+              hitSlop={6}
+              style={styles.headerActionBtn}
+              accessibilityLabel="Clear completed media records"
+            >
+              <Trash2 size={16} color="#A0AEC0" />
+            </Pressable>
+          )}
           <Pressable
             onPress={handleRetryAll}
             hitSlop={6}
@@ -166,10 +179,10 @@ export default function MediaOutboxMonitorPage() {
           bg="#FFEBEA"
         />
         <MetricCard
-          label="Total Jobs"
-          count={metrics.total}
-          color="#52E0C4"
-          bg="#1A2D2A"
+          label="Total Clean"
+          count={metrics.completed}
+          color="#34C759"
+          bg="#EAF9EE"
         />
       </View>
 

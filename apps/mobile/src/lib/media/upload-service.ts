@@ -1,39 +1,47 @@
 import * as FileSystem from "expo-file-system/legacy";
-import { and, eq, lt, or } from "drizzle-orm";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+import { and, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { mediaSyncOutbox, noteBlocks } from "@/db/schema";
 import { useMediaUploadStore } from "./use-media-upload-store";
 import { enqueueOutbox } from "@/lib/sync/outbox";
-import { unpackNoteBlock, toBlockOutboxPayload } from "@/lib/queries/block-content.codec";
+import {
+  unpackNoteBlock,
+  toBlockOutboxPayload,
+} from "@/lib/queries/block-content.codec";
 import type { MediaItem } from "@/lib/types/notes";
 import { env } from "@/lib/env";
+import { useAuthStore } from "@/lib/auth/auth-store";
 import { log } from "@repo/utils";
 
 const MAX_RETRIES = 5;
 const CONCURRENCY_LIMIT = 2;
+const SEED_STORAGE_KEY = "@ikeen/media_outbox_seeded_v1";
 
 let isWorkerRunning = false;
+let hasQueuedRun = false;
 
 export interface MediadockUploadResponse {
-  id: string;
-  bucket_id: string;
-  filename: string;
-  original_filename: string;
-  url: string;
-  mime_type: string;
-  size: number;
-  status: string;
-  metadata?: {
-    resource_type?: string;
-    folder?: string;
+  data: {
+    id: string;
+    bucket_id: string;
+    filename: string;
+    original_filename: string;
+    url: string;
+    mime_type: string;
+    size: number;
+    status: string;
+    metadata?: {
+      resource_type?: string;
+      folder?: string;
+    };
+    created_at: string;
   };
-  created_at: string;
 }
 
 export type MediaFailureCategory =
-  | "transient_no_penalty"
-  | "server_error"
-  | "client_rejected";
+  "transient_no_penalty" | "server_error" | "client_rejected";
 
 /**
  * Classifies HTTP status or network errors for media upload retries.
@@ -102,58 +110,105 @@ export async function cancelMediaUpload(mediaId: string): Promise<void> {
     await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.id, mediaId));
     useMediaUploadStore.getState().clearUpload(mediaId);
   } catch (err) {
-    console.warn(`[MediaUploadService] Failed to cancel media upload ${mediaId}:`, err);
+    console.warn(
+      `[MediaUploadService] Failed to cancel media upload ${mediaId}:`,
+      err,
+    );
   }
 }
 
 /**
- * Background worker processing pending or retry-eligible failed jobs from media_sync_outbox
- * with bounded concurrency (2 parallel uploads). Queries strictly by indexed status.
- * Continues in a drain loop until all eligible jobs are processed.
+ * Background worker processing pending jobs from media_sync_outbox.
+ * Mirrors Note Sync (SyncManager.push):
+ * - NO while(true) loop that re-fetches failing jobs.
+ * - Concurrency control with `hasQueuedRun` flag.
+ * - Upfront status lock (`uploading`) before network dispatch.
+ * - Aborts processing immediately if offline or connection drops.
  */
 export async function processMediaUploadQueue(): Promise<void> {
-  if (isWorkerRunning) return;
+  if (!useAuthStore.getState().isAuthenticated) return;
+
+  if (isWorkerRunning) {
+    hasQueuedRun = true;
+    return;
+  }
   isWorkerRunning = true;
 
   try {
-    while (true) {
-      const pendingJobs = await db
-        .select()
-        .from(mediaSyncOutbox)
-        .where(
-          or(
-            eq(mediaSyncOutbox.status, "pending"),
-            and(
-              eq(mediaSyncOutbox.status, "failed"),
-              lt(mediaSyncOutbox.retryCount, MAX_RETRIES),
-            ),
-          ),
-        )
-        .limit(6);
+    // 1. Check network connectivity before starting
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected || !netState.isInternetReachable) {
+      log("[Media:Queue:OfflineAbort]");
+      return;
+    }
 
-      if (pendingJobs.length === 0) break;
+    // 2. Fetch next batch of pending jobs
+    const pendingJobs = await db
+      .select()
+      .from(mediaSyncOutbox)
+      .where(eq(mediaSyncOutbox.status, "pending"))
+      .limit(CONCURRENCY_LIMIT);
 
-      log("[Media:Queue:Batch]", {
-        count: pendingJobs.length,
-        batch: pendingJobs.map((j) => ({
-          id: j.id,
-          blockId: j.blockId,
-          status: j.status,
-          retryCount: j.retryCount,
-        })),
-      });
+    if (pendingJobs.length === 0) return;
 
-      // Process in chunks of CONCURRENCY_LIMIT
-      for (let i = 0; i < pendingJobs.length; i += CONCURRENCY_LIMIT) {
-        const chunk = pendingJobs.slice(i, i + CONCURRENCY_LIMIT);
-        await Promise.allSettled(chunk.map((job) => uploadMediaJob(job)));
-      }
+    // 3. Lock jobs to 'uploading' upfront in SQLite (mirrors markOutboxInFlight)
+    const now = new Date().toISOString();
+    const batchIds = pendingJobs.map((j) => j.id);
+    await db
+      .update(mediaSyncOutbox)
+      .set({ status: "uploading", updatedAt: now })
+      .where(inArray(mediaSyncOutbox.id, batchIds));
+
+    for (const job of pendingJobs) {
+      useMediaUploadStore.getState().setStatus(job.id, "uploading");
+    }
+
+    log("[Media:Queue:BatchStart]", {
+      count: pendingJobs.length,
+      ids: batchIds,
+    });
+
+    // 4. Concurrently upload batch
+    const results = await Promise.allSettled(
+      pendingJobs.map((job) => uploadMediaJob(job)),
+    );
+
+    // 5. Inspect results: if any job failed due to a network drop, abort queue drainage
+    const hadNetworkDrop = results.some(
+      (r) =>
+        r.status === "rejected" &&
+        ((r.reason as any)?.category === "transient_no_penalty" ||
+          /network|offline|timeout/i.test((r.reason as any)?.message || "")),
+    );
+
+    if (hadNetworkDrop) {
+      log(
+        "[Media:Queue:NetworkHalt]",
+        "Pausing media queue until network reconnects.",
+      );
+      return;
+    }
+
+    // 6. If more pending jobs exist, trigger next batch
+    const [remaining] = await db
+      .select({ id: mediaSyncOutbox.id })
+      .from(mediaSyncOutbox)
+      .where(eq(mediaSyncOutbox.status, "pending"))
+      .limit(1);
+
+    if (remaining) {
+      hasQueuedRun = true;
     }
   } catch (err) {
-    log("[Media:Queue:Error]", { error: err instanceof Error ? err.message : String(err) });
-    console.warn("[MediaUploadService] Queue processing error:", err);
+    log("[Media:Queue:Error]", {
+      error: err instanceof Error ? err.message : String(err),
+    });
   } finally {
     isWorkerRunning = false;
+    if (hasQueuedRun) {
+      hasQueuedRun = false;
+      void processMediaUploadQueue();
+    }
   }
 }
 
@@ -173,19 +228,17 @@ async function uploadMediaJob(job: {
   const store = useMediaUploadStore.getState();
   store.setStatus(job.id, "uploading");
 
-  const now = new Date().toISOString();
-  await db
-    .update(mediaSyncOutbox)
-    .set({ status: "uploading", updatedAt: now })
-    .where(eq(mediaSyncOutbox.id, job.id));
-
   let httpStatus: number | undefined;
 
   try {
     // Check if local file exists
     const fileInfo = await FileSystem.getInfoAsync(job.localUri);
     if (!fileInfo.exists) {
-      throw new Error(`Local file not found at ${job.localUri}`);
+      const missingErr: any = new Error(
+        `Local file not found at ${job.localUri}`,
+      );
+      missingErr.category = "client_rejected";
+      throw missingErr;
     }
 
     // Build headers from strictly validated env
@@ -224,7 +277,7 @@ async function uploadMediaJob(job: {
     let remoteUrl: string | undefined;
     try {
       const responseData = JSON.parse(result.body) as MediadockUploadResponse;
-      remoteUrl = responseData.url;
+      remoteUrl = responseData.data.url;
     } catch {
       throw new Error("Invalid JSON response from mediadock uploader");
     }
@@ -236,8 +289,12 @@ async function uploadMediaJob(job: {
     // Reconcile into local SQLite block
     await reconcileUploadedMediaUrl(job.blockId, job.id, remoteUrl);
 
-    // Delete job from media_sync_outbox
-    await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.id, job.id));
+    // Persist completed status in media_sync_outbox for inspection
+    const updatedNow = new Date().toISOString();
+    await db
+      .update(mediaSyncOutbox)
+      .set({ status: "completed", updatedAt: updatedNow })
+      .where(eq(mediaSyncOutbox.id, job.id));
     store.setStatus(job.id, "completed");
 
     log("[Media:Upload:Success]", {
@@ -247,7 +304,8 @@ async function uploadMediaJob(job: {
     });
   } catch (err: any) {
     const errorMessage = err?.message || "Upload failed";
-    const category = classifyMediaUploadFailure(httpStatus);
+    const category: MediaFailureCategory =
+      err?.category || classifyMediaUploadFailure(httpStatus);
     const updatedTime = new Date().toISOString();
 
     log("[Media:Upload:Error]", {
@@ -289,6 +347,8 @@ async function uploadMediaJob(job: {
 
       store.setStatus(job.id, finalStatus, errorMessage);
     }
+
+    throw { category, message: errorMessage };
   }
 }
 
@@ -364,7 +424,7 @@ export async function resetMediaInFlightOnStartup(): Promise<void> {
       .where(
         and(
           eq(mediaSyncOutbox.status, "failed"),
-          // lt(mediaSyncOutbox.retryCount, MAX_RETRIES),
+          lt(mediaSyncOutbox.retryCount, MAX_RETRIES),
         ),
       );
 
@@ -396,6 +456,74 @@ export async function reconcileUnsyncedMedia(): Promise<void> {
     void processMediaUploadQueue();
   } catch (err) {
     console.warn("[MediaUploadService] Resume sync error:", err);
+  }
+}
+
+/**
+ * One-time historical media seeder:
+ * - Scans existing note_blocks once.
+ * - Seeds already-uploaded items (has url) as 'completed'.
+ * - Seeds unuploaded items (localUri && !url) as 'pending'.
+ * - Records completion in AsyncStorage so it NEVER runs again.
+ */
+export async function seedHistoricalMediaOutboxOnce(): Promise<void> {
+  try {
+    const isSeeded = await AsyncStorage.getItem(SEED_STORAGE_KEY);
+    if (isSeeded === "true") return;
+
+    log("[Media:Seed:Start]");
+
+    const mediaBlocks = await db
+      .select()
+      .from(noteBlocks)
+      .where(eq(noteBlocks.type, "media"));
+
+    const existingRows = await db
+      .select({ id: mediaSyncOutbox.id })
+      .from(mediaSyncOutbox);
+    const existingIds = new Set(existingRows.map((r) => r.id));
+
+    const now = new Date().toISOString();
+    let seededCount = 0;
+
+    for (const row of mediaBlocks) {
+      const block = unpackNoteBlock(row);
+      if (block.type !== "media" || !Array.isArray(block.content)) continue;
+
+      for (const item of block.content) {
+        if (!item.id || existingIds.has(item.id)) continue;
+
+        const isUploaded = Boolean(item.url && item.url.trim().length > 0);
+        const status = isUploaded ? "completed" : "pending";
+        const uri = item.localUri || item.url || "";
+
+        if (!uri) continue;
+
+        await db
+          .insert(mediaSyncOutbox)
+          .values({
+            id: item.id,
+            blockId: block.id,
+            localUri: uri,
+            status,
+            retryCount: 0,
+            createdAt: block.createdAt || now,
+            updatedAt: block.updatedAt || now,
+          })
+          .onConflictDoNothing();
+
+        existingIds.add(item.id);
+        seededCount++;
+      }
+    }
+
+    await AsyncStorage.setItem(SEED_STORAGE_KEY, "true");
+    log("[Media:Seed:Success]", { seededCount });
+  } catch (err) {
+    console.warn(
+      "[MediaUploadService] One-time media outbox seeding error:",
+      err,
+    );
   }
 }
 
@@ -442,6 +570,23 @@ export async function retryFailedMediaJobs(): Promise<number> {
     return 1;
   } catch (err) {
     console.warn("[MediaUploadService] Failed to retry jobs:", err);
+    return 0;
+  }
+}
+
+/**
+ * Clears all media jobs marked 'completed' from media_sync_outbox.
+ */
+export async function clearCompletedMediaJobs(): Promise<number> {
+  try {
+    log("[Media:Outbox:ClearCompleted]");
+    const deleted = await db
+      .delete(mediaSyncOutbox)
+      .where(eq(mediaSyncOutbox.status, "completed"))
+      .returning({ id: mediaSyncOutbox.id });
+    return deleted.length;
+  } catch (err) {
+    console.warn("[MediaUploadService] Failed to clear completed jobs:", err);
     return 0;
   }
 }
@@ -497,10 +642,17 @@ export async function cacheRemoteMediaLocally(
       }
     }
 
-    log("[Media:Cache:Success]", { id: item.id, localUri: downloadResult.uri, blockId });
+    log("[Media:Cache:Success]", {
+      id: item.id,
+      localUri: downloadResult.uri,
+      blockId,
+    });
     return downloadResult.uri;
   } catch (err) {
-    log("[Media:Cache:Error]", { id: item.id, error: err instanceof Error ? err.message : String(err) });
+    log("[Media:Cache:Error]", {
+      id: item.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
     console.warn("[MediaUploadService] Failed to cache remote media:", err);
     return null;
   }

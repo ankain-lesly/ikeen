@@ -105,7 +105,7 @@ export const mediaSyncOutbox = sqliteTable(
     id: text('id').primaryKey(),
     blockId: text('block_id').notNull(),
     localUri: text('local_uri').notNull(),
-    status: text('status', { enum: ['pending', 'uploading', 'failed'] })
+    status: text('status', { enum: ['pending', 'uploading', 'completed', 'failed'] })
       .notNull()
       .default('pending'),
     retryCount: integer('retry_count').notNull().default(0),

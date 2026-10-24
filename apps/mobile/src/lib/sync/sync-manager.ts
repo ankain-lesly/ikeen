@@ -18,7 +18,11 @@ import { useAuthStore } from '../auth/auth-store';
 import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
 import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
 import { upsertBlockFromSync } from '../queries/note-blocks';
-import { reconcileUnsyncedMedia, processMediaUploadQueue } from '../media/upload-service';
+import {
+  reconcileUnsyncedMedia,
+  processMediaUploadQueue,
+  seedHistoricalMediaOutboxOnce,
+} from '../media/upload-service';
 import {
   getOutboxCount,
   getPendingOutbox,
@@ -26,6 +30,7 @@ import {
   markOutboxSuccess,
   markOutboxFailed,
   resetInFlightOnStartup,
+  pruneStaleOutboxHistory,
 } from './outbox';
 import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
@@ -50,6 +55,9 @@ class SyncManager {
       this.sync().catch(() => {});
     });
 
+    // One-time seed for legacy media uploaded prior to outbox tracking (guarded by AsyncStorage)
+    void seedHistoricalMediaOutboxOnce();
+
     // Scan and resume pending media uploads
     void reconcileUnsyncedMedia();
     void processMediaUploadQueue();
@@ -58,6 +66,9 @@ class SyncManager {
     resetInFlightOnStartup()
       .then(() => this.updatePendingCount())
       .catch(() => {});
+
+    // Prune completed outbox history older than 48 hours
+    void pruneStaleOutboxHistory();
 
     // 1. Listen for network changes
     NetInfo.addEventListener((state) => {
@@ -417,7 +428,6 @@ class SyncManager {
     try {
       await this.push();
       await this.pull();
-      // TODO: FEAT:  Add Media Sync Later
       useSyncStore.getState().setStatus('idle');
       log('[Sync:Cycle:Success]');
     } catch (err: unknown) {

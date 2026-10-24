@@ -8,7 +8,6 @@ import React, {
 import { Pressable, Text, View } from "react-native";
 import { Plus } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
-import { useDoubleTap } from "@/hooks/use-double-tap";
 import * as Haptics from "@/lib/haptics";
 import type { Note, NoteBlock, UpdateBlockInput } from "@/lib/types/notes";
 import {
@@ -33,7 +32,6 @@ import {
   type MarkdownEditorHandle,
   type MarkdownFormatAction,
 } from "@/components/markdown";
-import { GestureDetector } from "react-native-gesture-handler";
 
 export type BlockContainerHandle = {
   flushBlocks: () => Promise<void>;
@@ -56,7 +54,10 @@ interface BlockRowProps {
   isEditing: boolean;
   onStartEditing: () => void;
   onStageUpdate: (blockId: string, updates: UpdateBlockInput) => void;
-  onImmediateUpdate: (blockId: string, updates: UpdateBlockInput) => Promise<void>;
+  onImmediateUpdate: (
+    blockId: string,
+    updates: UpdateBlockInput,
+  ) => Promise<void>;
   onCommit: (blockId: string) => Promise<void>;
   onMoveBlock: (index: number, direction: -1 | 1) => Promise<void>;
   onDelete: (blockId: string) => Promise<void>;
@@ -104,8 +105,7 @@ const BlockRow = React.memo(function BlockRow({
       onMoveUp={() => void onMoveBlock(index, -1)}
       onMoveDown={() => void onMoveBlock(index, 1)}
       onDelete={() => void onDelete(block.id)}
-      onDuplicate={() => void onDuplicate(block, index)}
-    >
+      onDuplicate={() => void onDuplicate(block, index)}>
       {block.type === "text" ? (
         <TextBlock
           block={block}
@@ -142,7 +142,7 @@ export const BlockContainer = React.memo(
     ref,
   ) {
     const colors = useTheme();
-    const { data: liveBlocks } = useLiveNoteBlocks(note.id);
+    const { data: liveBlocks, isLoading } = useLiveNoteBlocks(note.id);
     const contentEditorRef = useRef<MarkdownEditorHandle>(null);
 
     const {
@@ -226,7 +226,7 @@ export const BlockContainer = React.memo(
       [note.id],
     );
 
-    const doubleTapGesture = useDoubleTap(onStartEditing);
+    if (isLoading) return null;
 
     return (
       <View className="w-full pb-32 gap-2">
@@ -240,11 +240,7 @@ export const BlockContainer = React.memo(
         ) : note.content.trim() ? (
           <MarkdownBody source={note.content} />
         ) : (
-          <GestureDetector gesture={doubleTapGesture}>
-            <Text className="text-base leading-6 text-text-secondary">
-              Start typing...
-            </Text>
-          </GestureDetector>
+          <></>
         )}
 
         {blocks.map((block, index) => (
@@ -273,8 +269,7 @@ export const BlockContainer = React.memo(
             <View className="flex-row items-center gap-2">
               <Pressable
                 onPress={() => handleAddInitialBlock("text")}
-                className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-background-element border border-border"
-              >
+                className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-background-element border border-border">
                 <Plus size={14} color={colors.primary} />
                 <Text className="text-xs font-semibold text-foreground">
                   Add Text Block
@@ -282,8 +277,7 @@ export const BlockContainer = React.memo(
               </Pressable>
               <Pressable
                 onPress={() => handleAddInitialBlock("list")}
-                className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-background-element border border-border"
-              >
+                className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-background-element border border-border">
                 <Plus size={14} color={colors.primary} />
                 <Text className="text-xs font-semibold text-foreground">
                   Add Checklist

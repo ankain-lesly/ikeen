@@ -1,29 +1,29 @@
-import { useMemo } from 'react';
-import * as Crypto from 'expo-crypto';
-import { and, asc, eq } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useMemo } from "react";
+import * as Crypto from "expo-crypto";
+import { and, asc, eq } from "drizzle-orm";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
-import { db } from '@/db/client';
-import { mediaSyncOutbox, noteBlocks, type NoteBlockSelect } from '@/db/schema';
+import { db } from "@/db/client";
+import { mediaSyncOutbox, noteBlocks, type NoteBlockSelect } from "@/db/schema";
 import type {
   CreateBlockInput,
   MediaItem,
   NoteBlock,
   UpdateBlockInput,
-} from '@/lib/types/notes';
-import { enqueueOutbox } from '@/lib/sync/outbox';
+} from "@/lib/types/notes";
+import { enqueueOutbox } from "@/lib/sync/outbox";
 import {
   cacheRemoteMediaLocally,
   cancelMediaUpload,
   enqueueMediaUpload,
-} from '@/lib/media/upload-service';
+} from "@/lib/media/upload-service";
 import {
   formatNoteWithBlocks,
   serializeBlockContent,
   toBlockOutboxPayload,
   unpackNoteBlock,
-} from './block-content.codec';
-import { createNote, getNoteById } from './notes';
+} from "./block-content.codec";
+import { createNote, getNoteById } from "./notes";
 
 export { formatNoteWithBlocks, serializeBlockContent };
 
@@ -49,7 +49,7 @@ export function useLiveNoteBlocks(noteId: string | undefined | null) {
     : db
         .select()
         .from(noteBlocks)
-        .where(eq(noteBlocks.noteId, '__none__'))
+        .where(eq(noteBlocks.noteId, "__none__"))
         .orderBy(asc(noteBlocks.position));
 
   const result = useLiveQuery(query, [noteId]);
@@ -62,6 +62,7 @@ export function useLiveNoteBlocks(noteId: string | undefined | null) {
   return {
     ...result,
     data: blocks,
+    isLoading: !result.updatedAt && blocks?.length === 0,
   };
 }
 
@@ -126,7 +127,7 @@ export async function createBlock(
   const block = rowToNoteBlock(row);
 
   // Centralized media enqueue: when a new media block is created, enqueue any local media items
-  if (block.type === 'media') {
+  if (block.type === "media") {
     for (const item of block.content) {
       if (item.localUri && !item.url) {
         void enqueueMediaUpload({
@@ -138,7 +139,7 @@ export async function createBlock(
     }
   }
 
-  await enqueueOutbox('note_blocks', id, 'upsert', toBlockOutboxPayload(block));
+  await enqueueOutbox("note_blocks", id, "upsert", toBlockOutboxPayload(block));
 
   return block;
 }
@@ -166,38 +167,40 @@ export async function updateBlock(
 
   let nextRawContent = existing.content;
   if (
-    'content' in updates ||
-    'listType' in updates ||
-    'header' in updates ||
-    'footer' in updates
+    "content" in updates ||
+    "listType" in updates ||
+    "header" in updates ||
+    "footer" in updates
   ) {
     const existingBlock = rowToNoteBlock(existing);
     const currentContent =
       updates.content !== undefined ? updates.content : existingBlock.content;
 
     const currentMeta =
-      existingBlock.type === 'list' || nextType === 'list'
+      existingBlock.type === "list" || nextType === "list"
         ? {
             listType:
               updates.listType ??
-              (existingBlock.type === 'list' ? existingBlock.listType : 'checkbox'),
+              (existingBlock.type === "list"
+                ? existingBlock.listType
+                : "checkbox"),
             header:
-              'header' in updates
+              "header" in updates
                 ? updates.header
-                : existingBlock.type === 'list'
+                : existingBlock.type === "list"
                   ? existingBlock.header
                   : undefined,
             footer:
-              'footer' in updates
+              "footer" in updates
                 ? updates.footer
-                : existingBlock.type === 'list'
+                : existingBlock.type === "list"
                   ? existingBlock.footer
                   : undefined,
           }
         : undefined;
 
     nextRawContent = serializeBlockContent(
-      nextType as 'text' | 'list' | 'media',
+      nextType as "text" | "list" | "media",
       currentContent,
       currentMeta,
     );
@@ -218,13 +221,13 @@ export async function updateBlock(
 
   // Centralized media sync management: diff items when updating a media block
   if (
-    (existing.type === 'media' || nextType === 'media') &&
-    'content' in updates &&
+    (existing.type === "media" || nextType === "media") &&
+    "content" in updates &&
     Array.isArray(updates.content)
   ) {
     const existingBlock = rowToNoteBlock(existing);
     const existingItems = (
-      existingBlock.type === 'media' ? existingBlock.content : []
+      existingBlock.type === "media" ? existingBlock.content : []
     ) as MediaItem[];
     const incomingItems = updates.content as MediaItem[];
 
@@ -250,7 +253,12 @@ export async function updateBlock(
     }
   }
 
-  await enqueueOutbox('note_blocks', blockId, 'upsert', toBlockOutboxPayload(block));
+  await enqueueOutbox(
+    "note_blocks",
+    blockId,
+    "upsert",
+    toBlockOutboxPayload(block),
+  );
 
   return block;
 }
@@ -270,7 +278,7 @@ export async function deleteBlock(blockId: string): Promise<void> {
   await db.delete(noteBlocks).where(eq(noteBlocks.id, blockId));
   await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.blockId, blockId));
 
-  await enqueueOutbox('note_blocks', blockId, 'delete', {
+  await enqueueOutbox("note_blocks", blockId, "delete", {
     id: blockId,
     noteId: existing.noteId,
   });
@@ -295,9 +303,9 @@ export async function deleteBlock(blockId: string): Promise<void> {
 
   for (const reindexed of reindexedBlocks) {
     await enqueueOutbox(
-      'note_blocks',
+      "note_blocks",
       reindexed.id,
-      'upsert',
+      "upsert",
       toBlockOutboxPayload(reindexed),
     );
   }
@@ -332,9 +340,9 @@ export async function reorderBlocks(
 
   for (const block of changedBlocks) {
     await enqueueOutbox(
-      'note_blocks',
+      "note_blocks",
       block.id,
-      'upsert',
+      "upsert",
       toBlockOutboxPayload(block),
     );
   }
@@ -362,11 +370,11 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
   const normalized = unpackNoteBlock(block);
 
   // If this is a media block, preserve any existing localUri already in local SQLite
-  if (normalized.type === 'media') {
+  if (normalized.type === "media") {
     let localUriMap: Map<string, string> | undefined;
-    if (existing && existing.type === 'media') {
+    if (existing && existing.type === "media") {
       try {
-        const localItems = JSON.parse(existing.content || '[]');
+        const localItems = JSON.parse(existing.content || "[]");
         if (Array.isArray(localItems)) {
           localUriMap = new Map();
           for (const item of localItems) {
@@ -382,7 +390,9 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
 
     normalized.content = normalized.content.map((incomingItem) => {
       const existingUri = localUriMap?.get(incomingItem.id);
-      return existingUri ? { ...incomingItem, localUri: existingUri } : incomingItem;
+      return existingUri
+        ? { ...incomingItem, localUri: existingUri }
+        : incomingItem;
     });
 
     // Background download for items that have cloud URL but no localUri on this device
@@ -396,7 +406,7 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
   const rawContent = serializeBlockContent(
     normalized.type,
     normalized.content,
-    normalized.type === 'list'
+    normalized.type === "list"
       ? {
           listType: normalized.listType,
           header: normalized.header,
