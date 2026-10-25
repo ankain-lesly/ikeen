@@ -20,8 +20,9 @@ type OptionSheetProps = {
   title?: string | React.ReactNode;
   actions?: SheetAction[];
   children?: React.ReactNode;
-  snapPoints?: Array<"half" | "full">;
+  snapPoints?: ("half" | "full")[];
   showDragIndicator?: boolean;
+  matchHTMLContents?: boolean;
 };
 
 export function OptionSheet({
@@ -32,6 +33,7 @@ export function OptionSheet({
   children,
   snapPoints = ["half"],
   showDragIndicator = true,
+  matchHTMLContents = true,
 }: OptionSheetProps) {
   const colors = useTheme();
 
@@ -46,7 +48,7 @@ export function OptionSheet({
         showDragIndicator={showDragIndicator}
         snapPoints={snapPoints}
         containerColor={colors.card}>
-        <RNHostView matchContents>
+        <RNHostView matchContents={matchHTMLContents}>
           <View className="flex-1 w-full p-4">
             {/* Header */}
             {title ? (
@@ -68,7 +70,11 @@ export function OptionSheet({
                     onPress={action.onPress}
                     activeOpacity={0.7}>
                     {action.icon}
-                    <RNText style={{ color: action.color ?? colors.text, fontSize: 14 }}>
+                    <RNText
+                      style={{
+                        color: action.color ?? colors.text,
+                        fontSize: 14,
+                      }}>
                       {action.label}
                     </RNText>
                   </TouchableOpacity>

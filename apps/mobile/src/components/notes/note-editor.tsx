@@ -98,8 +98,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   // Track Notes Edit, Touched State
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
-  // const [isEditing, setIsEditing] = useState(!initialNote);
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(!initialNote);
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -113,6 +112,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
+  const [targetAudioBlockId, setTargetAudioBlockId] = useState<string | null>(
+    null,
+  );
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
   const { data: liveBlocks } = useLiveNoteBlocks(note.id);
@@ -275,28 +277,19 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     async (newItems: MediaItem[]) => {
       if (newItems.length === 0) return;
       try {
-        const existingMediaBlock = liveBlocks.find(
-          (b): b is MediaBlockType => b.type === "media",
+        await createBlock(
+          note.id,
+          createDefaultMediaBlockInput(newItems),
         );
-        if (existingMediaBlock) {
-          await updateBlock(existingMediaBlock.id, {
-            content: [...existingMediaBlock.content, ...newItems],
-          });
-        } else {
-          await createBlock(
-            note.id,
-            createDefaultMediaBlockInput(newItems),
-          );
-        }
 
         setHasEdited(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch (err) {
-        console.error("[NoteEditor] Failed to append media items:", err);
+        console.error("[NoteEditor] Failed to create media block:", err);
         toast.error("Failed to add media");
       }
     },
-    [liveBlocks, note.id],
+    [note.id],
   );
 
   const handleTakePhoto = useCallback(async () => {
@@ -564,7 +557,10 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             isEditing={isEditing}
             onContentChange={(t) => updateNoteState("content", t)}
             onStartEditing={startEditing}
-            onRequestRecordAudio={() => setIsAudioRecordingOpen(true)}
+            onRequestRecordAudio={(blockId) => {
+              setTargetAudioBlockId(blockId);
+              setIsAudioRecordingOpen(true);
+            }}
           />
         </ScrollView>
       </View>
@@ -585,7 +581,10 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
         onAddMedia={handlePickMedia}
         onTakePhoto={handleTakePhoto}
         onAttachFile={handleAttachFile}
-        onRecordAudio={() => setIsAudioRecordingOpen(true)}
+        onRecordAudio={() => {
+          setTargetAudioBlockId(null);
+          setIsAudioRecordingOpen(true);
+        }}
       />
       {/* Note Info Details Modal Sheet */}
       <NoteInfoSheet
@@ -616,8 +615,29 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
       {/* Audio Recording Sheet */}
       <AudioRecordingSheet
         visible={isAudioRecordingOpen}
-        onDismiss={() => setIsAudioRecordingOpen(false)}
-        onFinished={(recordingItem) => handleAppendMediaItems([recordingItem])}
+        onDismiss={() => {
+          setIsAudioRecordingOpen(false);
+          setTargetAudioBlockId(null);
+        }}
+        onFinished={async (recordingItem) => {
+          if (targetAudioBlockId) {
+            const targetBlock = liveBlocks.find(
+              (b): b is MediaBlockType =>
+                b.id === targetAudioBlockId && b.type === "media",
+            );
+            if (targetBlock) {
+              await updateBlock(targetBlock.id, {
+                content: [recordingItem, ...targetBlock.content],
+              });
+              setHasEdited(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTargetAudioBlockId(null);
+              return;
+            }
+          }
+          await handleAppendMediaItems([recordingItem]);
+          setTargetAudioBlockId(null);
+        }}
       />
       <KeyboardGradualAnimation />
     </View>

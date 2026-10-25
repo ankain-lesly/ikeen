@@ -275,9 +275,11 @@ async function uploadMediaJob(job: {
     }
 
     let remoteUrl: string | undefined;
+    let originalFilename: string | undefined;
     try {
       const responseData = JSON.parse(result.body) as MediadockUploadResponse;
       remoteUrl = responseData.data.url;
+      originalFilename = responseData.data.original_filename;
     } catch {
       throw new Error("Invalid JSON response from mediadock uploader");
     }
@@ -287,7 +289,7 @@ async function uploadMediaJob(job: {
     }
 
     // Reconcile into local SQLite block
-    await reconcileUploadedMediaUrl(job.blockId, job.id, remoteUrl);
+    await reconcileUploadedMediaUrl(job.blockId, job.id, remoteUrl, originalFilename);
 
     // Persist completed status in media_sync_outbox for inspection
     const updatedNow = new Date().toISOString();
@@ -360,6 +362,7 @@ async function reconcileUploadedMediaUrl(
   blockId: string,
   mediaId: string,
   remoteUrl: string,
+  originalFilename?: string,
 ): Promise<void> {
   const [existingRow] = await db
     .select()
@@ -373,7 +376,13 @@ async function reconcileUploadedMediaUrl(
   if (block.type !== "media") return;
 
   const updatedContent = block.content.map((item: MediaItem) =>
-    item.id === mediaId ? { ...item, url: remoteUrl } : item,
+    item.id === mediaId
+      ? {
+          ...item,
+          url: remoteUrl,
+          name: item.name || originalFilename || item.name,
+        }
+      : item,
   );
 
   const now = new Date().toISOString();
@@ -610,9 +619,14 @@ export async function cacheRemoteMediaLocally(
           ? "files"
           : "images";
 
+    const rawName =
+      (item.metadata as any)?.original_filename || item.name || "media";
     const ext = item.url.split(".").pop()?.split(/[?#]/)[0] || "bin";
+    const baseName =
+      rawName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "-") || "media";
     const destDir = `${FileSystem.documentDirectory}media/${category}/`;
-    const destUri = `${destDir}${item.id}.${ext}`;
+    const destFilename = `${baseName}-${Date.now()}.${ext}`;
+    const destUri = `${destDir}${destFilename}`;
 
     const dirInfo = await FileSystem.getInfoAsync(destDir);
     if (!dirInfo.exists) {

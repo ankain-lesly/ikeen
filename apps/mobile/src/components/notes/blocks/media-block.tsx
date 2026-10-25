@@ -1,47 +1,36 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
-import { Image } from "expo-image";
-import {
-  AlertCircle,
-  Camera,
-  CheckCircle2,
-  CloudOff,
-  FilePlus,
-  Image as ImageIcon,
-  Mic,
-  Trash2,
-  X,
-} from "lucide-react-native";
+import React, {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { Camera, FilePlus, Image as ImageIcon, Mic } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
-import type { MediaBlock as MediaBlockType, MediaItem } from "@/lib/types/notes";
+import type {
+  MediaBlock as MediaBlockType,
+  MediaItem,
+} from "@/lib/types/notes";
 import {
   pickDocumentFile,
   pickImagesFromLibrary,
   takePhotoWithCamera,
 } from "@/lib/media/pickers";
-import { retrySingleMediaUpload } from "@/lib/media/upload-service";
-import { useMediaUploadProgress } from "@/lib/media/use-media-upload-store";
 import { useRegisterBlockActions } from "./block-wrapper";
-import { MediaAudioCard } from "./media-audio-card";
-import { MediaFileCard } from "./media-file-card";
-import { MediaCaptionField } from "./media-caption-field";
-import { MarkdownBody } from "@/components/markdown";
+import { MediaCard } from "./media-card";
+import { MediaPreviewModal } from "./media-preview-modal";
+import { MediaGridModal } from "./media-grid-modal";
 import type { SheetAction } from "@/components/ui/option-sheet";
 
 export interface MediaBlockProps {
   block: MediaBlockType;
-  isEditing: boolean;
   onStageContent: (items: MediaItem[]) => void;
   onImmediateContent: (items: MediaItem[]) => void;
   onCommit: () => void;
   onRequestRecordAudio?: () => void;
+  isEditing: boolean;
 }
 
 export const MediaBlock = React.memo(function MediaBlock({
@@ -54,33 +43,22 @@ export const MediaBlock = React.memo(function MediaBlock({
 }: MediaBlockProps) {
   const colors = useTheme();
   const items = useMemo(() => block.content || [], [block.content]);
-  const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
 
-  // Group items by category
-  const visualItems = useMemo(
-    () => items.filter((item) => item.mediaType === "image"),
-    [items],
-  );
-  const audioItems = useMemo(
-    () => items.filter((item) => item.mediaType === "audio"),
-    [items],
-  );
-  const fileItems = useMemo(
-    () => items.filter((item) => item.mediaType === "file"),
-    [items],
-  );
+  // Modal State Management
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [isGridOpen, setIsGridOpen] = useState(false);
 
   const itemsRef = useRef(items);
   useLayoutEffect(() => {
     itemsRef.current = items;
   });
 
-  // Append new media items
+  // Prepend new media items so newly added media appears first (index 0)
   const appendMediaItems = useCallback(
     (newItems: MediaItem[]) => {
       if (newItems.length === 0) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onImmediateContent([...itemsRef.current, ...newItems]);
+      onImmediateContent([...newItems, ...itemsRef.current]);
     },
     [onImmediateContent],
   );
@@ -109,6 +87,12 @@ export const MediaBlock = React.memo(function MediaBlock({
     },
     [onImmediateContent],
   );
+
+  // Stable card press handler to preserve React.memo(MediaCard)
+  const handleCardPress = useCallback((item: MediaItem) => {
+    const idx = itemsRef.current.findIndex((i) => i.id === item.id);
+    if (idx !== -1) setPreviewIndex(idx);
+  }, []);
 
   // Update caption with stable callback dependency (O(1) keystroke render isolation)
   const handleUpdateCaption = useCallback(
@@ -161,246 +145,80 @@ export const MediaBlock = React.memo(function MediaBlock({
 
   useRegisterBlockActions(blockActions);
 
-  if (items.length === 0 && !isEditing) {
+  if (items.length === 0) {
     return null;
   }
 
   return (
-    <View className="w-full gap-3">
-      {/* 1. Visual Images Grid */}
-      {visualItems.length > 0 && (
-        <View className="gap-3">
-          {visualItems.map((item) => {
-            const imageUri = item.localUri || item.url;
-            return (
-              <VisualImageCard
-                key={item.id}
-                item={item}
-                imageUri={imageUri}
-                isEditing={isEditing}
-                onSelect={setSelectedImage}
-                onRemove={handleRemoveMedia}
-                onUpdateCaption={handleUpdateCaption}
-                onCommit={onCommit}
-              />
-            );
-          })}
-        </View>
-      )}
-
-      {/* 2. Audio Recordings Stack */}
-      {audioItems.length > 0 && (
-        <View className="gap-2.5">
-          {audioItems.map((item) => (
-            <MediaAudioCard
-              key={item.id}
-              item={item}
-              isEditing={isEditing}
-              onRemove={handleRemoveMedia}
-              onUpdateCaption={handleUpdateCaption}
-              onCommit={onCommit}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* 3. Document / File Attachments Stack */}
-      {fileItems.length > 0 && (
-        <View className="gap-2">
-          {fileItems.map((item) => (
-            <MediaFileCard
-              key={item.id}
-              item={item}
-              isEditing={isEditing}
-              onRemove={handleRemoveMedia}
-              onUpdateCaption={handleUpdateCaption}
-              onCommit={onCommit}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* Fullscreen Lightbox Modal */}
-      {selectedImage && (
-        <Modal
-          visible={!!selectedImage}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSelectedImage(null)}
-        >
-          <View className="flex-1 bg-black/95 justify-center items-center px-4">
+    <View className="w-full gap-2.5 my-1">
+      {/* 1. Header with Counter and 'See all' Button */}
+      {(!isEditing && items.length > 0) && (
+        <View className="flex-row items-center justify-between px-1">
+          <Text className="text-sm font-semibold text-foreground">
+            Attachments ({items.length})
+          </Text>
+          {items.length > 2 && (
             <Pressable
-              onPress={() => setSelectedImage(null)}
-              hitSlop={12}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setIsGridOpen(true);
+              }}
+              hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Close image preview"
-              className="absolute top-12 right-6 p-2 rounded-full bg-white/20 active:opacity-70 z-10"
-            >
-              <X size={20} color="#ffffff" />
+              accessibilityLabel="See all media in grid">
+              <Text className="text-xs font-semibold text-primary">
+                See all
+              </Text>
             </Pressable>
-
-            <Image
-              source={{ uri: selectedImage.localUri || selectedImage.url }}
-              style={{ width: "100%", height: "70%" }}
-              contentFit="contain"
-            />
-
-            {(selectedImage.caption || selectedImage.name) ? (
-              <View className="mt-4 px-6 w-full items-center">
-                <MarkdownBody
-                  source={selectedImage.caption || selectedImage.name || ""}
-                  size={14}
-                />
-              </View>
-            ) : null}
-          </View>
-        </Modal>
-      )}
-    </View>
-  );
-});
-
-interface VisualImageCardProps {
-  item: MediaItem;
-  imageUri?: string;
-  isEditing: boolean;
-  onSelect: (item: MediaItem) => void;
-  onRemove: (id: string) => void;
-  onUpdateCaption: (id: string, caption: string) => void;
-  onCommit: () => void;
-}
-
-const VisualImageCard = React.memo(function VisualImageCard({
-  item,
-  imageUri,
-  isEditing,
-  onSelect,
-  onRemove,
-  onUpdateCaption,
-  onCommit,
-}: VisualImageCardProps) {
-  const colors = useTheme();
-  const [localCaption, setLocalCaption] = useState(item.caption || "");
-  const uploadState = useMediaUploadProgress(item.id);
-
-  useEffect(() => {
-    setLocalCaption(item.caption || "");
-  }, [item.caption]);
-
-  const handleCaptionChange = (text: string) => {
-    setLocalCaption(text);
-    onUpdateCaption(item.id, text);
-  };
-
-  const isUploading = uploadState?.status === "uploading";
-  const isFailed = uploadState?.status === "failed";
-  const progressPercent = Math.round((uploadState?.progress || 0) * 100);
-
-  const handleRetryUpload = (e: any) => {
-    e.stopPropagation();
-    Haptics.selectionAsync();
-    void retrySingleMediaUpload(item.id);
-  };
-
-  return (
-    <View className="relative rounded-2xl overflow-hidden border border-border/70 bg-card shadow-xs">
-      {/* Image Preview Container */}
-      <Pressable
-        onPress={() => onSelect(item)}
-        accessibilityRole="button"
-        accessibilityLabel={item.caption || item.name || "View image"}
-        className="w-full h-52 bg-background-element items-center justify-center"
-      >
-        {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            transition={150}
-          />
-        ) : (
-          <ImageIcon size={32} color={colors.textSecondary} />
-        )}
-
-        {/* Upload / Cloud / Local Status Badge */}
-        <Pressable
-          onPress={isFailed ? handleRetryUpload : undefined}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isUploading
-              ? `Uploading ${progressPercent}%`
-              : isFailed
-                ? "Upload failed, tap to retry"
-                : item.url
-                  ? "Synced to cloud"
-                  : "Saved locally"
-          }
-          className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 flex-row items-center gap-1"
-        >
-          {isUploading ? (
-            <>
-              <ActivityIndicator size={10} color="#38bdf8" />
-              <Text className="text-[10px] text-white font-medium">
-                {progressPercent}%
-              </Text>
-            </>
-          ) : isFailed ? (
-            <>
-              <AlertCircle size={11} color="#ef4444" />
-              <Text className="text-[10px] text-white font-medium">
-                Retry
-              </Text>
-            </>
-          ) : item.url ? (
-            <>
-              <CheckCircle2 size={11} color="#22c55e" />
-              <Text className="text-[10px] text-white font-medium">
-                Cloud
-              </Text>
-            </>
-          ) : (
-            <>
-              <CloudOff size={11} color="#eab308" />
-              <Text className="text-[10px] text-white font-medium">
-                Local
-              </Text>
-            </>
           )}
-        </Pressable>
-
-        {/* Delete button in edit mode */}
-        {isEditing && (
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation();
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Warning,
-              );
-              onRemove(item.id);
-            }}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Delete image"
-            className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-black/60 active:opacity-70"
-          >
-            <Trash2 size={14} color="#ef4444" />
-          </Pressable>
-        )}
-      </Pressable>
-
-      {/* Markdown Caption Field (Edit mode: MarkdownEditor, View mode: MarkdownBody) */}
-      {(isEditing || localCaption.trim().length > 0) && (
-        <View className="p-2.5 border-t border-border/30">
-          <MediaCaptionField
-            value={localCaption}
-            isEditing={isEditing}
-            placeholder="Add a caption "
-            onChangeText={handleCaptionChange}
-            onCommit={onCommit}
-          />
         </View>
       )}
+
+      {/* 2. Unified Single Horizontal Scroll Carousel */}
+      {items.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 4, paddingHorizontal: 2 }}
+          decelerationRate="fast"
+          snapToInterval={176 + 12} // card width (176) + gap (12)
+        >
+          {items.map((item) => (
+            <MediaCard
+              key={item.id}
+              item={item}
+              width={176}
+              height={224}
+              onPress={handleCardPress}
+              onRemove={handleRemoveMedia}
+              // onMenuPress={setSelectedMenuItem}
+            />
+          ))}
+        </ScrollView>
+      )}
+
+      {/* 3. Swipeable Full-Screen Preview Modal */}
+      <MediaPreviewModal
+        items={items}
+        initialIndex={previewIndex ?? 0}
+        visible={previewIndex !== null}
+        // initialIndex={3}
+        // visible={true}
+        onDismiss={() => setPreviewIndex(null)}
+        onUpdateCaption={handleUpdateCaption}
+        onRemoveMedia={handleRemoveMedia}
+        onCommit={onCommit}
+      />
+
+      {/* 4. 'See All' 2-Column Grid Modal */}
+      <MediaGridModal
+        items={items}
+        visible={isGridOpen}
+        onDismiss={() => setIsGridOpen(false)}
+        onSelectMedia={(index) => setPreviewIndex(index)}
+        onRemoveMedia={handleRemoveMedia}
+        onUpdateCaption={handleUpdateCaption}
+      />
     </View>
   );
 });

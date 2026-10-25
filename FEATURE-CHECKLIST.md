@@ -146,19 +146,65 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
-## 🎨 Media Block Layout Overhaul & Card Redesign (Phase 3) — 2026-10-23
-* **Status**: In Progress
-* **Scope**: Complete redesign of media cards system, horizontal visual media carousel, and dedicated vertical audio stack.
+## 🎨 Unified Media Experience & Layout Overhaul (Phase 3) — 2026-10-24
+* **Status**: Completed
+* **Scope**: Unified single-scroll horizontal media carousel across all media types, swipeable full-screen preview modal with left/right paging, "See All" 2-column grid modal, animated color-changing sync border, circular 3-dot menu button, 2-line bottom metadata scrim, and expandable single-line caption sheet.
 
-- [ ] Modern Media Cards Redesign:
-  - [ ] Redesign `VisualImageCard`: Elevated edge-to-edge or rounded card treatment, fluid aspect ratio handling, refined badge chips, and streamlined markdown caption overlay/underlay
-  - [ ] Redesign `MediaAudioCard`: Sleek player with subtle waveforms, modern pill scrubbers, compact time indicators, and polished play/pause interactions
-  - [ ] Redesign `MediaFileCard`: Clean attachment chip/card with high-contrast file type glyphs, compact metadata hierarchy, and smooth tap-to-open feedback
+- [x] Unified Media Block Carousel:
+  - [x] Consolidate images, audio recordings, and files into a single horizontal scroll carousel with uniform `aspect-[4/5]`, `w-44 h-56`, `rounded-3xl` cards
+  - [x] Implement section header with dynamic attachment count (`Attachments (N)`) and `See all` action button
+- [x] Unified Media Card (`media-card.tsx`):
+  - [x] Full-bleed image preview with gradient scrim for photos
+  - [x] Centered SVG rhythmic soundwave and play pill for audio recordings
+  - [x] Colored file-type glyph cards (PDF crimson, Sheet emerald, Code cyan, Archive amber) for documents
+  - [x] Top-right circular translucent `⋮` (`MoreVertical`) menu button
+  - [x] Bottom dark gradient scrim with 2 lines: bold truncated filename and category/source subtitle (`Camera`, `Audio • 02:45`, `PDF • 3.4 MB`)
+- [x] Animated Sync Border (`animated-sync-border.tsx`):
+  - [x] Reactive `react-native-reanimated` color-cycling border during active upload (`cyan` -> `indigo` -> `emerald`)
+  - [x] Crimson border for failed uploads, amber for pending, and settled subtle border for cloud-synced items
+- [x] Swipeable Full-Screen Preview Modal (`media-preview-modal.tsx`):
+  - [x] Horizontal paging `FlatList` (`pagingEnabled`) supporting left/right swipe navigation across all media items
+  - [x] Fullscreen contain view for images
+  - [x] Immersive audio player with interactive SVG waveform scrubber (`audio-waveform.tsx`), circular play/pause, and tabular time readout
+  - [x] Document preview card with native file sharing/opening CTA
+  - [x] Bottom expandable caption: truncated to 1 line by default, smoothly expands on tap to show full markdown details with inline editing
+- [x] "See All" 2-Column Grid Modal (`media-grid-modal.tsx`):
+  - [x] Full-page modal with 2-column grid (`numColumns={2}`) rendering unified media cards
+  - [x] Direct transition to full-screen preview modal upon card selection
+- [x] Contextual Action Menu (`media-options-dropdown.tsx` & `media-file-info-sheet.tsx`):
+  - [x] Consolidated options menu into unified `MediaOptionsDropdown` supporting `variant="sheet" | "dropdown"` (matching `NotesOptionsDropdown`)
+  - [x] Native `@expo/ui/jetpack-compose` anchored dropdown menu support
+  - [x] Lifted `infoItem` state to parent (`MediaPreviewModal`), removing File Info from card menu and making it exclusively accessible via preview modal
+  - [x] Integrated `OptionSheet` for `Edit Caption`, `File Info`, `Share / Open File`, `Retry Upload`, and `Delete Attachment`
+  - [x] Safely eliminated redundant `media-menu-sheet.tsx` component
 
 
 ---
 
-## ☁️ Background Media Upload & Cloud Sync Pipeline (Phase 2.0-preview) — 2026-10-24
+## 🎨 Mobile Media Polish & Architectural Refinements — 2026-10-25
+* **Status**: Completed
+* **Scope**: Distraction-free preview modal with chrome toggling, image pinch-to-zoom, polished inline caption editing, caption in file info modal with direct edit trigger, native linear gradient for card labels, stackable media blocks, prepend new media items to index 0, glowing sprint border animation, and permanent original filename preservation with timestamps.
+
+- [x] Distraction-Free Media Preview:
+  - [x] Tap on preview body toggles visibility of header and bottom caption bar simultaneously (`isChromeVisible`).
+  - [x] Implemented multi-touch pinch-to-zoom (up to 4x) and pan on preview images via `<ScrollView maximumZoomScale={4}>`.
+- [x] Polished Caption Editing Flow:
+  - [x] Removed test/debug styling (`bg-green-500/50`).
+  - [x] Collapsed state: clean translucent card displaying caption up to 3 lines or subtle "Add a caption..." pill.
+  - [x] Expanded state: inline multiline `TextInput` with auto-focus, checkmark save button, and auto-save on blur / submit.
+  - [x] Integrated caption editing into `MediaFileInfoSheet` with dedicated `MessageSquare` metadata row and `Edit3` button that dismisses sheet and launches inline caption editor.
+- [x] Visual Styling & Animations:
+  - [x] Native `LinearGradient` from `expo-linear-gradient` for media card labels (`["transparent", "rgba(0, 0, 0, 0.45)", "rgba(0, 0, 0, 0.88)"]`) blending seamlessly into photos.
+  - [x] Glowing sprint border animation (`animated-sync-border.tsx`): 1000ms loop with accelerated color cycle and pulsing outer shadow glow (`shadowColor`, `shadowRadius: 10`, `shadowOpacity: 0.85`, `elevation: 6`).
+- [x] Media Item Ordering & Block Stacking:
+  - [x] Media item insertion order: prepends new media items to `index: 0` (`[...newItems, ...itemsRef.current]`) inside `media-block.tsx` so newest additions appear first in carousels and grids.
+  - [x] Stackable media blocks: adding media from the bottom accessory bar always creates a new discrete media block (`createBlock(note.id, createDefaultMediaBlockInput(newItems))`) following natural block flow, while block contextual actions append to that specific block.
+- [x] Filename Preservation & Cloud Caching:
+  - [x] Permanent preservation of original filenames when importing local assets via `${sanitizedBase}_${Date.now()}.${ext}` in `saveAssetToSandbox` while keeping human-readable `name`.
+  - [x] Preserved `original_filename` from Mediadock responses during cloud upload reconciliation and cloud download caching (`${baseName}_${Date.now()}.${ext}`).
+- [x] Verification:
+  - [x] Verified zero TypeScript compilation errors (`tsc -p apps/mobile/tsconfig.json --noEmit`).
+
 * **Status**: Completed
 * **Scope**: Background media asset uploads directly to `mediadock.leslychuo.me`, dedicated `media_sync_outbox` table, reactive Zustand progress store, startup resume scanning, queue drain loop, and outbox reconciliation.
 

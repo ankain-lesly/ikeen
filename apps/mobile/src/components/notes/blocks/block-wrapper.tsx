@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Pressable, Text, View } from "react-native";
 import {
-  ChevronDown,
-  ChevronUp,
+  ArrowDown,
+  ArrowUp,
   Copy,
-  GripVertical,
   MoreVertical,
   PanelBottom,
   Trash2,
@@ -14,9 +19,11 @@ import * as Haptics from "@/lib/haptics";
 import { OptionSheet, type SheetAction } from "@/components/ui/option-sheet";
 import type { NoteBlock } from "@/lib/types/notes";
 import { capitalize } from "@repo/utils";
+import { Card } from "@/components/ui/card";
 
-const BlockWrapperContext =
-  createContext<React.MutableRefObject<SheetAction[]> | null>(null);
+const BlockWrapperContext = createContext<React.MutableRefObject<
+  SheetAction[]
+> | null>(null);
 
 /**
  * Registers contextual actions from a child block into the parent BlockWrapper's
@@ -55,23 +62,27 @@ export const BlockWrapper = React.memo(function BlockWrapper({
   children,
 }: BlockWrapperProps) {
   const colors = useTheme();
-  const [optionsActions, setOptionsActions] = useState<SheetAction[] | null>(null);
+  const [optionsActions, setOptionsActions] = useState<SheetAction[] | null>(
+    null,
+  );
   const contextualActionsRef = useRef<SheetAction[]>([]);
 
   const badgeText =
     block.type === "list"
-      ? `List • Block - (${(block.listType || "checkbox")})`
+      ? `List • Block - (${block.listType || "checkbox"})`
       : `${block.type} Block`;
 
-  const wrapAction = (fn?: () => void, destructive = false) => () => {
-    setOptionsActions(null);
-    if (destructive) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } else {
-      Haptics.selectionAsync();
-    }
-    fn?.();
-  };
+  const wrapAction =
+    (fn?: () => void, destructive = false) =>
+    () => {
+      setOptionsActions(null);
+      if (destructive) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else {
+        Haptics.selectionAsync();
+      }
+      fn?.();
+    };
 
   // Build sheet actions strictly inside event handler so refs are never accessed during render
   const handleOpenOptions = () => {
@@ -81,19 +92,19 @@ export const BlockWrapper = React.memo(function BlockWrapper({
       ...contextual.map((action) => ({
         ...action,
         onPress: wrapAction(action.onPress),
-      }))                       ,
-      {
-        label: "Move Up",
-        icon: <ChevronUp size={18} color={colors.text} />,
-        onPress: wrapAction(onMoveUp),
-        visible: canMoveUp,
-      },
-      {
-        label: "Move Down",
-        icon: <ChevronDown size={18} color={colors.text} />,
-        onPress: wrapAction(onMoveDown),
-        visible: canMoveDown,
-      },
+      })),
+      // {
+      //   label: "Move Up",
+      //   icon: <ChevronUp size={18} color={colors.text} />,
+      //   onPress: wrapAction(onMoveUp),
+      //   visible: canMoveUp,
+      // },
+      // {
+      //   label: "Move Down",
+      //   icon: <ChevronDown size={18} color={colors.text} />,
+      //   onPress: wrapAction(onMoveDown),
+      //   visible: canMoveDown,
+      // },
       {
         label: "Duplicate",
         icon: <Copy size={18} color={colors.text} />,
@@ -134,14 +145,42 @@ export const BlockWrapper = React.memo(function BlockWrapper({
               </View>
             </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Block options"
-              className="p-1.5 rounded-full active:bg-background-element"
-              hitSlop={8}
-              onPress={handleOpenOptions}>
-              <MoreVertical size={20} color={colors.textSecondary} />
-            </Pressable>
+            {/* Actions */}
+            <Card className="px-3 flex-row items-center gap-4 rounded-full">
+              {/* Move Up */}
+              {canMoveUp && (
+                <Pressable 
+                  onPress={wrapAction(onMoveUp)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Move block up"
+                  hitSlop={8}
+                >
+                  <ArrowUp size={18} color={colors.text} />
+                </Pressable>
+              )}
+              {/* Move Down */}
+              {canMoveDown && (
+                <Pressable 
+                  onPress={wrapAction(onMoveDown)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Move block down"
+                  hitSlop={8}
+                >
+                  <ArrowDown size={18} color={colors.text} />
+                </Pressable>
+              )}
+
+              {/* Block Options */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Block options" 
+                hitSlop={8}
+                onPress={handleOpenOptions}
+              >
+                <MoreVertical size={18} color={colors.textSecondary} />
+              </Pressable>
+         
+            </Card>
           </View>
         )}
 

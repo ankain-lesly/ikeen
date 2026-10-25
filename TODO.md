@@ -19,10 +19,6 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 
 ## Note Block Issues
 
-### Phase 3: Media Block Layout Overhaul & Card Redesign
-- [ ] **Modern Media Cards Redesign**: Completely overhaul the UI/UX visual design for media items (`VisualImageCard`, `MediaAudioCard`, and `MediaFileCard`) to be modern, sleek, and high craft (subtle glass/card surfaces, polished audio waveforms/scrubbers, refined document chips, and intentional hierarchy without boilerplate/clutter). Best experience for caption, Modal, Transcript, Using SVG, Audio Wave/Curl Line, Clean UI
-- [ ] **Horizontal Media Carousel**: Replace vertical stacked media cards in `MediaBlock` with a horizontal scrollable carousel for images/visual media.
-
 ### Phase 4: NoteCard Structured Block & Media Previews
 - [ ] **First Block Preview Fallback**: When `note.content` is empty, render a structured preview of the first block in `note.blocks` (e.g., text excerpt or compact checklist preview) inside `NoteCard`.
 - [ ] **NoteCard Media Thumbnail**: When a note contains a `media` block, display a thumbnail for the first or most recently added media item on `NoteCard`.
@@ -42,8 +38,10 @@ Add a setting background image to the notes app and optionally for each note set
 - apps\mobile\src\components\notes\blocks\list-block.tsx
 
 
-## Enable expo-sharing  on next build
-- apps\mobile\src\components\notes\blocks\media-file-card.tsx
+## Enable - New Development BUild
+- **Expo Sharing**: apps\mobile\src\components\notes\blocks\media-preview-modal.tsx
+
+ - **Expo Linear Gradient**: apps\mobile\src\components\notes\blocks\media-card.tsx
 
 ---
 
@@ -54,8 +52,27 @@ Atlassian
 ## Features
 
 - Reminders: Add reminder button on the note-bulk-actions when feature is implemented
-- Scratchpad: A single view For dumping unorganized notes ideas. Also Synced
+- Scratchpad: A single view For dumping unorganized notes ideas. Also Synced. (Architecture. User creates/assigns a specific note only visible as scratchpad)
 - Sides when integrating reminders
 
 
-4F3BCH
+## Home Sidebar Design
+
+---
+## Ikeen
+
+- Notes
+- Folders
+- Scratch Pad
+- Chat
+- Reminders
+
+---
+- Add Note
+- Add Folder
+---
+
+### Recent Notes
+
+- [list]...(infinite-scroll)
+---

@@ -64,13 +64,19 @@ export async function saveAssetToSandbox(
 
   const fallbackExt = category === "images" ? "jpg" : category === "audio" ? "m4a" : "bin";
   const ext = extractExtension(preferredName || sourceUri, fallbackExt);
-  const fileId = Crypto.randomUUID();
+  const timestamp = Date.now();
 
-  const originalName = preferredName
-    ? sanitizeFilename(preferredName)
-    : `${category.slice(0, -1)}_${fileId.slice(0, 8)}.${ext}`;
+  let baseName: string;
+  if (preferredName) {
+    const rawBase = preferredName.replace(/\.[^/.]+$/, "");
+    baseName = sanitizeFilename(rawBase) || "media";
+  } else {
+    baseName = `${category.slice(0, -1)}`;
+  }
 
-  const destFilename = `${fileId}.${ext}`;
+  // Preserve media name with timestamp for uniqueness
+  const destFilename = `${baseName}-${timestamp}.${ext}`;
+  const originalName = preferredName ? sanitizeFilename(preferredName) : destFilename;
   const destUri = `${SUBDIRS[category]}${destFilename}`;
 
   await FileSystem.copyAsync({

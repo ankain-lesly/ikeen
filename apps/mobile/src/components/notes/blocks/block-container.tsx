@@ -44,7 +44,7 @@ export interface BlockContainerProps {
   isEditing: boolean;
   onStartEditing: () => void;
   onContentChange?: (t: string) => void;
-  onRequestRecordAudio?: () => void;
+  onRequestRecordAudio?: (blockId: string) => void;
 }
 
 interface BlockRowProps {
@@ -52,7 +52,7 @@ interface BlockRowProps {
   index: number;
   totalBlocks: number;
   isEditing: boolean;
-  onStartEditing: () => void;
+  // onStartEditing: () => void;
   onStageUpdate: (blockId: string, updates: UpdateBlockInput) => void;
   onImmediateUpdate: (
     blockId: string,
@@ -62,7 +62,7 @@ interface BlockRowProps {
   onMoveBlock: (index: number, direction: -1 | 1) => Promise<void>;
   onDelete: (blockId: string) => Promise<void>;
   onDuplicate: (block: NoteBlock, index: number) => Promise<void>;
-  onRequestRecordAudio?: () => void;
+  onRequestRecordAudio?: (blockId: string) => void;
 }
 
 /**
@@ -73,7 +73,6 @@ const BlockRow = React.memo(function BlockRow({
   index,
   totalBlocks,
   isEditing,
-  onStartEditing,
   onStageUpdate,
   onImmediateUpdate,
   onCommit,
@@ -112,7 +111,6 @@ const BlockRow = React.memo(function BlockRow({
           isEditing={isEditing}
           onChangeContent={(content) => handleStage({ content })}
           onBlur={handleCommit}
-          onFocus={onStartEditing}
         />
       ) : block.type === "list" ? (
         <ListBlock
@@ -129,7 +127,11 @@ const BlockRow = React.memo(function BlockRow({
           onStageContent={(content) => handleStage({ content })}
           onImmediateContent={(content) => handleImmediate({ content })}
           onCommit={handleCommit}
-          onRequestRecordAudio={onRequestRecordAudio}
+          onRequestRecordAudio={
+            onRequestRecordAudio
+              ? () => onRequestRecordAudio(block.id)
+              : undefined
+          }
         />
       ) : null}
     </BlockWrapper>
@@ -138,7 +140,7 @@ const BlockRow = React.memo(function BlockRow({
 
 export const BlockContainer = React.memo(
   forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
-    { note, isEditing, onStartEditing, onContentChange, onRequestRecordAudio },
+    { note, isEditing, onContentChange, onRequestRecordAudio },
     ref,
   ) {
     const colors = useTheme();
@@ -250,7 +252,6 @@ export const BlockContainer = React.memo(
             index={index}
             totalBlocks={blocks.length}
             isEditing={isEditing}
-            onStartEditing={onStartEditing}
             onStageUpdate={handleStageUpdate}
             onImmediateUpdate={handleImmediateUpdate}
             onCommit={commitBlock}

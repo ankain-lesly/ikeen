@@ -29,13 +29,19 @@ export function AudioRecordingSheet({
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
+  // Cleanup active timer and recorder on unmount
   useEffect(() => {
-    if (!visible) {
+    return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      setIsRecording(false);
-      setSeconds(0);
-    }
-  }, [visible]);
+      try {
+        if (recorder.isRecording) {
+          void recorder.stop();
+        }
+      } catch {
+        // Ignored
+      }
+    };
+  }, [recorder]);
 
   const startRecording = async () => {
     const hasPerm = await ensureAudioRecordingPermission();
@@ -81,7 +87,7 @@ export function AudioRecordingSheet({
         const saved = await saveAssetToSandbox(
           recordingUri,
           "audio",
-          `recording_${Date.now()}.m4a`,
+          `Recording_${Date.now()}.m4a`,
         );
 
         const item: MediaItem = {
@@ -109,10 +115,9 @@ export function AudioRecordingSheet({
     <OptionSheet
       isPresented={visible}
       onDismiss={cancelRecording}
-      snapPoints={["half"]}
       title="Record Audio Note"
     >
-      <View className="flex-1 items-center justify-center py-4">
+      <View className="w-full mx-auto items-center justify-center py-4">
         {/* Time Counter */}
         <Text
           style={{ fontVariant: ["tabular-nums"] }}
