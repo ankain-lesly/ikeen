@@ -39,6 +39,7 @@ type NotesOptionsDropdownProps = {
   };
   iconStyle?: {
     className?: string;
+    color?: string;
     size?: number;
   };
   customTrigger?: React.ReactNode;
@@ -82,7 +83,7 @@ export function NotesOptionsDropdown({
 
   const dropdown = useNoteOptionsDropdown({ isExpanded, setIsExpanded });
 
-  const { className = "p-4", size = 20 } = iconStyle;
+  const { className = "p-4", color = colors.text, size = 20 } = iconStyle;
 
   if (variant === "sheet") {
     return (
@@ -112,7 +113,7 @@ export function NotesOptionsDropdown({
               }}
               className={`rounded-full ${className}`}>
               {customTrigger || (
-                <MoreVertical size={size} color={colors.textSecondary} />
+                <MoreVertical size={size} color={color} />
               )}
             </Pressable>
           </RNHostView>

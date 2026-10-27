@@ -111,6 +111,14 @@ bun run dev:mobile                    # Mobile only
 
 ---
 
+## 7. Strict Git & Staging Invariants
+
+- **NEVER STAGE OR COMMIT CODE**: Never run `git add`, `git commit`, `git reset`, `git restore --staged`, or any command that modifies the git index (staging area) or commit history unless explicitly and unambiguously requested by the user.
+- **PRESERVE USER STAGING STATE**: The user stages changes to track progress. Wiping, resetting, or adding files to the staging area destroys the user's change tracking and is strictly prohibited.
+- All agent modifications must remain as unstaged working tree edits for the user to inspect, review, and stage themselves.
+
+---
+
 # CLAUDE.md Overview
 
 - **Structure**: See above; `apps/*`, `packages/*`, `plans/`

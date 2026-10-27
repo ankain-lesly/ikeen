@@ -226,3 +226,28 @@ Grouped by todo topic / issue for clearer tracking and context.
   - [x] Wired `useMediaUploadProgress` into `VisualImageCard`, `MediaAudioCard`, and `MediaFileCard` with progress %, error state, and retry action
 - [x] Verification:
   - [x] Verified targeted mobile typecheck passes cleanly (`bun run --cwd apps/mobile check-types` -> 0 errors)
+
+---
+
+## 🃏 Phase 4: NoteCard Structured Block & Media Previews — 2026-10-26
+* **Status**: Completed
+* **Scope**: Prominent media cover previews on NoteCards, structured content previews (first 3 list items with checkboxes/bullets/numbers + "+N more", markdown-stripped text snippets), and optimized Drizzle relational queries with `withBlocks` filtering.
+
+- [x] Schema & Relational Query Infrastructure:
+  - [x] Added `withBlocks?: boolean` to `ListNotesOptions` in `@repo/types`.
+  - [x] Defined Drizzle `notesRelations` and `noteBlocksRelations` in `apps/mobile/src/db/schema.ts` to link notes to their ordered blocks.
+  - [x] Implemented `buildNotesRelationalQuery` with `with: { blocks: true }` in `apps/mobile/src/lib/queries/notes.ts`.
+  - [x] Updated `useLiveNotes` and `listNotes` to fetch and unpack structured blocks by default (`withBlocks !== false`).
+  - [x] Optimized metric-only query in `ProfileScreen` with `withBlocks: false` to eliminate join overhead.
+- [x] Structured Preview Components (`note-card-preview.tsx`):
+  - [x] `MediaCoverPreview`: Prominent thumbnail cover using `expo-image` (`contentFit="cover"`) for photos, and audio/file banners for voice recordings and documents, with `+N` badge for multi-item media.
+  - [x] `ListBlockPreview`: First 3 items with exact list-type markers (square checkboxes with checked status, bullet dots, or ordered numbers) and a `+N more` counter.
+  - [x] `stripMarkdown`: Fast regex-based markdown token stripper for clean plain text display.
+- [x] NoteCard Integration (`note-card.tsx`):
+  - [x] Flush media cover thumbnail mounted at the top of the card container.
+  - [x] First block content preview: renders `ListBlockPreview` for list blocks, stripped text for text blocks, and falls back to `note.summary` / `note.content`.
+  - [x] Updated memo equality `areNoteCardPropsEqual` to compare `prev.note.blocks === next.note.blocks` ($O(1)$ identity check).
+  - [x] Updated `NoteGridContainer` and `search.tsx` to handle `NoteWithBlocks[]`.
+- [x] Verification:
+  - [x] Verified zero TypeScript compilation errors (`tsc -p apps/mobile/tsconfig.json --noEmit` and `tsc -p apps/api/tsconfig.json --noEmit`).
+

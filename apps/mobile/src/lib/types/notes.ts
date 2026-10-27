@@ -30,6 +30,10 @@ import type {
 
 export { hasActiveNotesFilters } from '@repo/types';
 
+export type NoteWithBlocks = NoteSelect & {
+  blocks?: NoteBlock[];
+};
+
 export type {
   NoteSelect,
   Note,

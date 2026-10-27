@@ -81,6 +81,7 @@ export default function ProfileScreen() {
   const { data: notes = [] } = useLiveNotes({
     includeArchived: true,
     includeDeleted: true,
+    withBlocks: false,
   });
   const { data: folders = [] } = useLiveFolders();
 

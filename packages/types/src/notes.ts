@@ -60,6 +60,8 @@ export interface ListNotesOptions {
   offset?: number;
   orderBy?: "updatedAt" | "createdAt" | "title";
   orderDirection?: "asc" | "desc";
+  /** Whether to populate note.blocks. Default true in mobile queries. */
+  withBlocks?: boolean;
 }
 
 /** True when tag / custom sort / pinnedFirst=false are set. Ignores header view keys. */

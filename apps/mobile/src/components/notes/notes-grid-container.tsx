@@ -14,7 +14,11 @@ import {
   List,
 } from "lucide-react-native";
 import { FlashList } from "@shopify/flash-list";
-import type { ListNotesOptions, NoteSelect } from "@/lib/types/notes";
+import type {
+  ListNotesOptions,
+  NoteSelect,
+  NoteWithBlocks,
+} from "@/lib/types/notes";
 
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
@@ -41,7 +45,7 @@ function noteLabel(count: number) {
 }
 
 interface NoteGridContainerProps {
-  data: NoteSelect[];
+  data: NoteWithBlocks[];
   empty?: React.ReactElement;
   footer?: React.ReactElement;
   showFilter?: boolean;
@@ -260,15 +264,16 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
   }, [selectedIds, runBulk]);
 
   const extraData = useMemo(
-    () => ({ isSelectionMode, selectedIds }),
-    [isSelectionMode, selectedIds],
+    () => ({ isSelectionMode, selectedIds, gridLayout }),
+    [isSelectionMode, selectedIds, gridLayout],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: NoteSelect }) => (
+    ({ item }: { item: NoteWithBlocks }) => (
       <View className="p-1">
         <NoteCard
           note={item}
+          layout={gridLayout}
           isSelectionMode={isSelectionMode}
           isSelected={selectedIds.has(item.id)}
           onSelect={handleSelectNote}
@@ -276,7 +281,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         />
       </View>
     ),
-    [handleSelectNote, handleLongPressSelect, isSelectionMode, selectedIds],
+    [handleSelectNote, handleLongPressSelect, isSelectionMode, selectedIds, gridLayout],
   );
 
   // Filters

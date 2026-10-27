@@ -43,6 +43,12 @@ Add a setting background image to the notes app and optionally for each note set
 
  - **Expo Linear Gradient**: apps\mobile\src\components\notes\blocks\media-card.tsx
 
+
+## Validate In Flight Sync
+- in flights should not reset on startup, simple updates the query to find plus failed or processing before syncing fresh Todo
+- conflicts between updating outbox data in in inflight. What is the flow and mitigations
+
+
 ---
 
 Atlassian

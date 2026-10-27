@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import * as Crypto from 'expo-crypto';
 import { and, asc, desc, eq, isNull, like, or, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
@@ -8,8 +9,11 @@ import type {
   CreateNoteInput,
   ListNotesOptions,
   NoteSelect as Note,
+  NoteBlock,
+  NoteWithBlocks,
   UpdateNoteInput,
 } from '@/lib/types/notes';
+import { unpackNoteBlock } from './block-content.codec';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 import { useAuthStore } from '@/lib/auth/auth-store';
 import { currentAuthUserId, ownerCondition } from './owner';
@@ -18,7 +22,23 @@ import { currentAuthUserId, ownerCondition } from './owner';
 // Internal Query Builder (Shared by listNotes & useLiveNotes)
 // ============================================================================
 
-function buildNotesQuery(
+// In-memory cache for unpacked blocks to avoid re-parsing JSON and keep referential stability
+const unpackedBlockCache = new Map<string, NoteBlock>();
+
+function getCachedUnpackedBlock(raw: any): NoteBlock {
+  const key = `${raw.id}:${raw.updatedAt}`;
+  const cached = unpackedBlockCache.get(key);
+  if (cached) return cached;
+  const unpacked = unpackNoteBlock(raw);
+  unpackedBlockCache.set(key, unpacked);
+  if (unpackedBlockCache.size > 1000) {
+    const firstKey = unpackedBlockCache.keys().next().value;
+    if (firstKey) unpackedBlockCache.delete(firstKey);
+  }
+  return unpacked;
+}
+
+function buildNotesFiltersAndSort(
   options: ListNotesOptions = {},
   userId: string | null = currentAuthUserId(),
 ) {
@@ -53,7 +73,7 @@ function buildNotesQuery(
   if (options.search) {
     const term = `%${options.search}%`;
     conditions.push(
-      or(like(notes.title, term), like(notes.content, term)) as SQL
+      or(like(notes.title, term), like(notes.content, term)) as SQL,
     );
   }
 
@@ -73,6 +93,15 @@ function buildNotesQuery(
     orderClauses.push(direction(notes.updatedAt));
   }
 
+  return { whereClause, orderClauses };
+}
+
+function buildNotesQuery(
+  options: ListNotesOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const { whereClause, orderClauses } = buildNotesFiltersAndSort(options, userId);
+
   let query = db
     .select()
     .from(notes)
@@ -89,20 +118,44 @@ function buildNotesQuery(
   return query;
 }
 
+function buildNotesRelationalQuery(
+  options: ListNotesOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const { whereClause, orderClauses } = buildNotesFiltersAndSort(options, userId);
+
+  return db.query.notes.findMany({
+    where: whereClause,
+    orderBy: orderClauses,
+    limit: options.limit,
+    offset: options.offset,
+    with: {
+      blocks: {
+        orderBy: (blocks, { asc: ascOrder }) => [ascOrder(blocks.position)],
+      },
+    },
+  });
+}
+
 // ============================================================================
 // Reactive Hooks (useLiveQuery)
 // ============================================================================
 
 /**
  * Reactive hook: Automatically re-renders when notes change in SQLite.
+ * Fetches structured note blocks by default (`withBlocks !== false`).
  */
 export function useLiveNotes(options: ListNotesOptions = {}) {
   const userId = useAuthStore((s) => s.user?.id);
-  const query = buildNotesQuery(options, userId);
+  const withBlocks = options.withBlocks !== false;
 
+  const query = withBlocks
+    ? buildNotesRelationalQuery(options, userId)
+    : buildNotesQuery(options, userId);
 
-  const res = useLiveQuery(query, [
+  const res = useLiveQuery(query as any, [
     userId,
+    withBlocks,
     options.folderId,
     options.includeDeleted,
     options.includeArchived,
@@ -117,7 +170,22 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.offset,
   ]);
 
-  return {...res, isLoading: !res.updatedAt && res.data?.length === 0}
+  const data = useMemo<NoteWithBlocks[]>(() => {
+    if (!res.data) return [];
+    if (!withBlocks) return res.data as NoteWithBlocks[];
+    return (res.data as any[]).map((n) => ({
+      ...n,
+      blocks: Array.isArray(n.blocks)
+        ? (n.blocks as any[]).map(getCachedUnpackedBlock)
+        : undefined,
+    }));
+  }, [res.data, withBlocks]);
+
+  return {
+    ...res,
+    data,
+    isLoading: !res.updatedAt && data.length === 0,
+  };
 }
 
 /**
@@ -159,11 +227,22 @@ export async function getNoteById(id: string): Promise<Note | null> {
 
 /**
  * Lists notes matching options (imperative, one-off).
+ * Fetches structured note blocks by default (`withBlocks !== false`).
  */
 export async function listNotes(
   options: ListNotesOptions = {}
-): Promise<Note[]> {
-  return await buildNotesQuery(options);
+): Promise<NoteWithBlocks[]> {
+  const withBlocks = options.withBlocks !== false;
+  if (!withBlocks) {
+    return (await buildNotesQuery(options)) as NoteWithBlocks[];
+  }
+  const rows = await buildNotesRelationalQuery(options);
+  return rows.map((n: any) => ({
+    ...n,
+    blocks: Array.isArray(n.blocks)
+      ? (n.blocks as any[]).map(getCachedUnpackedBlock)
+      : undefined,
+  }));
 }
 
 /**
@@ -172,7 +251,7 @@ export async function listNotes(
 export async function searchNotes(
   query: string,
   options: Omit<ListNotesOptions, 'search'> = {}
-): Promise<Note[]> {
+): Promise<NoteWithBlocks[]> {
   return await listNotes({
     ...options,
     search: query,

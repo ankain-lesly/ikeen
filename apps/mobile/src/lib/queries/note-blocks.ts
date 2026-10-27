@@ -4,7 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 import { db } from "@/db/client";
-import { mediaSyncOutbox, noteBlocks, type NoteBlockSelect } from "@/db/schema";
+import { mediaSyncOutbox, noteBlocks, notes, type NoteBlockSelect } from "@/db/schema";
 import type {
   CreateBlockInput,
   MediaItem,
@@ -84,6 +84,18 @@ export async function getNoteBlocks(noteId: string): Promise<NoteBlock[]> {
 }
 
 /**
+ * Touches the parent note's updatedAt timestamp in SQLite so Drizzle's live queries
+ * and feed sortings immediately reflect block modifications across consumer screens.
+ */
+async function touchParentNote(noteId: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db
+    .update(notes)
+    .set({ updatedAt: now })
+    .where(eq(notes.id, noteId));
+}
+
+/**
  * Creates a discrete block under a note.
  * Enforces that the parent note exists in SQLite before inserting the block.
  */
@@ -140,6 +152,7 @@ export async function createBlock(
   }
 
   await enqueueOutbox("note_blocks", id, "upsert", toBlockOutboxPayload(block));
+  await touchParentNote(noteId);
 
   return block;
 }
@@ -259,6 +272,7 @@ export async function updateBlock(
     "upsert",
     toBlockOutboxPayload(block),
   );
+  await touchParentNote(existing.noteId);
 
   return block;
 }
@@ -309,6 +323,7 @@ export async function deleteBlock(blockId: string): Promise<void> {
       toBlockOutboxPayload(reindexed),
     );
   }
+  await touchParentNote(existing.noteId);
 }
 
 /**
@@ -345,6 +360,10 @@ export async function reorderBlocks(
       "upsert",
       toBlockOutboxPayload(block),
     );
+  }
+
+  if (changedBlocks.length > 0) {
+    await touchParentNote(noteId);
   }
 }
 

@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { relations } from 'drizzle-orm';
 
 export const folders = sqliteTable(
   'folders',
@@ -68,6 +69,21 @@ export const noteBlocks = sqliteTable(
     index('idx_note_blocks_note_id').on(table.noteId),
   ]
 );
+
+export const notesRelations = relations(notes, ({ many, one }) => ({
+  folder: one(folders, {
+    fields: [notes.folderId],
+    references: [folders.id],
+  }),
+  blocks: many(noteBlocks),
+}));
+
+export const noteBlocksRelations = relations(noteBlocks, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteBlocks.noteId],
+    references: [notes.id],
+  }),
+}));
 
 export const syncOutbox = sqliteTable(
   'sync_outbox',
