@@ -18,13 +18,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // 3. Deep spreads iOS sub-properties to prevent wiping out app.json entries
     ios: {
       ...config.ios,
-      bundleIdentifier: isProd ? APP_BUNDLE_IDENTIFIER : APP_DEV_BUNDLE_IDENTIFIER, // Dots instead of dashes
+      bundleIdentifier: isProd
+        ? APP_BUNDLE_IDENTIFIER
+        : APP_DEV_BUNDLE_IDENTIFIER, // Dots instead of dashes
     },
 
     // 4. Deep spreads Android packages mirror-wise to align your cross-platform variants
     android: {
       ...config.android,
       package: isProd ? APP_BUNDLE_IDENTIFIER : APP_DEV_BUNDLE_IDENTIFIER,
+      googleServicesFile: isProd
+        ? "./google-services.json"
+        : "./google-services-dev.json",
     },
   };
 };
