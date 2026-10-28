@@ -8,7 +8,8 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { SafeAreaListener } from "react-native-safe-area-context";
@@ -29,10 +30,11 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { CheckForUpdatesMain } from "@/components/check-for-updates";
+import { RootCustomDrawerContent } from "@/components/root-custom-drawer-content";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function AppProvider() {
   const scheme = useColorScheme();
   const colors = useTheme();
 
@@ -59,15 +61,16 @@ export default function TabLayout() {
       <KeyboardProvider>
         <GestureHandlerRootView>
           <SafeAreaListener
-            onChange={({ insets }) => Uniwind.updateInsets(insets)}
-            >
+            onChange={({ insets }) => Uniwind.updateInsets(insets)}>
             <ThemeProvider value={MyTheme}>
               <View className="bg-background flex-1">
                 {/* Root App */}
-                <RootApp />
+                <RootDrawerLayout />
                 <Toast config={toastConfig} position="top" topOffset={50} />
                 <StatusBar
-                  barStyle={scheme === "dark"  ? "light-content" : "dark-content"}
+                  barStyle={
+                    scheme === "dark" ? "light-content" : "dark-content"
+                  }
                 />
                 {/* Check Of Updates */}
                 <CheckForUpdatesMain />
@@ -80,7 +83,8 @@ export default function TabLayout() {
   );
 }
 
-function RootApp() {
+function RootDrawerLayout() {
+  const colors = useTheme();
   const { success, error } = useMigrations(db, migrations);
 
   useEffect(() => {
@@ -119,31 +123,31 @@ function RootApp() {
     return (
       <View className="flex-1 justify-center items-center p-6 p-safe">
         <ActivityIndicator size="large" />
-        {/* <Text className="mt-3 text-sm text-gray-500">
-          Initializing database...
-        </Text> */}
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }} initialRouteName="index">
-      <Stack.Screen name="index" />
-      <Stack.Screen name="agent" />
-      <Stack.Screen name="search" />
-      <Stack.Screen name="notes" />
-      <Stack.Screen name="folders/[id]" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="(auth)"
-        options={{
-          presentation: "formSheet",
-          sheetAllowedDetents: [0.5, 0.75, 1.0],
-          sheetGrabberVisible: true,
-          headerShown: false,
-          sheetCornerRadius: 20,
-        }}
-      />
-    </Stack>
+    <Drawer
+      drawerContent={RootCustomDrawerContent}
+      screenOptions={{
+        headerShown: false,
+        drawerStyle: {
+          backgroundColor: colors.background,
+          width: 290,
+        },
+        drawerActiveTintColor: colors.primary,
+        drawerInactiveTintColor: colors.textSecondary,
+        drawerType: "slide",
+      }}
+      initialRouteName="index">
+      <Drawer.Screen name="index" />
+      <Drawer.Screen name="agent" />
+      <Drawer.Screen name="search" />
+      <Drawer.Screen name="notes" />
+      <Drawer.Screen name="folders/[id]" />
+      <Drawer.Screen name="(tabs)" />
+      <Drawer.Screen name="(auth)" />
+    </Drawer>
   );
 }

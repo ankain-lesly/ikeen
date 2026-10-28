@@ -1,8 +1,7 @@
 import React from "react";
-import { View, Pressable, Text, ScrollView } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import { type Href, useRouter } from "expo-router";
 import {
-  FolderIcon,
   ListOrdered,
   Pin,
   Search,
@@ -12,9 +11,9 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
-import * as Haptics from "expo-haptics";
-import {  } from "react-native";
 import { Card } from "../ui/card";
+import { useDrawerActions } from "../drawer-nav-items";
+import DrawerLeft from "@/assets/svg/drawer-left.svg";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -32,6 +31,8 @@ export function NotesHeader({
   const router = useRouter();
   const colors = useTheme();
 
+  const { openDrawer } = useDrawerActions();
+
   const handleNavigateSearch = () => {
     router.push("/search" as Href);
   };
@@ -40,9 +41,12 @@ export function NotesHeader({
     router.push("/agent");
   };
 
-  const isRecentActive = !filter.pinnedOnly && !filter.includeArchived && !filter.archivedOnly;
+  const isRecentActive =
+    !filter.pinnedOnly && !filter.includeArchived && !filter.archivedOnly;
   const isPinnedActive = filter.pinnedOnly === true;
-  const isArchivedActive = filter.archivedOnly === true || (filter.includeArchived === true && !filter.pinnedOnly);
+  const isArchivedActive =
+    filter.archivedOnly === true ||
+    (filter.includeArchived === true && !filter.pinnedOnly);
 
   const applyView = (view: {
     pinnedOnly: boolean;
@@ -57,17 +61,37 @@ export function NotesHeader({
     });
   };
 
-  const handleFolders = () => {
-Haptics.selectionAsync();
-router.push("/(tabs)/notes/folders");
-  }
+  // const handleFolders = () => {
+  //   Haptics.selectionAsync();
+  //   router.push("/(tabs)/notes/folders");
+  // };
 
   return (
     <View className="border-b border-border/50 bg-background pb-3">
       {/* TOp Header */}
       <View className="flex-row items-center justify-between px-4">
         {/* Title */}
-        <ThemedText type="title">My Notes</ThemedText>
+        <View className="flex-row gap-3">
+          {/* <Pressable>
+            <Card className="px-2 rounded-full flex-row items-center gap-4">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Drawer"
+                hitSlop={8}
+                onPress={openDrawer}
+                className="items-center justify-center rounded-full">
+                <DrawerLeft
+                  height={20}
+                  width={20}
+                  color={colors.text}
+                />
+              </Pressable>
+            </Card>
+          </Pressable> */}
+          <ThemedText type="title" className="text-xl">
+            My Notes
+          </ThemedText>
+        </View>
 
         {/* Action Cluster: Search -> Filter -> AI */}
         <Card className="px-3 rounded-full flex-row items-center gap-4">
@@ -87,7 +111,7 @@ router.push("/(tabs)/notes/folders");
             accessibilityLabel="Folders"
             hitSlop={8}
             onPress={handleFolders}
-            className="items-center justify-center rounded-full active:bg-background-selected">
+            className="items-center justify-center rounded-full">
             <FolderIcon size={20} color={colors.text} strokeWidth={2} />
           </Pressable> */}
           {/* Search Navigation Trigger */}
@@ -96,7 +120,7 @@ router.push("/(tabs)/notes/folders");
             accessibilityLabel="Search notes"
             hitSlop={8}
             onPress={handleNavigateSearch}
-            className="items-center justify-center rounded-full active:bg-background-selected">
+            className="items-center justify-center rounded-full">
             <Search size={20} color={colors.text} strokeWidth={2} />
           </Pressable>
 
@@ -106,7 +130,7 @@ router.push("/(tabs)/notes/folders");
             accessibilityLabel="Filter and sort notes"
             hitSlop={8}
             onPress={onOpenFilter}
-            className="relative items-center justify-center rounded-full active:bg-background-selected">
+            className="relative items-center justify-center rounded-full">
             <SlidersHorizontal size={20} color={colors.text} strokeWidth={2} />
             {hasActiveFilters && (
               <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />

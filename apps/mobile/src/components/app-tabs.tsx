@@ -12,12 +12,10 @@ import { useTheme } from "@/hooks/use-theme"; // Replace with your actual theme 
 import { useSpeedDialFab } from "@/hooks/use-speed-dial";
 import { BottomTabInset } from "@/constants/theme";
 import { Plus, X } from "lucide-react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  // LinearTransition,
-} from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Card } from "./ui/card";
+import DrawerLeft from "@/assets/svg/drawer-left.svg";
+import { useDrawerActions } from "./drawer-nav-items";
 
 // Explicitly type the icon manifest to lock down safety limits
 interface SymbolConfiguration {
@@ -65,9 +63,14 @@ export default function AppTabs() {
 
   return (
     <>
+    {/* TODO: Add a gradient flowing up direction */}
       <Tabs
         tabBar={({ state, descriptors, navigation }) => (
-          <View className="absolute bottom-safe-offset-2 w-full flex items-center justify-center">
+          <View className="absolute px-4 bottom-safe-offset-2 w-full flex-row items-center justify-between">
+            {/* Spacer */}
+            <View className="size-12 shrink-0" />
+
+            {/* Tabs */}
             <Card
               className="h-12 px-4_ px-2 rounded-full flex-row items-center justify-between shadow-xl bg-background-element gap-2 overflow-visible"
               style={{
@@ -157,6 +160,9 @@ export default function AppTabs() {
                 );
               })}
             </Card>
+
+            {/* Drawer */}
+            <DrawerButton />
           </View>
         )}
         screenOptions={{ headerShown: false }}
@@ -168,6 +174,18 @@ export default function AppTabs() {
   );
 }
 
+function DrawerButton() {
+  // const colors = useTheme();
+  const { openDrawer } = useDrawerActions();
+
+  return (
+    <TouchableOpacity onPress={openDrawer}>
+      <Card className="shrink-0 size-12 rounded-full flex-row border-2 border-primary items-center justify-center shadow-xl bg-primary gap-2 overflow-visible">
+        <DrawerLeft height={20} width={20} color={"white"} />
+      </Card>
+    </TouchableOpacity>
+  );
+}
 /* Main Floating Trigger Button */
 
 const SpeedDialPlusButton = () => {
@@ -186,7 +204,7 @@ const SpeedDialPlusButton = () => {
         shadowOpacity: 0.35,
         shadowRadius: 8,
         elevation: 6,
-        transform:[{translateY: -10}]
+        transform: [{ translateY: -10 }],
       }}>
       {isMenuOpen ? (
         <X size={26} color="#ffffff" strokeWidth={2.4} />

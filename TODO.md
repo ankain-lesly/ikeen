@@ -78,7 +78,13 @@ Atlassian
 - Add Folder
 ---
 
-### Recent Notes
-
-- [list]...(infinite-scroll)
+### Recent Notes (Completed)
 ---
+
+
+## Important Before Release
+
+- Ensure inflight issue tested
+- Ensure Agents integrate with note.blocks
+
+EEJ73W

@@ -214,7 +214,7 @@ export function formatFullDate(input: DateInput, fallback = "—"): string {
  * Relative time representation:
  * - "Just now", "5m ago", "2h ago", "3d ago", or falls back to card date.
  */
-export function formatTimeAgo(input: DateInput): string {
+export function formatTimeAgo(input: DateInput, {year, time}:DateFormatOptions = {}): string {
   const d = parseDate(input);
   if (!d) return "N/A";
 
@@ -226,7 +226,7 @@ export function formatTimeAgo(input: DateInput): string {
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
   if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
 
-  return formatDate(d);
+  return formatDate(d, {year,time});
 }
 
 

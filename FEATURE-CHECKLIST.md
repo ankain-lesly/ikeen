@@ -251,3 +251,14 @@ Grouped by todo topic / issue for clearer tracking and context.
 - [x] Verification:
   - [x] Verified zero TypeScript compilation errors (`tsc -p apps/mobile/tsconfig.json --noEmit` and `tsc -p apps/api/tsconfig.json --noEmit`).
 
+---
+
+## 📜 Infinite Drawer Setup & Recent Notes Feed — 2026-10-27
+* **Status**: Completed
+* **Scope**: Progressive infinite rendering for the Recent Notes feed in the root drawer using `onScrollEndDrag` + `onMomentumScrollEnd` gesture detection, dynamic SQLite limit expansion via `useInfiniteRecentNotes`, reactive Drizzle live updates, and ActivityIndicator loading state.
+
+- [x] Task 1: Progressive query hook `useInfiniteRecentNotes` in `apps/mobile/src/lib/queries/notes.ts`
+- [x] Task 2: Gesture detection (`onScrollEndDrag` & `onMomentumScrollEnd`) and coordinated pagination state in `apps/mobile/src/components/root-custom-drawer-content.tsx`
+- [x] Task 3: Infinite rendering & loading footer in `apps/mobile/src/components/recent-notes.tsx`
+- [x] Task 4: Verification via TypeScript compilation and manual checking
+

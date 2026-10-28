@@ -155,7 +155,7 @@ export const MediaBlock = React.memo(function MediaBlock({
       {(!isEditing && items.length > 0) && (
         <View className="flex-row items-center justify-between px-1">
           <Text className="text-sm font-semibold text-foreground">
-            Attachments ({items.length})
+            Note Media ({items.length})
           </Text>
           {items.length > 2 && (
             <Pressable

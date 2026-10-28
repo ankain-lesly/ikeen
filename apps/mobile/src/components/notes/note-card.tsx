@@ -121,8 +121,8 @@ const CardActionBar = React.memo(function CardActionBar({
         {note.isPinned && (
           <Pin
             size={14}
-            color={isFloating ? "#fbbf24" : colors.primary}
-            fill={isFloating ? "#fbbf24" : colors.primary}
+            color={isFloating ? "#ffffff" : colors.primary}
+            fill={isFloating ? "#ffffff" : colors.primary}
           />
         )}
 

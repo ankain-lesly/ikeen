@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { and, asc, desc, eq, isNull, like, or, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, like, or, sql, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
@@ -205,6 +205,135 @@ export function useLiveNote(id: string) {
   return {
     ...res,
     data: res.data?.[0],
+  };
+}
+
+export interface RecentNote {
+  id: string;
+  title: string;
+  isPinned: boolean;
+  isArchived: boolean;
+  updatedAt: string;
+}
+
+export interface NotesOverviewStats {
+  activeNotesCount: number;
+  trashNotesCount: number;
+}
+
+/**
+ * Lightweight reactive hook to observe recent note summaries (id, title, isPinned, updatedAt).
+ * Ideal for sidebars, navigation panels, or widget feeds without joining or deserializing blocks.
+ */
+export function useRecentNotes(limit: number = 6) {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
+  const query = useMemo(() => {
+    return db
+      .select({
+        id: notes.id,
+        title: notes.title,
+        isPinned: notes.isPinned,
+        isArchived: notes.isArchived,
+        updatedAt: notes.updatedAt,
+      })
+      .from(notes)
+      .where(
+        and(
+          ownerCondition(notes.userId, userId),
+          isNull(notes.deletedAt),
+          // eq(notes.isArchived, false),
+        ),
+      )
+      .orderBy(desc(notes.isPinned), desc(notes.updatedAt))
+      .limit(limit);
+  }, [userId, limit]);
+
+  const res = useLiveQuery(query, [userId, limit]);
+
+  const data = useMemo<RecentNote[]>(() => {
+    return (res.data ?? []).map((row) => ({
+      id: row.id,
+      title: (row.title && row.title.trim()) || "Untitled Note",
+      isPinned: !!row.isPinned,
+      isArchived: !!row.isArchived,
+      updatedAt: row.updatedAt,
+    }));
+  }, [res.data]);
+
+  return {
+    ...res,
+    data,
+    isLoading: !res.updatedAt && data.length === 0,
+  };
+}
+
+export interface InfiniteRecentNotesResult {
+  notes: RecentNote[];
+  totalCount: number;
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
+}
+
+/**
+ * Progressive live query hook for infinite recent notes feed in the drawer.
+ * Expands the SQLite query limit incrementally by pageSize on demand.
+ */
+export function useInfiniteRecentNotes(
+  pageSize: number = 20,
+): InfiniteRecentNotesResult {
+  const [limit, setLimit] = useState(pageSize);
+  const { data: notes = [], isLoading } = useRecentNotes(limit);
+  const { activeNotesCount } = useNotesStats();
+
+  const hasMore = notes.length < activeNotesCount;
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setLimit((prev) => prev + pageSize);
+    setTimeout(() => setIsLoadingMore(false), 150);
+  }, [hasMore, isLoadingMore, pageSize]);
+
+  return {
+    notes,
+    totalCount: activeNotesCount,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  };
+}
+
+/**
+ * Lightweight reactive hook for global notes count statistics (active notes and trashed notes).
+ * Uses a single-row SQL aggregation over the notes table.
+ */
+export function useNotesStats(): NotesOverviewStats & { isLoading: boolean } {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
+  const query = useMemo(() => {
+    return db
+      .select({
+        activeCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is null and ${notes.isArchived} = 0 then 1 else 0 end), 0)`,
+        trashCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is not null then 1 else 0 end), 0)`,
+      })
+      .from(notes)
+      .where(ownerCondition(notes.userId, userId));
+  }, [userId]);
+
+  const res = useLiveQuery(query, [userId]);
+
+  const activeNotesCount = Number(res.data?.[0]?.activeCount ?? 0);
+  const trashNotesCount = Number(res.data?.[0]?.trashCount ?? 0);
+
+  return {
+    activeNotesCount,
+    trashNotesCount,
+    isLoading: !res.updatedAt,
   };
 }
 
