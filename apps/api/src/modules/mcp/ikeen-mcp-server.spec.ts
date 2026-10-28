@@ -52,7 +52,7 @@ describe('IkeenMcpServer', () => {
     expect(server.server).toBeDefined();
   });
 
-  it('lists exactly 12 canonical ikeen_* tools with appropriate annotations', async () => {
+  it('lists exactly 15 canonical ikeen_* tools with appropriate annotations', async () => {
     const server = createIkeenMcpServer({
       notesToolService: mockNotesToolService,
       foldersToolService: mockFoldersToolService,
@@ -68,7 +68,7 @@ describe('IkeenMcpServer', () => {
     await client.connect(clientTransport);
 
     const toolsResult = await client.listTools();
-    expect(toolsResult.tools.length).toBe(12);
+    expect(toolsResult.tools.length).toBe(15);
 
     for (const tool of toolsResult.tools) {
       expect(tool.name).toMatch(/^ikeen_/);

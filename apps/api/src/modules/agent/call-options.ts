@@ -19,6 +19,9 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     getNoteDetails: baseContext,
     listRecentNotes: baseContext,
     createNote: baseContext,
+    addBlock: baseContext,
+    updateBlock: baseContext,
+    deleteBlock: baseContext,
     updateNote: baseContext,
     listFolders: baseContext,
     createFolder: baseContext,
@@ -32,7 +35,6 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     readWebPage: baseContext,
   };
 }
-
 
 /**
  * Optional id the model may omit, pass as null, or pass as "".

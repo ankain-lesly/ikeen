@@ -129,10 +129,7 @@ export function ChatMessageList({
       const bubbleContent = (
         <View className="flex-1 w-full px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
           <Text className="text-sm font-normal text-text leading-relaxed">
-            {/* {textContent} */}
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Adipisci
-            consectetur tempora assumenda, magnam dolor vero quidem suscipit
-            numquam impedit sed!
+            {textContent}
           </Text>
         </View>
       );

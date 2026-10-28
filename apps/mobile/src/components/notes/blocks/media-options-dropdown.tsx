@@ -21,6 +21,7 @@ import type { MediaItem } from "@/lib/types/notes";
 import { OptionSheet, type SheetAction } from "@/components/ui/option-sheet";
 import { retrySingleMediaUpload } from "@/lib/media/upload-service";
 import { toast } from "@/lib/toast";
+import  * as Sharing from "expo-sharing";
 
 export interface MediaOptionsDropdownProps {
   variant?: "sheet" | "dropdown";
@@ -44,9 +45,7 @@ export interface MediaOptionsDropdownProps {
 export const MediaOptionsDropdown = React.memo(function MediaOptionsDropdown({
   variant = "dropdown",
   item,
-  // isExpanded,
   setIsExpanded,
-  // visible,
   onDismiss,
   customTrigger,
   iconStyle = {},
@@ -59,16 +58,11 @@ export const MediaOptionsDropdown = React.memo(function MediaOptionsDropdown({
   const [isLocalExpanded, setIsLocalExpanded] = useState(false);
 
   const isOpen = useMemo(() => {
-    // if (visible !== undefined) return visible;
-    // if (isExpanded !== undefined) return isExpanded;
     return isLocalExpanded;
   }, [isLocalExpanded]);
 
   const toggle = useCallback(() => {
     const next = !isOpen;
-    // if (visible !== undefined && onDismiss && !next) {
-    //   onDismiss();
-    // }
     if (setIsExpanded) {
       setIsExpanded(next);
     } else {
@@ -88,21 +82,19 @@ export const MediaOptionsDropdown = React.memo(function MediaOptionsDropdown({
     color = "#ffffff",
   } = iconStyle;
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     if (!item) return;
     if (onShare) {
       onShare(item);
-    } else {
-      // TODO: FFix on next build
-      // const isAvailable = await Sharing.isAvailableAsync();
-      // if (isAvailable) {
-      //   await Sharing.shareAsync(uri, {
-      //     dialogTitle: item.name || "Share media",
-      //   });
-      // } else {
-      //   toast.info("Sharing not available on this device");
-      // }
-      toast.info("Sharing file...");
+    } else if(item.localUri) {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(item.localUri, {
+          dialogTitle: item.name || "Share media",
+        });
+      } else {
+        toast.info("Sharing not available on this device");
+      }
     }
   }, [item, onShare]);
 

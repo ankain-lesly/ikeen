@@ -34,6 +34,9 @@ describe('SyncService', () => {
       folder: {
         findMany: vi.fn(),
       },
+      noteBlock: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       note: {
         findMany: vi.fn(),
       },

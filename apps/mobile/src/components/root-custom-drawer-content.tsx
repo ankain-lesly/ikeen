@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
+  StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -25,6 +26,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { useLiveFolders } from "@/lib/queries/folders";
 import { useInfiniteRecentNotes, useNotesStats } from "@/lib/queries/notes";
 import { RecentNotes } from "@/components/recent-notes";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { hex2RGBA, log } from "@repo/utils";
 
 export function RootCustomDrawerContent(props: any) {
   const colors = useTheme();
@@ -41,7 +45,8 @@ export function RootCustomDrawerContent(props: any) {
   // Trigger pagination on user drag release or momentum settle near bottom
   const handleScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
       const paddingToBottom = 80;
       const isNearBottom =
         layoutMeasurement.height + contentOffset.y >=
@@ -94,30 +99,50 @@ export function RootCustomDrawerContent(props: any) {
     [activeCount, foldersCount],
   );
 
+  const insets = useSafeAreaInsets();
+  const headerHeight = 40;
+
   return (
     <View className="flex-1 bg-background">
       {/* Clean Header: iKeen only, no border, no version, no sparkle */}
-      {/* TODO: Use a gradient overlay */}
-      <View className="px-5 pb-2 pt-safe-offset-2 flex-row items-center justify-between">
-        <ThemedText type="title" className="font-normal">
-          iKeen
-        </ThemedText>
+      <View className="absolute top-0 w-full z-20">
+        <View
+          style={{ height: insets.top, width: "100%", backgroundColor: colors.background }}
+        />
+        <View
+          className="px-5 flex-row items-center justify-between relative"
+          style={{
+            height: headerHeight,
+          }}>
+          <LinearGradient
+            colors={[
+              colors.background,
+              hex2RGBA(colors.background, 0.8),
+              "transparent",
+            ]}
+            // locations={[0, 0.35, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <ThemedText type="title" className="font-normal">
+            iKeen
+          </ThemedText>
 
-        <View className="px-3 flex-row items-center gap-4 rounded-full">
-          {/* Theme Toggle Button */}
-          <TouchableOpacity
-            onPress={() => {
-              const nextTheme = theme === "dark" ? "light" : "dark";
-              setTheme(nextTheme);
-            }}
-            hitSlop={8}
-            accessibilityLabel="Toggle Theme">
-            {theme === "dark" ? (
-              <Sun size={20} color={colors.text} />
-            ) : (
-              <Moon size={20} color={colors.text} />
-            )}
-          </TouchableOpacity>
+          <View className="px-3 flex-row items-center gap-4 rounded-full">
+            {/* Theme Toggle Button */}
+            <TouchableOpacity
+              onPress={() => {
+                const nextTheme = theme === "dark" ? "light" : "dark";
+                setTheme(nextTheme);
+              }}
+              hitSlop={8}
+              accessibilityLabel="Toggle Theme">
+              {theme === "dark" ? (
+                <Sun size={20} color={colors.text} />
+              ) : (
+                <Moon size={20} color={colors.text} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -126,7 +151,10 @@ export function RootCustomDrawerContent(props: any) {
         onScrollEndDrag={handleScrollEnd}
         onMomentumScrollEnd={handleScrollEnd}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: 0, paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingTop: insets.top + headerHeight,
+          paddingBottom: 100,
+        }}
         showsVerticalScrollIndicator={false}
         className="flex-1">
         {/* Navigation Section */}

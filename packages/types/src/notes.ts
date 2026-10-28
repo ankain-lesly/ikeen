@@ -112,7 +112,7 @@ export type MediaMetadata =
 export interface MediaItem {
   id: string;
   mediaType: MediaType;
-  localUri: string;
+  localUri?: string;
   name?: string;
   url?: string;
   caption?: string;

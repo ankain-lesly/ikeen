@@ -26,7 +26,6 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 ## Note Content Legacy
 
 - Eliminate Note.content in future release and rely only on note.blocks
-- ikeen agents tools up to date with the new notes block system
 
 ## Add Background Image
 
@@ -36,13 +35,6 @@ Add a setting background image to the notes app and optionally for each note set
 ## Note List and Wrapper 
 - Re-evaluate the note list items and wrapper base business logic if it can be simplified. It has a lot of source code for simple tasks
 - apps\mobile\src\components\notes\blocks\list-block.tsx
-
-
-## Enable - New Development BUild
-- **Expo Sharing**: apps\mobile\src\components\notes\blocks\media-preview-modal.tsx
-
- - **Expo Linear Gradient**: apps\mobile\src\components\notes\blocks\media-card.tsx
-
 
 ## Validate In Flight Sync
 - in flights should not reset on startup, simple updates the query to find plus failed or processing before syncing fresh Todo
@@ -85,6 +77,5 @@ Atlassian
 ## Important Before Release
 
 - Ensure inflight issue tested
-- Ensure Agents integrate with note.blocks
 
 EEJ73W

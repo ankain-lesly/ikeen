@@ -37,6 +37,7 @@ import { StatusBar } from "expo-status-bar";
 import { MarkdownBody, MarkdownEditor } from "@/components/markdown";
 import { capitalize } from "@repo/utils";
 import { toast } from "@/lib/toast";
+import * as Sharing from "expo-sharing";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -123,16 +124,14 @@ function MediaPreviewModalContent({
     const uri = item.localUri || item.url;
     if (!uri) return;
     try {
-      // TODO: FFix on next build
-      // const isAvailable = await Sharing.isAvailableAsync();
-      // if (isAvailable) {
-      //   await Sharing.shareAsync(uri, {
-      //     dialogTitle: item.name || "Share media",
-      //   });
-      // } else {
-      //   toast.info("Sharing not available on this device");
-      // }
-      toast.info("Sharing not configured");
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          dialogTitle: item.name || "Share media",
+        });
+      } else {
+        toast.info("Sharing not available on this device");
+      }
     } catch (err) {
       console.warn("[MediaPreviewModal] Failed to share file:", err);
     }

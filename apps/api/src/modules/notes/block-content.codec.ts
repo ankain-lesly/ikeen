@@ -26,7 +26,7 @@ export const storedListContentSchema = z.object({
   content: z.array(listItemSchema).catch([]),
 });
 
-function parseStoredList(raw: unknown) {
+export function parseStoredList(raw: unknown) {
   const parsed = storedListContentSchema.safeParse(
     Array.isArray(raw) ? { listType: 'checkbox', content: raw } : raw,
   );

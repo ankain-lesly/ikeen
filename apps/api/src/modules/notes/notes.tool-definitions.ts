@@ -30,7 +30,7 @@ export const searchNotesDef = {
 export const getNoteDetailsDef = {
   name: 'ikeen_get_note_details',
   description:
-    'Retrieve full content, tags, folder, and metadata of a specific note by ID.',
+    'Retrieve full content, discrete note blocks (with checklist items & check states), tags, folder, and metadata of a specific note by ID.',
   inputSchema: z.object({
     noteId: z.string().describe('The UUID of the note to retrieve'),
   }),
@@ -59,15 +59,41 @@ export const listRecentNotesDef = {
   }),
 };
 
+export const blockInputSchema = z.object({
+  type: z.enum(['text', 'list']).describe('Type of block: text or list'),
+  markdown: z
+    .string()
+    .describe(
+      'Markdown content for the block. For checklists, use "- [ ] task" or "- [x] task". For bullet lists, use "- item". For ordered lists, use "1. item". For text, standard markdown paragraphs or headers.',
+    ),
+  header: z
+    .string()
+    .optional()
+    .describe('Optional title or header above this block'),
+  footer: z
+    .string()
+    .optional()
+    .describe(
+      'Optional tip, note, warning, timing info, or summary rendered below the list in markdown (e.g. "> 💡 Tip: ...")',
+    ),
+});
+
 export const createNoteDef = {
   name: 'ikeen_create_note',
   description:
-    'Create a new note in the workspace with title, markdown content, optional folderId, and tags.',
+    'Create a new note in the workspace with title, optional general content, optional structured blocks, optional folderId, and tags. To create interactive native checklists and segmented sections, supply `blocks`.',
   inputSchema: z.object({
     title: z.string().trim().min(1).describe('Title of the note'),
     content: z
       .string()
-      .describe('Markdown content or body of the note'),
+      .default('')
+      .describe('General or summary body text of the note. Omit or leave empty if blocks are used.'),
+    blocks: z
+      .array(blockInputSchema)
+      .optional()
+      .describe(
+        'Optional structured blocks. Use type: "list" with "- [ ] task" to create interactive tap-to-toggle checklists in the mobile app.',
+      ),
     folderId: optionalId.describe(
       'Folder id from listFolders. Omit to save at root. Do not pass null.',
     ),
@@ -75,6 +101,75 @@ export const createNoteDef = {
       .array(z.string())
       .default([])
       .describe('List of tags to categorize the note'),
+  }),
+};
+
+export const addBlockDef = {
+  name: 'ikeen_add_block',
+  description:
+    'Append or insert a discrete block into an existing note. Use type: "list" with "- [ ] item" to create an interactive checklist, or type: "text" for formatted paragraphs.',
+  inputSchema: z.object({
+    noteId: z.string().describe('The UUID of the note to append or insert into'),
+    type: z.enum(['text', 'list']).describe('Type of block: text or list'),
+    markdown: z
+      .string()
+      .describe(
+        'Markdown string for this block. Use "- [ ] item" for checkboxes, "- item" for bullets, "1. item" for numbered, or standard markdown for text.',
+      ),
+    header: z.string().optional().describe('Optional header for this block'),
+    footer: z
+      .string()
+      .optional()
+      .describe(
+        'Optional footer (tips, notes, warnings, or timing) below the list',
+      ),
+    position: z
+      .number()
+      .int()
+      .optional()
+      .describe('0-indexed position. Omit to append at the end of the note.'),
+  }),
+};
+
+export const updateBlockDef = {
+  name: 'ikeen_update_block',
+  description:
+    'Update an existing block within a note. Can replace the block markdown, or use `checklistPatch` to check/uncheck items or append tasks without rewriting the block.',
+  inputSchema: z.object({
+    noteId: z.string().describe('UUID of the note'),
+    blockId: z.string().describe('UUID of the block to update'),
+    markdown: z
+      .string()
+      .optional()
+      .describe('New replacement markdown for this block.'),
+    header: z.string().optional().describe('Updated header for this block'),
+    footer: z.string().optional().describe('Updated footer for this block'),
+    checklistPatch: z
+      .object({
+        toggleItemText: z
+          .string()
+          .optional()
+          .describe('Text or keyword of the checklist item to toggle or update'),
+        setChecked: z
+          .boolean()
+          .optional()
+          .describe('Target checked state (true = checked, false = unchecked)'),
+        appendItems: z
+          .array(z.string())
+          .optional()
+          .describe('New task strings to append to this checklist'),
+      })
+      .optional()
+      .describe('Targeted checklist patch without replacing the full block'),
+  }),
+};
+
+export const deleteBlockDef = {
+  name: 'ikeen_delete_block',
+  description: 'Delete a specific block from a note by its block ID.',
+  inputSchema: z.object({
+    noteId: z.string().describe('UUID of the note'),
+    blockId: z.string().describe('UUID of the block to delete'),
   }),
 };
 

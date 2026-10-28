@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   TouchableOpacity,
   Platform,
   Pressable,
-  Text,
+  Text, StyleSheet
 } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { SymbolView, SFSymbol, AndroidSymbol } from "expo-symbols";
@@ -16,6 +16,9 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Card } from "./ui/card";
 import DrawerLeft from "@/assets/svg/drawer-left.svg";
 import { useDrawerActions } from "./drawer-nav-items";
+import { LinearGradient } from "expo-linear-gradient";
+import { hex2RGBA } from "@repo/utils";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Explicitly type the icon manifest to lock down safety limits
 interface SymbolConfiguration {
@@ -60,10 +63,10 @@ const ICON_MANIFEST: Record<string, SymbolConfiguration> = {
 
 export default function AppTabs() {
   const colors = useTheme();
+  const        insets=useSafeAreaInsets()
 
   return (
     <>
-    {/* TODO: Add a gradient flowing up direction */}
       <Tabs
         tabBar={({ state, descriptors, navigation }) => (
           <View className="absolute px-4 bottom-safe-offset-2 w-full flex-row items-center justify-between">
@@ -166,6 +169,22 @@ export default function AppTabs() {
           </View>
         )}
         screenOptions={{ headerShown: false }}
+      />
+
+      {/* Gradient */}
+      <LinearGradient
+        colors={[
+          "transparent",
+          hex2RGBA(colors.background, 0.45),
+          hex2RGBA(colors.background, 0.8),
+          hex2RGBA(colors.background, 0.95),
+        ]}
+        style={{
+          position: "absolute",
+          width: "100%",
+          bottom: 0,
+          height: insets.bottom
+        }}
       />
 
       {/* Speed Dial Feed Menu */}

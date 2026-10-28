@@ -12,6 +12,7 @@ export function useMarkdownStyle(size: 14 | 16 = 16): MarkdownStyle {
       h1: { fontSize: size + 8, fontWeight: "700", color: colors.text },
       h2: { fontSize: size + 4, fontWeight: "700", color: colors.text },
       h3: { fontSize: size + 2, fontWeight: "600", color: colors.text },
+      h4: { fontSize: size - 2, fontWeight: "500", color: colors.text },
       link: { color: colors.primary },
       code: {
         fontSize: size - 2,

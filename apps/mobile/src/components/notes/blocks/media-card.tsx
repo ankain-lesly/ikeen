@@ -1,7 +1,7 @@
 import React from "react";
 import { type DimensionValue, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-// import { LinearGradient } from "expo-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   FileText,
   FileCode,
@@ -169,12 +169,11 @@ export const MediaCard = React.memo(function MediaCard({
 
         {/* Bottom Gradient Scrim & 2-Line Metadata Overlay */}
         <View className="w-full justify-end z-10 overflow-hidden rounded-b-[23px] relative pt-6">
-          {/* TODO: Need a production build */}
-          {/* <LinearGradient
-            colors={["transparent", "rgba(0, 0, 0, 0.45)", "rgba(0, 0, 0, 0.88)"]}
+          <LinearGradient
+            colors={["transparent", "rgba(0, 0, 0, 0.55)", "rgba(0, 0, 0, 0.88)"]}
             locations={[0, 0.45, 1]}
             style={StyleSheet.absoluteFill}
-          /> */}
+          />
           <View className="w-full px-3 pb-2.5 pt-2">
             <Text
               numberOfLines={1}
