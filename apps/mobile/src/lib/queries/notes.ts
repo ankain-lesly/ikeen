@@ -217,8 +217,10 @@ export interface RecentNote {
 }
 
 export interface NotesOverviewStats {
-  activeNotesCount: number;
-  trashNotesCount: number;
+  activeCount: number;
+  pinnedCount: number;
+  trashCount: number;
+  isLoading: boolean;
 }
 
 /**
@@ -286,9 +288,9 @@ export function useInfiniteRecentNotes(
 ): InfiniteRecentNotesResult {
   const [limit, setLimit] = useState(pageSize);
   const { data: notes = [], isLoading } = useRecentNotes(limit);
-  const { activeNotesCount } = useNotesStats();
+  const { activeCount } = useNotesStats();
 
-  const hasMore = notes.length < activeNotesCount;
+  const hasMore = notes.length < activeCount;
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const loadMore = useCallback(() => {
@@ -300,7 +302,7 @@ export function useInfiniteRecentNotes(
 
   return {
     notes,
-    totalCount: activeNotesCount,
+    totalCount: activeCount,
     hasMore,
     isLoading,
     isLoadingMore,
@@ -312,7 +314,7 @@ export function useInfiniteRecentNotes(
  * Lightweight reactive hook for global notes count statistics (active notes and trashed notes).
  * Uses a single-row SQL aggregation over the notes table.
  */
-export function useNotesStats(): NotesOverviewStats & { isLoading: boolean } {
+export function useNotesStats(): NotesOverviewStats {
   const userId = useAuthStore((s) => s.user?.id ?? null);
 
   const query = useMemo(() => {
@@ -320,6 +322,7 @@ export function useNotesStats(): NotesOverviewStats & { isLoading: boolean } {
       .select({
         activeCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is null and ${notes.isArchived} = 0 then 1 else 0 end), 0)`,
         trashCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is not null then 1 else 0 end), 0)`,
+        pinnedCount: sql<number>`coalesce(sum(case when ${notes.isPinned} is not null and ${notes.isPinned} = 1 then 1 else 0 end), 0)`,
       })
       .from(notes)
       .where(ownerCondition(notes.userId, userId));
@@ -327,12 +330,14 @@ export function useNotesStats(): NotesOverviewStats & { isLoading: boolean } {
 
   const res = useLiveQuery(query, [userId]);
 
-  const activeNotesCount = Number(res.data?.[0]?.activeCount ?? 0);
-  const trashNotesCount = Number(res.data?.[0]?.trashCount ?? 0);
+  const activeCount = Number(res.data?.[0]?.activeCount ?? 0);
+  const trashCount = Number(res.data?.[0]?.trashCount ?? 0);
+  const pinnedCount = Number(res.data?.[0]?.pinnedCount ?? 0);
 
   return {
-    activeNotesCount,
-    trashNotesCount,
+    activeCount,
+    trashCount,
+    pinnedCount,
     isLoading: !res.updatedAt,
   };
 }

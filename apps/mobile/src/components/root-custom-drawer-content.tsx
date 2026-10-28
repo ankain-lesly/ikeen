@@ -31,7 +31,7 @@ export function RootCustomDrawerContent(props: any) {
   const { theme, setTheme } = useSettingsStore();
 
   // Optimized, lightweight reactive queries
-  const { activeNotesCount } = useNotesStats();
+  const { activeCount } = useNotesStats();
   const { data: folders = [] } = useLiveFolders();
   const foldersCount = folders.length;
 
@@ -65,7 +65,7 @@ export function RootCustomDrawerContent(props: any) {
         name: "Notes",
         icon: FileText,
         path: "/notes",
-        badge: activeNotesCount,
+        badge: activeCount,
       },
       {
         name: "Folders",
@@ -91,7 +91,7 @@ export function RootCustomDrawerContent(props: any) {
       //   badge: trashNotesCount > 0 ? trashNotesCount : undefined,
       // },
     ],
-    [activeNotesCount, foldersCount],
+    [activeCount, foldersCount],
   );
 
   return (

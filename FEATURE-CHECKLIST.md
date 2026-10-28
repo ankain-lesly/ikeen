@@ -262,3 +262,15 @@ Grouped by todo topic / issue for clearer tracking and context.
 - [x] Task 3: Infinite rendering & loading footer in `apps/mobile/src/components/recent-notes.tsx`
 - [x] Task 4: Verification via TypeScript compilation and manual checking
 
+---
+
+## ✨ Modern UI/UX Home Screen Overhaul — 2026-10-28
+* **Status**: Completed
+* **Scope**: Top sticky header with drawer trigger and live sync pill, editorial greeting with localized day/date, 4-pill quick capture action bar (Note, Checklist, Audio, Photo), compact glance pills using `useNotesStats()` and `useLiveFolders()`, and dual-feed layout (horizontal pinned highlights + vertical recent activity list).
+
+- [x] Task 1: Dedicated `HomeHeader` component with drawer trigger, brand text, sync indicator, search, and user avatar
+- [x] Task 2: `QuickCaptureBar` with direct actions for blank note, checklist, audio recording, and photo capture
+- [x] Task 3: `HomeGlancePills` for accurate, real-time note and folder statistics (replacing the 5-note query limit bug)
+- [x] Task 4: Refactor `HomeScreen` with editorial greeting, unified `px-4` padding, daily focus card, and dual feed (pinned carousel + vertical recent list)
+- [x] Task 5: Verification via TypeScript compilation and layout checks
+

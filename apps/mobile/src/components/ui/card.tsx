@@ -1,5 +1,6 @@
 import React from "react";
 import { View, ViewProps } from "react-native";
+import { cn } from "@/lib/utils";
 
 type CardWrapperProps = ViewProps & {
   children: React.ReactNode;
@@ -18,7 +19,10 @@ export function Card({
 }: CardWrapperProps) {
   return (
     <View
-    className={`p-2 rounded-2xl border border-border bg-card overflow-hidden ${className}`}
+      className={cn(
+        `px-2 py-2 rounded-2xl border border-border bg-card overflow-hidden shadow-xs`,
+        className,
+      )}
       style={[
         {
           // borderRadius,
@@ -30,10 +34,9 @@ export function Card({
           // shadowOpacity: 0.1 + 0.05 * elevation,
           // shadowRadius: 4 + elevation
         },
-        style
+        style,
       ]}
-      {...rest}
-    >
+      {...rest}>
       {children}
     </View>
   );
