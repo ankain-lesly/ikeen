@@ -17,6 +17,7 @@ import {
 import type {
   addBlockDef,
   archiveNoteDef,
+  attachImageDef,
   createNoteDef,
   deleteBlockDef,
   deleteNoteDef,
@@ -662,6 +663,113 @@ export class NotesToolService {
       };
     } catch (err) {
       this.logger.error(`Error in deleteBlock for user ${userId}:`, err);
+      return toolFailure();
+    }
+  }
+
+  async attachImage(
+    userId: string,
+    {
+      noteId,
+      url,
+      caption,
+      name,
+      createNewBlock = false,
+    }: z.input<typeof attachImageDef.inputSchema>,
+    options?: ToolExecutionOptions,
+  ) {
+    try {
+      const existingNote = await this.prisma.note.findFirst({
+        where: { id: noteId, userId, deletedAt: null },
+        include: {
+          blocks: { orderBy: { position: 'asc' } },
+        },
+      });
+
+      if (!existingNote) {
+        return { ok: false, error: 'Note not found or deleted.' };
+      }
+
+      const existingMediaBlock = !createNewBlock
+        ? existingNote.blocks.find((b) => b.type === 'media')
+        : undefined;
+
+      const newMediaItem = {
+        id: randomUUID(),
+        mediaType: 'image' as const,
+        url: url.trim(),
+        name: name?.trim() || undefined,
+        caption: caption?.trim() || undefined,
+      };
+
+      let resolvedBlockId = existingMediaBlock?.id;
+      let isNewBlock = false;
+
+      await this.executeTx(async (tx) => {
+        if (existingMediaBlock) {
+          const currentItems = Array.isArray(existingMediaBlock.content)
+            ? existingMediaBlock.content
+            : [];
+
+          await tx.noteBlock.update({
+            where: { id: existingMediaBlock.id },
+            data: {
+              content: [...currentItems, newMediaItem] as Prisma.InputJsonValue,
+              version: { increment: 1 },
+              updatedAt: new Date(),
+            },
+          });
+        } else {
+          isNewBlock = true;
+          resolvedBlockId = randomUUID();
+
+          await tx.noteBlock.create({
+            data: {
+              id: resolvedBlockId,
+              noteId,
+              type: 'media',
+              position: existingNote.blocks.length,
+              content: [newMediaItem] as Prisma.InputJsonValue,
+              version: 1,
+            },
+          });
+        }
+
+        await tx.note.update({
+          where: { id: noteId },
+          data: {
+            version: { increment: 1 },
+            updatedAt: new Date(),
+          },
+        });
+      });
+
+      const source = options?.source ?? 'agent';
+      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
+
+      this.audit.logAgent({
+        userId,
+        conversationId: options?.conversationId ?? `${source}-${userId}`,
+        action: `${actionPrefix}.attachImage`,
+        resourceType: 'note',
+        resourceId: noteId,
+        details: `Attached image to note "${existingNote.title}" (${isNewBlock ? 'new block' : 'appended'})`,
+        metadata: { blockId: resolvedBlockId, imageId: newMediaItem.id, url },
+      });
+
+      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
+
+      return {
+        ok: true as const,
+        noteId,
+        blockId: resolvedBlockId,
+        imageId: newMediaItem.id,
+        isNewBlock,
+        url: newMediaItem.url,
+        caption: newMediaItem.caption,
+      };
+    } catch (err) {
+      this.logger.error(`Error in attachImage for user ${userId}:`, err);
       return toolFailure();
     }
   }

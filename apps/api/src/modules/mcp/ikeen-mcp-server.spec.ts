@@ -68,7 +68,8 @@ describe('IkeenMcpServer', () => {
     await client.connect(clientTransport);
 
     const toolsResult = await client.listTools();
-    expect(toolsResult.tools.length).toBe(15);
+    expect(toolsResult.tools.length).toBe(16);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_attach_image')).toBe(true);
 
     for (const tool of toolsResult.tools) {
       expect(tool.name).toMatch(/^ikeen_/);

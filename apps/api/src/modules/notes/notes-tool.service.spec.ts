@@ -414,6 +414,132 @@ describe('NotesToolService', () => {
     });
   });
 
+  describe('attachImage', () => {
+    it('creates a new media block when no media block exists on the note', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Project Architecture',
+        blocks: [{ id: 'b-1', type: 'text', position: 0, content: 'Intro' }],
+      });
+      mockPrisma.note.update.mockResolvedValue({});
+
+      const result = await service.attachImage('user-1', {
+        noteId: 'note-1',
+        url: 'https://example.com/diagram.png',
+        caption: 'Architecture Overview',
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+      expect(result.isNewBlock).toBe(true);
+      expect(result.url).toBe('https://example.com/diagram.png');
+      expect(result.caption).toBe('Architecture Overview');
+      expect(mockPrisma.noteBlock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            noteId: 'note-1',
+            type: 'media',
+            position: 1,
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                mediaType: 'image',
+                url: 'https://example.com/diagram.png',
+                caption: 'Architecture Overview',
+              }),
+            ]),
+          }),
+        }),
+      );
+      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
+    });
+
+    it('appends image to existing media block when createNewBlock is false', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Photos',
+        blocks: [
+          {
+            id: 'b-media-1',
+            type: 'media',
+            position: 0,
+            content: [
+              {
+                id: 'img-1',
+                mediaType: 'image',
+                url: 'https://example.com/photo1.png',
+                caption: 'First photo',
+              },
+            ],
+          },
+        ],
+      });
+      mockPrisma.note.update.mockResolvedValue({});
+
+      const result = await service.attachImage('user-1', {
+        noteId: 'note-1',
+        url: 'https://example.com/photo2.png',
+        caption: 'Second photo',
+        createNewBlock: false,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+      expect(result.isNewBlock).toBe(false);
+      expect(result.blockId).toBe('b-media-1');
+      expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'b-media-1' },
+          data: expect.objectContaining({
+            content: expect.arrayContaining([
+              expect.objectContaining({ url: 'https://example.com/photo1.png' }),
+              expect.objectContaining({ url: 'https://example.com/photo2.png', caption: 'Second photo' }),
+            ]),
+          }),
+        }),
+      );
+      expect(mockPrisma.noteBlock.create).not.toHaveBeenCalled();
+      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
+    });
+
+    it('creates a separate new media block when createNewBlock is true even if one exists', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Photos',
+        blocks: [
+          {
+            id: 'b-media-1',
+            type: 'media',
+            position: 0,
+            content: [],
+          },
+        ],
+      });
+      mockPrisma.note.update.mockResolvedValue({});
+
+      const result = await service.attachImage('user-1', {
+        noteId: 'note-1',
+        url: 'https://example.com/photo3.png',
+        createNewBlock: true,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+      expect(result.isNewBlock).toBe(true);
+      expect(mockPrisma.noteBlock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            noteId: 'note-1',
+            type: 'media',
+            position: 1,
+            content: expect.arrayContaining([
+              expect.objectContaining({ url: 'https://example.com/photo3.png' }),
+            ]),
+          }),
+        }),
+      );
+    });
+  });
+
   describe('updateNote', () => {
     it('returns preview requiring confirmation when replacing content without confirm', async () => {
       mockPrisma.note.findFirst.mockResolvedValue({

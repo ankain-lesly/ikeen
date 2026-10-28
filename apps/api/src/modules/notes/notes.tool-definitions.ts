@@ -173,6 +173,30 @@ export const deleteBlockDef = {
   }),
 };
 
+export const attachImageDef = {
+  name: 'ikeen_attach_image',
+  description:
+    'Attach an image URL to a note with an optional caption. By default, it checks for an existing media block and appends the image, or creates a new media block if none exists. Set createNewBlock: true to force creating a new media block section.',
+  inputSchema: z.object({
+    noteId: z.string().describe('The UUID of the note to attach the image to'),
+    url: z.string().url().describe('Direct HTTP/HTTPS URL of the image'),
+    caption: z
+      .string()
+      .optional()
+      .describe('Optional caption or description displayed beneath the image'),
+    name: z
+      .string()
+      .optional()
+      .describe('Optional display title or filename for the image (e.g. "Architecture Diagram.png")'),
+    createNewBlock: z
+      .boolean()
+      .default(false)
+      .describe(
+        'If false (default), appends to an existing media block if present, or creates one if none exists. If true, always creates a separate new media block.',
+      ),
+  }),
+};
+
 export const updateNoteDef = {
   name: 'ikeen_update_note',
   description:

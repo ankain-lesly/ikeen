@@ -11,6 +11,7 @@ import type { FoldersToolService } from '../folders/folders-tool.service.js';
 import {
   addBlockDef,
   archiveNoteDef,
+  attachImageDef,
   createNoteDef,
   deleteBlockDef,
   deleteNoteDef,
@@ -157,6 +158,23 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof deleteBlockDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.deleteBlock(userId, args, toolExecutionOpts);
+        return formatResult(result);
+      } catch (err) {
+        return toolError(err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  server.registerTool(
+    attachImageDef.name,
+    {
+      description: attachImageDef.description,
+      inputSchema: attachImageDef.inputSchema.shape,
+      annotations: { readOnlyHint: false, destructiveHint: false },
+    },
+    async (args: z.infer<typeof attachImageDef.inputSchema>): Promise<CallToolResult> => {
+      try {
+        const result = await notesToolService.attachImage(userId, args, toolExecutionOpts);
         return formatResult(result);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));

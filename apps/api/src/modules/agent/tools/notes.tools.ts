@@ -7,6 +7,7 @@ import type { AblyService } from '../../ably/ably.service.js';
 import {
   addBlockDef,
   archiveNoteDef,
+  attachImageDef,
   createNoteDef,
   deleteBlockDef,
   getNoteDetailsDef,
@@ -114,6 +115,18 @@ export function createNotesTools(params: {
     },
   });
 
+  const attachImage = tool({
+    description: attachImageDef.description,
+    contextSchema: baseContextSchema,
+    inputSchema: attachImageDef.inputSchema,
+    execute: async (args, { context }) => {
+      return notesToolService.attachImage(context.userId, args, {
+        conversationId: context.conversationId,
+        source: 'agent',
+      });
+    },
+  });
+
   const updateNote = tool({
     description: updateNoteDef.description,
     contextSchema: baseContextSchema,
@@ -158,6 +171,7 @@ export function createNotesTools(params: {
     addBlock,
     updateBlock,
     deleteBlock,
+    attachImage,
     updateNote,
     pinNote,
     archiveNote,

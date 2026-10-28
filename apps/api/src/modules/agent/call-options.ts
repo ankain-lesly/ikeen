@@ -22,6 +22,7 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     addBlock: baseContext,
     updateBlock: baseContext,
     deleteBlock: baseContext,
+    attachImage: baseContext,
     updateNote: baseContext,
     listFolders: baseContext,
     createFolder: baseContext,
