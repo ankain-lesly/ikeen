@@ -44,6 +44,15 @@ export const envSchema = z.object({
   // MCP Configuration
   MCP_ALLOWED_ORIGINS: z.string().optional(),
   MCP_ALLOW_APP_JWT: z.coerce.boolean().default(false),
+
+  // Media & Storage (Mediadock)
+  MEDIADOCK_URL: z.url(),
+  MEDIADOCK_API_KEY: z.string(),
+  MEDIADOCK_API_SECRET: z.string(),
+
+  // Image Generation
+  IMAGE_SERVICE_URL: z.url(),
+  IMAGE_SERVICE_API_KEY: z.string(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

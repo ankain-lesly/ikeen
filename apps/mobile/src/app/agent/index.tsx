@@ -183,8 +183,6 @@ export default function AgentScreen() {
     initialMessages: [],
   }));
 
-  console.log({ session });
-
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);

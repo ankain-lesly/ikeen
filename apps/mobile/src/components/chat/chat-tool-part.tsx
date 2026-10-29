@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import React, { useState } from "react";
+import { View, Text, Pressable, Linking, Image } from "react-native";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   FileText,
   Search,
@@ -16,33 +16,38 @@ import {
   Pin,
   Archive,
   Globe,
-} from 'lucide-react-native';
-import { useTheme } from '@/hooks/use-theme';
+} from "lucide-react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 export interface ToolPartProps {
   toolName: string;
   args?: Record<string, unknown>;
   result?: unknown;
-  state?: 'call' | 'partial-call' | 'result' | 'output-available' | string;
+  state?: "call" | "partial-call" | "result" | "output-available" | string;
 }
 
-export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartProps) {
+export function ChatToolPart({
+  toolName,
+  args = {},
+  result,
+  state,
+}: ToolPartProps) {
   const colors = useTheme();
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isRunning = state === 'call' || state === 'partial-call';
+  const isRunning = state === "call" || state === "partial-call";
 
   const handleOpenNote = (noteId: string) => {
     Haptics.selectionAsync();
     router.push({
-      pathname: '/notes/[id]',
+      pathname: "/notes/[id]",
       params: { id: noteId },
     });
   };
 
   const handleOpenUrl = (url: string) => {
-    if (!url.startsWith('https://')) {
+    if (!url.startsWith("https://") && !url.startsWith("http://")) {
       return;
     }
     Haptics.selectionAsync();
@@ -50,7 +55,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   };
 
   // 1. Note Creation / Update Tool Card
-  if (toolName === 'createNote' || toolName === 'updateNote') {
+  if (toolName === "createNote" || toolName === "updateNote") {
     const noteResult = result as {
       ok?: boolean;
       success?: boolean;
@@ -62,7 +67,10 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     const note = noteResult?.note;
     const noteId = note?.id || noteResult?.noteId || (args.noteId as string);
     const title =
-      note?.title || noteResult?.title || (args.title as string) || 'Untitled Note';
+      note?.title ||
+      noteResult?.title ||
+      (args.title as string) ||
+      "Untitled Note";
 
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
@@ -77,7 +85,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {toolName === 'createNote' ? 'Note Created' : 'Note Updated'}
+                {toolName === "createNote" ? "Note Created" : "Note Updated"}
               </Text>
               <Text
                 className="text-xs font-semibold text-text"
@@ -102,13 +110,13 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 2. Note Search Tool Card
-  if (toolName === 'searchNotes') {
+  if (toolName === "searchNotes") {
     const searchResult = result as {
       count?: number;
       notes?: { id: string; title: string; folderName?: string }[];
     } | null;
 
-    const query = (args.query as string) || '';
+    const query = (args.query as string) || "";
     const notes = searchResult?.notes || [];
     const count = searchResult?.count ?? notes.length;
 
@@ -123,13 +131,15 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {isRunning ? 'Searching Notes...' : `Found ${count} Note${count === 1 ? '' : 's'}`}
+                {isRunning
+                  ? "Searching Notes..."
+                  : `Found ${count} Note${count === 1 ? "" : "s"}`}
               </Text>
               {query ? (
                 <Text
                   className="text-xs text-text-secondary italic"
                   numberOfLines={1}>
-                  "{query}"
+                  &quot;{query}&quot;
                 </Text>
               ) : null}
             </View>
@@ -175,8 +185,8 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 3. Context Memory Recorded
-  if (toolName === 'recordMemory') {
-    const memory = (args.content as string) || '';
+  if (toolName === "recordMemory") {
+    const memory = (args.content as string) || "";
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
         <Brain size={13} color={colors.primary} />
@@ -190,7 +200,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 4. Organize Note Tool
-  if (toolName === 'organizeNote') {
+  if (toolName === "organizeNote") {
     const organizeResult = result as {
       ok?: boolean;
       noteId?: string;
@@ -202,17 +212,18 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     const noteId = organizeResult?.noteId || (args.noteId as string);
     const title = organizeResult?.title || (args.title as string);
     const folderName = organizeResult?.folderName;
-    const isUnfiled = args.folderId === null || organizeResult?.folderId === null;
+    const isUnfiled =
+      args.folderId === null || organizeResult?.folderId === null;
 
-    let label = 'Note Organized';
-    let description = 'Organized note';
+    let label = "Note Organized";
+    let description = "Organized note";
     if (isUnfiled) {
-      label = 'Folder Unassigned';
+      label = "Folder Unassigned";
       description = title
         ? `Moved "${title}" to general workspace`
-        : 'Moved note to general workspace';
+        : "Moved note to general workspace";
     } else if (folderName) {
-      label = 'Organized into Folder';
+      label = "Organized into Folder";
       description = title
         ? `Moved "${title}" into ${folderName}`
         : `Organized note into ${folderName}`;
@@ -258,7 +269,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 5. Create Folder Tool
-  if (toolName === 'createFolder') {
+  if (toolName === "createFolder") {
     const folderResult = result as {
       ok?: boolean;
       folder?: { id: string; name: string; color?: string; icon?: string };
@@ -267,8 +278,12 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     } | null;
 
     const folderName =
-      folderResult?.folder?.name || folderResult?.name || (args.name as string) || 'New Folder';
-    const folderColor = folderResult?.folder?.color || (args.color as string) || colors.primary;
+      folderResult?.folder?.name ||
+      folderResult?.name ||
+      (args.name as string) ||
+      "New Folder";
+    const folderColor =
+      folderResult?.folder?.color || (args.color as string) || colors.primary;
     const isAlreadyExisted = folderResult?.alreadyExisted;
 
     return (
@@ -276,7 +291,10 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
             <View
-              style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
+              style={{
+                backgroundColor: `${folderColor}20`,
+                borderColor: `${folderColor}40`,
+              }}
               className="w-7 h-7 rounded-lg border items-center justify-center">
               {isRunning ? (
                 <Loader2 size={14} color={folderColor} />
@@ -286,7 +304,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {isAlreadyExisted ? 'Existing Folder Linked' : 'Folder Created'}
+                {isAlreadyExisted ? "Existing Folder Linked" : "Folder Created"}
               </Text>
               <Text
                 className="text-xs font-semibold text-text"
@@ -301,7 +319,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 6. Update Folder Tool
-  if (toolName === 'updateFolder') {
+  if (toolName === "updateFolder") {
     const folderResult = result as {
       ok?: boolean;
       folder?: { id: string; name: string; color?: string; icon?: string };
@@ -309,14 +327,21 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     } | null;
 
     const folderName =
-      folderResult?.folder?.name || folderResult?.name || (args.name as string) || 'Folder';
-    const folderColor = folderResult?.folder?.color || (args.color as string) || colors.primary;
+      folderResult?.folder?.name ||
+      folderResult?.name ||
+      (args.name as string) ||
+      "Folder";
+    const folderColor =
+      folderResult?.folder?.color || (args.color as string) || colors.primary;
 
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
         <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
           <View
-            style={{ backgroundColor: `${folderColor}20`, borderColor: `${folderColor}40` }}
+            style={{
+              backgroundColor: `${folderColor}20`,
+              borderColor: `${folderColor}40`,
+            }}
             className="w-7 h-7 rounded-lg border items-center justify-center">
             {isRunning ? (
               <Loader2 size={14} color={folderColor} />
@@ -338,7 +363,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 7. Pin Note Tool
-  if (toolName === 'pinNote') {
+  if (toolName === "pinNote") {
     const noteResult = result as {
       ok?: boolean;
       noteId?: string;
@@ -346,8 +371,13 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
       isPinned?: boolean;
       note?: { id: string; title: string; isPinned: boolean };
     } | null;
-    const noteId = noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
-    const title = noteResult?.note?.title || noteResult?.title || (args.title as string) || 'Note';
+    const noteId =
+      noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
+    const title =
+      noteResult?.note?.title ||
+      noteResult?.title ||
+      (args.title as string) ||
+      "Note";
     const isPinned =
       noteResult?.note?.isPinned !== undefined
         ? noteResult.note.isPinned
@@ -368,7 +398,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {isPinned ? 'Note Pinned' : 'Note Unpinned'}
+                {isPinned ? "Note Pinned" : "Note Unpinned"}
               </Text>
               <Text
                 className="text-xs font-semibold text-text"
@@ -393,7 +423,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 8. Archive Note Tool
-  if (toolName === 'archiveNote') {
+  if (toolName === "archiveNote") {
     const noteResult = result as {
       ok?: boolean;
       noteId?: string;
@@ -401,8 +431,13 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
       isArchived?: boolean;
       note?: { id: string; title: string; isArchived: boolean };
     } | null;
-    const noteId = noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
-    const title = noteResult?.note?.title || noteResult?.title || (args.title as string) || 'Note';
+    const noteId =
+      noteResult?.note?.id || noteResult?.noteId || (args.noteId as string);
+    const title =
+      noteResult?.note?.title ||
+      noteResult?.title ||
+      (args.title as string) ||
+      "Note";
     const isArchived =
       noteResult?.note?.isArchived !== undefined
         ? noteResult.note.isArchived
@@ -423,7 +458,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {isArchived ? 'Note Archived' : 'Note Restored'}
+                {isArchived ? "Note Archived" : "Note Restored"}
               </Text>
               <Text
                 className="text-xs font-semibold text-text"
@@ -448,14 +483,19 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
   }
 
   // 9. List Folders Tool
-  if (toolName === 'listFolders') {
+  if (toolName === "listFolders") {
     const listResult = result as {
       ok?: boolean;
       count?: number;
-      folders?: Array<{ id: string; name: string; color?: string; noteCount?: number }>;
+      folders?: {
+        id: string;
+        name: string;
+        color?: string;
+        noteCount?: number;
+      }[];
     } | null;
     const count = listResult?.count ?? listResult?.folders?.length ?? 0;
-    const query = (args.query as string) || '';
+    const query = (args.query as string) || "";
 
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center gap-2">
@@ -466,21 +506,21 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         )}
         <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
           {isRunning
-            ? 'Checking workspace folders...'
+            ? "Checking workspace folders..."
             : query
-              ? `Found ${count} folder${count === 1 ? '' : 's'} matching "${query}"`
-              : `Loaded ${count} workspace folder${count === 1 ? '' : 's'}`}
+              ? `Found ${count} folder${count === 1 ? "" : "s"} matching "${query}"`
+              : `Loaded ${count} workspace folder${count === 1 ? "" : "s"}`}
         </Text>
       </View>
     );
   }
 
   // 10. List Recent Notes Tool
-  if (toolName === 'listRecentNotes') {
+  if (toolName === "listRecentNotes") {
     const listResult = result as {
       ok?: boolean;
       count?: number;
-      notes?: Array<{ id: string; title: string; isPinned?: boolean }>;
+      notes?: { id: string; title: string; isPinned?: boolean }[];
     } | null;
     const count = listResult?.count ?? listResult?.notes?.length ?? 0;
     const pinnedOnly = Boolean(args.pinnedOnly);
@@ -494,23 +534,23 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
         )}
         <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
           {isRunning
-            ? 'Reading recent workspace notes...'
+            ? "Reading recent workspace notes..."
             : pinnedOnly
-              ? `Loaded ${count} pinned note${count === 1 ? '' : 's'}`
-              : `Loaded ${count} recent note${count === 1 ? '' : 's'}`}
+              ? `Loaded ${count} pinned note${count === 1 ? "" : "s"}`
+              : `Loaded ${count} recent note${count === 1 ? "" : "s"}`}
         </Text>
       </View>
     );
   }
 
   // 11. Get Note Details Tool
-  if (toolName === 'getNoteDetails') {
+  if (toolName === "getNoteDetails") {
     const detailResult = result as {
       ok?: boolean;
       note?: { id: string; title: string };
     } | null;
     const noteId = detailResult?.note?.id || (args.noteId as string);
-    const title = detailResult?.note?.title || 'Note details';
+    const title = detailResult?.note?.title || "Note details";
 
     return (
       <View className="my-1.5 px-3 py-2 rounded-xl bg-background-element border border-border/80 flex-row items-center justify-between">
@@ -521,7 +561,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             <FileText size={13} color={colors.primary} />
           )}
           <Text className="text-xs text-text flex-1 min-w-0" numberOfLines={1}>
-            {isRunning ? 'Reading note...' : `Inspected "${title}"`}
+            {isRunning ? "Reading note..." : `Inspected "${title}"`}
           </Text>
         </View>
         {noteId && !isRunning && (
@@ -536,11 +576,11 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
-  if (toolName === 'webSearch') {
+  if (toolName === "webSearch") {
     const searchResult = result as {
-      results?: Array<{ title: string; url: string }>;
+      results?: { title: string; url: string }[];
     } | null;
-    const query = (args.query as string) || '';
+    const query = (args.query as string) || "";
     const hits = searchResult?.results || [];
     const count = hits.length;
 
@@ -560,14 +600,14 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning
-                  ? 'Searching the web...'
-                  : `Searched the web${count > 0 ? ` · ${count}` : ''}`}
+                  ? "Searching the web..."
+                  : `Searched the web${count > 0 ? ` · ${count}` : ""}`}
               </Text>
               {query ? (
                 <Text
                   className="text-xs text-text-secondary italic"
                   numberOfLines={1}>
-                  "{query}"
+                  &quot;{query}&quot;
                 </Text>
               ) : null}
             </View>
@@ -608,14 +648,14 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     );
   }
 
-  if (toolName === 'readWebPage') {
+  if (toolName === "readWebPage") {
     const pageResult = result as {
       ok?: boolean;
       url?: string;
       title?: string;
     } | null;
-    const url = pageResult?.url || (args.url as string) || '';
-    const title = pageResult?.title || url || 'Web page';
+    const url = pageResult?.url || (args.url as string) || "";
+    const title = pageResult?.title || url || "Web page";
 
     return (
       <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
@@ -630,7 +670,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
-                {isRunning ? 'Reading page...' : 'Read page'}
+                {isRunning ? "Reading page..." : "Read page"}
               </Text>
               <Text
                 className="text-xs font-semibold text-text"
@@ -644,6 +684,132 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
           {url && !isRunning && (
             <Pressable
               onPress={() => handleOpenUrl(url)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">Open</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // 14. Generate Image Tool Card
+  if (toolName === "generateImageKeen" || toolName === "ikeen_generate_image") {
+    const imgResult = result as {
+      ok?: boolean;
+      url?: string;
+      description?: string;
+      mimeType?: string;
+      error?: string;
+    } | null;
+
+    const description =
+      imgResult?.description ||
+      (args.description as string) ||
+      "Generating image...";
+    const imageUrl = imgResult?.url;
+    const isError = imgResult?.ok === false || !!imgResult?.error;
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <Sparkles size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1 min-w-0">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isRunning
+                  ? "Generating Image..."
+                  : isError
+                    ? "Generation Failed"
+                    : "Image Generated"}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={2}
+                ellipsizeMode="tail">
+                {description}
+              </Text>
+            </View>
+          </View>
+
+          {imageUrl && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenUrl(imageUrl)}
+              className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
+              <Text className="text-xs font-medium text-primary">View</Text>
+              <ExternalLink size={11} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
+
+        {imageUrl && !isRunning && (
+          <View className="mt-3 rounded-xl overflow-hidden border border-border/50 bg-background aspect-video">
+            <Image
+              source={{ uri: imageUrl }}
+              className="w-full h-62"
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
+        {isError && (
+          <Text className="mt-1.5 text-xs text-red-500">
+            {imgResult?.error || "Failed to generate image"}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  // 15. Attach Image Tool Card
+  if (toolName === "attachImage" || toolName === "ikeen_attach_image") {
+    const attachResult = result as {
+      ok?: boolean;
+      noteId?: string;
+      url?: string;
+      caption?: string;
+    } | null;
+
+    const noteId = attachResult?.noteId || (args.noteId as string);
+    const caption =
+      attachResult?.caption ||
+      (args.caption as string) ||
+      (args.name as string) ||
+      "Image attached to note";
+
+    return (
+      <View className="my-1.5 p-3 rounded-2xl bg-background-element border border-border/80">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+            <View className="w-7 h-7 rounded-lg bg-background border border-border/60 items-center justify-center">
+              {isRunning ? (
+                <Loader2 size={14} color={colors.primary} />
+              ) : (
+                <CheckCircle2 size={14} color={colors.primary} />
+              )}
+            </View>
+            <View className="flex-1 min-w-0">
+              <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                {isRunning ? "Attaching Image..." : "Image Attached"}
+              </Text>
+              <Text
+                className="text-xs font-semibold text-text"
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {caption}
+              </Text>
+            </View>
+          </View>
+
+          {noteId && !isRunning && (
+            <Pressable
+              onPress={() => handleOpenNote(noteId)}
               className="px-2.5 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex-row items-center gap-1 active:opacity-75">
               <Text className="text-xs font-medium text-primary">Open</Text>
               <ExternalLink size={11} color={colors.primary} />
@@ -673,16 +839,14 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
             <View className="flex-1 min-w-0">
               <Text className="text-[10px] font-medium uppercase tracking-wider text-text-secondary">
                 {isRunning
-                  ? 'Working…'
+                  ? "Working…"
                   : isConnectLink
-                    ? 'Connect app'
-                    : 'Open link'}
+                    ? "Connect app"
+                    : "Open link"}
               </Text>
-              <Text
-                className="text-xs text-text-secondary"
-                numberOfLines={1}>
+              <Text className="text-xs text-text-secondary" numberOfLines={1}>
                 {isConnectLink
-                  ? 'Open the link to authorize this app'
+                  ? "Open the link to authorize this app"
                   : connectUrl}
               </Text>
             </View>
@@ -705,7 +869,7 @@ export function ChatToolPart({ toolName, args = {}, result, state }: ToolPartPro
     <View className="my-1 px-3 py-1.5 rounded-xl bg-background-element border border-border/60 flex-row items-center gap-2">
       <Sparkles size={12} color={colors.primary} />
       <Text className="text-[11px] text-text-secondary flex-1 min-w-0">
-        {isRunning ? 'Working…' : 'Done'}
+        {isRunning ? "Working…" : "Done"}
       </Text>
     </View>
   );
@@ -716,7 +880,7 @@ function findHttpsUrl(value: unknown, depth = 0): string | null {
     return null;
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const match = value.match(/https:\/\/[^\s"'<>]+/);
     return match?.[0] ?? null;
   }
@@ -731,7 +895,7 @@ function findHttpsUrl(value: unknown, depth = 0): string | null {
     return null;
   }
 
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     for (const nested of Object.values(value as Record<string, unknown>)) {
       const found = findHttpsUrl(nested, depth + 1);
       if (found) {

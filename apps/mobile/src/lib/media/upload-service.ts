@@ -50,6 +50,8 @@ function classifyMediaUploadFailure(status?: number): MediaFailureCategory {
   if (
     status === undefined ||
     status === 0 ||
+    status === 401 ||
+    status === 403 ||
     status === 408 ||
     status === 429
   ) {
@@ -241,14 +243,17 @@ async function uploadMediaJob(job: {
       throw missingErr;
     }
 
-    // Build headers from strictly validated env
-    const headers: Record<string, string> = {
-      "X-Api-Key": env.MEDIADOCK_API_KEY,
-      "X-Api-Secret": env.MEDIADOCK_API_SECRET,
-    };
+    // Build headers with user auth token for centralized API upload endpoint
+    const token = useAuthStore.getState().token;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const uploadUrl = `${env.API_URL.replace(/\/+$/, '')}/media/upload`;
 
     const uploadTask = FileSystem.createUploadTask(
-      env.MEDIADOCK_URL,
+      uploadUrl,
       job.localUri,
       {
         httpMethod: "POST",

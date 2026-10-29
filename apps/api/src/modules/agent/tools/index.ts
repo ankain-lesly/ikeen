@@ -4,11 +4,13 @@ import type { AuditService } from '../../audit/audit.service.js';
 import type { WebResearchClient } from '../web-research.js';
 import type { NotesToolService } from '../../notes/notes-tool.service.js';
 import type { FoldersToolService } from '../../folders/folders-tool.service.js';
+import type { MediaService } from '../../media/media.service.js';
 import { createFolderTools } from './folders.tools.js';
 import { createMemoryTools } from './memory.tools.js';
 import { createNotesTools } from './notes.tools.js';
 import { createSummaryTools } from './summary.tools.js';
 import { createWebTools } from './web.tools.js';
+import { createImageTools } from './image.tools.js';
 
 export function createIkeenTools({
   prisma,
@@ -16,6 +18,7 @@ export function createIkeenTools({
   webResearch,
   notesToolService,
   foldersToolService,
+  mediaService,
 }: {
   prisma: PrismaService;
   ably?: AblyService;
@@ -23,6 +26,7 @@ export function createIkeenTools({
   webResearch?: WebResearchClient;
   notesToolService: NotesToolService;
   foldersToolService: FoldersToolService;
+  mediaService?: MediaService;
 }) {
   const notesTools = createNotesTools({ notesToolService });
   const folderTools = createFolderTools({ foldersToolService });
@@ -32,6 +36,9 @@ export function createIkeenTools({
     webResearch?.isEnabled() === true
       ? createWebTools({ webResearch })
       : {};
+  const imageTools = mediaService
+    ? createImageTools({ mediaService })
+    : {};
 
   return {
     ...notesTools,
@@ -39,6 +46,7 @@ export function createIkeenTools({
     ...memoryTools,
     ...summaryTools,
     ...webTools,
+    ...imageTools,
   };
 }
 

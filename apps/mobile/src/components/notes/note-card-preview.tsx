@@ -96,8 +96,7 @@ export const ListBlockPreview = React.memo(function ListBlockPreview({
  * Icon-only presentation for audio and file previews without extra text clutter.
  */
 export const MediaCoverPreview = React.memo(function MediaCoverPreview({
-  item,
-  // totalMediaCount = 1,
+  item, 
   variant = "cover",
 }: {
   item: MediaItem;
@@ -113,17 +112,14 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
         <View className="bg-card relative overflow-hidden shrink-0">
           <Image
             source={{ uri: sourceUri }}
-            style={{ width: "100%", height: "100%" }}
+            style={{
+              width: "100%",
+              // height: "100%",
+              flex: 1,
+            }}
             contentFit="cover"
             transition={150}
-          />
-          {/* {totalMediaCount > 1 && (
-            <View className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-black/60">
-              <Text className="text-[9px] font-semibold text-white">
-                +{totalMediaCount - 1}
-              </Text>
-            </View>
-          )} */}
+          /> 
         </View>
       );
     }
@@ -131,28 +127,14 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
     if (item.mediaType === "audio") {
       return (
         <View className="relative flex-1 bg-primary/10 items-center justify-center shrink-0">
-          <Mic size={22} color={colors.primary} />
-          {/* {totalMediaCount > 1 && (
-            <View className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-primary/20">
-              <Text className="text-[9px] font-semibold text-primary">
-                +{totalMediaCount - 1}
-              </Text>
-            </View>
-          )} */}
+          <Mic size={22} color={colors.primary} /> 
         </View>
       );
     }
 
     return (
       <View className="relative flex-1 rounded-lg bg-card border border-border/50 items-center justify-center shrink-0">
-        <File size={22} color={colors.textSecondary} />
-        {/* {totalMediaCount > 1 && (
-          <View className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-background-element">
-            <Text className="text-[9px] font-semibold text-text-secondary">
-              +{totalMediaCount - 1}
-            </Text>
-          </View>
-        )} */}
+        <File size={22} color={colors.textSecondary} /> 
       </View>
     );
   }
@@ -165,14 +147,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
           style={{ width: "100%", height: "100%" }}
           contentFit="cover"
           transition={150}
-        />
-        {/* {totalMediaCount > 1 && (
-          <View className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60">
-            <Text className="text-[10px] font-semibold text-white">
-              +{totalMediaCount - 1}
-            </Text>
-          </View>
-        )} */}
+        /> 
       </View>
     );
   }
@@ -182,14 +157,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
       <View className="w-full h-20 bg-primary/10 items-center justify-center relative">
         <View className="size-10 rounded-full bg-primary/20 items-center justify-center">
           <Mic size={22} color={colors.primary} />
-        </View>
-        {/* {totalMediaCount > 1 && (
-          <View className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/50">
-            <Text className="text-[10px] font-semibold text-white">
-              +{totalMediaCount - 1}
-            </Text>
-          </View>
-        )} */}
+        </View> 
       </View>
     );
   }
@@ -198,14 +166,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
     <View className="w-full h-20 bg-card border-b border-border/40 items-center justify-center relative">
       <View className="size-10 items-center justify-center">
         <File size={22} color={colors.textSecondary} />
-      </View>
-      {/* {totalMediaCount > 1 && (
-        <View className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/50">
-          <Text className="text-[10px] font-semibold text-white">
-            +{totalMediaCount - 1}
-          </Text>
-        </View>
-      )} */}
+      </View> 
     </View>
   );
 });

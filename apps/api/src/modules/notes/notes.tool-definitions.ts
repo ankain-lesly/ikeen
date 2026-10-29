@@ -173,21 +173,28 @@ export const deleteBlockDef = {
   }),
 };
 
+export const imageItemInputSchema = z.object({
+  url: z.url().describe('Direct HTTP/HTTPS URL of the image'),
+  caption: z
+    .string()
+    .optional()
+    .describe('Optional caption or description displayed beneath the image'),
+  name: z
+    .string()
+    .optional()
+    .describe('Optional display title or filename for the image (e.g. "Architecture Diagram.png")'),
+});
+
 export const attachImageDef = {
   name: 'ikeen_attach_image',
   description:
-    'Attach an image URL to a note with an optional caption. By default, it checks for an existing media block and appends the image, or creates a new media block if none exists. Set createNewBlock: true to force creating a new media block section.',
+    'Attach one or more images to a note. All images in the `images` array are batched together into the same media block. By default, appends into an existing media block if one exists, or creates a new media block automatically. Set createNewBlock: true to force creating a separate new media block.',
   inputSchema: z.object({
-    noteId: z.string().describe('The UUID of the note to attach the image to'),
-    url: z.string().url().describe('Direct HTTP/HTTPS URL of the image'),
-    caption: z
-      .string()
-      .optional()
-      .describe('Optional caption or description displayed beneath the image'),
-    name: z
-      .string()
-      .optional()
-      .describe('Optional display title or filename for the image (e.g. "Architecture Diagram.png")'),
+    noteId: z.string().describe('The UUID of the note to attach image(s) to'),
+    images: z
+      .array(imageItemInputSchema)
+      .min(1)
+      .describe('List of 1 or more images to attach (pass 1 item for single image, multiple for batch)'),
     createNewBlock: z
       .boolean()
       .default(false)

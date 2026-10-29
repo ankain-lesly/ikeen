@@ -28,10 +28,13 @@ import {
   organizeNoteDef,
   updateFolderDef,
 } from '../folders/folders.tool-definitions.js';
+import { generateImageKeenDef } from '../media/media.tool-definitions.js';
+import type { MediaService } from '../media/media.service.js';
 
 export interface IkeenMcpServerOptions {
   notesToolService: NotesToolService;
   foldersToolService: FoldersToolService;
+  mediaService?: MediaService;
   prisma: PrismaService;
   userId: string;
   clientId?: string;
@@ -70,6 +73,7 @@ function toolError(message: string): CallToolResult {
 export function createIkeenMcpServer({
   notesToolService,
   foldersToolService,
+  mediaService,
   prisma,
   userId,
   clientId = 'mcp-client',
@@ -181,6 +185,26 @@ export function createIkeenMcpServer({
       }
     },
   );
+
+  if (mediaService) {
+    const mSvc = mediaService;
+    server.registerTool(
+      generateImageKeenDef.name,
+      {
+        description: generateImageKeenDef.description,
+        inputSchema: generateImageKeenDef.inputSchema.shape,
+        annotations: { readOnlyHint: false, destructiveHint: false },
+      },
+      async (args: z.infer<typeof generateImageKeenDef.inputSchema>): Promise<CallToolResult> => {
+        try {
+          const result = await mSvc.generateAndUploadImage(args.description, userId);
+          return formatResult(result);
+        } catch (err) {
+          return toolError(err instanceof Error ? err.message : String(err));
+        }
+      },
+    );
+  }
 
   server.registerTool(
     getNoteDetailsDef.name,

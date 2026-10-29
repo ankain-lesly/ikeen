@@ -671,9 +671,7 @@ export class NotesToolService {
     userId: string,
     {
       noteId,
-      url,
-      caption,
-      name,
+      images,
       createNewBlock = false,
     }: z.input<typeof attachImageDef.inputSchema>,
     options?: ToolExecutionOptions,
@@ -681,31 +679,34 @@ export class NotesToolService {
     try {
       const existingNote = await this.prisma.note.findFirst({
         where: { id: noteId, userId, deletedAt: null },
-        include: {
-          blocks: { orderBy: { position: 'asc' } },
-        },
       });
 
       if (!existingNote) {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
-      const existingMediaBlock = !createNewBlock
-        ? existingNote.blocks.find((b) => b.type === 'media')
-        : undefined;
-
-      const newMediaItem = {
+      const newMediaItems = images.map((img) => ({
         id: randomUUID(),
         mediaType: 'image' as const,
-        url: url.trim(),
-        name: name?.trim() || undefined,
-        caption: caption?.trim() || undefined,
-      };
+        url: img.url.trim(),
+        localUri: '',
+        name: img.name?.trim() || undefined,
+        caption: img.caption?.trim() || undefined,
+      }));
 
-      let resolvedBlockId = existingMediaBlock?.id;
+      let resolvedBlockId = '';
       let isNewBlock = false;
 
+      // Concurrency-safe transactional execution
       await this.executeTx(async (tx) => {
+        // Query inside tx so concurrent calls observe any newly created media block
+        const existingMediaBlock = !createNewBlock
+          ? await tx.noteBlock.findFirst({
+              where: { noteId, type: 'media' },
+              orderBy: { position: 'asc' },
+            })
+          : null;
+
         if (existingMediaBlock) {
           const currentItems = Array.isArray(existingMediaBlock.content)
             ? existingMediaBlock.content
@@ -714,22 +715,24 @@ export class NotesToolService {
           await tx.noteBlock.update({
             where: { id: existingMediaBlock.id },
             data: {
-              content: [...currentItems, newMediaItem] as Prisma.InputJsonValue,
+              content: [...currentItems, ...newMediaItems] as Prisma.InputJsonValue,
               version: { increment: 1 },
               updatedAt: new Date(),
             },
           });
+          resolvedBlockId = existingMediaBlock.id;
         } else {
           isNewBlock = true;
           resolvedBlockId = randomUUID();
+          const blockCount = await tx.noteBlock.count({ where: { noteId } });
 
           await tx.noteBlock.create({
             data: {
               id: resolvedBlockId,
               noteId,
               type: 'media',
-              position: existingNote.blocks.length,
-              content: [newMediaItem] as Prisma.InputJsonValue,
+              position: blockCount,
+              content: newMediaItems as Prisma.InputJsonValue,
               version: 1,
             },
           });
@@ -753,20 +756,27 @@ export class NotesToolService {
         action: `${actionPrefix}.attachImage`,
         resourceType: 'note',
         resourceId: noteId,
-        details: `Attached image to note "${existingNote.title}" (${isNewBlock ? 'new block' : 'appended'})`,
-        metadata: { blockId: resolvedBlockId, imageId: newMediaItem.id, url },
+        details: `Attached ${newMediaItems.length} image(s) to note "${existingNote.title}" (${isNewBlock ? 'new block' : 'appended'})`,
+        metadata: {
+          blockId: resolvedBlockId,
+          imagesCount: newMediaItems.length,
+          imageIds: newMediaItems.map((i) => i.id),
+          firstUrl: newMediaItems[0]?.url,
+        },
       });
 
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
+      // Avoid duplicate invalidation if executed during an agent turn (agent lifecycle emits consolidated event on completion)
+      if (source !== 'agent') {
+        void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
+      }
 
       return {
         ok: true as const,
         noteId,
         blockId: resolvedBlockId,
-        imageId: newMediaItem.id,
+        imagesCount: newMediaItems.length,
+        imageIds: newMediaItems.map((i) => i.id),
         isNewBlock,
-        url: newMediaItem.url,
-        caption: newMediaItem.caption,
       };
     } catch (err) {
       this.logger.error(`Error in attachImage for user ${userId}:`, err);

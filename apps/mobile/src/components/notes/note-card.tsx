@@ -331,13 +331,17 @@ export const NoteCard = React.memo(function NoteCard({
             </View>
 
             {/* Right Column: Square Thumbnail if media exists */}
-            {coverMedia && (
+            {coverMedia ? (
               <View className="relative h-full flex-1 min-h-21">
                 <MediaCoverPreview
                   item={coverMedia}
                   totalMediaCount={totalMediaCount}
                   variant="thumbnail"
                 />
+              </View>
+            ) : (
+              <View className="relative h-full flex-1 min-h-21 items-center justify-center bg-card">
+                <Text className="text-sm text-text-secondary">Media</Text>
               </View>
             )}
           </View>
