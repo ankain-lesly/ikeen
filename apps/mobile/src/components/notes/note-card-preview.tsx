@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Check, File, Mic } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -96,7 +96,7 @@ export const ListBlockPreview = React.memo(function ListBlockPreview({
  * Icon-only presentation for audio and file previews without extra text clutter.
  */
 export const MediaCoverPreview = React.memo(function MediaCoverPreview({
-  item, 
+  item,
   variant = "cover",
 }: {
   item: MediaItem;
@@ -109,17 +109,16 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
   if (variant === "thumbnail") {
     if (item.mediaType === "image" && sourceUri) {
       return (
-        <View className="bg-card relative overflow-hidden shrink-0">
+        <View className="flex-1 bg-card relative overflow-hidden shrink-0">
           <Image
             source={{ uri: sourceUri }}
             style={{
               width: "100%",
-              // height: "100%",
-              flex: 1,
+              height: "100%",
             }}
             contentFit="cover"
             transition={150}
-          /> 
+          />
         </View>
       );
     }
@@ -127,14 +126,14 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
     if (item.mediaType === "audio") {
       return (
         <View className="relative flex-1 bg-primary/10 items-center justify-center shrink-0">
-          <Mic size={22} color={colors.primary} /> 
+          <Mic size={22} color={colors.primary} />
         </View>
       );
     }
 
     return (
       <View className="relative flex-1 rounded-lg bg-card border border-border/50 items-center justify-center shrink-0">
-        <File size={22} color={colors.textSecondary} /> 
+        <File size={22} color={colors.textSecondary} />
       </View>
     );
   }
@@ -147,7 +146,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
           style={{ width: "100%", height: "100%" }}
           contentFit="cover"
           transition={150}
-        /> 
+        />
       </View>
     );
   }
@@ -157,7 +156,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
       <View className="w-full h-20 bg-primary/10 items-center justify-center relative">
         <View className="size-10 rounded-full bg-primary/20 items-center justify-center">
           <Mic size={22} color={colors.primary} />
-        </View> 
+        </View>
       </View>
     );
   }
@@ -166,7 +165,7 @@ export const MediaCoverPreview = React.memo(function MediaCoverPreview({
     <View className="w-full h-20 bg-card border-b border-border/40 items-center justify-center relative">
       <View className="size-10 items-center justify-center">
         <File size={22} color={colors.textSecondary} />
-      </View> 
+      </View>
     </View>
   );
 });

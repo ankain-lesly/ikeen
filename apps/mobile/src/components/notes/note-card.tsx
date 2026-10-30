@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
-import { ArchiveRestore, Check, Pin } from "lucide-react-native";
+import {
+  ArchiveRestore,
+  Check,
+  GalleryHorizontal,
+  Pin,
+} from "lucide-react-native";
 
 import { ThemedText } from "@/components/ui/themed-text";
 import type {
@@ -341,7 +346,9 @@ export const NoteCard = React.memo(function NoteCard({
               </View>
             ) : (
               <View className="relative h-full flex-1 min-h-21 items-center justify-center bg-card">
-                <Text className="text-sm text-text-secondary">Media</Text>
+                <View className="opacity-30">
+                  <GalleryHorizontal size={20} color={colors.textSecondary} />
+                </View>
               </View>
             )}
           </View>

@@ -119,6 +119,22 @@ bun run dev:mobile                    # Mobile only
 
 ---
 
+## 8. Release Requirements & Versioning Standards
+
+All app and package releases must strictly follow [docs/releases/RELEASE_PROCESS.md](docs/releases/RELEASE_PROCESS.md):
+
+- **SemVer Policy**: `MAJOR` (generational/paradigm leap or breaking changes), `MINOR` (new features/backward-compatible tools), `PATCH` (fixes, sync hardening, performance).
+- **Synchronized Metadata**: When cutting a release, atomically bump:
+  1. `apps/<app>/package.json` (`version`)
+  2. `apps/mobile/app.json` (for mobile)
+  3. `apps/api/src/modules/sync/app-updates.registry.ts` (`APP_RELEASES[0]`)
+  4. `docs/APP_STORE_LISTING.md` (What's New copy)
+- **Documentation Gate**: Every release requires a dedicated markdown document under `docs/releases/<app>/v<version>.md` detailing functional highlights, schema diffs, API contracts, and QA verification steps, plus an entry in `docs/releases/<app>/README.md`.
+- **Pre-flight Quality Gates**: Release candidates must pass `bun run check-types`, `bun --filter=@repo/api run test`, and production bundle export (`expo export` for mobile) with 0 errors before tagging.
+- **Git Tag Convention**: Follow annotated platform tagging (e.g., `git tag -a v2.0.0-mobile -m "..."`). Remember: coding agents NEVER stage, commit, or tag code directly; provide the commands for the user to run.
+
+---
+
 # CLAUDE.md Overview
 
 - **Structure**: See above; `apps/*`, `packages/*`, `plans/`

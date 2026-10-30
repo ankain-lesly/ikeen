@@ -30,7 +30,7 @@ export function QuickCaptureBar() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       const noteId = Crypto.randomUUID();
-      await createNote({ id: noteId, title: "Checklist" });
+      await createNote({ id: noteId, title: "Title" });
       await createBlock(noteId, createDefaultChecklistBlockInput());
       router.push(`/notes/${noteId}`);
     } catch {
@@ -52,7 +52,7 @@ export function QuickCaptureBar() {
       if (!item) return;
 
       const noteId = Crypto.randomUUID();
-      await createNote({ id: noteId, title: "Photo Note" });
+      await createNote({ id: noteId, title: "Title" });
       await createBlock(noteId, createDefaultMediaBlockInput([item]));
       router.push(`/notes/${noteId}`);
     } catch {
