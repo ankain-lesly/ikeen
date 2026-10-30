@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { NotesToolService } from '../../notes/notes-tool.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
-import type { AblyService } from '../../ably/ably.service.js';
 import {
   addBlockDef,
   archiveNoteDef,
@@ -27,17 +26,12 @@ export function createNotesTools(params: {
   notesToolService?: NotesToolService;
   prisma?: PrismaService;
   audit?: AuditService;
-  ably?: AblyService;
 }) {
   const notesToolService =
     params.notesToolService ??
     new NotesToolService(
       params.prisma!,
       params.audit!,
-      params.ably ??
-        ({
-          publishInvalidation: async () => {},
-        } as unknown as AblyService),
     );
 
   const searchNotes = tool({

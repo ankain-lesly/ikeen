@@ -188,5 +188,54 @@ describe('IkeenMcpServer', () => {
     await client.close();
     await server.close();
   });
+
+  it('triggers Ably invalidation on successful mutating tool execution', async () => {
+    const mockAbly = {
+      publishInvalidation: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const server = createIkeenMcpServer({
+      notesToolService: mockNotesToolService,
+      foldersToolService: mockFoldersToolService,
+      prisma: mockPrisma,
+      ably: mockAbly as any,
+      userId: 'user-sync-test',
+      clientId: 'mcp-sync-client',
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+
+    const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
+    await client.connect(clientTransport);
+
+    // Call mutating tool ikeen_create_note
+    await client.callTool({
+      name: 'ikeen_create_note',
+      arguments: {
+        title: 'Synced Note',
+        content: 'Content',
+      },
+    });
+
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledTimes(1);
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledWith(
+      'user-sync-test',
+      expect.arrayContaining(['notes', 'note_blocks']),
+    );
+
+    // Call read-only tool ikeen_get_note_details - should NOT trigger another invalidation
+    await client.callTool({
+      name: 'ikeen_get_note_details',
+      arguments: {
+        noteId: 'note-1',
+      },
+    });
+
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledTimes(1);
+
+    await client.close();
+    await server.close();
+  });
 });
 

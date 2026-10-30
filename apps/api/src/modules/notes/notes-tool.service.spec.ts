@@ -35,10 +35,7 @@ describe('NotesToolService', () => {
       logAgent: vi.fn(),
       trackChanges: vi.fn().mockReturnValue({}),
     };
-    mockAbly = {
-      publishInvalidation: vi.fn().mockResolvedValue(undefined),
-    };
-    service = new NotesToolService(mockPrisma, mockAudit, mockAbly);
+        service = new NotesToolService(mockPrisma, mockAudit);
   });
 
   describe('searchNotes', () => {
@@ -234,7 +231,6 @@ describe('NotesToolService', () => {
         }),
       });
       expect(mockPrisma.noteBlock.createMany).toHaveBeenCalled();
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
   });
 
@@ -247,17 +243,20 @@ describe('NotesToolService', () => {
       });
       mockPrisma.note.update.mockResolvedValue({});
 
-      const result = await service.addBlock('user-1', {
-        noteId: 'note-1',
-        type: 'text',
-        markdown: 'Newly added block',
-      });
+      const result = await service.addBlock(
+        'user-1',
+        {
+          noteId: 'note-1',
+          type: 'text',
+          markdown: 'Newly added block',
+        },
+        { source: 'mcp' },
+      );
 
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('Expected result.ok to be true');
       expect(result.type).toBe('text');
       expect(mockPrisma.noteBlock.create).toHaveBeenCalled();
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
 
     it('adds a list block with header and footer', async () => {
@@ -314,15 +313,19 @@ describe('NotesToolService', () => {
       mockPrisma.noteBlock.findMany.mockResolvedValue([]);
       mockPrisma.note.update.mockResolvedValue({});
 
-      const result = await service.updateBlock('user-1', {
-        noteId: 'note-1',
-        blockId: 'b-1',
-        checklistPatch: {
-          toggleItemText: 'milk',
-          setChecked: true,
-          appendItems: ['New task'],
+      const result = await service.updateBlock(
+        'user-1',
+        {
+          noteId: 'note-1',
+          blockId: 'b-1',
+          checklistPatch: {
+            toggleItemText: 'milk',
+            setChecked: true,
+            appendItems: ['New task'],
+          },
         },
-      });
+        { source: 'mcp' },
+      );
 
       expect(result.ok).toBe(true);
       expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith(
@@ -338,7 +341,6 @@ describe('NotesToolService', () => {
           }),
         }),
       );
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
 
     it('updates list block header and footer', async () => {
@@ -396,10 +398,14 @@ describe('NotesToolService', () => {
       ]);
       mockPrisma.note.update.mockResolvedValue({});
 
-      const result = await service.deleteBlock('user-1', {
-        noteId: 'note-1',
-        blockId: 'b-1',
-      });
+      const result = await service.deleteBlock(
+        'user-1',
+        {
+          noteId: 'note-1',
+          blockId: 'b-1',
+        },
+        { source: 'mcp' },
+      );
 
       expect(result.ok).toBe(true);
       expect(mockPrisma.noteBlock.delete).toHaveBeenCalledWith({ where: { id: 'b-1' } });
@@ -411,7 +417,6 @@ describe('NotesToolService', () => {
           updatedAt: expect.any(Date),
         },
       });
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
   });
 
@@ -455,7 +460,6 @@ describe('NotesToolService', () => {
           }),
         }),
       );
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
 
     it('batches multiple images into 1 media block via images array', async () => {
@@ -631,7 +635,6 @@ describe('NotesToolService', () => {
       if (!result.ok) throw new Error('Expected result.ok to be true');
 
       expect(mockPrisma.note.update).toHaveBeenCalled();
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
   });
 
@@ -647,7 +650,11 @@ describe('NotesToolService', () => {
         deletedAt: new Date(),
       });
 
-      const result = await service.deleteNote('user-1', { noteId: 'note-1' });
+      const result = await service.deleteNote(
+        'user-1',
+        { noteId: 'note-1' },
+        { source: 'mcp' },
+      );
 
       expect(result.ok).toBe(true);
       expect(mockPrisma.note.update).toHaveBeenCalledWith(
@@ -656,7 +663,6 @@ describe('NotesToolService', () => {
           data: expect.objectContaining({ deletedAt: expect.any(Date) }),
         }),
       );
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'note_blocks']);
     });
 
     it('hard deletes note when hardDelete is true', async () => {

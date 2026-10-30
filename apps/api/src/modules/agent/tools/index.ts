@@ -1,5 +1,4 @@
 import type { PrismaService } from '../../../prisma/prisma.service.js';
-import type { AblyService } from '../../ably/ably.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
 import type { WebResearchClient } from '../web-research.js';
 import type { NotesToolService } from '../../notes/notes-tool.service.js';
@@ -21,7 +20,6 @@ export function createIkeenTools({
   mediaService,
 }: {
   prisma: PrismaService;
-  ably?: AblyService;
   audit: AuditService;
   webResearch?: WebResearchClient;
   notesToolService: NotesToolService;

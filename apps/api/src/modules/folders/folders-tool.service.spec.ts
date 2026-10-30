@@ -24,10 +24,7 @@ describe('FoldersToolService', () => {
       logAgent: vi.fn(),
       trackChanges: vi.fn().mockReturnValue({}),
     };
-    mockAbly = {
-      publishInvalidation: vi.fn().mockResolvedValue(undefined),
-    };
-    service = new FoldersToolService(mockPrisma, mockAudit, mockAbly);
+        service = new FoldersToolService(mockPrisma, mockAudit);
   });
 
   describe('listFolders', () => {
@@ -94,7 +91,6 @@ describe('FoldersToolService', () => {
           userId: 'user-1',
         }),
       );
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['folders']);
     });
   });
 
@@ -130,7 +126,6 @@ describe('FoldersToolService', () => {
       if (!result.ok) throw new Error('Expected result.ok to be true');
 
       expect(result.folderId).toBe('folder-new');
-      expect(mockAbly.publishInvalidation).toHaveBeenCalledWith('user-1', ['notes', 'folders']);
     });
   });
 });

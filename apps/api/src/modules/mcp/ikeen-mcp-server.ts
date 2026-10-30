@@ -1,3 +1,5 @@
+import type { AblyService } from '../ably/ably.service.js';
+import { getToolMutatedEntities } from '../sync/sync-events.constants.js';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   ErrorCode,
@@ -32,6 +34,7 @@ import { generateImageKeenDef } from '../media/media.tool-definitions.js';
 import type { MediaService } from '../media/media.service.js';
 
 export interface IkeenMcpServerOptions {
+  ably?: AblyService;
   notesToolService: NotesToolService;
   foldersToolService: FoldersToolService;
   mediaService?: MediaService;
@@ -45,7 +48,14 @@ export interface IkeenMcpServerOptions {
   };
 }
 
-function formatResult(data: unknown): CallToolResult {
+function formatResult(data: unknown, toolName?: string, ably?: AblyService, userId?: string): CallToolResult {
+  const isOk = typeof data === 'object' && data !== null && 'ok' in data && (data as { ok: boolean }).ok === true;
+  if (isOk && toolName && ably && userId) {
+    const entities = getToolMutatedEntities(toolName);
+    if (entities.length > 0) {
+      void ably.publishInvalidation(userId, [...entities]);
+    }
+  }
   const isErr =
     typeof data === 'object' &&
     data !== null &&
@@ -78,6 +88,7 @@ export function createIkeenMcpServer({
   userId,
   clientId = 'mcp-client',
   apiKey,
+  ably,
 }: IkeenMcpServerOptions): McpServer {
   const server = new McpServer(
     {
@@ -111,7 +122,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof createNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.createNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, createNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -128,7 +139,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof addBlockDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.addBlock(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, addBlockDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -145,7 +156,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof updateBlockDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.updateBlock(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, updateBlockDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -162,7 +173,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof deleteBlockDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.deleteBlock(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, deleteBlockDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -179,7 +190,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof attachImageDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.attachImage(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, attachImageDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -198,7 +209,7 @@ export function createIkeenMcpServer({
       async (args: z.infer<typeof generateImageKeenDef.inputSchema>): Promise<CallToolResult> => {
         try {
           const result = await mSvc.generateAndUploadImage(args.description, userId);
-          return formatResult(result);
+          return formatResult(result, generateImageKeenDef.name, ably, userId);
         } catch (err) {
           return toolError(err instanceof Error ? err.message : String(err));
         }
@@ -216,7 +227,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof getNoteDetailsDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.getNoteDetails(userId, args);
-        return formatResult(result);
+        return formatResult(result, getNoteDetailsDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -233,7 +244,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof listRecentNotesDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.listRecentNotes(userId, args);
-        return formatResult(result);
+        return formatResult(result, listRecentNotesDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -250,7 +261,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof deleteNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.deleteNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, deleteNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -267,7 +278,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof searchNotesDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.searchNotes(userId, args);
-        return formatResult(result);
+        return formatResult(result, searchNotesDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -284,7 +295,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof updateNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.updateNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, updateNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -301,7 +312,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof pinNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.pinNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, pinNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -318,7 +329,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof archiveNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await notesToolService.archiveNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, archiveNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -337,7 +348,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof listFoldersDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await foldersToolService.listFolders(userId, args);
-        return formatResult(result);
+        return formatResult(result, listFoldersDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -354,7 +365,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof createFolderDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await foldersToolService.createFolder(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, createFolderDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -371,7 +382,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof updateFolderDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await foldersToolService.updateFolder(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, updateFolderDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }
@@ -388,7 +399,7 @@ export function createIkeenMcpServer({
     async (args: z.infer<typeof organizeNoteDef.inputSchema>): Promise<CallToolResult> => {
       try {
         const result = await foldersToolService.organizeNote(userId, args, toolExecutionOpts);
-        return formatResult(result);
+        return formatResult(result, organizeNoteDef.name, ably, userId);
       } catch (err) {
         return toolError(err instanceof Error ? err.message : String(err));
       }

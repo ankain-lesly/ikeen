@@ -30,8 +30,8 @@ async function main() {
   const auditService = new AuditService(prismaService);
   const ablyService = new AblyService(envService);
 
-  const notesToolService = new NotesToolService(prismaService, auditService, ablyService);
-  const foldersToolService = new FoldersToolService(prismaService, auditService, ablyService);
+  const notesToolService = new NotesToolService(prismaService, auditService);
+  const foldersToolService = new FoldersToolService(prismaService, auditService);
   const apiKeyService = new ApiKeyService(prismaService);
 
   // Authenticate user via IKEEN_API_KEY or API_KEY
@@ -62,6 +62,7 @@ async function main() {
     notesToolService,
     foldersToolService,
     prisma: prismaService,
+    ably: ablyService,
     userId: resolvedUserId,
     clientId: 'claude-desktop-stdio',
     apiKey: resolvedApiKey,

@@ -121,12 +121,12 @@ describe('ChatPersistenceService', () => {
     expect(result.insertedCount).toBe(1);
   });
 
-  it('should filter initial messages, call updateMessage, and save only the rest', async () => {
+  it('should filter initial messages, call updateMessage when modified, and save only the rest', async () => {
     const initialMessages: UIMessage[] = [
       { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Prompt' }] },
     ];
     const completedMessages: UIMessage[] = [
-      { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Prompt' }] },
+      { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Prompt mutated' }] },
       { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'Step 1' }] },
       { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'Final' }] },
     ];
@@ -157,6 +157,27 @@ describe('ChatPersistenceService', () => {
 
     expect(result.insertedCount).toBe(1);
     expect(result.updatedCount).toBe(1);
+  });
+
+  it('should skip calling updateMessage when historical message content and parts are unchanged', async () => {
+    mockPrisma.chatMessage.updateMany.mockClear();
+    const initialMessages: UIMessage[] = [
+      { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Unchanged prompt' }] },
+    ];
+    const completedMessages: UIMessage[] = [
+      { id: 'm-1', role: 'user', parts: [{ type: 'text', text: 'Unchanged prompt' }] },
+      { id: 'm-2', role: 'assistant', parts: [{ type: 'text', text: 'Answer' }] },
+    ];
+
+    const result = await service.persistChat({
+      conversationId: 'conv-1',
+      initialMessages,
+      messages: completedMessages,
+    });
+
+    expect(mockPrisma.chatMessage.updateMany).not.toHaveBeenCalled();
+    expect(result.updatedCount).toBe(0);
+    expect(result.insertedCount).toBe(1);
   });
 
   it('should save memory record to chatMemory', async () => {

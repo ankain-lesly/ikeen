@@ -144,8 +144,17 @@ class SyncManager {
         return;
       }
 
+      let cachedToken: Ably.TokenRequest | null =
+        (auth.tokenRequest as unknown as Ably.TokenRequest) || null;
+
       this.ablyClient = new Ably.Realtime({
         authCallback: async (_data, callback) => {
+          if (cachedToken) {
+            const token = cachedToken;
+            cachedToken = null;
+            callback(null, token);
+            return;
+          }
           try {
             const freshAuth = await syncApi.getRealtimeAuth();
             callback(null, freshAuth.tokenRequest as unknown as Ably.TokenRequest);

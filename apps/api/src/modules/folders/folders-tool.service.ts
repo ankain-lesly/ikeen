@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { z } from 'zod';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { AblyService } from '../ably/ably.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toolFailure } from '../agent/call-options.js';
 import type { ToolExecutionOptions } from '../notes/notes-tool.service.js';
@@ -19,7 +18,6 @@ export class FoldersToolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly ably: AblyService,
   ) {}
 
   async listFolders(
@@ -137,8 +135,6 @@ export class FoldersToolService {
         metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
-      void this.ably.publishInvalidation(userId, ['folders']);
-
       return {
         ok: true,
         folder: {
@@ -226,8 +222,6 @@ export class FoldersToolService {
         metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
 
-      void this.ably.publishInvalidation(userId, ['folders']);
-
       return {
         ok: true,
         folder: updated,
@@ -311,8 +305,6 @@ export class FoldersToolService {
           apiKey: options?.apiKey,
         },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes', 'folders']);
 
       return {
         ok: true,

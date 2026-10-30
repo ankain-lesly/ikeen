@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { AblyService } from '../ably/ably.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toolFailure } from '../agent/call-options.js';
 import {
@@ -91,7 +90,6 @@ export class NotesToolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly ably: AblyService,
   ) {}
 
   private async executeTx<T>(
@@ -309,9 +307,6 @@ export class NotesToolService {
         },
       });
 
-      // Broadcast invalidation over Ably for cross-device real-time sync
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
-
       return {
         ok: true as const,
         note: {
@@ -412,8 +407,6 @@ export class NotesToolService {
         details: `Added ${type} block to note "${existingNote.title}" at position ${targetPosition}`,
         metadata: { blockId: newBlockId, type, position: targetPosition, source },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
 
       return {
         ok: true as const,
@@ -572,8 +565,6 @@ export class NotesToolService {
         metadata: { blockId, noteId, source },
       });
 
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
-
       return {
         ok: true as const,
         noteId,
@@ -652,8 +643,6 @@ export class NotesToolService {
         details: `Deleted block ${blockId} from note "${existingNote.title}"`,
         metadata: { blockId, noteId, source },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
 
       return {
         ok: true as const,
@@ -764,11 +753,6 @@ export class NotesToolService {
           firstUrl: newMediaItems[0]?.url,
         },
       });
-
-      // Avoid duplicate invalidation if executed during an agent turn (agent lifecycle emits consolidated event on completion)
-      if (source !== 'agent') {
-        void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
-      }
 
       return {
         ok: true as const,
@@ -885,9 +869,6 @@ export class NotesToolService {
         },
       });
 
-      // Broadcast invalidation over Ably for cross-device real-time sync
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
-
       return {
         ok: true,
         noteId: note.id,
@@ -940,8 +921,6 @@ export class NotesToolService {
         details: `${isPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
         metadata: { isPinned, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes']);
 
       return {
         ok: true as const,
@@ -997,8 +976,6 @@ export class NotesToolService {
         details: `${isArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
         metadata: { isArchived, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes']);
 
       return {
         ok: true as const,
@@ -1059,8 +1036,6 @@ export class NotesToolService {
         details: `${hardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
         metadata: { hardDelete, source, clientId: options?.clientId, apiKey: options?.apiKey },
       });
-
-      void this.ably.publishInvalidation(userId, ['notes', 'note_blocks']);
 
       return {
         ok: true,

@@ -40,6 +40,14 @@ Add a setting background image to the notes app and optionally for each note set
 - in flights should not reset on startup, simple updates the query to find plus failed or processing before syncing fresh Todo
 - conflicts between updating outbox data in in inflight. What is the flow and mitigations
 
+## Tool Definition & Sync Invalidation Co-location (Approach A)
+- [ ] Refactor `TOOL_MUTATION_ENTITIES` record lookup to co-locate `mutates: readonly SyncEntity[]` directly on tool definition schemas (e.g., `notes.tool-definitions.ts`, `folders.tool-definitions.ts`).
+  - **Motivation**: Eliminate risk of dictionary drift when adding new tools in the future.
+  - **Design**:
+    - Extend tool definition interfaces with `mutates?: readonly ('notes' | 'note_blocks' | 'folders')[]` (aligned with MCP annotations like `readOnlyHint`).
+    - Both `AgentService` and `IkeenMcpServer` derive invalidation targets dynamically from the tool definition metadata.
+    - Deprecate static `TOOL_MUTATION_ENTITIES` dictionary in `apps/api/src/modules/sync/sync-events.constants.ts`.
+
 
 ---
 
@@ -78,4 +86,13 @@ Atlassian
 
 - Ensure inflight issue tested
 
-EEJ73W
+
+
+#######
+
+## Desktop
+
+Give me a roach map to build a desktop app with tauri for my notes app. I need a floating app toolbar on screen for quick actions, open app, it should alway launch on startup
+
+
+R4FJ4S

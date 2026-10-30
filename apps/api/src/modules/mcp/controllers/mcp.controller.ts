@@ -17,6 +17,7 @@ import { FoldersToolService } from '../../folders/folders-tool.service.js';
 import { MediaService } from '../../media/media.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvService } from '../../../config/env.service.js';
+import { AblyService } from '../../ably/ably.service.js';
 import { createIkeenMcpServer } from '../ikeen-mcp-server.js';
 
 @Controller(['mcp', 'api/v1/mcp'])
@@ -30,6 +31,7 @@ export class McpController {
     private readonly prisma: PrismaService,
     private readonly env: EnvService,
     @Optional() private readonly mediaService?: MediaService,
+    @Optional() private readonly ably?: AblyService,
   ) {}
 
   @Post()
@@ -46,6 +48,7 @@ export class McpController {
       userId: req.user.id,
       clientId: req.mcpClient,
       apiKey: req.apiKey,
+      ably: this.ably,
     });
 
     // Stateless mode with single-JSON response for serverless deployments

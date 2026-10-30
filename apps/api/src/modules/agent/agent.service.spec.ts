@@ -100,16 +100,14 @@ describe('AgentService', () => {
           useValue: new NotesToolService(
             mockPrisma as any,
             { log: vi.fn(), logAgent: vi.fn(), trackChanges: vi.fn().mockReturnValue({}) } as any,
-            mockAbly as any,
-          ),
+            ),
         },
         {
           provide: FoldersToolService,
           useValue: new FoldersToolService(
             mockPrisma as any,
             { log: vi.fn(), logAgent: vi.fn(), trackChanges: vi.fn().mockReturnValue({}) } as any,
-            mockAbly as any,
-          ),
+            ),
         },
       ],
     }).compile();
@@ -188,7 +186,7 @@ describe('AgentService', () => {
       ];
 
       const mutated = service.extractMutatedEntities(messages);
-      expect(Array.from(mutated)).toEqual(['notes']);
+      expect(Array.from(mutated).sort()).toEqual(['note_blocks', 'notes'].sort());
     });
 
     it('should detect folders mutation from createFolder and updateFolder', () => {

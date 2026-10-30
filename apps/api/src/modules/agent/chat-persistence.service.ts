@@ -283,11 +283,23 @@ export class ChatPersistenceService {
 
       let updatedCount = 0;
       const restMap = new Map<string, UIMessage>();
+      const initialMap = new Map(initialMessages.map((m) => [m.id, m]));
 
       for (const msg of messages) {
         const msgId = msg.id && typeof msg.id === 'string' ? msg.id : null;
         if (msgId && savedIds.has(msgId)) {
-          // Message was saved from above; update content & tool parts
+          // If the message is from initialMessages and has not mutated, skip updating DB
+          const initialMsg = initialMap.get(msgId);
+          if (initialMsg) {
+            const partsUnchanged =
+              JSON.stringify(initialMsg.parts ?? []) ===
+              JSON.stringify(msg.parts ?? []);
+            if (partsUnchanged) {
+              continue;
+            }
+          }
+
+          // Message was saved from above or changed; update content & tool parts
           await this.updateMessage({ id: msgId, message: msg });
           updatedCount++;
         } else if (msgId) {
