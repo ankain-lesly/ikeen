@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import type { NoteMutationPayload } from '@repo/types';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -270,8 +275,9 @@ export class NotesService {
     });
 
     if (!parentNote) {
-      this.logger.warn(`Block upsert skipped: parent note ${targetNoteId} not found for user ${userId}`);
-      return { applied: false, blockId: b.id };
+      throw new UnprocessableEntityException(
+        `Cannot upsert block ${b.id}: parent note ${targetNoteId} not found for user ${userId}`,
+      );
     }
 
     const resolvedType = b.changes.type ?? existing?.type ?? 'text';

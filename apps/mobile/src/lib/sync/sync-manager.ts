@@ -42,6 +42,7 @@ class SyncManager {
   private ablyClient: Ably.Realtime | null = null;
   private ablyChannel: Ably.RealtimeChannel | null = null;
   private isInitialized = false;
+  private startupPromise: Promise<void> | null = null;
 
   /**
    * Initializes real-time subscriptions, network listener, and app-state handlers.
@@ -63,7 +64,7 @@ class SyncManager {
     void processMediaUploadQueue();
 
     // Reset any stranded in_flight mutations from previous app session crash
-    resetInFlightOnStartup()
+    this.startupPromise = resetInFlightOnStartup()
       .then(() => this.updatePendingCount())
       .catch(() => {});
 
@@ -365,52 +366,67 @@ class SyncManager {
       .where(eq(syncMetadata.key, 'last_pulled_at'))
       .limit(1);
 
-    const since = meta?.value ?? null;
-    log('[Sync:Pull:Request]', { since: since ?? 'epoch' });
+    let currentSince = meta?.value ?? null;
+    log('[Sync:Pull:Request]', { since: currentSince ?? 'epoch' });
 
     try {
-      const response = await syncApi.pull(since);
+      // Loop up to 10 pages to drain paginated server updates if large batch returned
+      for (let page = 0; page < 10; page++) {
+        const response = await syncApi.pull(currentSince);
 
-      // Apply Folders via unified queries module
-      for (const f of response.folders) {
-        await upsertFolderFromSync({ ...f, userId: user?.id });
-      }
-
-      // Apply Notes via unified queries module (adapts native string[] tags to SQLite JSON)
-      for (const n of response.notes) {
-        await upsertNoteFromSync({ ...n, userId: user?.id });
-      }
-
-      // Apply Note Blocks (LWW — skips if local is newer)
-      if (response.note_blocks?.length) {
-        for (const b of response.note_blocks) {
-          await upsertBlockFromSync(b);
+        // Apply Folders via unified queries module
+        for (const f of response.folders) {
+          await upsertFolderFromSync({ ...f, userId: user?.id });
         }
-      }
 
-      // Save new checkpoint
-      await db
-        .insert(syncMetadata)
-        .values({
-          key: 'last_pulled_at',
-          value: response.serverTimestamp,
-          updatedAt: new Date().toISOString(),
-        })
-        .onConflictDoUpdate({
-          target: syncMetadata.key,
-          set: {
+        // Apply Notes via unified queries module (adapts native string[] tags to SQLite JSON)
+        for (const n of response.notes) {
+          await upsertNoteFromSync({ ...n, userId: user?.id });
+        }
+
+        // Apply Note Blocks (LWW — skips if local is newer)
+        if (response.note_blocks?.length) {
+          for (const b of response.note_blocks) {
+            await upsertBlockFromSync(b);
+          }
+        }
+
+        // Save new checkpoint
+        await db
+          .insert(syncMetadata)
+          .values({
+            key: 'last_pulled_at',
             value: response.serverTimestamp,
             updatedAt: new Date().toISOString(),
-          },
+          })
+          .onConflictDoUpdate({
+            target: syncMetadata.key,
+            set: {
+              value: response.serverTimestamp,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+
+        useSyncStore.getState().setLastSyncedAt(response.serverTimestamp);
+        log('[Sync:Pull:Success]', {
+          page,
+          foldersCount: response.folders.length,
+          notesCount: response.notes.length,
+          blocksCount: response.note_blocks?.length ?? 0,
+          serverTimestamp: response.serverTimestamp,
         });
 
-      useSyncStore.getState().setLastSyncedAt(response.serverTimestamp);
-      log('[Sync:Pull:Success]', {
-        foldersCount: response.folders.length,
-        notesCount: response.notes.length,
-        blocksCount: response.note_blocks?.length ?? 0,
-        serverTimestamp: response.serverTimestamp,
-      });
+        const hasMore =
+          response.folders.length >= 250 ||
+          response.notes.length >= 250 ||
+          (response.note_blocks?.length ?? 0) >= 250;
+
+        if (!hasMore || response.serverTimestamp === currentSince) {
+          break;
+        }
+
+        currentSince = response.serverTimestamp;
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       log('[Sync:Pull:Error]', { error: message });
@@ -424,6 +440,10 @@ class SyncManager {
   async sync(): Promise<void> {
     const { isAuthenticated } = useAuthStore.getState();
     if (!isAuthenticated) return;
+
+    if (this.startupPromise) {
+      await this.startupPromise;
+    }
 
     if (this.isSyncing) {
       this.syncQueued = true;

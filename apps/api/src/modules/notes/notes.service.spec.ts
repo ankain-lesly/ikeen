@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { NotesService } from './notes.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 type MockPrisma = {
   note: Record<string, ReturnType<typeof vi.fn>>;
+  noteBlock: Record<string, ReturnType<typeof vi.fn>>;
   folder: Record<string, ReturnType<typeof vi.fn>>;
 };
 
@@ -20,6 +22,12 @@ describe('NotesService', () => {
         create: vi.fn(),
         update: vi.fn(),
         upsert: vi.fn(),
+      },
+      noteBlock: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
       },
       folder: {
         findFirst: vi.fn(),
@@ -140,6 +148,43 @@ describe('NotesService', () => {
       expect(res.applied).toBe(false);
       expect(prisma.note.create).not.toHaveBeenCalled();
       expect(prisma.note.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('upsertBlockWithLww', () => {
+    it('should throw UnprocessableEntityException when parent note does not exist', async () => {
+      prisma.noteBlock.findUnique.mockResolvedValue(null);
+      prisma.note.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.upsertBlockWithLww('u-1', {
+          id: 'b-1',
+          mutationId: 'blocks:upsert:b-1',
+          action: 'upsert',
+          changes: { noteId: 'missing-note', type: 'text', content: 'Hello' },
+          updatedAt: '2026-09-18T12:00:00.000Z',
+        }),
+      ).rejects.toThrow(UnprocessableEntityException);
+
+      expect(prisma.noteBlock.create).not.toHaveBeenCalled();
+      expect(prisma.noteBlock.update).not.toHaveBeenCalled();
+    });
+
+    it('should create block when parent note exists', async () => {
+      prisma.noteBlock.findUnique.mockResolvedValue(null);
+      prisma.note.findFirst.mockResolvedValue({ id: 'n-1', userId: 'u-1' });
+      prisma.noteBlock.create.mockResolvedValue({ id: 'b-1' });
+
+      const res = await service.upsertBlockWithLww('u-1', {
+        id: 'b-1',
+        mutationId: 'blocks:upsert:b-1',
+        action: 'upsert',
+        changes: { noteId: 'n-1', type: 'text', content: 'Hello' },
+        updatedAt: '2026-09-18T12:00:00.000Z',
+      });
+
+      expect(res.applied).toBe(true);
+      expect(prisma.noteBlock.create).toHaveBeenCalled();
     });
   });
 });

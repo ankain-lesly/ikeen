@@ -64,7 +64,7 @@ export async function enqueueOutbox(
   const now = new Date().toISOString();
 
   try {
-    // Check if there is an existing PENDING outbox item for this entity & entityId
+    // Check if there is an existing PENDING or FAILED outbox item for this entity & entityId
     const [pendingItem] = await db
       .select()
       .from(syncOutbox)
@@ -72,13 +72,16 @@ export async function enqueueOutbox(
         and(
           eq(syncOutbox.entity, entity),
           eq(syncOutbox.entityId, entityId),
-          eq(syncOutbox.status, 'pending')
+          or(
+            eq(syncOutbox.status, 'pending'),
+            eq(syncOutbox.status, 'failed')
+          )
         )
       )
       .limit(1);
 
     if (pendingItem) {
-      // Coalesce changes into the existing pending item
+      // Coalesce changes into the existing pending/failed item
       let existingChanges: Record<string, unknown> = {};
       try {
         existingChanges = JSON.parse(pendingItem.payload);
@@ -96,6 +99,7 @@ export async function enqueueOutbox(
         .update(syncOutbox)
         .set({
           action,
+          status: 'pending',
           payload: JSON.stringify(mergedChanges),
           updatedAt: now,
           retryCount: 0,

@@ -240,8 +240,24 @@ export class SyncService {
         `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length} note_blocks=${noteBlocks.length}`,
       );
 
+      // Clamp cursor timestamp to the newest returned item among truncated collections to prevent delta skipping
+      const truncatedTimes: number[] = [];
+      if (folders.length >= SYNC_CONSTANTS.PULL_LIMIT && folders[folders.length - 1]?.updatedAt) {
+        truncatedTimes.push(folders[folders.length - 1].updatedAt.getTime());
+      }
+      if (notes.length >= SYNC_CONSTANTS.PULL_LIMIT && notes[notes.length - 1]?.updatedAt) {
+        truncatedTimes.push(notes[notes.length - 1].updatedAt.getTime());
+      }
+      if (noteBlocks.length >= SYNC_CONSTANTS.PULL_LIMIT && noteBlocks[noteBlocks.length - 1]?.updatedAt) {
+        truncatedTimes.push(noteBlocks[noteBlocks.length - 1].updatedAt.getTime());
+      }
+      const effectiveTimestamp =
+        truncatedTimes.length > 0
+          ? new Date(Math.min(...truncatedTimes)).toISOString()
+          : serverTimestamp;
+
       return {
-        serverTimestamp,
+        serverTimestamp: effectiveTimestamp,
         folders: folders.map((f) => ({
           id: f.id,
           name: f.name,
