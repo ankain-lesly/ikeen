@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window and quick capture",
+  "windows": ["main", "quick-capture"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "sql:default",
+    "global-shortcut:default",
+    "shell:default",
+    "fs:default",
+    "notification:default"
+  ]
+}
