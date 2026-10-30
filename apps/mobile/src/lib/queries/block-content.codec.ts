@@ -65,6 +65,7 @@ export function unpackNoteBlock(row: {
   footer?: unknown;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }): NoteBlock {
   const base = {
     id: row.id,
@@ -72,6 +73,7 @@ export function unpackNoteBlock(row: {
     position: row.position,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
   };
 
   if (row.type === 'list') {

@@ -5,9 +5,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toolFailure } from '../agent/call-options.js';
-import {
-  parseBlockMarkdown,
-} from './block-markdown.parser.js';
+import { parseBlockMarkdown } from './block-markdown.parser.js';
 import {
   unpackServerNoteBlock,
   parseStoredList,
@@ -186,7 +184,7 @@ export class NotesToolService {
           folder: note.folder,
           isPinned: note.isPinned,
           isArchived: note.isArchived,
-          version: note.version,
+          version: note.version,  
           updatedAt: note.updatedAt,
         },
       };
@@ -405,7 +403,12 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: noteId,
         details: `Added ${type} block to note "${existingNote.title}" at position ${targetPosition}`,
-        metadata: { blockId: newBlockId, type, position: targetPosition, source },
+        metadata: {
+          blockId: newBlockId,
+          type,
+          position: targetPosition,
+          source,
+        },
       });
 
       return {
@@ -591,24 +594,31 @@ export class NotesToolService {
       }
 
       const existingBlock = await this.prisma.noteBlock.findFirst({
-        where: { id: blockId, noteId },
+        where: { id: blockId, noteId, deletedAt: null },
       });
 
       if (!existingBlock) {
         return { ok: false, error: 'Block not found.' };
       }
 
+      const now = new Date();
       await this.executeTx(async (tx) => {
-        await tx.noteBlock.delete({
+        // Soft-delete the block with a tombstone timestamp (ensures delta sync propagates deletion)
+        await tx.noteBlock.update({
           where: { id: blockId },
+          data: {
+            deletedAt: now,
+            version: { increment: 1 },
+            updatedAt: now,
+          },
         });
 
+        // Re-index remaining active blocks
         const remainingBlocks = await tx.noteBlock.findMany({
-          where: { noteId },
+          where: { noteId, deletedAt: null },
           orderBy: { position: 'asc' },
         });
 
-        const now = new Date();
         for (let i = 0; i < remainingBlocks.length; i++) {
           if (remainingBlocks[i].position !== i) {
             await tx.noteBlock.update({
@@ -665,6 +675,20 @@ export class NotesToolService {
     }: z.input<typeof attachImageDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
+    console.log(
+      JSON.stringify(
+        {
+          userId,
+          noteId,
+          images,
+          createNewBlock,
+          options: options || {},
+        },
+        null,
+        2,
+      ),
+    );
+
     try {
       const existingNote = await this.prisma.note.findFirst({
         where: { id: noteId, userId, deletedAt: null },
@@ -704,7 +728,10 @@ export class NotesToolService {
           await tx.noteBlock.update({
             where: { id: existingMediaBlock.id },
             data: {
-              content: [...currentItems, ...newMediaItems] as Prisma.InputJsonValue,
+              content: [
+                ...currentItems,
+                ...newMediaItems,
+              ] as Prisma.InputJsonValue,
               version: { increment: 1 },
               updatedAt: new Date(),
             },
@@ -915,11 +942,18 @@ export class NotesToolService {
       this.audit.logAgent({
         userId,
         conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: isPinned ? `${actionPrefix}.pinNote` : `${actionPrefix}.unpinNote`,
+        action: isPinned
+          ? `${actionPrefix}.pinNote`
+          : `${actionPrefix}.unpinNote`,
         resourceType: 'note',
         resourceId: note.id,
         details: `${isPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
-        metadata: { isPinned, source, clientId: options?.clientId, apiKey: options?.apiKey },
+        metadata: {
+          isPinned,
+          source,
+          clientId: options?.clientId,
+          apiKey: options?.apiKey,
+        },
       });
 
       return {
@@ -974,7 +1008,12 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: note.id,
         details: `${isArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
-        metadata: { isArchived, source, clientId: options?.clientId, apiKey: options?.apiKey },
+        metadata: {
+          isArchived,
+          source,
+          clientId: options?.clientId,
+          apiKey: options?.apiKey,
+        },
       });
 
       return {
@@ -1034,7 +1073,12 @@ export class NotesToolService {
         resourceType: 'note',
         resourceId: existing.id,
         details: `${hardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
-        metadata: { hardDelete, source, clientId: options?.clientId, apiKey: options?.apiKey },
+        metadata: {
+          hardDelete,
+          source,
+          clientId: options?.clientId,
+          apiKey: options?.apiKey,
+        },
       });
 
       return {

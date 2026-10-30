@@ -111,6 +111,7 @@ export function unpackServerNoteBlock(row: {
   content: unknown;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 }): NoteBlock {
   const base = {
     id: row.id,
@@ -118,6 +119,7 @@ export function unpackServerNoteBlock(row: {
     position: row.position,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
   };
 
   if (row.type === 'list') {

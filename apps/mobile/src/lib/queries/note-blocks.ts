@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import * as Crypto from "expo-crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 import { db } from "@/db/client";
@@ -44,7 +44,7 @@ export function useLiveNoteBlocks(noteId: string | undefined | null) {
     ? db
         .select()
         .from(noteBlocks)
-        .where(eq(noteBlocks.noteId, noteId))
+        .where(and(eq(noteBlocks.noteId, noteId), isNull(noteBlocks.deletedAt)))
         .orderBy(asc(noteBlocks.position))
     : db
         .select()
@@ -77,7 +77,7 @@ export async function getNoteBlocks(noteId: string): Promise<NoteBlock[]> {
   const rows = await db
     .select()
     .from(noteBlocks)
-    .where(eq(noteBlocks.noteId, noteId))
+    .where(and(eq(noteBlocks.noteId, noteId), isNull(noteBlocks.deletedAt)))
     .orderBy(asc(noteBlocks.position));
 
   return rows.map(rowToNoteBlock);
@@ -289,16 +289,17 @@ export async function deleteBlock(blockId: string): Promise<void> {
 
   if (!existing) return;
 
+  const now = new Date().toISOString();
   await db.delete(noteBlocks).where(eq(noteBlocks.id, blockId));
   await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.blockId, blockId));
 
   await enqueueOutbox("note_blocks", blockId, "delete", {
     id: blockId,
     noteId: existing.noteId,
+    deletedAt: now,
   });
 
   const remaining = await getNoteBlocks(existing.noteId);
-  const now = new Date().toISOString();
   const reindexedBlocks: NoteBlock[] = [];
 
   for (let i = 0; i < remaining.length; i++) {
@@ -383,6 +384,13 @@ export async function upsertBlockFromSync(block: NoteBlock): Promise<void> {
     .limit(1);
 
   if (existing && new Date(existing.updatedAt) > new Date(block.updatedAt)) {
+    return;
+  }
+
+  // Handle block tombstone arriving from server sync (e.g., deleted by AI Agent or another client)
+  if (block.deletedAt) {
+    await db.delete(noteBlocks).where(eq(noteBlocks.id, block.id));
+    await db.delete(mediaSyncOutbox).where(eq(mediaSyncOutbox.blockId, block.id));
     return;
   }
 

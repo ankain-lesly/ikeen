@@ -34,3 +34,21 @@ For the monorepo release process standard, see [docs/releases/RELEASE_PROCESS.md
 * **Major Releases (`X.0.0`)**: Released when major architectural or data model paradigms change. Supported for a minimum of 6 months with hotfix patches.
 * **Minor Releases (`x.Y.0`)**: Monthly or bi-weekly feature drops containing non-breaking enhancements.
 * **Patch Releases (`x.y.Z`)**: Shipped as needed for sync stability, crash resolution, and critical bug fixes.
+
+
+## Build Process
+
+
+[[EAS JSON config](https://docs.expo.dev/build/eas-json/)]
+
+## 5. Create the Development Build
+
+```bash
+# Android
+eas build --platform android --profile development
+
+eas build --platform android --profile production --auto-submit
+
+# iOS
+eas build --platform ios --profile development
+```

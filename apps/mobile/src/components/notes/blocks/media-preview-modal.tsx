@@ -166,7 +166,7 @@ function MediaPreviewModalContent({
                   <Text
                     numberOfLines={1}
                     className="text-xl font-normal text-text-secondary text-center truncate">
-                    {activeItem?.name?.split(".")?.[0] || "Media"}
+                    {activeItem?.name?.split(".") || "Media"}
                   </Text>
                 </View>
 

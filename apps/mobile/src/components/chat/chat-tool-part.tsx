@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Linking, Image } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Linking,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
@@ -748,15 +755,19 @@ export function ChatToolPart({
           )}
         </View>
 
-        {imageUrl && !isRunning && (
-          <View className="mt-3 rounded-xl overflow-hidden border border-border/50 bg-background aspect-video">
+        <View className="mt-3 rounded-xl overflow-hidden border border-border/50 bg-background aspect-video">
+          {imageUrl && !isRunning ? (
             <Image
               source={{ uri: imageUrl }}
               className="w-full h-62"
               resizeMode="cover"
             />
-          </View>
-        )}
+          ) : (
+            <View className="w-full h-62 item-center justify-center">
+              <ActivityIndicator size={"large"} color={colors.textSecondary} />
+            </View>
+          )}
+        </View>
 
         {isError && (
           <Text className="mt-1.5 text-xs text-red-500">

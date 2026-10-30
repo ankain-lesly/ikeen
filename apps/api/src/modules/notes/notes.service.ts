@@ -252,12 +252,18 @@ export class NotesService {
         return { applied: false, blockId: b.id };
       }
 
-      await prismaClient.noteBlock.delete({
+      // Soft-delete using tombstone so delta-pull propagates deletion to other devices
+      await prismaClient.noteBlock.update({
         where: { id: b.id },
+        data: {
+          deletedAt: clientUpdatedAt,
+          version: nextVersion,
+          updatedAt: clientUpdatedAt,
+        },
       });
 
       this.logger.debug(
-        `[LWW:NoteBlock:Deleted] id=${b.id} noteId=${targetNoteId}`,
+        `[LWW:NoteBlock:Tombstone] id=${b.id} noteId=${targetNoteId}`,
       );
 
       return { applied: true, blockId: b.id };
@@ -287,18 +293,21 @@ export class NotesService {
       existing?.content,
     );
 
+    const blockPatch: Prisma.NoteBlockUpdateInput = {
+      updatedAt: clientUpdatedAt,
+      type: resolvedType,
+      position: b.changes.position ?? existing?.position,
+      content: nextContent as unknown as Prisma.InputJsonValue,
+      version: nextVersion,
+    };
+    if (b.changes.deletedAt !== undefined) {
+      blockPatch.deletedAt = b.changes.deletedAt ? new Date(b.changes.deletedAt) : null;
+    }
+
     if (existing) {
       await prismaClient.noteBlock.update({
         where: { id: b.id },
-        data: {
-          updatedAt: clientUpdatedAt,
-          type: resolvedType,
-          position: b.changes.position ?? existing.position,
-          // Cast required: BlockChanges.content is a union (string|ListItem[]|MediaItem[])
-          // and JsonValue includes null — both are valid JSON but don't match
-          // Prisma's recursive InputJsonValue index-signature structurally.
-          content: nextContent as unknown as Prisma.InputJsonValue,
-        },
+        data: blockPatch,
       });
     } else {
       await prismaClient.noteBlock.create({
@@ -308,8 +317,10 @@ export class NotesService {
           type: resolvedType,
           position: b.changes.position ?? 0,
           content: nextContent as unknown as Prisma.InputJsonValue,
+          version: nextVersion,
           createdAt: clientUpdatedAt,
           updatedAt: clientUpdatedAt,
+          deletedAt: b.changes.deletedAt ? new Date(b.changes.deletedAt) : null,
         },
       });
     }

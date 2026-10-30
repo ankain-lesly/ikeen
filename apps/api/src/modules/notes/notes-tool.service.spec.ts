@@ -408,7 +408,14 @@ describe('NotesToolService', () => {
       );
 
       expect(result.ok).toBe(true);
-      expect(mockPrisma.noteBlock.delete).toHaveBeenCalledWith({ where: { id: 'b-1' } });
+      expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith({
+        where: { id: 'b-1' },
+        data: {
+          deletedAt: expect.any(Date),
+          version: { increment: 1 },
+          updatedAt: expect.any(Date),
+        },
+      });
       expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith({
         where: { id: 'b-2' },
         data: {
