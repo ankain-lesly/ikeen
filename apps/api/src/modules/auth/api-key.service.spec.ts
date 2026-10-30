@@ -52,13 +52,15 @@ describe('ApiKeyService', () => {
   });
 
   describe('validateApiKey', () => {
-    it('validates a correct ikn_ key and returns user', async () => {
+    it('validates a correct ikn_ key and returns user and apiKey metadata', async () => {
       const rawKey = 'ikn_live_0123456789abcdef0123456789abcdef0123456789abcdef';
       const keyHash = service.hashKey(rawKey);
 
       mockPrisma.apiKey.findUnique.mockResolvedValue({
         id: 'key-1',
         keyHash,
+        name: 'Claude Desktop',
+        keyPrefix: rawKey.slice(0, 16),
         expiresAt: null,
         user: {
           id: 'user-1',
@@ -71,10 +73,15 @@ describe('ApiKeyService', () => {
       });
       mockPrisma.apiKey.update.mockResolvedValue({});
 
-      const user = await service.validateApiKey(rawKey);
+      const result = await service.validateApiKey(rawKey);
 
-      expect(user.id).toBe('user-1');
-      expect(user.email).toBe('test@ikeen.app');
+      expect(result.user.id).toBe('user-1');
+      expect(result.user.email).toBe('test@ikeen.app');
+      expect(result.apiKey).toEqual({
+        id: 'key-1',
+        name: 'Claude Desktop',
+        keyPrefix: rawKey.slice(0, 16),
+      });
     });
 
     it('rejects keys not starting with ikn_', async () => {

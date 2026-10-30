@@ -17,11 +17,13 @@ import {
 import { ThemedText } from '@/components/ui/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import type { Note } from '@/lib/types/notes';
-import { formatFullDate } from '@repo/utils/date';
+import { formatDate } from '@repo/utils/date';
 import { calculateReadingTime, countWords } from '@repo/utils/string';
 
+
+type NoteParsed = Omit<Partial<Note>, "tags"> & { tags: string[] };
 interface NoteInfoSheetProps {
-  note: Note | null;
+  note: NoteParsed | null;
   visible: boolean;
   folderName?: string | null;
   onClose: () => void;
@@ -39,16 +41,9 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
 
   if (!note) return null;
 
-  const wordCount = countWords(note.content);
-  const charCount = note.content.length;
-  const readingTimeMinutes = calculateReadingTime(note.content);
-
-  let tags: string[] = [];
-  try {
-    tags = JSON.parse(note.tags || '[]');
-  } catch {
-    tags = [];
-  }
+  const wordCount = countWords(note?.content || "");
+  const charCount = note.content?.length;
+  const readingTimeMinutes = calculateReadingTime(note?.content || "");
 
   const handleClose = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -122,7 +117,7 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
                 </Text>
               </View>
               <Text className="text-sm font-medium text-text">
-                {formatFullDate(note.createdAt)}
+                {formatDate(note.createdAt)}
               </Text>
             </View>
 
@@ -134,7 +129,7 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
                 </Text>
               </View>
               <Text className="text-sm font-medium text-text">
-                {formatFullDate(note.updatedAt)}
+                {formatDate(note.updatedAt)}
               </Text>
             </View>
 
@@ -167,16 +162,16 @@ export const NoteInfoSheet = React.memo(function NoteInfoSheet({
           </View>
 
           {/* Tags */}
-          {tags.length > 0 && (
+          {note.tags.length > 0 && (
             <View className="mt-2 pt-3 border-t border-border">
               <View className="flex-row items-center gap-2 mb-2">
                 <Hash size={14} color={colors.textSecondary} />
                 <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                  Tags ({tags.length})
+                  Tags ({note.tags.length})
                 </Text>
               </View>
               <View className="flex-row flex-wrap gap-2">
-                {tags.map((tag, idx) => (
+                {note.tags.map((tag, idx) => (
                   <View
                     key={`${tag}-${idx}`}
                     className="px-2.5 py-1 rounded-full border border-border bg-background-element">

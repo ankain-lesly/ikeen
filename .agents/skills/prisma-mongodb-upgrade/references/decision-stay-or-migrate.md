@@ -85,3 +85,7 @@ Staying is a decision, not a default-by-neglect:
 
 - [Prisma Next repository](https://github.com/prisma/prisma-next)
 - [Prisma v6 MongoDB documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb)
+
+## UI Components Improvement
+
+use the new Card.tsx ui component for any card wrapper to icons group design link on the notes and notes-bulk-action-bar components: (`apps/mobile/components/ui/card.tsx`)

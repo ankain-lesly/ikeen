@@ -1,6 +1,9 @@
 import React from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
+import {
+  openBrowserAsync,
+  WebBrowserPresentationStyle,
+} from "expo-web-browser";
 import { Host, Switch } from "@expo/ui/jetpack-compose";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -8,6 +11,7 @@ import {
   ArrowUpDown,
   ChevronRight,
   Cloud,
+  CloudUpload,
   FileText,
   Folder,
   HardDrive,
@@ -40,6 +44,10 @@ import {
   type DefaultNoteSort,
 } from "@/lib/settings/settings-store";
 import { NewBadge } from "@/components/ui/new-badge";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { or, eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { mediaSyncOutbox } from "@/db/schema";
 
 const ACCOUNT_DELETION_URL = "https://ikeen.leslychuo.me/delete-account";
 
@@ -47,6 +55,18 @@ export default function ProfileScreen() {
   const colors = useTheme();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { status: syncStatus, pendingCount, lastSyncedAt } = useSyncStore();
+  const { data: pendingMediaJobs = [] } = useLiveQuery(
+    db
+      .select({ id: mediaSyncOutbox.id })
+      .from(mediaSyncOutbox)
+      .where(
+        or(
+          eq(mediaSyncOutbox.status, "pending"),
+          eq(mediaSyncOutbox.status, "uploading"),
+        ),
+      ),
+  );
+  const pendingMediaCount = pendingMediaJobs.length;
   const {
     theme,
     setTheme,
@@ -61,6 +81,7 @@ export default function ProfileScreen() {
   const { data: notes = [] } = useLiveNotes({
     includeArchived: true,
     includeDeleted: true,
+    withBlocks: false,
   });
   const { data: folders = [] } = useLiveFolders();
 
@@ -75,6 +96,11 @@ export default function ProfileScreen() {
   const handleOpenSyncOutbox = () => {
     if (hapticsEnabled) Haptics.selectionAsync();
     router.push("/(tabs)/profile/sync-outbox");
+  };
+
+  const handleOpenMediaOutbox = () => {
+    if (hapticsEnabled) Haptics.selectionAsync();
+    router.push("/(tabs)/profile/media-outbox");
   };
 
   const handleThemeChange = (newTheme: AppTheme) => {
@@ -137,17 +163,11 @@ export default function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-background pt-safe">
-      {/* Top Navigation Header */}
-      {/* <View className="px-5 py-3 border-b border-border/70 flex-row items-center justify-between">
-        <ThemedText type="title">Account</ThemedText>
-      </View> */}
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         className="flex-1 px-5 pt-4 pb-safe"
         contentContainerClassName="gap-5 pb-20">
         {/* User Identity Card */}
-
         <View className="p-5">
           <View className="flex-col items-center gap-4">
             <View className="w-16 h-16 rounded-2xl bg-background-element border border-border items-center justify-center shadow-xs">
@@ -177,6 +197,7 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
         {isAuthenticated && user ? (
           <>
             {/* Cloud Sync Status Card */}
@@ -318,13 +339,13 @@ export default function ProfileScreen() {
         </View>
 
         {/* ⚙️ Customizations & App Preferences */}
-        <View className="gap-2.5">
+        {/* <View className="gap-2.5">
           <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
             Customizations
           </Text>
 
           <View className="rounded-2xl bg-card border border-border overflow-hidden">
-            {/* Note Sort Order */}
+            // Note Sort Order
             <Pressable
               onPress={handleSortCycle}
               className="p-3.5 flex-row items-center justify-between active:bg-background-element">
@@ -344,7 +365,7 @@ export default function ProfileScreen() {
 
             <View className="h-px bg-border/60 mx-3.5" />
 
-            {/* Haptic Vibrations Toggle */}
+            // Haptic Vibrations Toggle
             <View className="p-3.5 flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
                 <Vibrate size={17} color={colors.textSecondary} />
@@ -370,7 +391,7 @@ export default function ProfileScreen() {
 
             <View className="h-px bg-border/60 mx-3.5" />
 
-            {/* Sync on Mobile Data Toggle */}
+            // Sync on Mobile Data Toggle
             <View className="p-3.5 flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
                 <Wifi size={17} color={colors.textSecondary} />
@@ -394,7 +415,7 @@ export default function ProfileScreen() {
               </Host>
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* 💾 Local Storage Metrics Section (With Pending Syncs) */}
         <View className="gap-2.5">
@@ -456,7 +477,7 @@ export default function ProfileScreen() {
               </Text>
             </Pressable>
 
-            {/* Pinned Notes */}
+            {/* Recycle Bin */}
             {trashedCount > 0 && (
               <Pressable
                 onPress={() => router.push("/notes/trash")}
@@ -477,70 +498,124 @@ export default function ProfileScreen() {
                 </Text>
               </Pressable>
             )}
-
-            <View className="h-px bg-border/60" />
-
-            {/* 🔄 Pending Syncs (Local SQLite Outbox Count) */}
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-background-element items-center justify-center">
-                  <RefreshCw
-                    size={16}
-                    color={pendingCount > 0 ? "#f59e0b" : colors.text}
-                  />
-                </View>
-                <View>
-                  <Text className="text-sm font-medium text-text">
-                    Pending Syncs
-                  </Text>
-                  <Text className="text-[10px] text-text-secondary">
-                    Queued outbox mutations
-                  </Text>
-                </View>
-              </View>
-              <View
-                className="px-2 py-0.5 rounded-full border"
-                style={{
-                  backgroundColor:
-                    pendingCount > 0
-                      ? "rgba(245, 158, 11, 0.1)"
-                      : colors.backgroundElement,
-                  borderColor:
-                    pendingCount > 0
-                      ? "rgba(245, 158, 11, 0.3)"
-                      : colors.border,
-                }}>
-                <Text
-                  className="text-xs font-bold font-mono"
-                  style={{
-                    color: pendingCount > 0 ? "#f59e0b" : colors.textSecondary,
-                  }}>
-                  {pendingCount > 0 ? `${pendingCount} queued` : "0 (Clean)"}
-                </Text>
-              </View>
-            </View>
           </View>
 
-          {/* 🔗 Dedicated Interactive Link to Sync Outbox Page */}
+          {/* 🔗 Dedicated Interactive Links to Sync Outbox & Media Outbox */}
           {user?.type === "admin" && (
-            <Pressable
-              onPress={handleOpenSyncOutbox}
-              className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
-                  <HardDrive size={18} color={colors.text} />
+            <View className="gap-2">
+              {/* 1. Sync Outbox Button */}
+              <Pressable
+                onPress={handleOpenSyncOutbox}
+                className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
+                    <HardDrive size={18} color={colors.text} />
+                  </View>
+                  <View>
+                    <Text className="text-sm font-bold text-text">
+                      Sync Outbox
+                    </Text>
+                    <Text className="text-xs text-text-secondary mt-0.5">
+                      Inspect Sync Progress
+                    </Text>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-text">
-                    Sync Outbox
-                  </Text>
-                  <Text className="text-xs text-text-secondary mt-0.5">
-                    Inspect Sync Progress
-                  </Text>
+                <View className="flex-row gap-2 items-center">
+                  <View
+                    className="px-2 py-0.5 rounded-full border"
+                    style={{
+                      backgroundColor:
+                        pendingCount > 0
+                          ? "rgba(245, 158, 11, 0.1)"
+                          : colors.backgroundElement,
+                      borderColor:
+                        pendingCount > 0
+                          ? "rgba(245, 158, 11, 0.3)"
+                          : colors.border,
+                    }}>
+                    <Text
+                      className="text-xs font-bold font-mono"
+                      style={{
+                        color:
+                          pendingCount > 0 ? "#f59e0b" : colors.textSecondary,
+                      }}>
+                      {pendingCount > 0
+                        ? `${pendingCount} queued`
+                        : "0 (Clean)"}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.textSecondary} />
                 </View>
-              </View>
-              <ChevronRight size={16} color={colors.textSecondary} />
-            </Pressable>
+              </Pressable>
+
+              {/* 2. Media Outbox Button (Directly under Sync Outbox) */}
+              <Pressable
+                onPress={handleOpenMediaOutbox}
+                className="p-4 rounded-2xl bg-card border border-border flex-row items-center justify-between active:bg-background-element shadow-xs">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-xl bg-background-element border border-border items-center justify-center">
+                    <CloudUpload size={18} color={colors.text} />
+                  </View>
+                  <View>
+                    <Text className="text-sm font-bold text-text">
+                      Media Outbox
+                    </Text>
+                    <Text className="text-xs text-text-secondary mt-0.5">
+                      Inspect Media Upload Queue
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row gap-2 items-center">
+                  <View
+                    className="px-2 py-0.5 rounded-full border"
+                    style={{
+                      backgroundColor:
+                        pendingMediaCount > 0
+                          ? "rgba(245, 158, 11, 0.1)"
+                          : colors.backgroundElement,
+                      borderColor:
+                        pendingMediaCount > 0
+                          ? "rgba(245, 158, 11, 0.3)"
+                          : colors.border,
+                    }}>
+                    <Text
+                      className="text-xs font-bold font-mono"
+                      style={{
+                        color:
+                          pendingMediaCount > 0 ? "#f59e0b" : colors.textSecondary,
+                      }}>
+                      {pendingMediaCount > 0
+                        ? `${pendingMediaCount} queued`
+                        : "0 (Clean)"}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.textSecondary} />
+                </View>
+              </Pressable>
+
+              {/* 3. Audit Logs Button */}
+              <Pressable
+                onPress={() => {
+                  if (hapticsEnabled) Haptics.selectionAsync();
+                  router.push("/(tabs)/profile/audit");
+                }}
+                className="p-4 rounded-3xl bg-card border border-border flex-row items-center justify-between active:opacity-70">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-10 h-10 rounded-2xl bg-background-element border border-border items-center justify-center">
+                    <ShieldCheck size={18} color={colors.text} />
+                  </View>
+                  <View>
+                    <ThemedText className="text-sm font-bold text-text">
+                      Audit Logs
+                    </ThemedText>
+                    <Text className="text-xs text-text-secondary">
+                      View MCP and agent system activities
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.textSecondary} />
+              </Pressable>
+            </View>
           )}
         </View>
 
@@ -600,7 +675,9 @@ export default function ProfileScreen() {
           }}
           className="w-full h-12 rounded-2xl border border-border bg-card flex-row items-center justify-center gap-2 active:opacity-75">
           <Trash size={16} color={colors.textSecondary} />
-          <Text className="text-text font-semibold text-sm">Delete account</Text>
+          <Text className="text-text font-semibold text-sm">
+            Delete account
+          </Text>
         </Pressable>
 
         {/* Sign Out Action (When Authenticated) */}

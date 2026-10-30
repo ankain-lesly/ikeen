@@ -36,6 +36,20 @@
       "when": 1789856483516,
       "tag": "0004_colossal_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792430804122,
+      "tag": "0005_steady_adam_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792775602911,
+      "tag": "0006_safe_nova",
+      "breakpoints": true
     }
   ]
 }

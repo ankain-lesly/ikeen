@@ -1,25 +1,51 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, Share, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
-import { ArchiveRestore, Check, Pin } from "lucide-react-native";
+import {
+  ArchiveRestore,
+  Check,
+  GalleryHorizontal,
+  Pin,
+} from "lucide-react-native";
 
 import { ThemedText } from "@/components/ui/themed-text";
-import type { Note } from "@/lib/types/notes";
+import type {
+  ListBlock,
+  MediaBlock,
+  NoteWithBlocks,
+  TextBlock,
+  NoteBlock,
+} from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
-import NotesDetailDropdown from "./notes-detail-dropdown";
+import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
+import {
+  ListBlockPreview,
+  MediaCoverPreview,
+  stripMarkdown,
+} from "./note-card-preview";
 
 interface NoteCardProps {
-  note: Note;
-  onTogglePin?: (id: string) => void;
-  onToggleArchive?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  note: NoteWithBlocks;
+  layout?: "grid" | "list";
   className?: string;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
   onLongPressSelect?: (id: string) => void;
+}
+
+function areBlocksEqual(prev?: NoteBlock[], next?: NoteBlock[]): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    const pb = prev[i];
+    const nb = next[i];
+    if (pb.id !== nb.id || pb.updatedAt !== nb.updatedAt) return false;
+  }
+  return true;
 }
 
 function areNoteCardPropsEqual(
@@ -30,69 +56,133 @@ function areNoteCardPropsEqual(
     prev.note.id === next.note.id &&
     prev.note.title === next.note.title &&
     prev.note.content === next.note.content &&
+    prev.note.summary === next.note.summary &&
     prev.note.tags === next.note.tags &&
     prev.note.isPinned === next.note.isPinned &&
     prev.note.isArchived === next.note.isArchived &&
     prev.note.deletedAt === next.note.deletedAt &&
     prev.note.updatedAt === next.note.updatedAt &&
+    areBlocksEqual(prev.note.blocks, next.note.blocks) &&
+    prev.layout === next.layout &&
     prev.isSelectionMode === next.isSelectionMode &&
     prev.isSelected === next.isSelected &&
     prev.className === next.className &&
-    prev.onTogglePin === next.onTogglePin &&
-    prev.onToggleArchive === next.onToggleArchive &&
-    prev.onDelete === next.onDelete &&
     prev.onSelect === next.onSelect &&
     prev.onLongPressSelect === next.onLongPressSelect
   );
 }
 
 /**
- * ============================================================================
- * ARCHITECTURAL NOTES FOR FUTURE REVIEW: <Link> vs <Pressable> & Virtualization
- * ============================================================================
- *
- * 1. WHY EXPO ROUTER'S <Link> WAS REPLACED WITH <Pressable> & router.push():
- *    - In earlier iterations, NoteCard wrapped its contents in `<Link asChild>`
- *      with `<Link.Trigger>` and `<Link.Menu>`.
- *    - In multi-selection mode (`isSelectionMode === true`), cards must NOT
- *      navigate on tap, but rather toggle their selection state (`onSelect`).
- *    - Initially, the component conditionally swapped between:
- *        `if (isSelectionMode) return <Pressable ...>` vs `return <Link ...>`
- *    - In React tree reconciliation, swapping root component types (`Link` vs
- *      `Pressable`) forces React to unmount the entire subtree of every card
- *      and recreate it from scratch.
- *    - On iOS, `<Link>` also registers native context menu controllers
- *      (`UIContextMenuInteraction`). Tearing down and recreating these native
- *      controllers simultaneously for 20+ list items stalled the main UI thread.
- *
- * 2. FLASHLIST MASONRY SENSITIVITY & "GLITTER" / COLUMN JUMPING:
- *    - When rendered inside `@shopify/flash-list` with `masonry={true}`, the list
- *      continually balances column heights based on cell geometry measurements.
- *    - Remounting cards or altering their height by even 1 pixel triggers an
- *      immediate column recalculation, causing cards to jump across columns
- *      (observed as visual "glitter" or jumping during selection mode toggles).
- *    - By permanently mounting `<Pressable>` as the stable root element, the
- *      component tree NEVER unmounts during mode transitions.
- *
- * 3. GEOMETRIC STABILITY (THE 20x20 SLOT):
- *    - The top-right accessory slot is locked to a fixed `w-5 h-5` (20x20 px) box.
- *    - `NotesDetailDropdown` stays mounted; the selection checkbox overlays it
- *      with opacity / pointerEvents so native Host views are not torn down.
- *    - Both unselected and selected states maintain identical border widths and
- *      padding (`p-3.5`, `border 1px`), ensuring 0-pixel height variance.
- *
- * 4. CONTEXT ACTIONS:
- *    - Note actions (Pin, Archive, Share, Delete, Move) are handled by
- *      `NotesDetailDropdown` (accessible via tap or long-press) and the floating
- *      bulk action bar, avoiding dependency on `<Link.Menu>`.
- * ============================================================================
+ * Shared Action Bar: Date, Pin, Archive, and the stable 20x20 slot
  */
+const CardActionBar = React.memo(function CardActionBar({
+  note,
+  formattedDate,
+  colors,
+  isSelectionMode,
+  isSelected,
+  isMenuOpen,
+  setIsMenuOpen,
+  variant = "in-flow",
+}: {
+  note: NoteWithBlocks;
+  formattedDate: string;
+  colors: ReturnType<typeof useTheme>;
+  isSelectionMode: boolean;
+  isSelected: boolean;
+  isMenuOpen: boolean;
+  setIsMenuOpen: (v: boolean) => void;
+  variant?: "in-flow" | "floating";
+}) {
+  const isFloating = variant === "floating";
+
+  return (
+    <View
+      className={
+        isFloating
+          ? "absolute top-2.5 left-2.5 right-2.5 z-10 flex-row items-center justify-between pointer-events-box-none"
+          : "flex-row items-center justify-between gap-1 w-full"
+      }>
+      {/* Date Pill / Text */}
+      {isFloating ? (
+        <View className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md">
+          <Text className="text-[10px] font-mono text-white/90">
+            {formattedDate}
+          </Text>
+        </View>
+      ) : (
+        <Text className="text-[10px] inline-block font-mono text-text-secondary">
+          {formattedDate}
+        </Text>
+      )}
+
+      {/* Actions (Pin, Archive, 20x20 slot) */}
+      <View
+        className={
+          isFloating
+            ? "flex-row items-center gap-2 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md"
+            : "flex-row items-center gap-2"
+        }>
+        {note.isPinned && (
+          <Pin
+            size={14}
+            color={isFloating ? "#ffffff" : colors.primary}
+            fill={isFloating ? "#ffffff" : colors.primary}
+          />
+        )}
+
+        {note.isArchived && (
+          <ArchiveRestore
+            size={14}
+            color={isFloating ? "#ffffff" : colors.textSecondary}
+          />
+        )}
+
+        {/* Fixed-geometry slot (20x20) */}
+        <View className="w-5 h-5 items-center justify-center">
+          <View
+            pointerEvents={isSelectionMode ? "none" : "auto"}
+            style={{ opacity: isSelectionMode ? 0 : 1 }}
+            className="absolute inset-0 items-center justify-center">
+            <NotesOptionsDropdown
+              variant="dropdown"
+              isExpanded={isMenuOpen}
+              setIsExpanded={setIsMenuOpen}
+              note={note}
+              iconStyle={{
+                size: 16,
+                color: isFloating ? "#ffffff" : undefined,
+                className: "w-5 h-5 items-center justify-center",
+              }}
+            />
+          </View>
+          <View
+            pointerEvents="none"
+            style={{ opacity: isSelectionMode ? 1 : 0 }}
+            className="absolute inset-0 items-center justify-center">
+            <View
+              className={`w-5 h-5 rounded-full items-center justify-center border ${
+                isSelected
+                  ? "bg-primary border-primary"
+                  : isFloating
+                    ? "border-white/60 bg-black/40"
+                    : "border-border bg-background-element"
+              }`}>
+              {isSelected ? (
+                <Check size={12} color="#ffffff" strokeWidth={3} />
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+});
+
 export const NoteCard = React.memo(function NoteCard({
   note,
+  layout = "grid",
   className,
-  onTogglePin,
-  onToggleArchive,
-  onDelete,
   isSelectionMode = false,
   isSelected = false,
   onSelect,
@@ -111,7 +201,36 @@ export const NoteCard = React.memo(function NoteCard({
   }, [note.tags]);
 
   const displayTitle = note.title.trim() || "Untitled Note";
-  const displaySnippet = note.content.trim() || "No additional text";
+
+  const { coverMedia, totalMediaCount, contentBlock } = useMemo(() => {
+    const rawBlocks = note.blocks || [];
+    const mediaBlocks = rawBlocks.filter(
+      (b): b is MediaBlock => b.type === "media",
+    );
+    const allMedia = mediaBlocks.flatMap((b) =>
+      Array.isArray(b.content) ? b.content : [],
+    );
+    const cover = allMedia.find((m) => m.mediaType === "image") || allMedia[0];
+    const nonMedia = rawBlocks.find(
+      (b): b is ListBlock | TextBlock => b.type === "list" || b.type === "text",
+    );
+    return {
+      coverMedia: cover,
+      totalMediaCount: allMedia.length,
+      contentBlock: nonMedia,
+    };
+  }, [note.blocks]);
+
+  const displaySnippet = useMemo(() => {
+    if (contentBlock?.type === "text") {
+      return stripMarkdown(contentBlock.content);
+    }
+    return (
+      (note.summary && note.summary.trim()) ||
+      stripMarkdown(note.content.trim())
+    );
+  }, [contentBlock, note.summary, note.content]);
+
   const formattedDate = formatTimeAgo(note.updatedAt);
 
   useEffect(() => {
@@ -119,32 +238,6 @@ export const NoteCard = React.memo(function NoteCard({
       setIsMenuOpen(false);
     }
   }, [isSelectionMode, isMenuOpen]);
-
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        title: displayTitle,
-        message: `${displayTitle}\n\n${note.content}`,
-      });
-    } catch {
-      // Ignored
-    }
-  }, [displayTitle, note.content]);
-
-  const handlePinPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onTogglePin?.(note.id);
-  }, [note.id, onTogglePin]);
-
-  const handleArchivePress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggleArchive?.(note.id);
-  }, [note.id, onToggleArchive]);
-
-  const handleDeletePress = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    onDelete?.(note.id);
-  }, [note.id, onDelete]);
 
   const handlePress = useCallback(() => {
     if (isSelectionMode) {
@@ -168,117 +261,192 @@ export const NoteCard = React.memo(function NoteCard({
     }
   }, [isSelectionMode, note.id, onSelect, onLongPressSelect]);
 
+  // ==========================================================================
+  // Layout 1: Horizontal List Row (layout === "list")
+  // ==========================================================================
+  if (layout === "list") {
+    return (
+      <Pressable
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        className={className}>
+        <View
+          className={`rounded-xl border overflow-hidden ${
+            isSelected
+              ? "border-primary bg-transparent"
+              : "border-border bg-card/50"
+          } active:opacity-90 active:scale-[0.99]`}>
+          <View className="flex-row items-center gap-3 min-h-21">
+            {/* Left Column: Actions Bar at Content Top, Title, Snippet, Tags */}
+            <View className="flex-2 gap-1 justify-center p-3">
+              {/* Actions bar at content top */}
+              <CardActionBar
+                note={note}
+                formattedDate={formattedDate}
+                colors={colors}
+                isSelectionMode={isSelectionMode}
+                isSelected={isSelected}
+                isMenuOpen={isMenuOpen}
+                setIsMenuOpen={setIsMenuOpen}
+                variant="in-flow"
+              />
+
+              {/* Title */}
+              <ThemedText
+                numberOfLines={2}
+                className="font-semibold text-base text-text leading-none">
+                {displayTitle}
+              </ThemedText>
+
+              {/* 1-Line Snippet / Preview */}
+              {contentBlock?.type === "list" &&
+              contentBlock.content?.length > 0 ? (
+                <Text numberOfLines={2} className="text-xs text-text-secondary">
+                  {stripMarkdown(contentBlock.content[0]?.content) ||
+                    "List note"}
+                  {contentBlock.content.length > 1
+                    ? ` (+${contentBlock.content.length - 1} more)`
+                    : ""}
+                </Text>
+              ) : displaySnippet ? (
+                <Text numberOfLines={2} className="text-xs text-text-secondary">
+                  {displaySnippet}
+                </Text>
+              ) : null}
+
+              {/* Tags */}
+              {parsedTags.length > 0 && (
+                <View className="flex-row items-center gap-1.5 mt-0.5 overflow-hidden">
+                  {parsedTags.slice(0, 2).map((tag, index) => (
+                    <View
+                      key={`${tag}-${index}`}
+                      className="px-1.5 py-0.5 rounded-md bg-background-element border border-border">
+                      <Text className="text-[10px] text-text-secondary font-medium">
+                        #{tag}
+                      </Text>
+                    </View>
+                  ))}
+                  {parsedTags.length > 2 && (
+                    <Text className="text-[10px] text-text-secondary font-bold">
+                      +{parsedTags.length - 2}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Right Column: Square Thumbnail if media exists */}
+            {coverMedia ? (
+              <View className="relative h-full flex-1 min-h-21">
+                <MediaCoverPreview
+                  item={coverMedia}
+                  totalMediaCount={totalMediaCount}
+                  variant="thumbnail"
+                />
+              </View>
+            ) : (
+              <View className="relative h-full flex-1 min-h-21 items-center justify-center bg-card">
+                <View className="opacity-30">
+                  <GalleryHorizontal size={20} color={colors.textSecondary} />
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // ==========================================================================
+  // Layout 2: Masonry Grid Card (layout === "grid")
+  // ==========================================================================
+  const hasCoverMedia = !!coverMedia;
+
   return (
     <Pressable
       onPress={handlePress}
       onLongPress={handleLongPress}
       className={className}>
       <View
-        className={`p-3.5 rounded-xl border ${
+        className={`rounded-xl border overflow-hidden ${
           isSelected
-            ? "border-primary bg-primary/[0.08]"
-            : "border-border bg-card"
-        } shadow-sm active:opacity-90 active:scale-[0.99] gap-1`}>
-        {/* Header Row: Title & Pin/Date/Selection */}
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="gap-1.5 flex-1">
-            <View className="flex-row items-center justify-between gap-1 w-full">
-              <Text className="text-[10px] inline-block font-mono text-text-secondary">
-                {formattedDate}
-              </Text>
-
-              <View className="flex-row items-center gap-1.5">
-                {note.isPinned && (
-                  <Pin
-                    size={12}
-                    color={colors.primary}
-                    fill={colors.primary}
-                  />
-                )}
-
-                {note.isArchived && (
-                  <ArchiveRestore
-                    size={12}
-                    color={colors.textSecondary}
-                  />
-                )}
-
-                {/* Fixed-geometry slot (20x20): menu stays mounted, checkbox overlays */}
-                <View className="w-5 h-5 items-center justify-center">
-                  <View
-                    pointerEvents={isSelectionMode ? "none" : "auto"}
-                    style={{ opacity: isSelectionMode ? 0 : 1 }}
-                    className="absolute inset-0 items-center justify-center">
-                    <NotesDetailDropdown
-                      isExpanded={isMenuOpen}
-                      setIsExpanded={setIsMenuOpen}
-                      isDeleted={!!note.deletedAt}
-                      noteId={note.id}
-                      iconStyle={{
-                        size: 14,
-                        className: "w-5 h-5 items-center justify-center",
-                      }}
-                      isPinned={note.isPinned}
-                      isArchived={note.isArchived}
-                      onTogglePin={handlePinPress}
-                      onToggleArchive={handleArchivePress}
-                      onDelete={handleDeletePress}
-                      onShare={handleShare}
-                    />
-                  </View>
-                  <View
-                    pointerEvents="none"
-                    style={{ opacity: isSelectionMode ? 1 : 0 }}
-                    className="absolute inset-0 items-center justify-center">
-                    <View
-                      className={`w-5 h-5 rounded-full items-center justify-center border ${
-                        isSelected
-                          ? "bg-primary border-primary"
-                          : "border-border bg-background-element"
-                      }`}>
-                      {isSelected ? (
-                        <Check size={12} color="#ffffff" strokeWidth={3} />
-                      ) : null}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <ThemedText
-              numberOfLines={2}
-              className="font-semibold text-base text-text flex-1">
-              {displayTitle}
-            </ThemedText>
-          </View>
-        </View>
-
-        {/* Footer: Tags List */}
-        {parsedTags.length > 0 && (
-          <View className="flex-row items-center gap-1.5 mt-0.5">
-            {parsedTags.slice(0, 2).map((tag, index) => (
-              <View
-                key={`${tag}-${index}`}
-                className="px-2 py-0.5 rounded-full border border-border bg-background-element">
-                <Text className="text-[11px] font-medium text-text-secondary">
-                  #{tag}
-                </Text>
-              </View>
-            ))}
-            {parsedTags.length > 2 && (
-              <Text className="text-[11px] font-bold text-text-secondary self-center">
-                +{parsedTags.length - 2}
-              </Text>
-            )}
+            ? "border-primary bg-transparent"
+            : "border-border bg-card/50"
+        } active:opacity-90 active:scale-[0.99]`}>
+        {/* Cover Media & Floating Action Bar */}
+        {hasCoverMedia && (
+          <View className="relative">
+            <MediaCoverPreview
+              item={coverMedia}
+              totalMediaCount={totalMediaCount}
+              variant="cover"
+            />
+            <CardActionBar
+              note={note}
+              formattedDate={formattedDate}
+              colors={colors}
+              isSelectionMode={isSelectionMode}
+              isSelected={isSelected}
+              isMenuOpen={isMenuOpen}
+              setIsMenuOpen={setIsMenuOpen}
+              variant="floating"
+            />
           </View>
         )}
 
-        {/* Snippet Row */}
-        <ThemedText
-          numberOfLines={2}
-          className="text-[13px] leading-5 text-text-secondary mb-2.5">
-          {displaySnippet}
-        </ThemedText>
+        <View className="p-3.5 gap-1">
+          {/* In-flow Action Bar when there is no cover media */}
+          {!hasCoverMedia && (
+            <CardActionBar
+              note={note}
+              formattedDate={formattedDate}
+              colors={colors}
+              isSelectionMode={isSelectionMode}
+              isSelected={isSelected}
+              isMenuOpen={isMenuOpen}
+              setIsMenuOpen={setIsMenuOpen}
+              variant="in-flow"
+            />
+          )}
+
+          {/* Title sits directly below image or in-flow action bar */}
+          <ThemedText
+            numberOfLines={2}
+            className="font-semibold text-base text-text">
+            {displayTitle}
+          </ThemedText>
+
+          {/* Tags List */}
+          {parsedTags.length > 0 && (
+            <View className="flex-row items-center gap-1.5 mt-0.5 w-full overflow-hidden">
+              {parsedTags.slice(0, 2).map((tag, index) => (
+                <View
+                  key={`${tag}-${index}`}
+                  className="px-2 py-0.5 rounded-full border border-border bg-background-element">
+                  <Text className="text-[11px] font-medium text-text-secondary">
+                    #{tag}
+                  </Text>
+                </View>
+              ))}
+              {parsedTags.length > 2 && (
+                <Text className="text-[11px] font-bold text-text-secondary self-center">
+                  +{parsedTags.length - 2}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Structured Preview / Snippet Row */}
+          {contentBlock?.type === "list" && contentBlock.content?.length > 0 ? (
+            <ListBlockPreview block={contentBlock} />
+          ) : displaySnippet ? (
+            <ThemedText
+              numberOfLines={2}
+              className="text-[13px] leading-5 text-text-secondary">
+              {displaySnippet}
+            </ThemedText>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );

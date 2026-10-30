@@ -3,14 +3,17 @@ import { z } from 'zod';
 import { NotesToolService } from '../../notes/notes-tool.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
-import type { AblyService } from '../../ably/ably.service.js';
 import {
+  addBlockDef,
   archiveNoteDef,
+  attachImageDef,
   createNoteDef,
+  deleteBlockDef,
   getNoteDetailsDef,
   listRecentNotesDef,
   pinNoteDef,
   searchNotesDef,
+  updateBlockDef,
   updateNoteDef,
 } from '../../notes/notes.tool-definitions.js';
 
@@ -23,17 +26,12 @@ export function createNotesTools(params: {
   notesToolService?: NotesToolService;
   prisma?: PrismaService;
   audit?: AuditService;
-  ably?: AblyService;
 }) {
   const notesToolService =
     params.notesToolService ??
     new NotesToolService(
       params.prisma!,
       params.audit!,
-      params.ably ??
-        ({
-          publishInvalidation: async () => {},
-        } as unknown as AblyService),
     );
 
   const searchNotes = tool({
@@ -69,6 +67,54 @@ export function createNotesTools(params: {
     inputSchema: createNoteDef.inputSchema,
     execute: async (args, { context }) => {
       return notesToolService.createNote(context.userId, args, {
+        conversationId: context.conversationId,
+        source: 'agent',
+      });
+    },
+  });
+
+  const addBlock = tool({
+    description: addBlockDef.description,
+    contextSchema: baseContextSchema,
+    inputSchema: addBlockDef.inputSchema,
+    execute: async (args, { context }) => {
+      return notesToolService.addBlock(context.userId, args, {
+        conversationId: context.conversationId,
+        source: 'agent',
+      });
+    },
+  });
+
+  const updateBlock = tool({
+    description: updateBlockDef.description,
+    contextSchema: baseContextSchema,
+    inputSchema: updateBlockDef.inputSchema,
+    execute: async (args, { context }) => {
+      return notesToolService.updateBlock(context.userId, args, {
+        conversationId: context.conversationId,
+        source: 'agent',
+      });
+    },
+  });
+
+  const deleteBlock = tool({
+    description: deleteBlockDef.description,
+    contextSchema: baseContextSchema,
+    inputSchema: deleteBlockDef.inputSchema,
+    execute: async (args, { context }) => {
+      return notesToolService.deleteBlock(context.userId, args, {
+        conversationId: context.conversationId,
+        source: 'agent',
+      });
+    },
+  });
+
+  const attachImage = tool({
+    description: attachImageDef.description,
+    contextSchema: baseContextSchema,
+    inputSchema: attachImageDef.inputSchema,
+    execute: async (args, { context }) => {
+      return notesToolService.attachImage(context.userId, args, {
         conversationId: context.conversationId,
         source: 'agent',
       });
@@ -116,6 +162,10 @@ export function createNotesTools(params: {
     getNoteDetails,
     listRecentNotes,
     createNote,
+    addBlock,
+    updateBlock,
+    deleteBlock,
+    attachImage,
     updateNote,
     pinNote,
     archiveNote,

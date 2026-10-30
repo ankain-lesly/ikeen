@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   AppState,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
-  Share,
   Text,
   TextInput,
+  TextInputEndEditingEvent,
   View,
 } from "react-native";
 import { router, useNavigation } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
+  ChevronDown,
   ChevronLeft,
   Folder,
   Pin,
@@ -25,535 +23,488 @@ import {
 import { NoteBottomToolBar } from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
+import { useDoubleTap } from "@/hooks/use-double-tap";
 import { toast } from "@/lib/toast";
 import {
   createNote,
+  getNoteById,
   moveNoteToFolder,
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
   updateNote,
 } from "@/lib/queries/notes";
 import { useLiveFolder } from "@/lib/queries/folders";
-import type { Note } from "@/lib/types/notes";
-import NotesDetailDropdown from "@/components/notes/notes-detail-dropdown";
+import type {
+  CreateBlockInput,
+  MediaBlock as MediaBlockType,
+  MediaItem,
+  NoteSelect,
+} from "@/lib/types/notes";
+import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
-import { formatDate } from "@repo/utils/date";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { scheduleOnRN } from "react-native-worklets";
+import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
+import { GestureDetector } from "react-native-gesture-handler";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
+import { type MarkdownFormatAction } from "@/components/markdown";
 import {
-  MarkdownBody,
-  MarkdownEditor,
-  type MarkdownEditorHandle,
-  type MarkdownFormatAction,
-} from "@/components/markdown";
+  BlockContainer,
+  createDefaultChecklistBlockInput,
+  createDefaultMediaBlockInput,
+  createDefaultTextBlockInput,
+  type BlockContainerHandle,
+} from "@/components/notes/blocks";
+import {
+  createBlock,
+  formatNoteWithBlocks,
+  updateBlock,
+  useLiveNoteBlocks,
+} from "@/lib/queries/note-blocks";
+import {
+  pickDocumentFile,
+  pickImagesFromLibrary,
+  takePhotoWithCamera,
+} from "@/lib/media/pickers";
+import { Card } from "../ui/card";
+import * as Crypto from "expo-crypto";
+import { log } from "@repo/utils";
+import { countWords } from "@repo/utils/string";
+import { useAuthStore } from "@/lib/auth/auth-store";
+import { useNoteActions } from "@/hooks/use-note-actions";
 
-export function NoteEditor({ note }: { note?: Note }) {
+export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const colors = useTheme();
+  const { user } = useAuthStore();
 
-  // Local state initialized directly from loaded note - no effect or cascading renders
-  const [id, setId] = useState(note?.id);
-  const [title, setTitle] = useState(note?.title || "");
-  const [content, setContent] = useState(note?.content || "");
-  const [tags, setTags] = useState<string[]>(() => {
-    try {
-      const parsed = JSON.parse(note?.tags || "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+  // Local note state
+  const [note, setNote] = useState({
+    ...(initialNote || {}),
+    id: initialNote?.id || Crypto.randomUUID(),
+    title: initialNote?.title || "",
+    content: initialNote?.content || "",
+    tags: (() => {
+      try {
+        const parsed: string[] = JSON.parse(initialNote?.tags || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })(),
+    isPinned: !!initialNote?.isPinned,
+    isArchived: !!initialNote?.isArchived,
+    folderId: initialNote?.folderId,
+    userId: user?.id,
+    createdAt: initialNote?.createdAt || "",
+    updatedAt: initialNote?.updatedAt || "",
   });
-  const [isPinned, setIsPinned] = useState(!!note?.isPinned);
-  const [isArchived, setIsArchived] = useState(!!note?.isArchived);
-  const [isSaving, setIsSaving] = useState(false);
+
+  // Track Notes Edit, Touched State
+  const [isNewDraft, setIsNewDraft] = useState(!initialNote);
+  const [hasEdited, setHasEdited] = useState(!initialNote);
+  const [isEditing, setIsEditing] = useState(!initialNote);
+
+  // Update Notes Field - MAIN local update mechanism
+  const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
+    setNote((prev) => ({ ...prev, [key]: value }));
+    setHasEdited(true);
+  }, []);
+
+  // Sheets & Tag Input
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
-  const [newTagText, setNewTagText] = useState("");
+  const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
+  const [targetAudioBlockId, setTargetAudioBlockId] = useState<string | null>(
+    null,
+  );
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
+  const { data: liveBlocks } = useLiveNoteBlocks(note.id);
 
-  const isNewDraft = (!note?.title && !note?.content) || !id;
-  const [isEditing, setIsEditing] = useState(isNewDraft);
-  const [editorDefaultValue, setEditorDefaultValue] = useState(content);
-  const isEditingRef = useRef(isEditing);
-  const leavingRef = useRef(false);
+  // Once any block is created, `createBlock` has already persisted the parent note in SQLite
+  const isUnpersistedDraft = isNewDraft && liveBlocks.length === 0;
+
   const navigation = useNavigation();
 
   const titleInputRef = useRef<TextInput>(null);
-  const contentInputRef = useRef<MarkdownEditorHandle>(null);
   const tagInputRef = useRef<TextInput>(null);
-  const latestNoteRef = useRef({ title, content, tags });
-  const hasEditedRef = useRef(false);
-  const isDeletedRef = useRef(false);
-  const idRef = useRef(note?.id);
-  const creatingRef = useRef<Promise<string> | null>(null);
-  const isPinnedRef = useRef(isPinned);
-  const isArchivedRef = useRef(isArchived);
+  const blockContainerRef = useRef<BlockContainerHandle>(null);
+  const leavingRef = useRef(false);
 
-  useEffect(() => {
-    isEditingRef.current = isEditing;
-  }, [isEditing]);
-
-  useEffect(() => {
-    latestNoteRef.current = { title, content, tags };
-  }, [title, content, tags]);
-
-  useEffect(() => {
-    idRef.current = id;
-  }, [id]);
-
-  useEffect(() => {
-    isPinnedRef.current = isPinned;
-    isArchivedRef.current = isArchived;
-  }, [isPinned, isArchived]);
-
+  // Save function: flushes staged block edits and persists note metadata
   const saveNote = useCallback(
-    async (
-      next?: { title: string; content: string; tags: string[] },
-      options?: { silent?: boolean; commitId?: boolean },
-    ) => {
-      if (next) {
-        latestNoteRef.current = next;
-      }
-      if (isDeletedRef.current || !hasEditedRef.current) return;
+    async (_data?: typeof note) => {
+      await blockContainerRef.current?.flushBlocks();
 
-      const snapshot = latestNoteRef.current;
+      if (!hasEdited) return;
+
+      const data = note;
+      log({
+        message: ">>> LOG: Saving...",
+        mode: _data ? "external" : "internal",
+      });
+
       const isEmpty =
-        snapshot.title.trim().length === 0 &&
-        snapshot.content.trim().length === 0 &&
-        snapshot.tags.length === 0;
-      if (isEmpty) return;
+        !data.title?.trim() &&
+        !data.content?.trim() &&
+        (!data.tags || data.tags.length === 0) &&
+        liveBlocks.length === 0;
 
-      const silent = options?.silent === true;
-      const commitId = options?.commitId !== false;
-      if (!silent) setIsSaving(true);
       try {
-        const startedCreate = !idRef.current && !creatingRef.current;
-        if (!idRef.current) {
-          if (!creatingRef.current) {
-            creatingRef.current = createNote({
-              title: snapshot.title,
-              content: snapshot.content,
-              tags: snapshot.tags,
-              isPinned: isPinnedRef.current,
-              isArchived: isArchivedRef.current,
-            })
-              .then((created) => {
-                idRef.current = created.id;
-                if (commitId) setId(created.id);
-                return created.id;
-              })
-              .finally(() => {
-                creatingRef.current = null;
-              });
-          }
-          await creatingRef.current;
-        }
+        const existingNote = isNewDraft ? await getNoteById(data.id) : null;
+        const shouldCreate = isNewDraft && !existingNote;
 
-        const savedId = idRef.current;
-        const latest = latestNoteRef.current;
-        const unchanged =
-          latest.title === snapshot.title &&
-          latest.content === snapshot.content &&
-          latest.tags === snapshot.tags;
-        if (savedId && !(startedCreate && unchanged)) {
-          await updateNote(savedId, {
-            title: latest.title,
-            content: latest.content,
-            tags: latest.tags,
+        if (shouldCreate && isEmpty) return;
+
+        if (shouldCreate) {
+          const created = await createNote({
+            id: data.id,
+            title: data.title || "",
+            content: data.content || "",
+            tags: data.tags || [],
+            isPinned: !!data.isPinned,
+            isArchived: !!data.isArchived,
+            folderId: data.folderId,
+            userId: data?.userId,
+          });
+          setNote((prev) => ({
+            ...prev,
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          }));
+          setIsNewDraft(false);
+        } else {
+          await updateNote(data.id, {
+            title: data.title || "",
+            content: data.content || "",
+            tags: data.tags || [],
+            isPinned: !!data.isPinned,
+            isArchived: !!data.isArchived,
+            folderId: data.folderId,
           });
         }
-        hasEditedRef.current = false;
-      } catch {
-        // Non-blocking save error
+        setHasEdited(false);
+      } catch (err) {
+        console.log("[🚨] Failed to save note:", err);
       } finally {
-        if (!silent) setIsSaving(false);
+        setIsNewDraft(false);
+        log({
+          message: `>>> LOG: New Note ${isNewDraft ? "Created" : "Update"}`,
+        });
       }
     },
-    [],
+    [hasEdited, isNewDraft, liveBlocks.length, note],
   );
-
-  const saveNoteRef = useRef(saveNote);
-  useEffect(() => {
-    saveNoteRef.current = saveNote;
-  }, [saveNote]);
-
-  useEffect(() => {
-    return () => {
-      void saveNoteRef.current(undefined, { silent: true, commitId: false }).catch((err) => {
-        console.error("Failed to save note on unmount:", err);
-      });
-    };
-  }, []);
-
-  const flushEditorMarkdown = useCallback(async () => {
-    if (!isEditingRef.current) return;
-    try {
-      const markdown = await contentInputRef.current?.getMarkdown();
-      if (markdown == null || markdown === latestNoteRef.current.content) return;
-      hasEditedRef.current = true;
-      latestNoteRef.current = { ...latestNoteRef.current, content: markdown };
-      setContent(markdown);
-    } catch {
-      // Keep the last onChangeMarkdown snapshot.
-    }
-  }, []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "background") return;
       void (async () => {
-        await flushEditorMarkdown();
-        await saveNoteRef.current(undefined, { silent: true });
+        await saveNote();
+        log({ message: ">>> LOG: Save Note on state", state });
       })();
     });
     return () => subscription.remove();
-  }, [flushEditorMarkdown]);
+  }, [saveNote]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (leavingRef.current || !isEditingRef.current) return;
+      if (leavingRef.current) return;
       e.preventDefault();
       leavingRef.current = true;
       void (async () => {
         try {
-          await flushEditorMarkdown();
-          await saveNoteRef.current(undefined, {
-            silent: true,
-            commitId: false,
-          });
+          await saveNote();
+          log({ message: ">>> LOG: Save Note on back button" });
         } finally {
           navigation.dispatch(e.data.action);
         }
       })();
     });
     return unsubscribe;
-  }, [navigation, flushEditorMarkdown]);
+  }, [navigation, saveNote]);
 
-  const [focusTarget, setFocusTarget] = useState<"title" | "content" | null>(
-    null,
-  );
-
-  const startEditing = useCallback(
-    (target: "title" | "content" = "content") => {
-      setEditorDefaultValue(content);
-      setFocusTarget(target);
-      setIsEditing(true);
-    },
-    [content],
-  );
-
-  useEffect(() => {
-    if (isEditing && focusTarget) {
-      const timer = setTimeout(() => {
-        if (focusTarget === "title") {
-          titleInputRef.current?.focus();
-        } else {
-          contentInputRef.current?.focus();
-        }
-        setFocusTarget(null);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isEditing, focusTarget]);
+  const startEditing = useCallback(() => {
+    setIsEditing(true);
+  }, []);
 
   const handleDoneEditing = useCallback(async () => {
     Keyboard.dismiss();
-    await flushEditorMarkdown();
-    const snapshot = latestNoteRef.current;
+    await saveNote(note);
     setIsEditing(false);
-    if (hasEditedRef.current) {
-      await saveNote({
-        title: snapshot.title,
-        content: snapshot.content,
-        tags: snapshot.tags,
-      });
-      toast.success("Note saved");
-    }
-  }, [flushEditorMarkdown, saveNote]);
+  }, [saveNote, note]);
 
   const handleTitleChange = (newTitle: string) => {
-    hasEditedRef.current = true;
-    latestNoteRef.current = { ...latestNoteRef.current, title: newTitle };
-    setTitle(newTitle);
+    updateNoteState("title", newTitle);
   };
 
-  const handleContentChange = useCallback((newContent: string) => {
-    hasEditedRef.current = true;
-    latestNoteRef.current = { ...latestNoteRef.current, content: newContent };
-    setContent(newContent);
-  }, []);
-
   const formatContent = useCallback((action: MarkdownFormatAction) => {
-    contentInputRef.current?.format(action);
+    blockContainerRef.current?.formatContent(action);
   }, []);
 
   const openTagPrompt = useCallback(() => {
     setNewTagInputVisible(true);
   }, []);
 
-  const editContent = useCallback(() => {
-    startEditing("content");
-  }, [startEditing]);
-
-  const handleTogglePin = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const nextPinned = !isPinned;
-    setIsPinned(nextPinned);
-    if (id) {
+  const handleAddBlock = useCallback(
+    async (input: CreateBlockInput, label: string) => {
       try {
-        await togglePinNote(id);
-      } catch {
-        setIsPinned(!nextPinned);
+        await createBlock(note.id, input);
+        setHasEdited(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {
+        console.error(`[NoteEditor] Failed to add ${label}:`, err);
+        toast.error(`Failed to add ${label}`);
       }
-    }
-  };
+    },
+    [note.id],
+  );
 
-  const handleShare = useCallback(async () => {
-    const snapshot = latestNoteRef.current;
-    try {
-      await Share.share({
-        title: snapshot.title.trim() || "Untitled Note",
-        message: `${snapshot.title}\n\n${snapshot.content}`,
-      });
-    } catch {
-      // Ignored
-    }
+  const handleAddTextBlock = useCallback(
+    () => handleAddBlock(createDefaultTextBlockInput(), "text block"),
+    [handleAddBlock],
+  );
+
+  const handleAddCheckboxBlock = useCallback(
+    () => handleAddBlock(createDefaultChecklistBlockInput(), "checkbox block"),
+    [handleAddBlock],
+  );
+
+  const handleAddMediaBlock = useCallback(
+    () => handleAddBlock(createDefaultMediaBlockInput(), "media block"),
+    [handleAddBlock],
+  );
+
+  const handleAppendMediaItems = useCallback(
+    async (newItems: MediaItem[]) => {
+      if (newItems.length === 0) return;
+      try {
+        await createBlock(
+          note.id,
+          createDefaultMediaBlockInput(newItems),
+        );
+
+        setHasEdited(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {
+        console.error("[NoteEditor] Failed to create media block:", err);
+        toast.error("Failed to add media");
+      }
+    },
+    [note.id],
+  );
+
+  const handleTakePhoto = useCallback(async () => {
+    const photo = await takePhotoWithCamera();
+    if (photo) await handleAppendMediaItems([photo]);
+  }, [handleAppendMediaItems]);
+
+  const handlePickMedia = useCallback(async () => {
+    const picked = await pickImagesFromLibrary({ allowsMultiple: true });
+    if (picked.length > 0) await handleAppendMediaItems(picked);
+  }, [handleAppendMediaItems]);
+
+  const handleAttachFile = useCallback(async () => {
+    const files = await pickDocumentFile();
+    if (files.length > 0) await handleAppendMediaItems(files);
+  }, [handleAppendMediaItems]);
+
+  const shareableContent = useMemo(
+    () => formatNoteWithBlocks(note.content, liveBlocks),
+    [liveBlocks, note.content],
+  );
+
+  const handleDeleteSuccess = useCallback(() => {
+    leavingRef.current = true;
+    setIsEditing(false);
+    router.back();
   }, []);
 
-  const handleDelete = () => {
-    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (!id) return;
-          isDeletedRef.current = true;
-          try {
-            await softDeleteNote(id);
-            toast.info("Note deleted");
-            router.back();
-          } catch {
-            isDeletedRef.current = false;
-            Alert.alert("Error", "Could not delete note");
-          }
-        },
-      },
-    ]);
-  };
+  const actions = useNoteActions({
+    noteId: note.id ?? "",
+    title: note.title,
+    content: shareableContent,
+    isPinned: note.isPinned,
+    isArchived: note.isArchived,
+    isDeleted: false,
+    isNewDraft: isUnpersistedDraft,
+    onUpdateState: updateNoteState,
+    onDeleteSuccess: handleDeleteSuccess,
+  });
 
-  const handleAddTag = () => {
-    const trimmed = newTagText.trim().toLowerCase().replace(/^#/, "");
-    if (trimmed && !tags.includes(trimmed)) {
-      const updatedTags = [...tags, trimmed];
-      setTags(updatedTags);
-      setNewTagText("");
-      hasEditedRef.current = true;
-      void saveNote({ title, content, tags: updatedTags });
-      Haptics.selectionAsync();
-      tagInputRef?.current?.focus()
-    } else {
-      // setNewTagInputVisible(false);
-      setNewTagText("");
+  const handleTogglePin = actions.handleTogglePin;
+  const handleShare = actions.handleShareNote;
+
+  const handleAddTag = (e: TextInputEndEditingEvent) => {
+    const text = e.nativeEvent.text;
+    const trimmed = text.trim().toLowerCase().replace(/^#/, "");
+    if (trimmed && !note.tags.includes(trimmed)) {
+      const updatedTags = [...note.tags, trimmed];
+      updateNoteState("tags", updatedTags);
+      tagInputRef.current?.clear();
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const updatedTags = tags.filter((t) => t !== tagToRemove);
-    setTags(updatedTags);
-    hasEditedRef.current = true;
-    void saveNote({ title, content, tags: updatedTags });
+    const updatedTags = note.tags.filter((t) => t !== tagToRemove);
+    updateNoteState("tags", updatedTags);
   };
 
-  const wordCount = useMemo(() => {
-    const trimmed = content.trim();
-    return trimmed ? trimmed.split(/\s+/).length : 0;
-  }, [content]);
+  const wordCount = useMemo(
+    () => countWords(shareableContent),
+    [shareableContent],
+  );
 
-  // Handle Tap Gestures
-  const combinedGestures = useMemo(() => {
-    const singleTap = Gesture.Tap();
-    const doubleTap = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd(() => {
-        "worklet";
-        scheduleOnRN(startEditing, "content");
-      });
+  const noteWithFullContent = useMemo(
+    () => ({ ...note, content: shareableContent }),
+    [note, shareableContent],
+  );
 
-    return Gesture.Exclusive(doubleTap, singleTap);
-  }, [startEditing]);
+  const titleDoubleTapGesture = useDoubleTap(startEditing);
 
   return (
-    <>
-      {/* <KeyboardAwareScrollView
-        bottomOffset={62}
-        // contentContainerStyle={styles.container}
-        > */}
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View className="flex-1 bg-background pt-safe w-full max-w-200 mx-auto">
-          {/* Navigation Bar */}
-          <View className="h-12 flex-row items-center justify-between px-3.5">
-            {/* Back Button */}
+    <View className="flex-1 bg-background pt-safe w-full">
+      {/* Navigation Bar */}
+      <View className="h-12 flex-row items-center justify-between px-3.5">
+        {/* Back Button */}
+        <View className="flex-row items-center justify-between gap-2">
+          <Pressable
+            className="flex-row p-2 rounded-full justify-center items-center gap-2"
+            onPress={() => router.back()}
+            hitSlop={8}>
+            <ChevronLeft size={22} color={colors.text} />
+          </Pressable>
+
+          {/* Folder */}
+          <View>
             <Pressable
-              className="p-1.5 flex-row rounded-lg justify-center items-center active:opacity-70 min-h-9 gap-2"
-              onPress={() => router.back()}
-              hitSlop={8}>
-              <ChevronLeft size={20} color={colors.text} />
-              <Text className="text-text text-base">Notes</Text>
+              onPress={() => setIsMoveFolderSheetVisible(true)}
+              hitSlop={4}
+              className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md active:opacity-70">
+              <Folder
+                size={16}
+                color={currentFolder?.color || colors.textSecondary}
+              />
+              <Text
+                className="text-sm font-semibold"
+                numberOfLines={1}
+                style={{
+                  color: currentFolder?.color || colors.textSecondary,
+                }}>
+                {currentFolder ? currentFolder.name : "Unorganized"}
+              </Text>
+              <ChevronDown size={14} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Right Header Action Icons */}
+        <View className="flex-row items-center gap-2">
+          <Card className="px-3 flex-row items-center gap-4 rounded-full">
+            {/* Pin */}
+            <Pressable onPress={handleTogglePin}>
+              <Pin
+                size={20}
+                color={note.isPinned ? colors.primary : colors.text}
+                fill={note.isPinned ? colors.primary : undefined}
+              />
             </Pressable>
 
-            {/* Center Save / Mode Indicator */}
-            {/* <Text className="text-[11px] font-medium tracking-wide text-text-secondary">
-            {isEditing ? (isSaving ? "Saving..." : "Editing") : "Saved"}
-          </Text> */}
+            {/* Brainstorm with iKeen */}
+            <Pressable
+              onPress={() => {
+                router.push({
+                  pathname: "/agent",
+                  params: {
+                    prompt: `Let's brainstorm on my note "${note.title || "Untitled Note"}" with ID "${note.id}"`,
+                  },
+                });
+              }}
+              hitSlop={8}>
+              <Sparkles size={20} color={colors.primary} />
+            </Pressable>
 
-            {/* Right Header Action Icons */}
-            <View className="flex-row items-center gap-2">
-              {/* Brainstorm with iKeen */}
-              <Pressable
-                className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-                onPress={() => {
-                  void (async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    await flushEditorMarkdown();
-                    const snapshot = latestNoteRef.current;
-                    router.push({
-                      pathname: "/agent",
-                      params: {
-                        prompt: `Let's brainstorm on my note "${snapshot.title || "Untitled Note"}":\n\n${snapshot.content.slice(0, 300)}`,
-                      },
-                    });
-                  })();
-                }}
-                hitSlop={8}>
-                <Sparkles size={18} color={colors.primary} />
-              </Pressable>
-
-              {/* Pin */}
-              <Pressable
-                className="p-2 rounded-lg justify-center items-center active:opacity-70 min-h-9 min-w-9"
-                onPress={handleTogglePin}>
-                <Pin
-                  size={18}
-                  color={isPinned ? colors.primary : colors.text}
-                  fill={isPinned ? colors.primary : undefined}
-                />
-              </Pressable>
-
-              {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
-              {isEditing ? (
-                <Pressable
-                  className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
-                  onPress={handleDoneEditing}>
-                  <Text className="text-base font-bold text-primary">Done</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  className="px-3 py-2 justify-center items-center active:opacity-70 min-h-9"
-                  onPress={() => startEditing("content")}>
-                  <Text className="text-base font-semibold text-primary">
-                    Edit
-                  </Text>
-                </Pressable>
-              )}
-              {/* Dropdown */}
-              <NotesDetailDropdown
-                isDeleted={false}
-                noteId={id ?? ""}
-                isPinned={isPinned}
-                onTogglePin={handleTogglePin}
-                isArchived={isArchived}
-                onToggleArchive={async () => {
-                  setIsArchived(!isArchived);
-                  if (id) {
-                    try {
-                      await toggleArchiveNote(id);
-                    } catch {
-                      setIsArchived(!isArchived);
-                    }
-                  }
-                }}
-                onDelete={handleDelete}
-                onShare={handleShare}
-                onShowInfo={() => setInfoSheetVisible(true)}
-                onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
-              />
-            </View>
-          </View>
-
-          {/* Metadata and Title */}
-          <View className="px-5 pt-4">
-            {/* Metadata Row: Last edit date, word count, and Folder Pill */}
-            <View className="flex-row items-center gap-2 mb-2 flex-wrap">
-              <Text className="text-xs font-mono text-text-secondary">
-                {formatDate(note?.updatedAt)} · {wordCount} words
-              </Text>
-              <Pressable
-                onPress={() => setIsMoveFolderSheetVisible(true)}
-                hitSlop={4}
-                className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md bg-background-element border border-border active:opacity-70">
-                <Folder
-                  size={11}
-                  color={currentFolder?.color || colors.textSecondary}
-                />
-                <Text
-                  className="text-[11px] font-semibold"
-                  style={{
-                    color: currentFolder?.color || colors.textSecondary,
-                  }}>
-                  {currentFolder ? currentFolder.name : "Unorganized"}
+            {/* Mode Toggle Button: "Edit" in View Mode, "Done" in Edit Mode */}
+            {isEditing ? (
+              <Pressable onPress={handleDoneEditing}>
+                <Text className="text-sm h-5 font-bold text-foreground">
+                  Done
                 </Text>
               </Pressable>
-            </View>
+            ) : (
+              <Pressable onPress={startEditing}>
+                <Text className="text-sm h-5 font-semibold text-foreground">
+                  Edit
+                </Text>
+              </Pressable>
+            )}
+          </Card>
+          {/* Dropdown */}
+          <NotesOptionsDropdown
+            variant="sheet"
+            lastEdited={note?.updatedAt}
+            isNewDraft={isUnpersistedDraft}
+            note={noteWithFullContent}
+            onUpdateState={updateNoteState}
+            onDeleteSuccess={handleDeleteSuccess}
+            onShowInfo={() => setInfoSheetVisible(true)}
+            onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+          />
+        </View>
+      </View>
 
+      {/* Note Writing / Reading Canvas */}
+      <View className="flex-1 px-2">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          className="flex-1 rounded-2xl"
+          contentContainerClassName="px-3 pt-4"
+          keyboardShouldPersistTaps="handled">
+          {/* Metadata and Title */}
+          <View className="pt-2 mb-2">
             {/* Title Input */}
-            {/* <Pressable onPress={handleCanvasDoubleTap}> */}
             {isEditing ? (
               <TextInput
                 ref={titleInputRef}
-                className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
-                placeholder={"Untitled note"}
+                className="text-2xl font-normal leading-8 tracking-tight py-1 text-text"
+                placeholder="Untitled note"
                 placeholderTextColor={colors.textSecondary}
-                value={title}
+                value={note.title}
                 onChangeText={handleTitleChange}
                 returnKeyType="next"
-                onSubmitEditing={() => contentInputRef.current?.focus()}
-                multiline={false}
+                onSubmitEditing={() =>
+                  blockContainerRef.current?.focusContent()
+                }
+                multiline
                 editable={isEditing}
                 pointerEvents={isEditing ? "auto" : "none"}
               />
             ) : (
-              <GestureDetector gesture={combinedGestures}>
-                <Text
-                  className="text-2xl font-bold leading-8 tracking-tight py-1 mb-2.5 text-text"
-                  // selectable
-                >
-                  {title || "Untitled note"}
+              <GestureDetector gesture={titleDoubleTapGesture}>
+                <Text className="text-2xl font-normal leading-8 tracking-tight py-1 text-text">
+                  {note.title || "Untitled note"}
                 </Text>
               </GestureDetector>
             )}
+          </View>
 
-            {/* Tags Row */}
-            {tags.length > 0 || isEditing ? (
-              <View className="flex-row flex-wrap items-center gap-1.5 mb-4">
-                {tags.map((tag) =>
+          {/* Tags */}
+          <View className="mb-4">
+            {note.tags.length > 0 || isEditing ? (
+              <View className="flex-row flex-wrap items-center gap-1.5 mb-1">
+                {note.tags.map((tag) =>
                   isEditing ? (
-                    <Pressable
+                    <View
                       key={tag}
-                      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80"
-                      onPress={() => handleRemoveTag(tag)}>
+                      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
                       <Text className="text-xs font-medium text-text">
                         #{tag}
                       </Text>
-                      <X size={12} color={colors.textSecondary} />
-                    </Pressable>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => handleRemoveTag(tag)}>
+                        <X size={12} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
                   ) : (
                     <View
                       key={tag}
@@ -574,11 +525,10 @@ export function NoteEditor({ note }: { note?: Note }) {
                         className="text-xs py-0 px-0.5 min-w-10 text-text"
                         placeholder="tag"
                         placeholderTextColor={colors.textSecondary}
-                        value={newTagText}
-                        onChangeText={setNewTagText}
                         autoFocus
+                        submitBehavior="submit"
                         onSubmitEditing={handleAddTag}
-                        onBlur={handleAddTag}
+                        onEndEditing={handleAddTag}
                         returnKeyType="done"
                         autoCapitalize="none"
                       />
@@ -600,78 +550,96 @@ export function NoteEditor({ note }: { note?: Note }) {
             ) : null}
           </View>
 
-          {/* Note Writing / Reading Canvas */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            className="flex-1"
-            contentContainerClassName="px-5 pt-4"
-            keyboardShouldPersistTaps="handled">
-            {isEditing ? (
-              <MarkdownEditor
-                ref={contentInputRef}
-                defaultValue={editorDefaultValue}
-                placeholder="Start typing..."
-                placeholderTextColor={colors.textSecondary}
-                onChangeMarkdown={handleContentChange}
-              />
-            ) : content.trim() ? (
-              <View className="w-full min-w-0 pb-24">
-                <MarkdownBody source={content} />
-              </View>
-            ) : (
-              <GestureDetector gesture={combinedGestures}>
-                <View className="w-full min-w-0 pb-24">
-                  <Text className="text-base leading-6 text-text-secondary">
-                    Start typing...
-                  </Text>
-                </View>
-              </GestureDetector>
-            )}
-          </ScrollView>
-
-          {/* Accessory / Toolbar depending on mode */}
-          <NoteBottomToolBar
+          {/* Block-Based Content Experience */}
+          <BlockContainer
+            ref={blockContainerRef}
+            note={note}
             isEditing={isEditing}
-            isSaving={isSaving}
-            onFormat={formatContent}
-            onOpenTagPrompt={openTagPrompt}
-            onDismiss={handleDoneEditing}
-            wordCount={wordCount}
-            onStartEditing={editContent}
-            onShare={handleShare}
-            isPinned={isPinned}
-            onTogglePin={handleTogglePin}
-          />
-
-          {/* Note Info Details Modal Sheet */}
-          <NoteInfoSheet
-            note={note ?? null}
-            visible={infoSheetVisible}
-            folderName={currentFolder?.name}
-            onClose={() => setInfoSheetVisible(false)}
-            onOpenMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
-          />
-
-          {/* Move to Folder Selector Sheet */}
-          <MoveToFolderSheet
-            isPresented={isMoveFolderSheetVisible}
-            onDismiss={() => setIsMoveFolderSheetVisible(false)}
-            currentFolderId={note?.folderId}
-            onSelectFolder={async (newFolderId) => {
-              if (!id) return;
-              try {
-                await moveNoteToFolder(id, newFolderId);
-                toast.success("Folder updated");
-              } catch {
-                toast.error("Failed to move note");
-              }
+            onContentChange={(t) => updateNoteState("content", t)}
+            onStartEditing={startEditing}
+            onRequestRecordAudio={(blockId) => {
+              setTargetAudioBlockId(blockId);
+              setIsAudioRecordingOpen(true);
             }}
           />
-        </View>
-      </KeyboardAvoidingView>
+        </ScrollView>
+      </View>
+      {/* Accessory / Toolbar depending on mode */}
+      <NoteBottomToolBar
+        isEditing={isEditing}
+        isSaving={false}
+        onFormat={formatContent}
+        onOpenTagPrompt={openTagPrompt}
+        onDismiss={handleDoneEditing}
+        wordCount={wordCount}
+        onStartEditing={startEditing}
+        onShare={handleShare}
+        isPinned={note.isPinned}
+        onTogglePin={handleTogglePin}
+        onAddTextBlock={handleAddTextBlock}
+        onAddCheckboxBlock={handleAddCheckboxBlock}
+        onAddMedia={handlePickMedia}
+        onTakePhoto={handleTakePhoto}
+        onAttachFile={handleAttachFile}
+        onRecordAudio={() => {
+          setTargetAudioBlockId(null);
+          setIsAudioRecordingOpen(true);
+        }}
+      />
+      {/* Note Info Details Modal Sheet */}
+      <NoteInfoSheet
+        note={noteWithFullContent}
+        visible={infoSheetVisible}
+        folderName={currentFolder?.name}
+        onClose={() => setInfoSheetVisible(false)}
+        onOpenMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+      />
+      {/* Move to Folder Selector Sheet */}
+      <MoveToFolderSheet
+        isPresented={isMoveFolderSheetVisible}
+        onDismiss={() => setIsMoveFolderSheetVisible(false)}
+        currentFolderId={note?.folderId}
+        onSelectFolder={async (newFolderId) => {
+          if (!note.id) return;
+          try {
+            updateNoteState("folderId", newFolderId);
+            if (!isUnpersistedDraft && !isEditing) {
+              await moveNoteToFolder(note.id, newFolderId);
+            }
+            toast.success("Folder updated");
+          } catch {
+            toast.error("Failed to move note");
+          }
+        }}
+      />
+      {/* Audio Recording Sheet */}
+      <AudioRecordingSheet
+        visible={isAudioRecordingOpen}
+        onDismiss={() => {
+          setIsAudioRecordingOpen(false);
+          setTargetAudioBlockId(null);
+        }}
+        onFinished={async (recordingItem) => {
+          if (targetAudioBlockId) {
+            const targetBlock = liveBlocks.find(
+              (b): b is MediaBlockType =>
+                b.id === targetAudioBlockId && b.type === "media",
+            );
+            if (targetBlock) {
+              await updateBlock(targetBlock.id, {
+                content: [recordingItem, ...targetBlock.content],
+              });
+              setHasEdited(true);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTargetAudioBlockId(null);
+              return;
+            }
+          }
+          await handleAppendMediaItems([recordingItem]);
+          setTargetAudioBlockId(null);
+        }}
+      />
       <KeyboardGradualAnimation />
-      {/* </KeyboardAwareScrollView> */}
-      {/* <KeyboardToolbar /> */}
-    </>
+    </View>
   );
 }

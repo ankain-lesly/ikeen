@@ -40,6 +40,7 @@ export class AblyService {
     try {
       const tokenRequest = await this.ablyRest.auth.createTokenRequest({
         clientId: userId,
+        // ttl: 3600000,
         capability: {
           [`user:${userId}`]: ['subscribe'],
         },

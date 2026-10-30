@@ -20,9 +20,16 @@ export interface AuthenticatedUser {
   status: string;
 }
 
+export interface AuthenticatedApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+}
+
 export interface AuthenticatedRequest extends Request {
   user: AuthenticatedUser;
   mcpClient?: string;
+  apiKey?: AuthenticatedApiKey;
 }
 
 @Injectable()
@@ -64,8 +71,9 @@ export class McpAuthGuard implements CanActivate {
     // 1. Personal Access Token (ikn_...)
     if (rawToken.startsWith('ikn_')) {
       try {
-        const user = await this.apiKeyService.validateApiKey(rawToken);
+        const { user, apiKey } = await this.apiKeyService.validateApiKey(rawToken);
         req.user = user;
+        req.apiKey = { ...apiKey, id: `${apiKey.id.slice(0, 8)}...` };
         req.mcpClient = (req.headers['x-mcp-client'] as string) || 'mcp-client';
         return true;
       } catch (err) {

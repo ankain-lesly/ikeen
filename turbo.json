@@ -17,7 +17,12 @@
     "JWT_SECRET",
     "MCP_ALLOWED_ORIGINS",
     "MCP_ALLOW_APP_JWT",
-    "COMPOSIO_API_KEY"
+    "COMPOSIO_API_KEY",
+    "MEDIADOCK_URL",
+    "MEDIADOCK_API_KEY",
+    "MEDIADOCK_API_SECRET",
+    "IMAGE_SERVICE_URL",
+    "IMAGE_SERVICE_API_KEY"
   ],
   "globalDependencies": [".env"],
   "tasks": {

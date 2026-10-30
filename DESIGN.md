@@ -178,3 +178,8 @@ Mobile native sheets, switches, menus, and inputs use **`@expo/ui` ~57** (SDK 57
 | Search field / CTA | `TextInput`, `Button` |
 
 Full catalog (universal + Compose + SwiftUI) is listed in the SDK 57 overview. Native tab icons (`sf` / `md` / `src`) and download sources are in `EXPO-UI.md` §3.
+
+
+## UI Components Improvement
+
+use the new Card.tsx ui component for any card wrapper to icons group design link on the notes and notes-bulk-action-bar components: (`apps/mobile/components/ui/card.tsx`)

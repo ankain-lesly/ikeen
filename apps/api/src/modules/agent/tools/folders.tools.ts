@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { FoldersToolService } from '../../folders/folders-tool.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { AuditService } from '../../audit/audit.service.js';
-import type { AblyService } from '../../ably/ably.service.js';
 import {
   createFolderDef,
   listFoldersDef,
@@ -20,17 +19,12 @@ export function createFolderTools(params: {
   foldersToolService?: FoldersToolService;
   prisma?: PrismaService;
   audit?: AuditService;
-  ably?: AblyService;
 }) {
   const foldersToolService =
     params.foldersToolService ??
     new FoldersToolService(
       params.prisma!,
       params.audit!,
-      params.ably ??
-        ({
-          publishInvalidation: async () => {},
-        } as unknown as AblyService),
     );
 
   const listFolders = tool({

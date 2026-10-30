@@ -7,14 +7,17 @@ import {
   Req,
   Res,
   UseGuards,
+  Optional,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { McpAuthGuard, type AuthenticatedRequest } from '../guards/mcp-auth.guard.js';
 import { NotesToolService } from '../../notes/notes-tool.service.js';
 import { FoldersToolService } from '../../folders/folders-tool.service.js';
+import { MediaService } from '../../media/media.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvService } from '../../../config/env.service.js';
+import { AblyService } from '../../ably/ably.service.js';
 import { createIkeenMcpServer } from '../ikeen-mcp-server.js';
 
 @Controller(['mcp', 'api/v1/mcp'])
@@ -27,6 +30,8 @@ export class McpController {
     private readonly foldersToolService: FoldersToolService,
     private readonly prisma: PrismaService,
     private readonly env: EnvService,
+    @Optional() private readonly mediaService?: MediaService,
+    @Optional() private readonly ably?: AblyService,
   ) {}
 
   @Post()
@@ -34,12 +39,16 @@ export class McpController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
   ): Promise<void> {
+
     const server = createIkeenMcpServer({
       notesToolService: this.notesToolService,
       foldersToolService: this.foldersToolService,
+      mediaService: this.mediaService,
       prisma: this.prisma,
       userId: req.user.id,
       clientId: req.mcpClient,
+      apiKey: req.apiKey,
+      ably: this.ably,
     });
 
     // Stateless mode with single-JSON response for serverless deployments

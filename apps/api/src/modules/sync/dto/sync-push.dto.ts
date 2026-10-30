@@ -7,6 +7,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import type {
@@ -168,6 +169,77 @@ export class NoteMutationDto implements NoteMutationPayload {
   changes: NoteChangesDto;
 }
 
+// BlockChanges is Partial<NoteBlock> which is a union type — TypeScript does not allow
+// `implements` with union types, so we omit it and rely on structural compatibility.
+export class BlockChangesDto {
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
+  @IsOptional()
+  noteId?: string;
+
+  @IsIn(['text', 'list', 'media'])
+  @IsOptional()
+  type?: 'text' | 'list' | 'media';
+
+  @IsNumber()
+  @IsOptional()
+  position?: number;
+
+  // Content is a markdown string for text blocks, or a JSON array for list/media blocks.
+  @IsOptional()
+  content?: unknown;
+
+  @IsIn(['checkbox', 'bullet', 'ordered'])
+  @IsOptional()
+  listType?: 'checkbox' | 'bullet' | 'ordered';
+
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @IsOptional()
+  header?: string | null;
+
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @IsOptional()
+  footer?: string | null;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
+}
+
+// BlockMutationPayload.changes is BlockChanges (a union) — omit `implements` for same reason.
+export class BlockMutationDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  mutationId: string;
+
+  @IsIn(['upsert', 'delete'])
+  action: SyncActionType;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
+
+  @IsString()
+  updatedAt: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BlockChangesDto)
+  changes: BlockChangesDto;
+}
+
+
 export class SyncPushDto {
   @IsString()
   @IsOptional()
@@ -184,5 +256,11 @@ export class SyncPushDto {
   @Type(() => NoteMutationDto)
   @IsOptional()
   notes?: NoteMutationDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BlockMutationDto)
+  @IsOptional()
+  note_blocks?: BlockMutationDto[];
 }
 

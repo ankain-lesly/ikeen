@@ -19,6 +19,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
+// 3. Force Metro to resolve dependencies only from nodeModulesPaths (prevents duplicate React runtimes)
+// config.resolver.disableHierarchicalLookup = true;
+
 // 3. Configure SVG transformer for direct .svg file imports
 config.transformer = {
   ...config.transformer,

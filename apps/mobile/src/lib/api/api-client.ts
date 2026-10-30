@@ -1,20 +1,6 @@
-// Add platform specific API URL
-const getDefaultApiUrl = () => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  } else {
-    throw new Error('API_BASE_URL is not set');
-  }
-  // // Android emulator uses 10.0.2.2 to access host machine localhost
-  // if (Platform.OS === 'android') {
-  //   return 'http://10.0.2.2:3000/api/v1';
-  // }
-  // return 'http://localhost:3000/api/v1';
-  // // Expo Go
-  // return "http://192.168.0.100:3000/api/v1";
-};
+import { env } from "@/lib/env";
 
-export const API_BASE_URL = getDefaultApiUrl();
+export const API_BASE_URL = env.API_URL;
 
 export interface ApiRequestOptions extends RequestInit {
   token?: string | null;
@@ -57,7 +43,7 @@ export async function request<T>(
       headers: requestHeaders,
     });
   } catch (netError: any) {
-    console.log(`[Network API Error]: ${url} - ${netError?.message}`);
+    console.log(`[🚨] [Network API Error]: ${url} - ${netError?.message}`);
     throw new ApiError(
       'Network request failed. Please check your connection.',
       0,
@@ -85,7 +71,7 @@ export async function request<T>(
       errorMessage = response.statusText;
     }
 
-    console.log(`[API Error]: ${url} - ${errorMessage}`);
+    console.log(`[🚨] [API Error]: ${url} - ${errorMessage}`);
     throw new ApiError(errorMessage, response.status, data);
   }
 

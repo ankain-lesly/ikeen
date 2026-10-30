@@ -52,7 +52,7 @@ export function useRecentSearches({
         }
         setHistory([]);
       } catch (error: unknown) {
-        console.error(
+        console.log('[🚨]',
           `[useRecentSearches] Failed to load "${STORAGE_KEY}":`,
           error,
         );
@@ -95,7 +95,7 @@ export function useRecentSearches({
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch (error: unknown) {
-        console.error(
+        console.log('[🚨]',
           `[useRecentSearches] Failed to save search to "${STORAGE_KEY}":`,
           error,
         );
@@ -116,7 +116,7 @@ export function useRecentSearches({
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch (error: unknown) {
-        console.error(
+        console.log('[🚨]',
           `[useRecentSearches] Failed to delete from "${STORAGE_KEY}":`,
           error,
         );
@@ -131,7 +131,7 @@ export function useRecentSearches({
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch (error: unknown) {
-      console.error(
+      console.log('[🚨]',
         `[useRecentSearches] Failed to clear "${STORAGE_KEY}":`,
         error,
       );

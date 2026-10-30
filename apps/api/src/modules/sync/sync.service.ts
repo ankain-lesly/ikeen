@@ -9,7 +9,6 @@ import { CheckUpdatesQueryDto } from './dto/check-updates.dto.js';
 import {
   DEFAULT_STORE_URL,
   getLatestRelease,
-  type AppStorePlatform,
 } from './app-updates.registry.js';
 import type {
   SyncPullResponse,
@@ -18,6 +17,7 @@ import type {
   SyncMutationBase,
   AppUpdateInfo,
 } from '@repo/types/sync';
+import { unpackServerNoteBlock } from '../notes/block-content.codec.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 const SYNC_CONSTANTS = {
@@ -130,7 +130,7 @@ export class SyncService {
     const touchedEntities: string[] = [];
 
     this.logger.debug(
-      `[Sync:Push:Received] userId=${userId} folders=${dto.folders?.length ?? 0} notes=${dto.notes?.length ?? 0}`,
+      `[Sync:Push:Received] userId=${userId} folders=${dto.folders?.length ?? 0} notes=${dto.notes?.length ?? 0} note_blocks=${dto.note_blocks?.length ?? 0}`,
     );
 
     try {
@@ -154,6 +154,21 @@ export class SyncService {
           tx,
         );
         if (notesTouched) touchedEntities.push('notes');
+
+        // 3. Process Note Blocks
+        const blocksTouched = await this.processMutations(
+          userId,
+          'note_blocks',
+          dto.note_blocks,
+          (b, t) =>
+            this.notesService.upsertBlockWithLww(
+              userId,
+              b,
+              t,
+            ),
+          tx,
+        );
+        if (blocksTouched) touchedEntities.push('note_blocks');
       });
 
       // Broadcast invalidation ping over Ably to alert other devices of this user
@@ -194,7 +209,7 @@ export class SyncService {
     );
 
     try {
-      const [folders, notes] = await Promise.all([
+      const [folders, notes, noteBlocks] = await Promise.all([
         this.prisma.folder.findMany({
           where: {
             userId,
@@ -211,14 +226,38 @@ export class SyncService {
           take: SYNC_CONSTANTS.PULL_LIMIT,
           orderBy: { updatedAt: 'asc' },
         }),
+        this.prisma.noteBlock.findMany({
+          where: {
+            note: { userId },
+            updatedAt: { gt: sinceDate },
+          },
+          take: SYNC_CONSTANTS.PULL_LIMIT,
+          orderBy: { updatedAt: 'asc' },
+        }),
       ]);
 
       this.logger.log(
-        `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length}`,
+        `[Sync:Pull:Success] userId=${userId} folders=${folders.length} notes=${notes.length} note_blocks=${noteBlocks.length}`,
       );
 
+      // Clamp cursor timestamp to the newest returned item among truncated collections to prevent delta skipping
+      const truncatedTimes: number[] = [];
+      if (folders.length >= SYNC_CONSTANTS.PULL_LIMIT && folders[folders.length - 1]?.updatedAt) {
+        truncatedTimes.push(folders[folders.length - 1].updatedAt.getTime());
+      }
+      if (notes.length >= SYNC_CONSTANTS.PULL_LIMIT && notes[notes.length - 1]?.updatedAt) {
+        truncatedTimes.push(notes[notes.length - 1].updatedAt.getTime());
+      }
+      if (noteBlocks.length >= SYNC_CONSTANTS.PULL_LIMIT && noteBlocks[noteBlocks.length - 1]?.updatedAt) {
+        truncatedTimes.push(noteBlocks[noteBlocks.length - 1].updatedAt.getTime());
+      }
+      const effectiveTimestamp =
+        truncatedTimes.length > 0
+          ? new Date(Math.min(...truncatedTimes)).toISOString()
+          : serverTimestamp;
+
       return {
-        serverTimestamp,
+        serverTimestamp: effectiveTimestamp,
         folders: folders.map((f) => ({
           id: f.id,
           name: f.name,
@@ -246,6 +285,7 @@ export class SyncService {
           updatedAt: n.updatedAt.toISOString(),
           deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
         })),
+        note_blocks: noteBlocks.map(unpackServerNoteBlock),
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);

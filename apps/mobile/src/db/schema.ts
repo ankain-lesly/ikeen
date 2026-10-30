@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { relations } from 'drizzle-orm';
 
 export const folders = sqliteTable(
   'folders',
@@ -50,11 +51,45 @@ export const notes = sqliteTable(
   ]
 );
 
+export const noteBlocks = sqliteTable(
+  'note_blocks',
+  {
+    id: text('id').primaryKey(),
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: ['text', 'list', 'media'] }).notNull(),
+    position: integer('position').notNull(),
+    content: text('content').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    index('idx_note_blocks_note_id_position').on(table.noteId, table.position),
+    index('idx_note_blocks_note_id').on(table.noteId),
+  ]
+);
+
+export const notesRelations = relations(notes, ({ many, one }) => ({
+  folder: one(folders, {
+    fields: [notes.folderId],
+    references: [folders.id],
+  }),
+  blocks: many(noteBlocks),
+}));
+
+export const noteBlocksRelations = relations(noteBlocks, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteBlocks.noteId],
+    references: [notes.id],
+  }),
+}));
+
 export const syncOutbox = sqliteTable(
   'sync_outbox',
   {
     id: text('id').primaryKey(),
-    entity: text('entity', { enum: ['folders', 'notes'] }).notNull(),
+    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks'] }).notNull(),
     entityId: text('entity_id').notNull(),
     action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
     status: text('status', { enum: ['pending', 'in_flight', 'success', 'failed'] })
@@ -80,12 +115,36 @@ export const syncMetadata = sqliteTable('sync_metadata', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const mediaSyncOutbox = sqliteTable(
+  'media_sync_outbox',
+  {
+    id: text('id').primaryKey(),
+    blockId: text('block_id').notNull(),
+    localUri: text('local_uri').notNull(),
+    status: text('status', { enum: ['pending', 'uploading', 'completed', 'failed'] })
+      .notNull()
+      .default('pending'),
+    retryCount: integer('retry_count').notNull().default(0),
+    lastError: text('last_error'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    index('idx_media_sync_outbox_status').on(table.status),
+    index('idx_media_sync_outbox_block_id').on(table.blockId),
+  ]
+);
 
+export type MediaSyncOutboxSelect = typeof mediaSyncOutbox.$inferSelect;
+export type InsertMediaSyncOutbox = typeof mediaSyncOutbox.$inferInsert;
 
-export type Note = typeof notes.$inferSelect;
+export type NoteSelect = typeof notes.$inferSelect;
 export type InsertNote = typeof notes.$inferInsert;
 
-export type Folder = typeof folders.$inferSelect;
+export type NoteBlockSelect = typeof noteBlocks.$inferSelect;
+export type InsertNoteBlock = typeof noteBlocks.$inferInsert;
+
+export type FolderSelect = typeof folders.$inferSelect;
 export type InsertFolder = typeof folders.$inferInsert;
 
 export type SyncOutboxItem = typeof syncOutbox.$inferSelect;

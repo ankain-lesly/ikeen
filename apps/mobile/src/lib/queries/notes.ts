@@ -1,5 +1,6 @@
+import { useCallback, useMemo, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { and, asc, desc, eq, isNull, like, or, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, like, or, sql, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
@@ -7,9 +8,12 @@ import { notes } from '@/db/schema';
 import type {
   CreateNoteInput,
   ListNotesOptions,
-  Note,
+  NoteSelect as Note,
+  NoteBlock,
+  NoteWithBlocks,
   UpdateNoteInput,
 } from '@/lib/types/notes';
+import { unpackNoteBlock } from './block-content.codec';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 import { useAuthStore } from '@/lib/auth/auth-store';
 import { currentAuthUserId, ownerCondition } from './owner';
@@ -18,7 +22,23 @@ import { currentAuthUserId, ownerCondition } from './owner';
 // Internal Query Builder (Shared by listNotes & useLiveNotes)
 // ============================================================================
 
-function buildNotesQuery(
+// In-memory cache for unpacked blocks to avoid re-parsing JSON and keep referential stability
+const unpackedBlockCache = new Map<string, NoteBlock>();
+
+function getCachedUnpackedBlock(raw: any): NoteBlock {
+  const key = `${raw.id}:${raw.updatedAt}`;
+  const cached = unpackedBlockCache.get(key);
+  if (cached) return cached;
+  const unpacked = unpackNoteBlock(raw);
+  unpackedBlockCache.set(key, unpacked);
+  if (unpackedBlockCache.size > 1000) {
+    const firstKey = unpackedBlockCache.keys().next().value;
+    if (firstKey) unpackedBlockCache.delete(firstKey);
+  }
+  return unpacked;
+}
+
+function buildNotesFiltersAndSort(
   options: ListNotesOptions = {},
   userId: string | null = currentAuthUserId(),
 ) {
@@ -53,7 +73,7 @@ function buildNotesQuery(
   if (options.search) {
     const term = `%${options.search}%`;
     conditions.push(
-      or(like(notes.title, term), like(notes.content, term)) as SQL
+      or(like(notes.title, term), like(notes.content, term)) as SQL,
     );
   }
 
@@ -73,6 +93,15 @@ function buildNotesQuery(
     orderClauses.push(direction(notes.updatedAt));
   }
 
+  return { whereClause, orderClauses };
+}
+
+function buildNotesQuery(
+  options: ListNotesOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const { whereClause, orderClauses } = buildNotesFiltersAndSort(options, userId);
+
   let query = db
     .select()
     .from(notes)
@@ -89,18 +118,44 @@ function buildNotesQuery(
   return query;
 }
 
+function buildNotesRelationalQuery(
+  options: ListNotesOptions = {},
+  userId: string | null = currentAuthUserId(),
+) {
+  const { whereClause, orderClauses } = buildNotesFiltersAndSort(options, userId);
+
+  return db.query.notes.findMany({
+    where: whereClause,
+    orderBy: orderClauses,
+    limit: options.limit,
+    offset: options.offset,
+    with: {
+      blocks: {
+        orderBy: (blocks, { asc: ascOrder }) => [ascOrder(blocks.position)],
+      },
+    },
+  });
+}
+
 // ============================================================================
 // Reactive Hooks (useLiveQuery)
 // ============================================================================
 
 /**
  * Reactive hook: Automatically re-renders when notes change in SQLite.
+ * Fetches structured note blocks by default (`withBlocks !== false`).
  */
 export function useLiveNotes(options: ListNotesOptions = {}) {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
-  const query = buildNotesQuery(options, userId);
-  return useLiveQuery(query, [
+  const userId = useAuthStore((s) => s.user?.id);
+  const withBlocks = options.withBlocks !== false;
+
+  const query = withBlocks
+    ? buildNotesRelationalQuery(options, userId)
+    : buildNotesQuery(options, userId);
+
+  const res = useLiveQuery(query as any, [
     userId,
+    withBlocks,
     options.folderId,
     options.includeDeleted,
     options.includeArchived,
@@ -114,13 +169,30 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.limit,
     options.offset,
   ]);
+
+  const data = useMemo<NoteWithBlocks[]>(() => {
+    if (!res.data) return [];
+    if (!withBlocks) return res.data as NoteWithBlocks[];
+    return (res.data as any[]).map((n) => ({
+      ...n,
+      blocks: Array.isArray(n.blocks)
+        ? (n.blocks as any[]).map(getCachedUnpackedBlock)
+        : undefined,
+    }));
+  }, [res.data, withBlocks]);
+
+  return {
+    ...res,
+    data,
+    isLoading: !res.updatedAt && data.length === 0,
+  };
 }
 
 /**
  * Reactive hook for observing a single note by ID.
  */
 export function useLiveNote(id: string) {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const userId = useAuthStore((s) => s.user?.id);
   const res = useLiveQuery(
     db
       .select()
@@ -132,7 +204,141 @@ export function useLiveNote(id: string) {
 
   return {
     ...res,
-    data: res.data?.[0] ?? null,
+    data: res.data?.[0],
+  };
+}
+
+export interface RecentNote {
+  id: string;
+  title: string;
+  isPinned: boolean;
+  isArchived: boolean;
+  updatedAt: string;
+}
+
+export interface NotesOverviewStats {
+  activeCount: number;
+  pinnedCount: number;
+  trashCount: number;
+  isLoading: boolean;
+}
+
+/**
+ * Lightweight reactive hook to observe recent note summaries (id, title, isPinned, updatedAt).
+ * Ideal for sidebars, navigation panels, or widget feeds without joining or deserializing blocks.
+ */
+export function useRecentNotes(limit: number = 6) {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
+  const query = useMemo(() => {
+    return db
+      .select({
+        id: notes.id,
+        title: notes.title,
+        isPinned: notes.isPinned,
+        isArchived: notes.isArchived,
+        updatedAt: notes.updatedAt,
+      })
+      .from(notes)
+      .where(
+        and(
+          ownerCondition(notes.userId, userId),
+          isNull(notes.deletedAt),
+          // eq(notes.isArchived, false),
+        ),
+      )
+      .orderBy(desc(notes.isPinned), desc(notes.updatedAt))
+      .limit(limit);
+  }, [userId, limit]);
+
+  const res = useLiveQuery(query, [userId, limit]);
+
+  const data = useMemo<RecentNote[]>(() => {
+    return (res.data ?? []).map((row) => ({
+      id: row.id,
+      title: (row.title && row.title.trim()) || "Untitled Note",
+      isPinned: !!row.isPinned,
+      isArchived: !!row.isArchived,
+      updatedAt: row.updatedAt,
+    }));
+  }, [res.data]);
+
+  return {
+    ...res,
+    data,
+    isLoading: !res.updatedAt && data.length === 0,
+  };
+}
+
+export interface InfiniteRecentNotesResult {
+  notes: RecentNote[];
+  totalCount: number;
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
+}
+
+/**
+ * Progressive live query hook for infinite recent notes feed in the drawer.
+ * Expands the SQLite query limit incrementally by pageSize on demand.
+ */
+export function useInfiniteRecentNotes(
+  pageSize: number = 20,
+): InfiniteRecentNotesResult {
+  const [limit, setLimit] = useState(pageSize);
+  const { data: notes = [], isLoading } = useRecentNotes(limit);
+  const { activeCount } = useNotesStats();
+
+  const hasMore = notes.length < activeCount;
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setLimit((prev) => prev + pageSize);
+    setTimeout(() => setIsLoadingMore(false), 150);
+  }, [hasMore, isLoadingMore, pageSize]);
+
+  return {
+    notes,
+    totalCount: activeCount,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  };
+}
+
+/**
+ * Lightweight reactive hook for global notes count statistics (active notes and trashed notes).
+ * Uses a single-row SQL aggregation over the notes table.
+ */
+export function useNotesStats(): NotesOverviewStats {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
+  const query = useMemo(() => {
+    return db
+      .select({
+        activeCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is null and ${notes.isArchived} = 0 then 1 else 0 end), 0)`,
+        trashCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is not null then 1 else 0 end), 0)`,
+        pinnedCount: sql<number>`coalesce(sum(case when ${notes.isPinned} is not null and ${notes.isPinned} = 1 then 1 else 0 end), 0)`,
+      })
+      .from(notes)
+      .where(ownerCondition(notes.userId, userId));
+  }, [userId]);
+
+  const res = useLiveQuery(query, [userId]);
+
+  const activeCount = Number(res.data?.[0]?.activeCount ?? 0);
+  const trashCount = Number(res.data?.[0]?.trashCount ?? 0);
+  const pinnedCount = Number(res.data?.[0]?.pinnedCount ?? 0);
+
+  return {
+    activeCount,
+    trashCount,
+    pinnedCount,
+    isLoading: !res.updatedAt,
   };
 }
 
@@ -150,16 +356,27 @@ export async function getNoteById(id: string): Promise<Note | null> {
     .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
     .limit(1);
 
-  return note ?? null;
+  return note;
 }
 
 /**
  * Lists notes matching options (imperative, one-off).
+ * Fetches structured note blocks by default (`withBlocks !== false`).
  */
 export async function listNotes(
   options: ListNotesOptions = {}
-): Promise<Note[]> {
-  return await buildNotesQuery(options);
+): Promise<NoteWithBlocks[]> {
+  const withBlocks = options.withBlocks !== false;
+  if (!withBlocks) {
+    return (await buildNotesQuery(options)) as NoteWithBlocks[];
+  }
+  const rows = await buildNotesRelationalQuery(options);
+  return rows.map((n: any) => ({
+    ...n,
+    blocks: Array.isArray(n.blocks)
+      ? (n.blocks as any[]).map(getCachedUnpackedBlock)
+      : undefined,
+  }));
 }
 
 /**
@@ -168,7 +385,7 @@ export async function listNotes(
 export async function searchNotes(
   query: string,
   options: Omit<ListNotesOptions, 'search'> = {}
-): Promise<Note[]> {
+): Promise<NoteWithBlocks[]> {
   return await listNotes({
     ...options,
     search: query,
@@ -194,13 +411,13 @@ export async function createNote(
     .values({
       id,
       userId: input.userId ?? currentAuthUserId(),
-      folderId: input.folderId ?? null,
+      folderId: input.folderId,
       title: input.title ?? '',
       content: input.content ?? '',
       tags,
       isPinned: input.isPinned ?? false,
       isArchived: input.isArchived ?? false,
-      summary: input.summary ?? null,
+      summary: input.summary,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -241,35 +458,27 @@ export async function updateNote(
     updatedAt: now,
     version: nextVersion,
   };
-  const changedFields: Record<string, any> = {};
 
   if (input.folderId !== undefined) {
     valuesToUpdate.folderId = input.folderId;
-    changedFields.folderId = input.folderId;
   }
   if (input.title !== undefined) {
     valuesToUpdate.title = input.title;
-    changedFields.title = input.title;
   }
   if (input.content !== undefined) {
     valuesToUpdate.content = input.content;
-    changedFields.content = input.content;
   }
   if (input.tags !== undefined) {
     valuesToUpdate.tags = JSON.stringify(input.tags);
-    changedFields.tags = input.tags;
   }
   if (input.isPinned !== undefined) {
     valuesToUpdate.isPinned = input.isPinned;
-    changedFields.isPinned = input.isPinned;
   }
   if (input.isArchived !== undefined) {
     valuesToUpdate.isArchived = input.isArchived;
-    changedFields.isArchived = input.isArchived;
   }
   if (input.summary !== undefined) {
     valuesToUpdate.summary = input.summary;
-    changedFields.summary = input.summary;
   }
 
   const [updated] = await db
@@ -282,7 +491,13 @@ export async function updateNote(
     throw new Error(`Note with id "${id}" not found.`);
   }
 
-  await enqueueOutbox('notes', updated.id, 'upsert', changedFields, updated.version);
+  await enqueueOutbox(
+    "notes",
+    updated.id,
+    "upsert",
+    valuesToUpdate,
+    updated.version,
+  );
 
   return updated;
 }
@@ -439,32 +654,32 @@ export async function upsertNoteFromSync(n: {
     .insert(notes)
     .values({
       id: n.id,
-      userId: n.userId ?? null,
-      folderId: n.folderId ?? null,
+      userId: n.userId,
+      folderId: n.folderId,
       title: n.title ?? '',
       content: n.content ?? '',
       tags: tagsJson,
       isPinned: n.isPinned ?? false,
       isArchived: n.isArchived ?? false,
-      summary: n.summary ?? null,
+      summary: n.summary,
       version: n.version ?? 1,
       createdAt: n.createdAt,
       updatedAt: n.updatedAt,
-      deletedAt: n.deletedAt ?? null,
+      deletedAt: n.deletedAt,
     })
     .onConflictDoUpdate({
       target: notes.id,
       set: {
-        folderId: n.folderId ?? null,
+        folderId: n.folderId,
         title: n.title ?? '',
         content: n.content ?? '',
         tags: tagsJson,
         isPinned: n.isPinned ?? false,
         isArchived: n.isArchived ?? false,
-        summary: n.summary ?? null,
+        summary: n.summary,
         version: n.version ?? 1,
         updatedAt: n.updatedAt,
-        deletedAt: n.deletedAt ?? null,
+        deletedAt: n.deletedAt,
         ...(n.userId ? { userId: n.userId } : {}),
       },
     });

@@ -48,3 +48,20 @@ export function calculateReadingTime(text: string, wpm = 200): number {
   return Math.max(1, Math.ceil(words / wpm));
 }
 
+/**
+ * Convert color from hex to rgba
+ * @param hex color value of hex e.g. #000000
+ * @param alpha color alphase e0 - 1 e.g. 0.45
+ * @returns 
+ */
+export const hex2RGBA = (hex: string, alpha: number) => {
+  // Remove the '#' if it's there
+  const cleanHex = hex.replace("#", "");
+
+  // Parse r, g, b values from the hex string
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

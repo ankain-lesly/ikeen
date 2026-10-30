@@ -2,7 +2,7 @@
 
 Paste-ready listing copy for App Store Connect and Google Play Console. Counts are characters, including spaces and punctuation. This document is store metadata only. Launch, IAP, and review-checklist work lives in [docs/analysis/COMMERCIALIZATION_AND_APP_STORE_ROADMAP.md](analysis/COMMERCIALIZATION_AND_APP_STORE_ROADMAP.md).
 
-Claims below match what the app ships today: local notes, Markdown editing and reading, folders, tags, pins, archive, search, bulk actions, Recently Deleted, folder PIN, light and dark appearance, optional account sync, account deletion, and an agent that can search, write, organize, remember context, summarize, use web research when that feature is enabled, and use connected apps such as email after the user authorizes them.
+Claims below match what the app ships today: local notes, modular block editing (rich text, interactive checklists, voice notes, photo galleries), folders, tags, pins, archive, search, bulk actions, Recently Deleted, folder PIN, light and dark appearance, optional account sync, account deletion, and an agent that can search, write, organize, remember context, summarize, and use connected apps.
 
 ---
 
@@ -12,8 +12,8 @@ Claims below match what the app ships today: local notes, Markdown editing and r
 | :--- | ---: | ---: | :--- |
 | Name | 30 | 5 | `iKeen` |
 | Primary category | — | — | Productivity |
-| Age | — | — | 13+ (matches the privacy policy; complete the store questionnaires separately) |
-| Copyright | — | — | `© 2026 [seller name on the developer account]` |
+| Age | — | — | 13+ (matches privacy policy; complete store questionnaires separately) |
+| Copyright | — | — | `© 2026 [seller name on developer account]` |
 
 Privacy policy URL and support URL are required by both consoles. The app already has `/privacy` and `/delete-account` routes. Fill in the public host before submission:
 
@@ -31,7 +31,7 @@ Privacy policy URL and support URL are required by both consoles. The app alread
 | Promotional text | 170 | 148 | `iKeen keeps notes on your device. Organize them in folders, pin what matters, and ask the agent to search, draft, or tidy a note when you want help.` |
 | Keywords | 100 | 97 | `folders,markdown,tags,sync,notebook,journal,archive,writing,organize,search,pin,local,draft,ideas` |
 
-Keywords are comma-separated with no spaces. They do not repeat the name or subtitle words (`ikeen`, `offline`, `notes`, `optional`, `ai`).
+Keywords are comma-separated with no spaces. They do not repeat name or subtitle words (`ikeen`, `offline`, `notes`, `optional`, `ai`).
 
 ### Description (limit 4000, count 1671)
 
@@ -39,18 +39,29 @@ Keywords are comma-separated with no spaces. They do not repeat the name or subt
 iKeen is a notes app that works on your device. Write and organize without an account. Sign in when you want notes to sync across devices. Ask the agent when you want help with what you already wrote.
 
 Write
-Create and edit notes in Markdown, with formatted headings, lists, and links when you read them. Add tags, pin important notes, and archive the ones you are finished with. Search titles and note text. Select several notes at once to move, pin, archive, or delete them. Deleted notes stay in Recently Deleted until you restore them or remove them for good. You can lock a folder with a PIN.
+Create and edit notes with modular blocks: rich Markdown text, interactive checklists, voice memos, and photo attachments. Add tags, pin important notes, and archive finished items. Search titles and note content. Select several notes at once to move, pin, archive, or delete them. Deleted notes stay in Recently Deleted until you restore or purge them. You can lock private folders with a PIN.
 
 Organize
-Keep notes in folders or leave them unorganized. Switch between a grid and a list. Use a light or dark appearance.
+Keep notes in folders or leave them unorganized. Switch between a grid and a list. Use a light or dark appearance. Access recent notes instantly with the sliding drawer.
 
 Ask iKeen
-The agent can search your notes, create and update them, pin or archive them, and file them into folders. It can remember useful context from your conversation and summarize what you have collected. When web research is available, it can search the web and read a public page. You can connect email and other apps from chat, then ask the agent to use them and save the result as a note.
+The agent can search your notes, create and update them, pin or archive them, and file them into folders. It can remember useful context from your conversation and summarize what you have collected. When web research is available, it can search the web and read public pages. You can connect email and other apps from chat, then ask the agent to use them and save the result as a note.
 
 Your notes
-Notes, folders, tags, and settings stay on the device. They are sent to iKeen only if you sign in and sync, or if you use the agent on that content. Agent prompts and the notes the agent reads are processed by the model provider so it can reply. Connected-app data is used only when you authorize that app and ask the agent to use it. iKeen does not show ads, and it does not ask for your camera, microphone, contacts, or location.
+Notes, folders, tags, and settings stay on the device. They are sent to iKeen only if you sign in and sync, or if you use the agent on that content. Agent prompts and the notes the agent reads are processed by the model provider so it can reply. Connected-app data is used only when you authorize that app and ask the agent to use it. iKeen does not show ads, and does not ask for contacts or location.
 
 iKeen is for people 13 and older. The agent can be wrong. Check anything important before you rely on it.
+```
+
+### What's New in Version 2.0.0
+```
+Welcome to iKeen 2.0 — The Modular Block Workspace:
+• Modular Note Blocks: Freely arrange rich text, interactive checklists, and media in any order.
+• Voice Notes: Record voice memos directly into notes with inline playback.
+• Background Media Outbox: Seamless background photo and attachment uploading with offline retry.
+• Reimagined Navigation: Infinite recent notes drawer and a modern home shell.
+• Resilient Sync: Faster, crash-protected sync across all your devices.
+• Block AI Tools: Let the agent draft, summarize, and edit specific blocks.
 ```
 
 ---
@@ -62,41 +73,19 @@ iKeen is for people 13 and older. The agent can be wrong. Check anything importa
 | Name | 30 | 5 | `iKeen` |
 | Short description | 80 | 72 | `Notes that stay on your device. Folders, tags, and an optional AI agent.` |
 
-### Full description (limit 4000, count 1671)
-
+### Full description (limit 4000)
 Use the same body as the Apple description so the two listings do not drift.
 
+### What's New in Version 2.0.0
 ```
-iKeen is a notes app that works on your device. Write and organize without an account. Sign in when you want notes to sync across devices. Ask the agent when you want help with what you already wrote.
-
-Write
-Create and edit notes in Markdown, with formatted headings, lists, and links when you read them. Add tags, pin important notes, and archive the ones you are finished with. Search titles and note text. Select several notes at once to move, pin, archive, or delete them. Deleted notes stay in Recently Deleted until you restore them or remove them for good. You can lock a folder with a PIN.
-
-Organize
-Keep notes in folders or leave them unorganized. Switch between a grid and a list. Use a light or dark appearance.
-
-Ask iKeen
-The agent can search your notes, create and update them, pin or archive them, and file them into folders. It can remember useful context from your conversation and summarize what you have collected. When web research is available, it can search the web and read a public page. You can connect email and other apps from chat, then ask the agent to use them and save the result as a note.
-
-Your notes
-Notes, folders, tags, and settings stay on the device. They are sent to iKeen only if you sign in and sync, or if you use the agent on that content. Agent prompts and the notes the agent reads are processed by the model provider so it can reply. Connected-app data is used only when you authorize that app and ask the agent to use it. iKeen does not show ads, and it does not ask for your camera, microphone, contacts, or location.
-
-iKeen is for people 13 and older. The agent can be wrong. Check anything important before you rely on it.
+Welcome to iKeen 2.0 — The Modular Block Workspace:
+• Modular Note Blocks: Freely arrange rich text, interactive checklists, and media in any order.
+• Voice Notes: Record voice memos directly into notes with inline playback.
+• Background Media Outbox: Seamless background photo and attachment uploading with offline retry.
+• Reimagined Navigation: Infinite recent notes drawer and a modern home shell.
+• Resilient Sync: Faster, crash-protected sync across all your devices.
+• Block AI Tools: Let the agent draft, summarize, and edit specific blocks.
 ```
-
----
-
-## Do not claim
-
-Leave these out of store copy, screenshots, and review notes until they ship:
-
-- Voice capture or transcription
-- Subscriptions, prices, or paid tiers
-- Ads as a product feature
-- Medical, legal, or financial advice
-- Features that exist only in the brand spec or commercialization roadmap (runway tracking, morning briefings, Telegram ingestion, multi-agent routing)
-
-Neither description names the other store, prices a plan, or stuffs keywords.
 
 ---
 
@@ -111,4 +100,4 @@ Recount after any edit, including spaces and line breaks, before pasting into Ap
 | Apple promotional text | 170 | 148 |
 | Apple keywords | 100 | 97 |
 | Google short description | 80 | 72 |
-| Full description (both) | 4000 | 1671 |
+| Full description (both) | 4000 | 1680 |

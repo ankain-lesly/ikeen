@@ -49,25 +49,33 @@ describe('McpAuthGuard', () => {
 
   it('authenticates via x-api-key with ikn_ token', async () => {
     const user = { id: 'user-1', email: 'test@ikeen.app', username: 'tester', status: 'active' };
-    mockApiKeyService.validateApiKey.mockResolvedValue(user);
+    mockApiKeyService.validateApiKey.mockResolvedValue({
+      user,
+      apiKey: { id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' },
+    });
 
     const context = createMockContext({ 'x-api-key': 'ikn_live_abcdef123456789' });
     const result = await guard.canActivate(context as any);
 
     expect(result).toBe(true);
     expect(context.req.user).toEqual(user);
+    expect(context.req.apiKey).toEqual({ id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' });
     expect(mockApiKeyService.validateApiKey).toHaveBeenCalledWith('ikn_live_abcdef123456789');
   });
 
   it('authenticates via Authorization Bearer ikn_ token', async () => {
     const user = { id: 'user-1', email: 'test@ikeen.app', username: 'tester', status: 'active' };
-    mockApiKeyService.validateApiKey.mockResolvedValue(user);
+    mockApiKeyService.validateApiKey.mockResolvedValue({
+      user,
+      apiKey: { id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' },
+    });
 
     const context = createMockContext({ authorization: 'Bearer ikn_live_abcdef123456789' });
     const result = await guard.canActivate(context as any);
 
     expect(result).toBe(true);
     expect(context.req.user).toEqual(user);
+    expect(context.req.apiKey).toEqual({ id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' });
     expect(mockApiKeyService.validateApiKey).toHaveBeenCalledWith('ikn_live_abcdef123456789');
   });
 

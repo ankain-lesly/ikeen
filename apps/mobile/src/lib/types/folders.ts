@@ -1,4 +1,4 @@
-import type { Folder, InsertFolder } from '../../db/schema';
+import type { FolderSelect, InsertFolder } from '../../db/schema';
 import type {
   CreateFolderInput,
   UpdateFolderInput,
@@ -7,7 +7,7 @@ import type {
 } from '@repo/types';
 
 export type {
-  Folder,
+  FolderSelect,
   InsertFolder,
   CreateFolderInput,
   UpdateFolderInput,
@@ -15,7 +15,7 @@ export type {
   FolderChanges,
 };
 
-export interface FolderWithCount extends Folder {
+export interface FolderWithCount extends FolderSelect {
   noteCount: number;
 }
 

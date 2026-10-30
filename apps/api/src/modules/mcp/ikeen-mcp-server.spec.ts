@@ -52,7 +52,7 @@ describe('IkeenMcpServer', () => {
     expect(server.server).toBeDefined();
   });
 
-  it('lists exactly 12 canonical ikeen_* tools with appropriate annotations', async () => {
+  it('lists exactly 15 canonical ikeen_* tools with appropriate annotations', async () => {
     const server = createIkeenMcpServer({
       notesToolService: mockNotesToolService,
       foldersToolService: mockFoldersToolService,
@@ -68,7 +68,8 @@ describe('IkeenMcpServer', () => {
     await client.connect(clientTransport);
 
     const toolsResult = await client.listTools();
-    expect(toolsResult.tools.length).toBe(12);
+    expect(toolsResult.tools.length).toBe(16);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_attach_image')).toBe(true);
 
     for (const tool of toolsResult.tools) {
       expect(tool.name).toMatch(/^ikeen_/);
@@ -183,6 +184,55 @@ describe('IkeenMcpServer', () => {
     const messageText = (prompt.messages[0].content as { type: string; text: string }).text;
     expect(messageText).toContain('Product goals');
     expect(messageText).toContain('Q3 Objectives');
+
+    await client.close();
+    await server.close();
+  });
+
+  it('triggers Ably invalidation on successful mutating tool execution', async () => {
+    const mockAbly = {
+      publishInvalidation: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const server = createIkeenMcpServer({
+      notesToolService: mockNotesToolService,
+      foldersToolService: mockFoldersToolService,
+      prisma: mockPrisma,
+      ably: mockAbly as any,
+      userId: 'user-sync-test',
+      clientId: 'mcp-sync-client',
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+
+    const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
+    await client.connect(clientTransport);
+
+    // Call mutating tool ikeen_create_note
+    await client.callTool({
+      name: 'ikeen_create_note',
+      arguments: {
+        title: 'Synced Note',
+        content: 'Content',
+      },
+    });
+
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledTimes(1);
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledWith(
+      'user-sync-test',
+      expect.arrayContaining(['notes', 'note_blocks']),
+    );
+
+    // Call read-only tool ikeen_get_note_details - should NOT trigger another invalidation
+    await client.callTool({
+      name: 'ikeen_get_note_details',
+      arguments: {
+        noteId: 'note-1',
+      },
+    });
+
+    expect(mockAbly.publishInvalidation).toHaveBeenCalledTimes(1);
 
     await client.close();
     await server.close();

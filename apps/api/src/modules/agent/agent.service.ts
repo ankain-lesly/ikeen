@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { getToolMutatedEntities } from '../sync/sync-events.constants.js';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import {
   pipeAgentUIStreamToResponse,
   ToolLoopAgent,
@@ -29,6 +30,7 @@ import { EnvService } from '../../config/env.service.js';
 import { DEFAULT_AGENT_MAX_STEPS } from './agent-config.js';
 import { NotesToolService } from '../notes/notes-tool.service.js';
 import { FoldersToolService } from '../folders/folders-tool.service.js';
+import { MediaService } from '../media/media.service.js';
 
 @Injectable()
 export class AgentService {
@@ -46,14 +48,15 @@ export class AgentService {
     private readonly composio: ComposioService,
     private readonly notesToolService: NotesToolService,
     private readonly foldersToolService: FoldersToolService,
+    @Optional() private readonly mediaService?: MediaService,
   ) {
     this.tools = createIkeenTools({
       prisma: this.prisma,
-      ably: this.ably,
       audit: this.audit,
       webResearch: this.webResearch,
       notesToolService: this.notesToolService,
       foldersToolService: this.foldersToolService,
+      mediaService: this.mediaService,
     });
     this.logger.log('Ikeen AgentService initialized with tool registry');
   }
@@ -236,8 +239,22 @@ export class AgentService {
             savedIds.add(savedUserMessageId);
           }
 
+          const initialStoredMap = new Map(
+            (stored?.uiMessages ?? []).map((m: UIMessage) => [m.id, m]),
+          );
+
           for (const msg of completedMessages) {
             if (msg.id && savedIds.has(msg.id)) {
+              const initialMsg = initialStoredMap.get(msg.id);
+              if (initialMsg) {
+                const partsUnchanged =
+                  JSON.stringify(initialMsg.parts ?? []) ===
+                  JSON.stringify(msg.parts ?? []);
+                if (partsUnchanged) {
+                  continue;
+                }
+              }
+
               await this.chatPersistence.updateMessage({
                 id: msg.id,
                 message: msg,
@@ -304,21 +321,9 @@ export class AgentService {
         return;
       }
 
-      switch (toolName) {
-        case 'createNote':
-        case 'updateNote':
-        case 'pinNote':
-        case 'archiveNote':
-          mutated.add('notes');
-          break;
-        case 'createFolder':
-        case 'updateFolder':
-          mutated.add('folders');
-          break;
-        case 'organizeNote':
-          mutated.add('notes');
-          mutated.add('folders');
-          break;
+      const entities = getToolMutatedEntities(toolName);
+      for (const e of entities) {
+        mutated.add(e);
       }
     };
 

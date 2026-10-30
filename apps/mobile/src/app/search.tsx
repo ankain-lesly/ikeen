@@ -22,7 +22,7 @@ import {
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { createNote, searchNotes, useLiveNotes } from "@/lib/queries/notes";
-import { hasActiveNotesFilters, ListNotesOptions, Note } from "@/lib/types/notes";
+import { hasActiveNotesFilters, ListNotesOptions, NoteWithBlocks } from "@/lib/types/notes";
 import { NotesFilterSheet } from "@/components/notes/notes-filter-sheet";
 import { NoteGridContainer } from "@/components/notes/notes-grid-container";
 import { useRecentSearches } from "@/hooks/use-recent-search";
@@ -32,7 +32,7 @@ export default function SearchScreen() {
   const router = useRouter();
   const colors = useTheme();
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<NoteWithBlocks[]>([]);
 
   const inputRef = useRef<TextInputRef>(null);
   const [query, setQuery] = useState("");
@@ -244,7 +244,7 @@ export default function SearchScreen() {
                     handleSearch(term);
                     // inputRef.current?.setSelection(0,-1)
                   }}
-                  className="px-3 py-1.5 rounded-full bg-background-element border border-border flex-row items-center gap-1">
+                  className="pl-3 pr-1 py-1.5 rounded-full bg-background-element border border-border flex-row items-center gap-1">
                   <ThemedText className="text-sm text-text-secondary">
                     {capitalize(term)}
                   </ThemedText>

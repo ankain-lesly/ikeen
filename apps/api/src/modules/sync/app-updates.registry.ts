@@ -14,6 +14,20 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '2.0.0',
+    build: 6,
+    releasedAt: '2026-10-30',
+    title: "Welcome to iKeen 2.0: The Modular Block Workspace",
+    notes: [
+      'Modular Note Blocks: mix rich text, interactive checklists, and media in any order',
+      'Voice Notes: record and listen to voice memos directly inside your notes',
+      'Background Media Outbox: reliable photo & file uploads with offline retry',
+      'Reimagined Navigation: infinite recent notes drawer and modern home shell',
+      'Resilient Sync Engine: hardened offline recovery, pagination, and crash protection',
+      'Block AI Tools: agent can now draft, summarize, and edit specific note blocks',
+    ],
+  },
+  {
     version: '1.3.0',
     build: 5,
     releasedAt: '2026-10-03',

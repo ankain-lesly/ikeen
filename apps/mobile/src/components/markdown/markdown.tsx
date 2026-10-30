@@ -1,20 +1,30 @@
-import { forwardRef, memo, useImperativeHandle, useRef } from "react";
-import { Linking, type StyleProp, type ViewStyle } from "react-native";
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import {
+  TextInput,
+  type TextInputProps,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 import {
   EnrichedMarkdownText,
-  EnrichedMarkdownTextInput,
-  type EnrichedMarkdownTextInputInstance,
   type LinkPressEvent,
 } from "react-native-enriched-markdown";
 import { useTheme } from "@/hooks/use-theme";
 import { useMarkdownStyle } from "./markdown-styles";
+import { OpenURLSheet } from "../notes/open-url-sheet";
+import type { MarkdownStyle } from "react-native-enriched-markdown";
 
 export type MarkdownFormatAction =
-  | "bold"
-  | "italic"
-  | "heading"
-  | "list"
-  | "checklist";
+  "bold" | "italic" | "heading" | "list" | "checklist";
 
 export type MarkdownEditorHandle = {
   focus: () => void;
@@ -22,22 +32,16 @@ export type MarkdownEditorHandle = {
   format: (action: MarkdownFormatAction) => void;
 };
 
-const containerStyle: StyleProp<ViewStyle> = { width: "100%" };
-const editorStyle: StyleProp<ViewStyle> = {
+const containerStyle: StyleProp<ViewStyle> = {
   width: "100%",
-  minHeight: 160,
-  paddingBottom: 96,
 };
-const markdownShortcuts = {
-  heading: true,
-  unorderedList: true,
-  orderedList: true,
-} as const;
 
-function openLink({ url }: LinkPressEvent) {
-  if (!url.startsWith("https://") && !url.startsWith("http://")) return;
-  void Linking.openURL(url).catch(() => {});
-}
+const editorStyle = {
+  width: "100%",
+  verticalAlign: "top",
+  textAlignVertical: "top",
+  fontSize: 16,
+} as const;
 
 export const MarkdownBody = memo(function MarkdownBody({
   source,
@@ -48,17 +52,37 @@ export const MarkdownBody = memo(function MarkdownBody({
   size?: 14 | 16;
   streaming?: boolean;
 }) {
-  const markdownStyle = useMarkdownStyle(size);
+  const [isUrlSheetOpen, setUrlSheetOpen] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+
+  const handleLinkLongPress = useCallback(({ url }: LinkPressEvent) => {
+    setUrl(url);
+    setUrlSheetOpen(true);
+  }, []);
+
+  const style = useMarkdownStyle(size);
   return (
-    <EnrichedMarkdownText
-      markdown={source}
-      flavor="github"
-      markdownStyle={markdownStyle}
-      containerStyle={containerStyle}
-      streamingAnimation={streaming}
-      enableTaskListItemToggle={false}
-      onLinkPress={openLink}
-    />
+    <>
+      <EnrichedMarkdownText
+        markdown={source}
+        flavor="github"
+        markdownStyle={{
+          ...style,
+        }}
+        containerStyle={containerStyle}
+        streamingAnimation={streaming}
+        enableTaskListItemToggle={false}
+        onLinkPress={handleLinkLongPress}
+        onLinkLongPress={handleLinkLongPress}
+      />
+      {isUrlSheetOpen && url && (
+        <OpenURLSheet
+          isSheetOpen={isUrlSheetOpen}
+          url={url}
+          onDismiss={() => setUrlSheetOpen(false)}
+        />
+      )}
+    </>
   );
 });
 
@@ -66,62 +90,105 @@ export const MarkdownEditor = memo(
   forwardRef<
     MarkdownEditorHandle,
     {
+      style?: TextStyle;
       defaultValue?: string;
       placeholder?: string;
       placeholderTextColor?: string;
-      onChangeMarkdown: (markdown: string) => void;
+      multiline?: boolean;
+      onChangeText?: (text: string) => void;
+      onBlur?: () => void;
+      onFocus?: () => void;
+      onKeyPress?: TextInputProps["onKeyPress"];
     }
   >(function MarkdownEditor(
-    { defaultValue = "", placeholder, placeholderTextColor, onChangeMarkdown },
+    {
+      defaultValue = "",
+      style,
+      placeholder,
+      placeholderTextColor,
+      multiline = true,
+      onChangeText,
+      onFocus,
+      onBlur,
+      onKeyPress,
+    },
     ref,
   ) {
-    const nativeRef = useRef<EnrichedMarkdownTextInputInstance>(null);
+    const nativeRef = useRef<TextInput>(null);
     const colors = useTheme();
-    const markdownStyle = useMarkdownStyle(16);
+    const [internalValue, setInternalValue] = useState(defaultValue);
+    const [contentHeight, setContentHeight] = useState<number | undefined>(
+      undefined,
+    );
+
+    useEffect(() => {
+      setInternalValue(defaultValue);
+    }, [defaultValue]);
 
     useImperativeHandle(
       ref,
       () => ({
         focus: () => nativeRef.current?.focus(),
-        getMarkdown: async () =>
-          (await nativeRef.current?.getMarkdown()) ?? null,
-        format: (action) => {
-          const editor = nativeRef.current;
-          if (!editor) return;
+        getMarkdown: async () => internalValue,
+        format: (action: MarkdownFormatAction) => {
+          let newValue = internalValue;
           switch (action) {
             case "bold":
-              editor.toggleBold();
+              newValue = `${newValue}**bold**`;
               break;
             case "italic":
-              editor.toggleItalic();
+              newValue = `${newValue}*italic*`;
               break;
             case "heading":
-              editor.toggleHeading(2);
+              newValue = `${newValue}${newValue ? "\n" : ""}## Heading`;
               break;
             case "list":
-              editor.toggleUnorderedList();
+              newValue = `${newValue}${newValue ? "\n" : ""}- List`;
               break;
             case "checklist":
-              editor.insertText("- [ ] ");
+              newValue = `${newValue}${newValue ? "\n" : ""}- [ ] Checklist`;
               break;
           }
+          setInternalValue(newValue);
+          onChangeText?.(newValue);
         },
       }),
-      [],
+      [internalValue, onChangeText],
     );
 
     return (
-      <EnrichedMarkdownTextInput
+      <TextInput
         ref={nativeRef}
-        defaultValue={defaultValue}
+        value={internalValue}
         placeholder={placeholder}
         placeholderTextColor={placeholderTextColor ?? colors.textSecondary}
-        onChangeMarkdown={onChangeMarkdown}
-        multiline
+        onChangeText={(text) => {
+          setInternalValue(text);
+          onChangeText?.(text);
+        }}
+        onContentSizeChange={
+          multiline
+            ? (e) => {
+                const h = Math.ceil(e.nativeEvent.contentSize.height);
+                if (h > 0 && Math.abs(h - (contentHeight ?? 0)) > 1) {
+                  setContentHeight(h);
+                }
+              }
+            : undefined
+        }
+        onBlur={onBlur}
+        onFocus={onFocus}
+        onKeyPress={onKeyPress}
+        multiline={multiline}
         scrollEnabled={false}
-        markdownShortcuts={markdownShortcuts}
-        markdownStyle={markdownStyle}
-        style={editorStyle}
+        style={[
+          editorStyle,
+          style,
+          contentHeight ? { height: contentHeight } : undefined,
+          {
+            color: colors.foreground,
+          },
+        ]}
       />
     );
   }),

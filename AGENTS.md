@@ -1,105 +1,147 @@
-# Monorepo Architecture & Agent Guidelines
+# Monorepo Architecture & Best Practices
 
-This is a multi-application Turborepo powered by **Bun** (`1.3.6`) and **Turborepo v2** (`^2.10.12`). It orchestrates a multi-platform ecosystem:
-- `apps/mobile`: Expo SDK 57 / React Native 0.86 / Expo Router v57 (Metro bundler with watchFolders)
-- `apps/web`: Next.js 16.3.4 (Turbopack + React 19.2 + Tailwind CSS v4)
-- `apps/backend`: Node / Bun backend (Express + Prisma 6+)
-- `packages/*`: Shared internal packages (`@repo/*`)
+This repository uses **Bun** (`1.3.6`) and **Turborepo v2** (`^2.10.12`) to efficiently orchestrate a multi-platform monorepo:
 
----
-
-## 1. Package Naming & Scoping Standard
-
-- **Canonical Scope**: Always use `@repo/<package-name>` for internal packages (e.g. `@repo/ui`, `@repo/validation`, `@repo/db`, `@repo/utils`, `@repo/types`).
-- **Workspace Protocol**: In `package.json` files, reference internal dependencies using `"@repo/<package-name>": "workspace:*"` (or `"*"`).
-- **Package Placement**: All shared code, utilities, database layers, validation schemas, and reusable UI components **must live in `packages/*`**, never in an application package. Application packages (`apps/*`) must never be imported by other packages.
+- **apps/mobile**: Expo SDK 57 / React Native 0.86 / Expo Router v57 (Metro bundler)
+- **apps/web**: Next.js 16.3.4 (Turbopack, React 19.2, Tailwind CSS v4)
+- **apps/backend**: Node or Bun backend (Express + Prisma 6+)
+- **packages/**: All reusable internal packages (`@repo/*`)
 
 ---
 
-## 2. Package Archetypes & Compilation Strategies
+## 1. Task Tracking Workflow
 
-When creating or modifying an internal package, select the exact archetype that fits its purpose:
-
-### Archetype A: Just-in-Time (JIT) TypeScript Packages (Default for logic & data)
-- **Target packages**: `@repo/utils`, `@repo/validation`, `@repo/types`, `@repo/auth-shared`, `@repo/api-client`
-- **Strategy**: Direct TypeScript source exports (`src/index.ts`). No internal build step or `dist/` folder. Transpilation is handled on-the-fly by consumer bundlers (Turbopack, Next.js, Metro, or native Bun runtime).
-- **`package.json` requirements**:
-  - `"main": "./src/index.ts"`
-  - `"types": "./src/index.ts"`
-  - `"exports"` maps directly to `.ts` source files.
-  - Scripts: `"check-types": "tsc --noEmit"`, `"lint": "eslint ."`
-  - **No `build` script**: Do not add a fake or empty `build` script, as it creates unnecessary overhead in the Turborepo task graph.
-
-### Archetype B: Universal UI & Theme Packages
-- **Target packages**: `@repo/ui`, `@repo/theme`, `@repo/assets`
-- **Strategy**: Component primitives and styling tokens.
-- **Rules**:
-  - **Peer Dependencies**: `react`, `react-dom`, and `react-native` (optional) **must always be `peerDependencies`** (paired with `devDependencies` for typing/testing). **Never** declare React or React Native as hard `dependencies`; doing so bundles multiple React runtime instances and breaks React hooks.
-  - **Granular Entrypoints**: Expose discrete component entrypoints (`@repo/ui/button`, `@repo/ui/card`, `@repo/theme/colors`) in `exports`. Avoid massive barrel exports (`export * from '...'`) that ruin tree-shaking and bloat mobile/web bundles.
-  - **Platform Isolation**: If a component needs platform-specific implementations, use standard file extensions (`.web.tsx` vs `.native.tsx`) or universal primitives (e.g. NativeWind v4 / React Native Web). Never let mobile-only native modules leak into web imports.
-
-### Archetype C: Compiled / Heavy Runtime Packages
-- **Target packages**: `@repo/db` (Prisma client & migrations), native or standalone Node-only compiled libraries.
-- **Strategy**: Packages that must emit compiled artifacts (`dist/`) before applications can consume them.
-- **Requirements**:
-  - Scripts must include `"build": "..."` and `"dev": "... --watch"`.
-  - `"main": "./dist/index.js"`, `"types": "./dist/index.d.ts"`.
-  - In `turbo.json`, the `build` task must capture `"outputs": ["dist/**"]`.
-
-### Archetype D: Tooling & Config Packages
-- **Target packages**: `@repo/typescript-config`, `@repo/eslint-config`, `@repo/tailwind-config`
-- **Strategy**: Static configuration files (`base.json`, `nextjs.json`, `base.js`). No build steps.
+- **`TODO.md`**: Central, in-progress requirements and problems. Keep clean by removing completed items.
+- **`FEATURE-CHECKLIST.md`**: Detailed checklists per feature or bug; update as you make progress.
+- **Recommended workflow:**
+  1. Review and triage `TODO.md`.
+  2. Implement the feature or fix.
+  3. Track granular progress in `FEATURE-CHECKLIST.md`.
+  4. Remove resolved tasks from `TODO.md`.
 
 ---
 
-## 3. Package Creation Workflow (Step-by-Step)
+## 2. Internal Package Standards
 
-When instructed to create a new package `packages/<name>`:
-
-1. **Create Directory**: `packages/<name>/src`
-2. **Create `package.json`**:
-   - Set `"name": "@repo/<name>"`
-   - Set `"type": "module"` and `"private": true`
-   - Configure `"exports"` for granular entrypoints
-   - Add `"scripts"`: at minimum `"check-types": "tsc --noEmit"`
-   - Add `"devDependencies"`: `@repo/typescript-config: "*"` and `typescript: "^5"` or `"7.0.2"`
-3. **Create `tsconfig.json`**:
-   - Extend the shared configuration: `"extends": "@repo/typescript-config/base.json"` (or `react-library.json` for UI)
-   - Set `"include": ["src"]` and `"exclude": ["node_modules", "dist"]`
-   - **Never add TypeScript `compilerOptions.paths`**; use Node.js subpath imports (`#*`) or clean package exports instead.
-4. **Implement Source Code**:
-   - Write source code inside `packages/<name>/src/`
-   - Ensure clean exports without circular dependencies
-5. **Connect Consumers**:
-   - In consuming app(s) `apps/<app>/package.json`, add `"@repo/<name>": "workspace:*"`
-6. **Register & Verify**:
-   - Run `bun install` from the root to refresh the workspace graph and lockfile.
-   - Run `bun run check-types` (`turbo run check-types`) to ensure type safety.
-   - Run `bun run lint` (`turbo run lint`) to ensure lint clean.
+- Always use canonical scope: `@repo/<package-name>` for **every** local package.
+- In `package.json`, reference local dependencies as: `"@repo/<package-name>": "workspace:*"` (or just `"*"`).
+- All shared code (db, UI, utils, validation, types) **must live in `packages/*`**. Never put shared logic in `apps/*`. Application packages must never be imported by others.
 
 ---
 
-## 4. Cross-Platform Guardrails (Expo + Next.js + Server)
+## 3. Package Archetypes
 
-1. **No Node APIs in Shared Universal Code**: `node:fs`, `node:path`, `process.env` access should never exist in universal packages consumed by mobile.
-2. **No Web DOM Globals in Mobile**: Never reference `window`, `document`, or `localStorage` without feature-detection (`typeof window !== 'undefined'`) or platform file extensions.
-3. **Metro Watcher Constraints**: In `apps/mobile/metro.config.js`, Metro watches `packages/` directly. Ensure package directory layouts are clean and free from unnecessary root node_modules traversal.
+**Choose one archetype for each new package:**
+
+### A. JIT TypeScript (Default)
+  - For: `@repo/utils`, `@repo/validation`, `@repo/types`, etc.
+  - No local build; consumer handles TypeScript transpilation.
+  - `package.json`:
+    - `"main"` & `"types"`: `./src/index.ts`
+    - `"exports"`: Point to `.ts` source files.
+    - Scripts: `"check-types": "tsc --noEmit"`, `"lint": "eslint ."`
+    - **No `"build"` script.**
+
+### B. Universal UI & Theme
+  - For: `@repo/ui`, `@repo/theme`, `@repo/assets`
+  - Peer dependencies for: `react`, `react-dom`, `react-native` (never hard dependencies).
+  - Use granular `exports` (expose via `@repo/ui/button`, etc.).
+  - For platform divergence, use file extensions like `.web.tsx` / `.native.tsx` or universal primitives.
+  - Avoid barrel exports to maintain tree-shaking.
+
+### C. Compiled/Heavy (e.g., DB)
+  - For: `@repo/db` (Prisma client), native libraries, etc.
+  - Requires build output in `dist/` before consumption.
+  - Scripts must include: `"build"`, `"dev": "... --watch"`
+  - Main exports: `"./dist/index.js"` and `"./dist/index.d.ts"`
+  - Register build outputs in `turbo.json` (`"outputs": ["dist/**"]`).
+
+### D. Tooling & Config
+  - For: `@repo/typescript-config`, `@repo/eslint-config`, `@repo/tailwind-config`
+  - Static config files only; no build step.
 
 ---
 
-## 5. Essential Commands
+## 4. Creating a New Internal Package
+
+1. Create `packages/<name>/src/`.
+2. Add `package.json`:
+   - `"name": "@repo/<name>"`
+   - `"type": "module"`, `"private": true`
+   - Proper `"exports"`
+   - Essential scripts: at least `"check-types": "tsc --noEmit"`
+   - `devDependencies`: `@repo/typescript-config: "*"` and `typescript: "^5"` (or current)
+3. Add `tsconfig.json`:
+   - Extend shared config: `"extends": "@repo/typescript-config/base.json"` (or `react-library.json` for UI)
+   - `"include": ["src"]`, `"exclude": ["node_modules", "dist"]`
+   - **Never use `compilerOptions.paths`**; leverage Node subpath imports and exports.
+4. Write code in `src/`, with clear, uncircular exports.
+5. Add to each consuming app’s `package.json`: `"@repo/<name>": "workspace:*"`
+6. From monorepo root:
+   - `bun install`
+   - `bun run check-types`
+   - `bun run lint`
+
+---
+
+## 5. Cross-Platform Safety
+
+- **Node APIs**: Never use (`fs`, `path`, `process.env`, etc.) in shared packages meant for mobile/web.
+- **Web/DOM APIs**: Never use (`window`, `document`, `localStorage`) on mobile code without safe feature checks.
+- **Metro Config**: Ensure `packages/` structure is clean; watch settings in `apps/mobile/metro.config.js` shouldn’t bloat node_modules traversal.
+
+---
+
+## 6. Essential Commands
 
 ```bash
-# Package management & setup
-bun install                         # Install dependencies and link workspaces
-bun add <pkg> --filter=@repo/<name> # Add a dependency to a specific package
+# Dependency management
+bun install                           # Install and link all workspaces
+bun add <pkg> --filter=@repo/<name>   # Add dependency to a specific package
 
-# Turborepo tasks (run from root)
-bun run check-types                 # Typecheck all packages and apps in parallel
-bun run lint                        # Lint all packages and apps
-bun run build                       # Build all packages and apps with caching
-bun run dev                         # Run dev tasks in parallel
-bun run dev:web                     # Run web dev only
-bun run dev:mobile                  # Run mobile dev only
+# Turborepo scripts (from root)
+bun run check-types                   # Typecheck all apps and packages
+bun run lint                          # Lint all apps and packages
+bun run build                         # Build everything with caching
+bun run dev                           # Run all dev servers
+bun run dev:web                       # Web only
+bun run dev:mobile                    # Mobile only
 ```
-Always run `check-types` and `lint` before declaring any task complete.
+> **Always run type checks and lints before marking a task complete.**
+
+---
+
+## 7. Strict Git & Staging Invariants
+
+- **NEVER STAGE OR COMMIT CODE**: Never run `git add`, `git commit`, `git reset`, `git restore --staged`, or any command that modifies the git index (staging area) or commit history unless explicitly and unambiguously requested by the user.
+- **PRESERVE USER STAGING STATE**: The user stages changes to track progress. Wiping, resetting, or adding files to the staging area destroys the user's change tracking and is strictly prohibited.
+- All agent modifications must remain as unstaged working tree edits for the user to inspect, review, and stage themselves.
+
+---
+
+## 8. Release Requirements & Versioning Standards
+
+All app and package releases must strictly follow [docs/releases/RELEASE_PROCESS.md](docs/releases/RELEASE_PROCESS.md):
+
+- **SemVer Policy**: `MAJOR` (generational/paradigm leap or breaking changes), `MINOR` (new features/backward-compatible tools), `PATCH` (fixes, sync hardening, performance).
+- **Synchronized Metadata**: When cutting a release, atomically bump:
+  1. `apps/<app>/package.json` (`version`)
+  2. `apps/mobile/app.json` (for mobile)
+  3. `apps/api/src/modules/sync/app-updates.registry.ts` (`APP_RELEASES[0]`)
+  4. `docs/APP_STORE_LISTING.md` (What's New copy)
+- **Documentation Gate**: Every release requires a dedicated markdown document under `docs/releases/<app>/v<version>.md` detailing functional highlights, schema diffs, API contracts, and QA verification steps, plus an entry in `docs/releases/<app>/README.md`.
+- **Pre-flight Quality Gates**: Release candidates must pass `bun run check-types`, `bun --filter=@repo/api run test`, and production bundle export (`expo export` for mobile) with 0 errors before tagging.
+- **Git Tag Convention**: Follow annotated platform tagging (e.g., `git tag -a v2.0.0-mobile -m "..."`). Remember: coding agents NEVER stage, commit, or tag code directly; provide the commands for the user to run.
+
+---
+
+# CLAUDE.md Overview
+
+- **Structure**: See above; `apps/*`, `packages/*`, `plans/`
+- **Development**: Use only permitted APIs in universal packages; enforce all package and archetype guidelines.
+- **Tracking**: Use `TODO.md` for active items, `FEATURE-CHECKLIST.md` for checklists.
+- **PRs/Commits by Claude**: Must follow repository’s attribution rules.
+- **Architecture**:
+  - Mobile component sources: `apps/mobile/src/components/notes/`
+  - Changes to DB schema require updates in both Drizzle (mobile) and Prisma (backend).
+  - For major features, consult relevant specifications in `plans/` before coding.

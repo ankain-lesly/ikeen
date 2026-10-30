@@ -19,6 +19,11 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     getNoteDetails: baseContext,
     listRecentNotes: baseContext,
     createNote: baseContext,
+    addBlock: baseContext,
+    updateBlock: baseContext,
+    deleteBlock: baseContext,
+    attachImage: baseContext,
+    generateImageKeen: baseContext,
     updateNote: baseContext,
     listFolders: baseContext,
     createFolder: baseContext,
@@ -33,7 +38,6 @@ export function ikeenToolContext(userId: string, conversationId: string) {
   };
 }
 
-
 /**
  * Optional id the model may omit, pass as null, or pass as "".
  * Stored calls treat all three as "not set" so Zod does not reject null.
@@ -46,7 +50,6 @@ export const optionalId = z
 export function toolFailure(): { ok: false; error: string } {
   return {
     ok: false,
-    error:
-      'Could not complete this step. Fix the arguments and retry once, or continue without it.',
+    error: 'Action failed or user permission denied',
   };
 }

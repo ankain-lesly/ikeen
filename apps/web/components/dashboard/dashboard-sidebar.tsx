@@ -46,7 +46,7 @@ export interface NavItem {
 
 export function useDashboardNavItems(): NavItem[] {
   const isHydrated = useAuthHydration();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated , user} = useAuthStore();
 
   const { data: keys = [] } = useQuery({
     queryKey: ["api-keys"],
@@ -61,7 +61,7 @@ export function useDashboardNavItems(): NavItem[] {
 
   const toolsBadge = tools.length > 0 ? `${tools.length} Tools` : "11 Tools";
 
-  return [
+  const items: NavItem[] = [
     {
       label: "Overview",
       href: "/dashboard",
@@ -83,6 +83,17 @@ export function useDashboardNavItems(): NavItem[] {
       match: (p) => p.startsWith("/dashboard/mcps"),
     },
   ];
+
+  if (user?.type === "admin") {
+    items.push({
+      label: "Audit Logs",
+      href: "/dashboard/audit",
+      icon: Shield,
+      match: (p) => p.startsWith("/dashboard/audit"),
+    });
+  }
+
+  return items;
 }
 
 interface SidebarContentProps {

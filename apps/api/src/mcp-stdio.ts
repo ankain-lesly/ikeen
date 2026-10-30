@@ -30,8 +30,8 @@ async function main() {
   const auditService = new AuditService(prismaService);
   const ablyService = new AblyService(envService);
 
-  const notesToolService = new NotesToolService(prismaService, auditService, ablyService);
-  const foldersToolService = new FoldersToolService(prismaService, auditService, ablyService);
+  const notesToolService = new NotesToolService(prismaService, auditService);
+  const foldersToolService = new FoldersToolService(prismaService, auditService);
   const apiKeyService = new ApiKeyService(prismaService);
 
   // Authenticate user via IKEEN_API_KEY or API_KEY
@@ -45,9 +45,11 @@ async function main() {
   }
 
   let resolvedUserId: string;
+  let resolvedApiKey: { id: string; name: string; keyPrefix: string } | undefined;
   try {
-    const user = await apiKeyService.validateApiKey(apiKey);
+    const { user, apiKey: keyInfo } = await apiKeyService.validateApiKey(apiKey);
     resolvedUserId = user.id;
+    resolvedApiKey = keyInfo;
     process.stderr.write(`[ikeen-mcp-stdio] Authenticated successfully as user ${user.id}\n`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -60,8 +62,10 @@ async function main() {
     notesToolService,
     foldersToolService,
     prisma: prismaService,
+    ably: ablyService,
     userId: resolvedUserId,
     clientId: 'claude-desktop-stdio',
+    apiKey: resolvedApiKey,
   });
 
   const transport = new StdioServerTransport();

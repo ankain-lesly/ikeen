@@ -1,8 +1,7 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Pressable,
   Text,
   TextInput,
@@ -10,15 +9,8 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "@/lib/haptics";
-import {
-  ChevronLeft,
-  FileText,
-  Search,
-  SquarePen,
-  X,
-} from "lucide-react-native";
+import { ChevronLeft, Search, SquarePen, X } from "lucide-react-native";
 
-import { NoteCard } from "@/components/notes/note-card";
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -26,17 +18,12 @@ import {
   updateFolder,
   useLiveFolder,
 } from "@/lib/queries/folders";
-import {
-  softDeleteNote,
-  toggleArchiveNote,
-  togglePinNote,
-  useLiveNotes,
-} from "@/lib/queries/notes";
-import type { Note } from "@/lib/types/notes";
+import { useLiveNotes } from "@/lib/queries/notes";
+import type { ListNotesOptions } from "@/lib/types/notes";
 import { FolderGlyph } from "@/components/folders/folder-glyph";
 import { FolderDetailDropdown } from "@/components/folders/folder-detail-dropdown";
-import { CreateFolderSheet } from "@/components/folders/create-folder-sheet";
-import type { CreateFolderInput } from "@/lib/types/folders";
+import { NoteEmptyCard } from "@/components/notes/note-empty-card";
+import { NoteGridContainer } from "@/components/notes/notes-grid-container";
 
 export default function FolderDetailScreen() {
   const colors = useTheme();
@@ -44,71 +31,24 @@ export default function FolderDetailScreen() {
 
   const { data: folder } = useLiveFolder(id as string);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isEditSheetPresented, setIsEditSheetPresented] = useState(false);
+
+  const [filter, setFilter] = useState<ListNotesOptions>({
+    folderId: id as string,
+    search: searchQuery.trim() || undefined,
+  });
 
   // Live notes inside this specific folder
   const { data: rawNotes = [] } = useLiveNotes({
-    folderId: id as string,
-    search: searchQuery.trim() || undefined,
+    ...filter,
   });
 
   const notes = useMemo(() => {
     return (rawNotes ?? []).filter((n) => !n.isArchived);
   }, [rawNotes]);
 
-  const handleTogglePin = useCallback(async (noteId: string) => {
-    try {
-      await togglePinNote(noteId);
-    } catch {
-      Alert.alert("Error", "Could not update pin state");
-    }
-  }, []);
-
-  const handleToggleArchive = useCallback(async (noteId: string) => {
-    try {
-      await toggleArchiveNote(noteId);
-    } catch {
-      Alert.alert("Error", "Could not update archive state");
-    }
-  }, []);
-
-  const handleDeleteNote = useCallback((noteId: string) => {
-    Alert.alert(
-      "Delete Note",
-      "Are you sure you want to move this note to recently deleted?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await softDeleteNote(noteId);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            } catch {
-              Alert.alert("Error", "Could not delete note");
-            }
-          },
-        },
-      ],
-    );
-  }, []);
-
   const handleNewNote = async () => {
     router.push({
       pathname: "/notes/create",
-    });
-  };
-
-  const handleSaveEditFolder = async (data: CreateFolderInput) => {
-    if (!folder) return;
-    await updateFolder(folder.id, {
-      name: data.name,
-      color: data.color,
-      isLocked: data.isLocked,
-      pinCode: data.pinCode,
     });
   };
 
@@ -145,20 +85,6 @@ export default function FolderDetailScreen() {
     });
   };
 
-  const renderNoteItem = useCallback(
-    ({ item }: { item: Note }) => (
-      <View className="w-1/2 p-1.5">
-        <NoteCard
-          note={item}
-          onTogglePin={handleTogglePin}
-          onToggleArchive={handleToggleArchive}
-          onDelete={handleDeleteNote}
-        />
-      </View>
-    ),
-    [handleTogglePin, handleToggleArchive, handleDeleteNote],
-  );
-
   if (!folder) {
     return (
       <View className="flex-1 bg-background pt-safe pb-safe justify-center items-center">
@@ -170,14 +96,14 @@ export default function FolderDetailScreen() {
   return (
     <View className="flex-1 bg-background pt-safe">
       {/* Top Header */}
-      <View className="px-4 pb-3 pt-2 border-b border-border flex-row items-center justify-between">
+      <View className="px-4 pb-1 pt-2 flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
             onPress={() => router.back()}
             hitSlop={8}
-            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-background-element active:opacity-70">
+            className="min-h-11 min-w-11 rounded-full items-center justify-center bg-background-element_active:opacity-70">
             <ChevronLeft size={22} color={colors.text} />
           </Pressable>
 
@@ -200,14 +126,21 @@ export default function FolderDetailScreen() {
 
         <FolderDetailDropdown
           folder={folder}
-          onEdit={() => setIsEditSheetPresented(true)}
+          onEdit={() =>
+            router.push({
+              pathname: "/notes/create-folder",
+              params: {
+                folder: JSON.stringify(folder),
+              },
+            })
+          }
           onToggleLock={handleToggleLock}
           onDelete={handleDeleteFolder}
         />
       </View>
 
       {/* Search Bar in Folder */}
-      <View className="px-4 pt-3 pb-1">
+      <View className="px-4 pt-3 pb-2 border-b border-border">
         <View className="flex-row items-center h-10 px-3.5 rounded-full bg-background-element border border-border">
           <Search size={16} color={colors.textSecondary} />
           <TextInput
@@ -231,52 +164,31 @@ export default function FolderDetailScreen() {
       </View>
 
       {/* Notes List */}
-      <FlatList
-        data={notes}
-        numColumns={2}
-        renderItem={renderNoteItem}
-        keyExtractor={(item) => item.id}
-        className="flex-1"
-        contentContainerClassName="pt-2 px-2.5 pb-safe-offset-20"
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View className="items-center justify-center py-20 px-8">
-            <View className="w-16 h-16 rounded-full items-center justify-center bg-background-element mb-3">
-              <FileText size={32} color={colors.textSecondary} />
-            </View>
-            <ThemedText className="font-semibold text-base text-text text-center">
-              {searchQuery.trim() ? "No matching notes" : "Folder is empty"}
-            </ThemedText>
-            <Text className="text-xs text-text-secondary text-center mt-1.5 leading-relaxed">
-              {searchQuery.trim()
-                ? "Try searching for a different keyword."
-                : "Create a note to start organizing in this folder."}
-            </Text>
-          </View>
+
+      <NoteGridContainer
+        filter={filter}
+        updateFilter={(key, val) =>
+          setFilter((prev) => ({ ...prev, [key]: val }))
         }
+        data={notes}
+        empty={<NoteEmptyCard />}
       />
 
       {/* Bottom Floating Bar */}
-      <View className="absolute bottom-safe left-5 right-5 h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5">
-        <Text className="text-xs font-medium text-text-secondary font-mono">
-          {notes.length} {notes.length === 1 ? "Note" : "Notes"}
-        </Text>
+      <View className="absolute bottom-safe-offset-2 items-center justify-center w-full">
+        <View className="h-13 rounded-full border border-border bg-card shadow-lg flex-row items-center justify-between px-4.5 gap-4">
+          <Text className="text-xs font-medium text-text-secondary font-mono">
+            {notes.length} {notes.length === 1 ? "Note" : "Notes"}
+          </Text>
 
-        <Pressable
-          className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary active:opacity-90 active:scale-[0.98]"
-          onPress={handleNewNote}>
-          <SquarePen size={17} color="#ffffff" />
-          <Text className="text-white text-sm font-semibold">New Note</Text>
-        </Pressable>
+          <Pressable
+            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary active:opacity-90 active:scale-[0.98]"
+            onPress={handleNewNote}>
+            <SquarePen size={17} color="#ffffff" />
+            <Text className="text-white text-sm font-semibold">New Note</Text>
+          </Pressable>
+        </View>
       </View>
-
-      {/* Edit Folder Sheet */}
-      <CreateFolderSheet
-        isPresented={isEditSheetPresented}
-        onDismiss={() => setIsEditSheetPresented(false)}
-        folderToEdit={folder}
-        onSave={handleSaveEditFolder}
-      />
     </View>
   );
 }

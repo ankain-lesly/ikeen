@@ -21,12 +21,12 @@ export default function NoteCreateScreen() {
       {/* Top Spacer & Center Graphic */}
       <View className="bg-background pt-safe">
         {/* Universal Top Header */}
-        <View className="px-4 pb-3 flex-row items-center justify-between border-b border-border/70">
+        <View className="px-4 flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              className="w-9 h-9 rounded-full items-center justify-center bg-background-element active:opacity-70">
+              className="w-9 h-9 rounded-full items-center justify-center">
               <ChevronLeft size={22} color={colors.text} />
             </Pressable>
 
@@ -40,13 +40,13 @@ export default function NoteCreateScreen() {
           </View>
 
           {/* Header Actions */}
-          <View className="flex-row items-center gap-2">
+          {/* <View className="flex-row items-center gap-2">
             <Pressable
               hitSlop={6}
               className="w-9 h-9 rounded-full items-center justify-center">
               <Trash size={17} color={colors.primary} />
             </Pressable>
-          </View>
+          </View> */}
         </View>
       </View>
 

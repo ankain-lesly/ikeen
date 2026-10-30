@@ -25,6 +25,11 @@ export class EnvService implements EnvConfig {
   readonly API_URL: string;
   readonly MCP_ALLOWED_ORIGINS?: string;
   readonly MCP_ALLOW_APP_JWT: boolean;
+  readonly MEDIADOCK_URL: string;
+  readonly MEDIADOCK_API_KEY: string;
+  readonly MEDIADOCK_API_SECRET: string;
+  readonly IMAGE_SERVICE_URL: string;
+  readonly IMAGE_SERVICE_API_KEY: string;
 
   constructor() {
     const validated = validateEnv(process.env);
