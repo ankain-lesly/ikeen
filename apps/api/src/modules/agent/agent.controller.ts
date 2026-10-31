@@ -16,13 +16,7 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AgentService } from './agent.service.js';
 import { ChatAgentDto } from './dto/chat-agent.dto.js';
-
-interface AuthenticatedRequest {
-  user: {
-    id: string;
-    email: string;
-  };
-}
+import { type AuthenticatedRequest } from '../auth/jwt.strategy.js';
 
 @Controller('agent')
 @UseGuards(JwtAuthGuard)

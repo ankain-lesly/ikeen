@@ -1,50 +1,53 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   Body,
-  Request,
+  Req,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MediaService } from './media.service.js';
+import { type AuthenticatedRequest } from '../auth/jwt.strategy.js';
 
 export interface MulterFile {
-  fieldname?: string;
+  fieldname: string;
   originalname: string;
-  encoding?: string;
+  encoding: string;
   mimetype: string;
   size: number;
   buffer: Buffer;
 }
 
 @Controller('media')
+@UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
-  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   async upload(
     @UploadedFile() file: MulterFile | undefined,
+    @Req() req: AuthenticatedRequest,
     @Body('folder') folder?: string,
-    @Request() req?: { user?: { id?: string } },
   ) {
-    if (!file || !file.buffer) {
+    if (!file?.buffer) {
       throw new BadRequestException('No file provided for upload');
     }
 
-    const userId = req?.user?.id || 'anonymous';
-    const targetFolder = folder || `ikeen/${userId}`;
-
     const uploaded = await this.mediaService.uploadBuffer(
       file.buffer,
-      file.originalname || `upload-${Date.now()}`,
-      file.mimetype || 'application/octet-stream',
-      targetFolder,
+      file.originalname,
+      file.mimetype,
+      folder,
+      req.user.id,
     );
 
     return {
@@ -53,10 +56,19 @@ export class MediaController {
         id: uploaded.id,
         url: uploaded.url,
         filename: uploaded.filename,
-        original_filename: uploaded.originalFilename || uploaded.filename,
+        original_filename: uploaded.originalFilename ?? uploaded.filename,
         mime_type: uploaded.mimeType,
         size: uploaded.size,
       },
     };
+  }
+
+  @Get('user')
+  async getUserMedia(
+    @Req() req: AuthenticatedRequest,
+    @Query('page') page?: string,
+  ) {
+    const pageNum = page ? Math.max(1, parseInt(page, 10) || 1) : 1;
+    return this.mediaService.getUserMedia(req.user.id, pageNum);
   }
 }

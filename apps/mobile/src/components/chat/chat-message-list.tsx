@@ -4,7 +4,6 @@ import type { UIMessage } from '@ai-sdk/react';
 import { Sparkles, Copy, Check, Share2 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { MenuView } from '@expo/ui/community/menu';
 import { useTheme } from '@/hooks/use-theme';
 import { toast } from '@/lib/toast';
 import { ChatToolPart } from './chat-tool-part';
@@ -38,36 +37,20 @@ function getMessageText(message: UIMessage): string {
 }
 
 function getToolInvocations(message: UIMessage): ExtractedTool[] {
+  if (!Array.isArray(message.parts)) return [];
   const tools: ExtractedTool[] = [];
 
-  if (Array.isArray(message.parts)) {
-    for (const part of message.parts) {
-      const p = part as Record<string, unknown>;
-      if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
-        const toolName = p.type.replace(/^tool-/, '');
-        tools.push({
-          toolCallId: (p.toolCallId as string) || (p.id as string) || '',
-          toolName,
-          args: (p.input as Record<string, unknown>) ?? (p.args as Record<string, unknown>),
-          result: p.output ?? p.result,
-          state: p.state as string | undefined,
-        });
-      } else if (p.toolInvocation) {
-        const inv = p.toolInvocation as Record<string, unknown>;
-        tools.push({
-          toolCallId: (inv.toolCallId as string) || '',
-          toolName: (inv.toolName as string) || '',
-          args: inv.args as Record<string, unknown> | undefined,
-          result: inv.result,
-          state: inv.state as string | undefined,
-        });
-      }
+  for (const part of message.parts) {
+    const p = part as Record<string, unknown>;
+    if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
+      tools.push({
+        toolCallId: (p.toolCallId as string) || (p.id as string) || '',
+        toolName: p.type.replace(/^tool-/, ''),
+        args: (p.input as Record<string, unknown>) ?? (p.args as Record<string, unknown>),
+        result: p.output ?? p.result,
+        state: p.state as string | undefined,
+      });
     }
-  }
-
-  const legacyInvocations = (message as unknown as Record<string, unknown>).toolInvocations;
-  if (Array.isArray(legacyInvocations)) {
-    tools.push(...(legacyInvocations as ExtractedTool[]));
   }
 
   return tools;
@@ -126,61 +109,17 @@ export function ChatMessageList({
     const isStreamingThis = isLastMessage && isLoading;
 
     if (isUser) {
-      const bubbleContent = (
-        <View className="flex-1 w-full px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
-          <Text className="text-sm font-normal text-text leading-relaxed">
-            {textContent}
-          </Text>
-        </View>
-      );
-
-      // TODO: Menu View Is Note The Right Fit
-      // // On iOS and Android, use native @expo/ui MenuView with shouldOpenOnLongPress
-      // if (Platform.OS === 'ios' || Platform.OS === 'android') {
-      //   return (
-      //     <View className="mb-4 w-full flex-row _justify-end px-4 overflow-hidden bg-primary p-2">
-      //       <View className="max-w-50">
-      //       <MenuView
-      //         title="Message"
-      //         style={{flex: 1, width: 200}}
-      //         shouldOpenOnLongPress={true}
-      //         onPressAction={({ nativeEvent }) => {
-      //           if (nativeEvent.event === 'copy') {
-      //             handleCopy(textContent);
-      //           } else if (nativeEvent.event === 'edit') {
-      //             onEditMessage?.(textContent);
-      //           }
-      //         }}
-      //         actions={[
-      //           {
-      //             id: 'copy',
-      //             title: 'Copy',
-      //             image: Platform.OS === 'ios' ? 'doc.on.doc' : undefined,
-      //           },
-      //           {
-      //             id: 'edit',
-      //             title: 'Edit',
-      //             image: Platform.OS === 'ios' ? 'pencil' : undefined,
-      //           },
-      //         ]}
-              
-              
-      //         >
-      //         {bubbleContent}
-      //       </MenuView>
-      //       </View>
-      //     </View>
-      //   );
-      // }
-
-      // Web fallback
       return (
         <View className="mb-4 w-full flex-row justify-end px-4">
           <Pressable
             className="max-w-[85%]"
             onLongPress={() => handleCopy(textContent)}
             delayLongPress={400}>
-            {bubbleContent}
+            <View className="flex-1 w-full px-4 py-2.5 rounded-2xl rounded-tr-xs bg-background-element border border-border/80">
+              <Text className="text-sm font-normal text-text leading-relaxed">
+                {textContent}
+              </Text>
+            </View>
           </Pressable>
         </View>
       );

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, ScrollView } from "react-native";
 import { Host, Switch, RNHostView } from "@expo/ui/jetpack-compose";
 import { BottomSheet } from "@expo/ui";
 import * as Haptics from "@/lib/haptics";
@@ -87,6 +87,7 @@ function NotesFilterSheetBody({
       snapPoints={["half", "full"]}
       containerColor={colors.card}>
           <RNHostView>
+            <ScrollView className="flex-1">
             <View className="flex-1 pt-2 pb-8 w-full p-4">
               {/* Header: Title + Reset Action + Close Button */}
               <View className="flex-row items-center justify-between pb-3.5 border-b border-border">
@@ -337,6 +338,7 @@ function NotesFilterSheetBody({
                 <Text className="text-white font-semibold text-base">Done</Text>
               </Pressable>
             </View>
+            </ScrollView>
           </RNHostView>
     </BottomSheet>
   );

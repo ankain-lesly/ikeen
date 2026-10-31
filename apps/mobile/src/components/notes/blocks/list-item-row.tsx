@@ -1,12 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import {
-  Check,
-  CheckSquare,
-  GripVertical,
-  Square,
-  X,
-} from "lucide-react-native";
+import { Check, GripVertical, X } from "lucide-react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -30,17 +24,16 @@ import { AnimatedEntryView } from "@/components/ui/animated";
 
 const ROW_GAP = 8;
 const DEFAULT_ROW_PITCH = 40;
-// Snappy, non-oscillating natural ease for layout shifts
 const ROW_LAYOUT = LinearTransition.duration(160).easing(
   Easing.out(Easing.quad),
 );
 
-const triggerDragStartHaptic = () => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-};
-
-const triggerDragEndHaptic = () => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+const triggerDragHaptic = (heavy: boolean) => {
+  Haptics.impactAsync(
+    heavy
+      ? Haptics.ImpactFeedbackStyle.Medium
+      : Haptics.ImpactFeedbackStyle.Light,
+  );
 };
 
 export interface ListItemRowProps {
@@ -83,7 +76,6 @@ export const ListItemRow = React.memo(function ListItemRow({
   const rowPitch = useSharedValue(DEFAULT_ROW_PITCH);
   const [isFocused, setIsFocused] = useState(false);
 
-  // const canDrag = isEditing && totalInGroup > 1;
   const canDrag = totalInGroup > 1;
   const isCheckedGroup = listType === "checkbox" && !!item.checked;
 
@@ -105,7 +97,7 @@ export const ListItemRow = React.memo(function ListItemRow({
           isDragging.value = true;
           stepOffset.value = 0;
           translateY.value = 0;
-          scheduleOnRN(triggerDragStartHaptic);
+          scheduleOnRN(triggerDragHaptic, true);
         })
         .onUpdate((e) => {
           "worklet";
@@ -127,12 +119,11 @@ export const ListItemRow = React.memo(function ListItemRow({
           "worklet";
           isDragging.value = false;
           stepOffset.value = 0;
-          // Smooth deceleration to 0 with zero spring bounce or overshoot
           translateY.value = withTiming(0, {
             duration: 140,
             easing: Easing.out(Easing.quad),
           });
-          scheduleOnRN(triggerDragEndHaptic);
+          scheduleOnRN(triggerDragHaptic, false);
         }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [canDrag, index, isCheckedGroup, onMoveItem, totalInGroup],
@@ -160,12 +151,10 @@ export const ListItemRow = React.memo(function ListItemRow({
   const renderContent = item.content || "Untitled item";
 
   return (
-    // Outer view handles layout flow without spring bounce
     <Animated.View
       entering={FadeIn.duration(150)}
       exiting={FadeOut.duration(100)}
       layout={ROW_LAYOUT}>
-      {/* Inner view handles gesture drag transforms and active floating card appearance */}
       <Animated.View
         style={animatedRowStyle}
         onLayout={(e) => {
@@ -228,10 +217,7 @@ export const ListItemRow = React.memo(function ListItemRow({
                 onFocus={() => setIsFocused(true)}
                 placeholder="List item..."
                 placeholderTextColor={colors.textSecondary}
-                style={{
-                  paddingTop: 0,
-                  paddingBottom: 0,
-                }}
+                style={{ paddingTop: 0, paddingBottom: 0 }}
               />
             ) : (
               <MarkdownBody
@@ -247,7 +233,6 @@ export const ListItemRow = React.memo(function ListItemRow({
                 <AnimatedEntryView>
                   <Pressable
                     onPress={() => onDelete(item.id)}
-                    disabled
                     hitSlop={8}
                     className="p-1 active:opacity-60">
                     <X size={20} color={colors.textSecondary} />

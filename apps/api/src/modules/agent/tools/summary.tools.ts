@@ -1,13 +1,13 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
-import { optionalId, toolFailure } from '../call-options.js';
+import {
+  ikeenAgentCallOptionsSchema as baseContextSchema,
+  optionalId,
+  optionalNullable,
+  toolFailure,
+} from '../call-options.js';
 import { Prisma } from '../../../generated/prisma/client.js';
-
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
 
 const CONTENT_SLICE = 3000;
 
@@ -16,16 +16,12 @@ export const summarizeKnowledgeInputSchema = z
     folderId: optionalId.describe(
       'Folder id to pull notes from. Omit when using noteIds. Do not pass null.',
     ),
-    noteIds: z
-      .array(z.string())
-      .optional()
-      .describe('Specific note UUIDs to synthesize'),
-    focus: z
-      .string()
-      .optional()
-      .describe(
-        'Specific aspect to focus synthesis on (e.g. action items, timeline, decisions)',
-      ),
+    noteIds: optionalNullable(z.array(z.string())).describe(
+      'Specific note UUIDs to synthesize',
+    ),
+    focus: optionalNullable(z.string()).describe(
+      'Specific aspect to focus synthesis on (e.g. action items, timeline, decisions)',
+    ),
   })
   .refine(
     (value) => Boolean(value.folderId) || (value.noteIds && value.noteIds.length > 0),

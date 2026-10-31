@@ -42,6 +42,16 @@ const LIST_LAYOUT = LinearTransition.duration(160).easing(
   Easing.out(Easing.quad),
 );
 
+const LIST_TYPE_SWITCHERS: Array<{
+  type: ListType;
+  label: string;
+  Icon: typeof CheckSquare;
+}> = [
+  { type: "checkbox", label: "Switch to Checklist", Icon: CheckSquare },
+  { type: "bullet", label: "Switch to Bullet List", Icon: ListIcon },
+  { type: "ordered", label: "Switch to Numbered List", Icon: ListOrdered },
+];
+
 export type ListBlockUpdateInput = {
   content?: ListItem[];
   listType?: ListType;
@@ -73,17 +83,16 @@ export const ListBlock = React.memo(function ListBlock({
   const listType = block.listType || "checkbox";
   const isCheckboxList = listType === "checkbox";
 
-  const activeItems = useMemo(
-    () => (isCheckboxList ? items.filter((i) => !i.checked) : items),
-    [isCheckboxList, items],
-  );
-  const checkedItems = useMemo(
-    () => (isCheckboxList ? items.filter((i) => !!i.checked) : []),
-    [isCheckboxList, items],
-  );
+  const { activeItems, checkedItems } = useMemo(() => {
+    if (!isCheckboxList) return { activeItems: items, checkedItems: [] as ListItem[] };
+    const active: ListItem[] = [];
+    const checked: ListItem[] = [];
+    for (const item of items) {
+      (item.checked ? checked : active).push(item);
+    }
+    return { activeItems: active, checkedItems: checked };
+  }, [isCheckboxList, items]);
 
-  // Latest state ref keeps row callbacks 100% referentially stable across keystrokes.
-  // Updated in useLayoutEffect to comply with React Compiler purity invariants.
   const stateRef = useRef({
     items,
     activeItems,
@@ -107,23 +116,20 @@ export const ListBlock = React.memo(function ListBlock({
   const focusItem = useCallback((itemId?: string) => {
     if (!itemId) return;
     const el = inputRefs.current[itemId];
-    if (el) {
-      el.focus();
-    } else {
-      pendingFocusRef.current = itemId;
-    }
+    if (el) el.focus();
+    else pendingFocusRef.current = itemId;
   }, []);
 
   const registerInputRef = useCallback(
     (itemId: string, el: MarkdownEditorHandle | null) => {
-      if (el) {
-        inputRefs.current[itemId] = el;
-        if (pendingFocusRef.current === itemId) {
-          pendingFocusRef.current = null;
-          el.focus();
-        }
-      } else {
+      if (!el) {
         delete inputRefs.current[itemId];
+        return;
+      }
+      inputRefs.current[itemId] = el;
+      if (pendingFocusRef.current === itemId) {
+        pendingFocusRef.current = null;
+        el.focus();
       }
     },
     [],
@@ -167,8 +173,11 @@ export const ListBlock = React.memo(function ListBlock({
         checkedItems: checked,
         onImmediateUpdate: commit,
       } = stateRef.current;
-      const group = isCheckedGroup ? checked : active;
-      const res = removeEmptyItemOnBackspace(cur, group, itemId);
+      const res = removeEmptyItemOnBackspace(
+        cur,
+        isCheckedGroup ? checked : active,
+        itemId,
+      );
       if (!res) return;
       Haptics.selectionAsync();
       commit({ content: res.nextItems });
@@ -185,8 +194,12 @@ export const ListBlock = React.memo(function ListBlock({
         checkedItems: checked,
         onImmediateUpdate: commit,
       } = stateRef.current;
-      const group = isCheckedGroup ? checked : active;
-      const next = reorderListGroup(cur, group, fromIndex, toIndex);
+      const next = reorderListGroup(
+        cur,
+        isCheckedGroup ? checked : active,
+        fromIndex,
+        toIndex,
+      );
       if (next !== cur) commit({ content: next });
     },
     [],
@@ -204,21 +217,11 @@ export const ListBlock = React.memo(function ListBlock({
       content: "",
       checked: false,
     };
-
-    let lastActiveIdx = -1;
-    if (isCb) {
-      cur.forEach((item, idx) => {
-        if (!item.checked) lastActiveIdx = idx;
-      });
-    }
+    const lastActiveIdx = isCb ? cur.findLastIndex((i) => !i.checked) : cur.length - 1;
     const insertAt = isCb ? lastActiveIdx + 1 : cur.length;
-    const nextItems = [
-      ...cur.slice(0, insertAt),
-      newItem,
-      ...cur.slice(insertAt),
-    ];
-
-    commit({ content: nextItems });
+    commit({
+      content: [...cur.slice(0, insertAt), newItem, ...cur.slice(insertAt)],
+    });
     focusItem(newItem.id);
   }, [focusItem]);
 
@@ -227,54 +230,28 @@ export const ListBlock = React.memo(function ListBlock({
     commit({ content: cur.filter((i) => i.id !== itemId) });
   }, []);
 
-  const blockActions = useMemo<SheetAction[]>(
-    () => [
+  const blockActions = useMemo<SheetAction[]>(() => {
+    const hasHeader = block.header !== undefined;
+    const hasFooter = block.footer !== undefined;
+    return [
+      ...LIST_TYPE_SWITCHERS.map(({ type, label, Icon }) => ({
+        label,
+        icon: <Icon size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ listType: type }),
+        visible: listType !== type,
+      })),
       {
-        label: "Switch to Checklist",
-        icon: <CheckSquare size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ listType: "checkbox" }),
-        visible: listType !== "checkbox",
+        label: hasHeader ? "Remove Header" : "Add Header",
+        icon: hasHeader ? <X size={18} color={colors.text} /> : <Plus size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ header: hasHeader ? null : "" }),
       },
       {
-        label: "Switch to Bullet List",
-        icon: <ListIcon size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ listType: "bullet" }),
-        visible: listType !== "bullet",
+        label: hasFooter ? "Remove Footer" : "Add Footer",
+        icon: hasFooter ? <X size={18} color={colors.text} /> : <Plus size={18} color={colors.text} />,
+        onPress: () => onImmediateUpdate({ footer: hasFooter ? null : "" }),
       },
-      {
-        label: "Switch to Numbered List",
-        icon: <ListOrdered size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ listType: "ordered" }),
-        visible: listType !== "ordered",
-      },
-      // NOTE: Keep them separated
-      {
-        label: "Add Header",
-        icon: <Plus size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ header: "" }),
-        visible: block.header === undefined,
-      },
-      {
-        label: "Remove Header",
-        icon: <X size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ header: null }),
-        visible: block.header !== undefined,
-      },
-      {
-        label: "Add Footer",
-        icon: <Plus size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ footer: "" }),
-        visible: block.footer === undefined,
-      },
-      {
-        label: "Remove Footer",
-        icon: <X size={18} color={colors.text} />,
-        onPress: () => onImmediateUpdate({ footer: null }),
-        visible: block.footer !== undefined,
-      },
-    ],
-    [block.footer, block.header, colors.text, listType, onImmediateUpdate],
-  );
+    ];
+  }, [block.footer, block.header, colors.text, listType, onImmediateUpdate]);
 
   useRegisterBlockActions(blockActions);
 
@@ -304,31 +281,22 @@ export const ListBlock = React.memo(function ListBlock({
     containerClass: string,
   ) => {
     if (value === undefined) return null;
+    if (!isEditing && !value.trim()) return null;
     return (
       <View className={containerClass}>
         {isEditing ? (
-          <View className="flex-row items-start gap-1">
-            <View className="flex-1">
-              <MarkdownEditor
-                key={field}
-                defaultValue={value}
-                onChangeText={(text) => onStageUpdate({ [field]: text })}
-                onBlur={onCommit}
-                placeholder={placeholder}
-                placeholderTextColor={colors.textSecondary}
-                style={{
-                  paddingTop: 0,
-                  paddingBottom: 0,
-                  fontSize: 14,
-                }}
-              />
-            </View>
-          </View>
-        ) : value.trim() ? (
-          <View className="w-full">
-            <MarkdownBody source={value} />
-          </View>
-        ) : null}
+          <MarkdownEditor
+            key={field}
+            defaultValue={value}
+            onChangeText={(text) => onStageUpdate({ [field]: text })}
+            onBlur={onCommit}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textSecondary}
+            style={{ paddingTop: 0, paddingBottom: 0, fontSize: 14 }}
+          />
+        ) : (
+          <MarkdownBody source={value} />
+        )}
       </View>
     );
   };

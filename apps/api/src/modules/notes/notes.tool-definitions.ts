@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { optionalId } from '../agent/call-options.js';
+import {
+  defaultNullable,
+  optionalId,
+  optionalNullable,
+} from '../agent/call-options.js';
 
 export const searchNotesDef = {
   name: 'ikeen_search_notes',
@@ -13,17 +17,12 @@ export const searchNotesDef = {
     folderId: optionalId.describe(
       'Folder id to filter by. Omit when unused. Do not pass null.',
     ),
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(30)
-      .default(10)
-      .describe('Maximum number of notes to return'),
-    includeArchived: z
-      .boolean()
-      .default(false)
-      .describe('Set true to include archived notes in results'),
+    limit: defaultNullable(z.number().int().min(1).max(30), 10).describe(
+      'Maximum number of notes to return',
+    ),
+    includeArchived: defaultNullable(z.boolean(), false).describe(
+      'Set true to include archived notes in results',
+    ),
   }),
 };
 
@@ -41,21 +40,15 @@ export const listRecentNotesDef = {
   description:
     'List the most recently updated or pinned notes in the workspace to establish context. Content preview is returned and marked with "… [truncated]" and isTruncated: true when exceeding 280 characters. Call ikeen_get_note_details if the full note body is required. Excludes archived notes unless includeArchived is true.',
   inputSchema: z.object({
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(20)
-      .default(8)
-      .describe('Number of recent notes to fetch'),
-    pinnedOnly: z
-      .boolean()
-      .default(false)
-      .describe('Whether to only return pinned notes'),
-    includeArchived: z
-      .boolean()
-      .default(false)
-      .describe('Set true to include archived notes in results'),
+    limit: defaultNullable(z.number().int().min(1).max(20), 8).describe(
+      'Number of recent notes to fetch',
+    ),
+    pinnedOnly: defaultNullable(z.boolean(), false).describe(
+      'Whether to only return pinned notes',
+    ),
+    includeArchived: defaultNullable(z.boolean(), false).describe(
+      'Set true to include archived notes in results',
+    ),
   }),
 };
 
@@ -66,16 +59,12 @@ export const blockInputSchema = z.object({
     .describe(
       'Markdown content for the block. For checklists, use "- [ ] task" or "- [x] task". For bullet lists, use "- item". For ordered lists, use "1. item". For text, standard markdown paragraphs or headers.',
     ),
-  header: z
-    .string()
-    .optional()
-    .describe('Optional title or header above this block'),
-  footer: z
-    .string()
-    .optional()
-    .describe(
-      'Optional tip, note, warning, timing info, or summary rendered below the list in markdown (e.g. "> 💡 Tip: ...")',
-    ),
+  header: optionalNullable(z.string()).describe(
+    'Optional title or header above this block',
+  ),
+  footer: optionalNullable(z.string()).describe(
+    'Optional tip, note, warning, timing info, or summary rendered below the list in markdown (e.g. "> 💡 Tip: ...")',
+  ),
 });
 
 export const createNoteDef = {
@@ -84,23 +73,18 @@ export const createNoteDef = {
     'Create a new note in the workspace with title, optional general content, optional structured blocks, optional folderId, and tags. To create interactive native checklists and segmented sections, supply `blocks`.',
   inputSchema: z.object({
     title: z.string().trim().min(1).describe('Title of the note'),
-    content: z
-      .string()
-      .default('')
-      .describe('General or summary body text of the note. Omit or leave empty if blocks are used.'),
-    blocks: z
-      .array(blockInputSchema)
-      .optional()
-      .describe(
-        'Optional structured blocks. Use type: "list" with "- [ ] task" to create interactive tap-to-toggle checklists in the mobile app.',
-      ),
+    content: defaultNullable(z.string(), '').describe(
+      'General or summary body text of the note. Omit or leave empty if blocks are used.',
+    ),
+    blocks: optionalNullable(z.array(blockInputSchema)).describe(
+      'Optional structured blocks. Use type: "list" with "- [ ] task" to create interactive tap-to-toggle checklists in the mobile app.',
+    ),
     folderId: optionalId.describe(
       'Folder id from listFolders. Omit to save at root. Do not pass null.',
     ),
-    tags: z
-      .array(z.string())
-      .default([])
-      .describe('List of tags to categorize the note'),
+    tags: defaultNullable(z.array(z.string()), []).describe(
+      'List of tags to categorize the note',
+    ),
   }),
 };
 
@@ -116,18 +100,15 @@ export const addBlockDef = {
       .describe(
         'Markdown string for this block. Use "- [ ] item" for checkboxes, "- item" for bullets, "1. item" for numbered, or standard markdown for text.',
       ),
-    header: z.string().optional().describe('Optional header for this block'),
-    footer: z
-      .string()
-      .optional()
-      .describe(
-        'Optional footer (tips, notes, warnings, or timing) below the list',
-      ),
-    position: z
-      .number()
-      .int()
-      .optional()
-      .describe('0-indexed position. Omit to append at the end of the note.'),
+    header: optionalNullable(z.string()).describe(
+      'Optional header for this block',
+    ),
+    footer: optionalNullable(z.string()).describe(
+      'Optional footer (tips, notes, warnings, or timing) below the list',
+    ),
+    position: optionalNullable(z.number().int()).describe(
+      '0-indexed position. Omit to append at the end of the note.',
+    ),
   }),
 };
 
@@ -138,29 +119,28 @@ export const updateBlockDef = {
   inputSchema: z.object({
     noteId: z.string().describe('UUID of the note'),
     blockId: z.string().describe('UUID of the block to update'),
-    markdown: z
-      .string()
-      .optional()
-      .describe('New replacement markdown for this block.'),
-    header: z.string().optional().describe('Updated header for this block'),
-    footer: z.string().optional().describe('Updated footer for this block'),
-    checklistPatch: z
-      .object({
-        toggleItemText: z
-          .string()
-          .optional()
-          .describe('Text or keyword of the checklist item to toggle or update'),
-        setChecked: z
-          .boolean()
-          .optional()
-          .describe('Target checked state (true = checked, false = unchecked)'),
-        appendItems: z
-          .array(z.string())
-          .optional()
-          .describe('New task strings to append to this checklist'),
-      })
-      .optional()
-      .describe('Targeted checklist patch without replacing the full block'),
+    markdown: optionalNullable(z.string()).describe(
+      'New replacement markdown for this block.',
+    ),
+    header: optionalNullable(z.string()).describe(
+      'Updated header for this block',
+    ),
+    footer: optionalNullable(z.string()).describe(
+      'Updated footer for this block',
+    ),
+    checklistPatch: optionalNullable(
+      z.object({
+        toggleItemText: optionalNullable(z.string()).describe(
+          'Text or keyword of the checklist item to toggle or update',
+        ),
+        setChecked: optionalNullable(z.boolean()).describe(
+          'Target checked state (true = checked, false = unchecked)',
+        ),
+        appendItems: optionalNullable(z.array(z.string())).describe(
+          'New task strings to append to this checklist',
+        ),
+      }),
+    ).describe('Targeted checklist patch without replacing the full block'),
   }),
 };
 
@@ -175,14 +155,12 @@ export const deleteBlockDef = {
 
 export const imageItemInputSchema = z.object({
   url: z.url().describe('Direct HTTP/HTTPS URL of the image'),
-  caption: z
-    .string()
-    .optional()
-    .describe('Optional caption or description displayed beneath the image'),
-  name: z
-    .string()
-    .optional()
-    .describe('Optional display title or filename for the image (e.g. "Architecture Diagram.png")'),
+  caption: optionalNullable(z.string()).describe(
+    'Optional caption or description displayed beneath the image',
+  ),
+  name: optionalNullable(z.string()).describe(
+    'Optional display title or filename for the image (e.g. "Architecture Diagram.png")',
+  ),
 });
 
 export const attachImageDef = {
@@ -195,12 +173,9 @@ export const attachImageDef = {
       .array(imageItemInputSchema)
       .min(1)
       .describe('List of 1 or more images to attach (pass 1 item for single image, multiple for batch)'),
-    createNewBlock: z
-      .boolean()
-      .default(false)
-      .describe(
-        'If false (default), appends to an existing media block if present, or creates one if none exists. If true, always creates a separate new media block.',
-      ),
+    createNewBlock: defaultNullable(z.boolean(), false).describe(
+      'If false (default), appends to an existing media block if present, or creates one if none exists. If true, always creates a separate new media block.',
+    ),
   }),
 };
 
@@ -210,29 +185,19 @@ export const updateNoteDef = {
     'Update an existing note (title, tags, append, or replace content). If the user already asked to rewrite this note, pass content with confirm: true on the first call. Otherwise a replace without confirm returns a preview.',
   inputSchema: z.object({
     noteId: z.string().describe('The UUID of the note to update'),
-    title: z.string().optional().describe('New title if changing'),
-    content: z
-      .string()
-      .optional()
-      .describe(
-        'Replacement content. Set confirm true on the first call when the user already asked to rewrite.',
-      ),
-    appendContent: z
-      .string()
-      .optional()
-      .describe(
-        'Additional text or checklist to append to the end of the existing content',
-      ),
-    tags: z
-      .array(z.string())
-      .optional()
-      .describe('New or updated array of tags'),
-    confirm: z
-      .boolean()
-      .optional()
-      .describe(
-        'Set true only after the user agrees to a full content replace in this turn',
-      ),
+    title: optionalNullable(z.string()).describe('New title if changing'),
+    content: optionalNullable(z.string()).describe(
+      'Replacement content. Set confirm true on the first call when the user already asked to rewrite.',
+    ),
+    appendContent: optionalNullable(z.string()).describe(
+      'Additional text or checklist to append to the end of the existing content',
+    ),
+    tags: optionalNullable(z.array(z.string())).describe(
+      'New or updated array of tags',
+    ),
+    confirm: optionalNullable(z.boolean()).describe(
+      'Set true only after the user agrees to a full content replace in this turn',
+    ),
   }),
 };
 
@@ -242,10 +207,9 @@ export const pinNoteDef = {
     'Pin or unpin a note to prioritize it at the top of the workspace list.',
   inputSchema: z.object({
     noteId: z.string().describe('The UUID of the note to pin or unpin'),
-    isPinned: z
-      .boolean()
-      .default(true)
-      .describe('True to pin the note, false to unpin it'),
+    isPinned: defaultNullable(z.boolean(), true).describe(
+      'True to pin the note, false to unpin it',
+    ),
   }),
 };
 
@@ -255,10 +219,9 @@ export const archiveNoteDef = {
     'Archive or unarchive a note to remove it from the active workspace without deleting it.',
   inputSchema: z.object({
     noteId: z.string().describe('The UUID of the note to archive or unarchive'),
-    isArchived: z
-      .boolean()
-      .default(true)
-      .describe('True to archive the note, false to restore/unarchive it'),
+    isArchived: defaultNullable(z.boolean(), true).describe(
+      'True to archive the note, false to restore/unarchive it',
+    ),
   }),
 };
 
@@ -268,9 +231,8 @@ export const deleteNoteDef = {
     'Permanently delete or soft-delete a note from the workspace. Use with caution.',
   inputSchema: z.object({
     noteId: z.string().describe('The UUID of the note to delete'),
-    hardDelete: z
-      .boolean()
-      .default(false)
-      .describe('If true, removes permanently from database; otherwise marks deleted'),
+    hardDelete: defaultNullable(z.boolean(), false).describe(
+      'If true, removes permanently from database; otherwise marks deleted',
+    ),
   }),
 };

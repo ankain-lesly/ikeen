@@ -110,303 +110,82 @@ export function createIkeenMcpServer({
     apiKey,
   };
 
-  // --- 1. NOTES TOOLS (Canonical ikeen_* registration with annotations) ---
-
-  server.registerTool(
-    createNoteDef.name,
-    {
-      description: createNoteDef.description,
-      inputSchema: createNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false },
-    },
-    async (args: z.infer<typeof createNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.createNote(userId, args, toolExecutionOpts);
-        return formatResult(result, createNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    addBlockDef.name,
-    {
-      description: addBlockDef.description,
-      inputSchema: addBlockDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false },
-    },
-    async (args: z.infer<typeof addBlockDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.addBlock(userId, args, toolExecutionOpts);
-        return formatResult(result, addBlockDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    updateBlockDef.name,
-    {
-      description: updateBlockDef.description,
-      inputSchema: updateBlockDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false },
-    },
-    async (args: z.infer<typeof updateBlockDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.updateBlock(userId, args, toolExecutionOpts);
-        return formatResult(result, updateBlockDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    deleteBlockDef.name,
-    {
-      description: deleteBlockDef.description,
-      inputSchema: deleteBlockDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: true },
-    },
-    async (args: z.infer<typeof deleteBlockDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.deleteBlock(userId, args, toolExecutionOpts);
-        return formatResult(result, deleteBlockDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    attachImageDef.name,
-    {
-      description: attachImageDef.description,
-      inputSchema: attachImageDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false },
-    },
-    async (args: z.infer<typeof attachImageDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.attachImage(userId, args, toolExecutionOpts);
-        return formatResult(result, attachImageDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  if (mediaService) {
-    const mSvc = mediaService;
+  const registerMcpTool = <TDef extends { name: string; description: string; inputSchema: z.ZodObject<any> }>(
+    def: TDef,
+    annotations: { readOnlyHint: boolean; destructiveHint?: boolean; idempotentHint?: boolean },
+    run: (args: z.infer<TDef['inputSchema']>) => Promise<unknown>,
+  ) => {
     server.registerTool(
-      generateImageKeenDef.name,
-      {
-        description: generateImageKeenDef.description,
-        inputSchema: generateImageKeenDef.inputSchema.shape,
-        annotations: { readOnlyHint: false, destructiveHint: false },
-      },
-      async (args: z.infer<typeof generateImageKeenDef.inputSchema>): Promise<CallToolResult> => {
+      def.name,
+      { description: def.description, inputSchema: def.inputSchema.shape, annotations },
+      async (args: Record<string, unknown>): Promise<CallToolResult> => {
         try {
-          const result = await mSvc.generateAndUploadImage(args.description, userId);
-          return formatResult(result, generateImageKeenDef.name, ably, userId);
+          const result = await run(args as z.infer<TDef['inputSchema']>);
+          return formatResult(result, def.name, ably, userId);
         } catch (err) {
           return toolError(err instanceof Error ? err.message : String(err));
         }
       },
     );
+  };
+
+  // --- 1. NOTES & FOLDERS TOOLS (Canonical ikeen_* registration with annotations) ---
+
+  registerMcpTool(createNoteDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    notesToolService.createNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(addBlockDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    notesToolService.addBlock(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(updateBlockDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    notesToolService.updateBlock(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(deleteBlockDef, { readOnlyHint: false, destructiveHint: true }, (args) =>
+    notesToolService.deleteBlock(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(attachImageDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    notesToolService.attachImage(userId, args, toolExecutionOpts),
+  );
+  if (mediaService) {
+    registerMcpTool(generateImageKeenDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+      mediaService.generateAndUploadImage(args.description, userId),
+    );
   }
-
-  server.registerTool(
-    getNoteDetailsDef.name,
-    {
-      description: getNoteDetailsDef.description,
-      inputSchema: getNoteDetailsDef.inputSchema.shape,
-      annotations: { readOnlyHint: true },
-    },
-    async (args: z.infer<typeof getNoteDetailsDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.getNoteDetails(userId, args);
-        return formatResult(result, getNoteDetailsDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
+  registerMcpTool(getNoteDetailsDef, { readOnlyHint: true }, (args) =>
+    notesToolService.getNoteDetails(userId, args),
+  );
+  registerMcpTool(listRecentNotesDef, { readOnlyHint: true }, (args) =>
+    notesToolService.listRecentNotes(userId, args),
+  );
+  registerMcpTool(deleteNoteDef, { readOnlyHint: false, destructiveHint: true }, (args) =>
+    notesToolService.deleteNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(searchNotesDef, { readOnlyHint: true }, (args) =>
+    notesToolService.searchNotes(userId, args),
+  );
+  registerMcpTool(updateNoteDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    notesToolService.updateNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(pinNoteDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    notesToolService.pinNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(archiveNoteDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    notesToolService.archiveNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(listFoldersDef, { readOnlyHint: true }, (args) =>
+    foldersToolService.listFolders(userId, args),
+  );
+  registerMcpTool(createFolderDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    foldersToolService.createFolder(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(updateFolderDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    foldersToolService.updateFolder(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(organizeNoteDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    foldersToolService.organizeNote(userId, args, toolExecutionOpts),
   );
 
-  server.registerTool(
-    listRecentNotesDef.name,
-    {
-      description: listRecentNotesDef.description,
-      inputSchema: listRecentNotesDef.inputSchema.shape,
-      annotations: { readOnlyHint: true },
-    },
-    async (args: z.infer<typeof listRecentNotesDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.listRecentNotes(userId, args);
-        return formatResult(result, listRecentNotesDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    deleteNoteDef.name,
-    {
-      description: deleteNoteDef.description,
-      inputSchema: deleteNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: true },
-    },
-    async (args: z.infer<typeof deleteNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.deleteNote(userId, args, toolExecutionOpts);
-        return formatResult(result, deleteNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    searchNotesDef.name,
-    {
-      description: searchNotesDef.description,
-      inputSchema: searchNotesDef.inputSchema.shape,
-      annotations: { readOnlyHint: true },
-    },
-    async (args: z.infer<typeof searchNotesDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.searchNotes(userId, args);
-        return formatResult(result, searchNotesDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    updateNoteDef.name,
-    {
-      description: updateNoteDef.description,
-      inputSchema: updateNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    },
-    async (args: z.infer<typeof updateNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.updateNote(userId, args, toolExecutionOpts);
-        return formatResult(result, updateNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    pinNoteDef.name,
-    {
-      description: pinNoteDef.description,
-      inputSchema: pinNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    },
-    async (args: z.infer<typeof pinNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.pinNote(userId, args, toolExecutionOpts);
-        return formatResult(result, pinNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    archiveNoteDef.name,
-    {
-      description: archiveNoteDef.description,
-      inputSchema: archiveNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    },
-    async (args: z.infer<typeof archiveNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await notesToolService.archiveNote(userId, args, toolExecutionOpts);
-        return formatResult(result, archiveNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  // --- 2. FOLDERS TOOLS (Canonical ikeen_* registration with annotations) ---
-
-  server.registerTool(
-    listFoldersDef.name,
-    {
-      description: listFoldersDef.description,
-      inputSchema: listFoldersDef.inputSchema.shape,
-      annotations: { readOnlyHint: true },
-    },
-    async (args: z.infer<typeof listFoldersDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await foldersToolService.listFolders(userId, args);
-        return formatResult(result, listFoldersDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    createFolderDef.name,
-    {
-      description: createFolderDef.description,
-      inputSchema: createFolderDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false },
-    },
-    async (args: z.infer<typeof createFolderDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await foldersToolService.createFolder(userId, args, toolExecutionOpts);
-        return formatResult(result, createFolderDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    updateFolderDef.name,
-    {
-      description: updateFolderDef.description,
-      inputSchema: updateFolderDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    },
-    async (args: z.infer<typeof updateFolderDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await foldersToolService.updateFolder(userId, args, toolExecutionOpts);
-        return formatResult(result, updateFolderDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  server.registerTool(
-    organizeNoteDef.name,
-    {
-      description: organizeNoteDef.description,
-      inputSchema: organizeNoteDef.inputSchema.shape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    },
-    async (args: z.infer<typeof organizeNoteDef.inputSchema>): Promise<CallToolResult> => {
-      try {
-        const result = await foldersToolService.organizeNote(userId, args, toolExecutionOpts);
-        return formatResult(result, organizeNoteDef.name, ably, userId);
-      } catch (err) {
-        return toolError(err instanceof Error ? err.message : String(err));
-      }
-    },
-  );
-
-  // --- 3. RESOURCES ---
+  // --- 2. RESOURCES ---
 
   server.registerResource(
     'recent-notes',
@@ -417,42 +196,14 @@ export function createIkeenMcpServer({
       mimeType: 'application/json',
     },
     async (uri) => {
-      const notes = await prisma.note.findMany({
-        where: {
-          userId,
-          deletedAt: null,
-          isArchived: false,
-        },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          tags: true,
-          folderId: true,
-          isPinned: true,
-          updatedAt: true,
-        },
-        orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
-        take: 15,
-      });
-
-      const mapped = notes.map((n) => {
-        const isTruncated = n.content.trim().length > 280;
-        return {
-          ...n,
-          content: isTruncated
-            ? `${n.content.trim().slice(0, 280)}… [truncated]`
-            : n.content.trim(),
-          isTruncated,
-        };
-      });
-
+      const recent = await notesToolService.listRecentNotes(userId, { limit: 15 });
+      const notes = recent.ok && 'notes' in recent ? recent.notes : [];
       return {
         contents: [
           {
             uri: uri.href,
             mimeType: 'application/json',
-            text: JSON.stringify(mapped, null, 2),
+            text: JSON.stringify(notes, null, 2),
           },
         ],
       };
@@ -579,7 +330,19 @@ export function createIkeenMcpServer({
     },
   );
 
-  // --- 4. PROMPTS ---
+  // --- 3. PROMPTS ---
+
+  const userPromptResult = (description: string, lines: string[]) => ({
+    description,
+    messages: [{ role: 'user' as const, content: { type: 'text' as const, text: lines.join('\n') } }],
+  });
+
+  const formatNoteLine = (n: { id: string; title?: string | null; content?: string | null; updatedAt?: unknown }, includeDate = false) => {
+    const dateSuffix = includeDate && n.updatedAt
+      ? `, updated: ${n.updatedAt instanceof Date ? n.updatedAt.toISOString() : String(n.updatedAt)}`
+      : '';
+    return `- [${n.title || 'Untitled'}] (id: ${n.id}${dateSuffix}): ${n.content || ''}`;
+  };
 
   server.registerPrompt(
     'ikeen-workspace',
@@ -589,28 +352,18 @@ export function createIkeenMcpServer({
         task: z.string().describe('The user objective, e.g. finding information or drafting a note'),
       },
     },
-    async ({ task }) => ({
-      description: 'iKeen Workspace Assistant Guidelines',
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: [
-              `Task: ${task}`,
-              '',
-              'When interacting with the user iKeen workspace:',
-              '1. Always call `ikeen_search_notes` or `ikeen_list_recent_notes` first to find existing context before creating or altering notes.',
-              '2. To read full details of a note, call `ikeen_get_note_details` or inspect the `ikeen://notes/{noteId}` resource.',
-              '3. To create interactive notes (checklists, todos, segmented notes), pass `blocks` to `ikeen_create_note` with clean markdown (e.g. type: "list" with "- [ ] task" creates native tap-to-toggle checkboxes on mobile). Leave `content` empty or restricted to a brief summary; never duplicate block text in both `content` and `blocks`.',
-              '4. To modify existing checklists or notes, call `ikeen_add_block` or `ikeen_update_block` (with `checklistPatch` for checking/unchecking items or appending tasks) rather than rewriting the full note.',
-              '5. When updating a note, prefer appending (`appendContent`) or updating tags unless the user specifically asks to rewrite it. Note that full content replacements return a confirmation diff preview unless `confirm: true` is passed.',
-              '6. To organize notes into categories, check existing folders with `ikeen_list_folders` and use `ikeen_organize_note`.',
-            ].join('\n'),
-          },
-        },
-      ],
-    }),
+    async ({ task }) =>
+      userPromptResult('iKeen Workspace Assistant Guidelines', [
+        `Task: ${task}`,
+        '',
+        'When interacting with the user iKeen workspace:',
+        '1. Always call `ikeen_search_notes` or `ikeen_list_recent_notes` first to find existing context before creating or altering notes.',
+        '2. To read full details of a note, call `ikeen_get_note_details` or inspect the `ikeen://notes/{noteId}` resource.',
+        '3. To create interactive notes (checklists, todos, segmented notes), pass `blocks` to `ikeen_create_note` with clean markdown (e.g. type: "list" with "- [ ] task" creates native tap-to-toggle checkboxes on mobile). Leave `content` empty or restricted to a brief summary; never duplicate block text in both `content` and `blocks`.',
+        '4. To modify existing checklists or notes, call `ikeen_add_block` or `ikeen_update_block` (with `checklistPatch` for checking/unchecking items or appending tasks) rather than rewriting the full note.',
+        '5. When updating a note, prefer appending (`appendContent`) or updating tags unless the user specifically asks to rewrite it. Note that full content replacements return a confirmation diff preview unless `confirm: true` is passed.',
+        '6. To organize notes into categories, check existing folders with `ikeen_list_folders` and use `ikeen_organize_note`.',
+      ]),
   );
 
   server.registerPrompt(
@@ -621,18 +374,10 @@ export function createIkeenMcpServer({
         topic: z.string().describe('Topic or tag to synthesize notes about'),
       },
     },
-    async ({ topic }) => ({
-      description: 'Synthesize iKeen Notes by Topic',
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Search for all notes relating to "${topic}" using \`ikeen_search_notes\`. Read the relevant notes and synthesize their key points, decisions, and action items into a clean, markdown structured document.`,
-          },
-        },
-      ],
-    }),
+    async ({ topic }) =>
+      userPromptResult('Synthesize iKeen Notes by Topic', [
+        `Search for all notes relating to "${topic}" using \`ikeen_search_notes\`. Read the relevant notes and synthesize their key points, decisions, and action items into a clean, markdown structured document.`,
+      ]),
   );
 
   server.registerPrompt(
@@ -648,43 +393,28 @@ export function createIkeenMcpServer({
       try {
         const recent = await notesToolService.listRecentNotes(userId, { limit: 15 });
         if (recent.ok && 'notes' in recent && recent.notes.length > 0) {
-          notesSummary = recent.notes
-            .map(
-              (n) =>
-                `- [${n.title || 'Untitled'}] (id: ${n.id}, updated: ${n.updatedAt instanceof Date ? n.updatedAt.toISOString() : String(n.updatedAt)}): ${n.content || ''}`,
-            )
-            .join('\n');
+          notesSummary = recent.notes.map((n) => formatNoteLine(n, true)).join('\n');
         }
       } catch {
         notesSummary = '(Failed to fetch recent notes automatically; please call `ikeen_list_recent_notes`)';
       }
 
-      return {
-        description: 'iKeen Weekly Review',
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: [
-                'Please perform a comprehensive weekly review based on my recent iKeen notes below.',
-                focus ? `Specific focus for this review: ${focus}` : '',
-                '',
-                '### Objectives:',
-                '1. **Key Accomplishments & Themes**: Group related updates and summarize major milestones.',
-                '2. **Action Items & Follow-ups**: Identify todos, open questions, commitments, or deadlines.',
-                '3. **Suggested Next Steps**: Propose prioritized priorities for the upcoming week.',
-                '4. If any note needs deeper context, call `ikeen_get_note_details` with the note id.',
-                '',
-                '### Recent Notes in Workspace:',
-                notesSummary,
-              ]
-                .filter(Boolean)
-                .join('\n'),
-            },
-          },
-        ],
-      };
+      return userPromptResult(
+        'iKeen Weekly Review',
+        [
+          'Please perform a comprehensive weekly review based on my recent iKeen notes below.',
+          focus ? `Specific focus for this review: ${focus}` : '',
+          '',
+          '### Objectives:',
+          '1. **Key Accomplishments & Themes**: Group related updates and summarize major milestones.',
+          '2. **Action Items & Follow-ups**: Identify todos, open questions, commitments, or deadlines.',
+          '3. **Suggested Next Steps**: Propose prioritized priorities for the upcoming week.',
+          '4. If any note needs deeper context, call `ikeen_get_note_details` with the note id.',
+          '',
+          '### Recent Notes in Workspace:',
+          notesSummary,
+        ].filter(Boolean),
+      );
     },
   );
 
@@ -701,40 +431,24 @@ export function createIkeenMcpServer({
       try {
         const results = await notesToolService.searchNotes(userId, { query, limit: 10 });
         if (results.ok && 'notes' in results && results.notes.length > 0) {
-          notesSummary = results.notes
-            .map(
-              (n) =>
-                `- [${n.title || 'Untitled'}] (id: ${n.id}): ${n.content || ''}`,
-            )
-            .join('\n');
+          notesSummary = results.notes.map((n) => formatNoteLine(n)).join('\n');
         }
       } catch {
         notesSummary = `(Failed to search notes automatically; please call \`ikeen_search_notes\` with query "${query}")`;
       }
 
-      return {
-        description: 'Extract Action Items from iKeen Notes',
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: [
-                `Analyze the following notes matching "${query}" and extract a prioritized action plan:`,
-                '',
-                '### Format requested:',
-                '- **High Priority / Immediate**: Tasks with urgent deadlines or blockers.',
-                '- **Standard Tasks**: Action items with context, suggested owners, or milestones.',
-                '- **Follow-up Questions**: Ambiguities or unresolved decisions.',
-                '- If deeper content is needed for any note, call `ikeen_get_note_details`.',
-                '',
-                '### Notes Matching Query:',
-                notesSummary,
-              ].join('\n'),
-            },
-          },
-        ],
-      };
+      return userPromptResult('Extract Action Items from iKeen Notes', [
+        `Analyze the following notes matching "${query}" and extract a prioritized action plan:`,
+        '',
+        '### Format requested:',
+        '- **High Priority / Immediate**: Tasks with urgent deadlines or blockers.',
+        '- **Standard Tasks**: Action items with context, suggested owners, or milestones.',
+        '- **Follow-up Questions**: Ambiguities or unresolved decisions.',
+        '- If deeper content is needed for any note, call `ikeen_get_note_details`.',
+        '',
+        '### Notes Matching Query:',
+        notesSummary,
+      ]);
     },
   );
 
@@ -757,49 +471,31 @@ export function createIkeenMcpServer({
         if (notesRes.ok && 'notes' in notesRes) {
           const uncategorized = notesRes.notes.filter((n) => !n.folderId);
           if (uncategorized.length > 0) {
-            notesSummary = uncategorized
-              .map(
-                (n) =>
-                  `- [${n.title || 'Untitled'}] (id: ${n.id}): ${n.content || ''}`,
-              )
-              .join('\n');
+            notesSummary = uncategorized.map((n) => formatNoteLine(n)).join('\n');
           }
         }
 
         if (foldersRes.ok && 'folders' in foldersRes && foldersRes.folders.length > 0) {
-          foldersSummary = foldersRes.folders
-            .map((f) => `- **${f.name}** (id: ${f.id})`)
-            .join('\n');
+          foldersSummary = foldersRes.folders.map((f) => `- **${f.name}** (id: ${f.id})`).join('\n');
         }
       } catch {
         // Fallback gracefully
       }
 
-      return {
-        description: 'Organize Uncategorized Notes into Folders',
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: [
-                'Help organize my uncategorized notes into appropriate folders.',
-                '',
-                '### Available Folders:',
-                foldersSummary,
-                '',
-                '### Uncategorized Notes to Categorize:',
-                notesSummary,
-                '',
-                '### Instructions:',
-                '1. Propose which existing folder each note belongs to based on its subject.',
-                '2. If a note does not fit any existing folder, suggest creating a new folder.',
-                '3. Suggest moving notes using `ikeen_organize_note` with `{ noteId, folderId }`.',
-              ].join('\n'),
-            },
-          },
-        ],
-      };
+      return userPromptResult('Organize Uncategorized Notes into Folders', [
+        'Help organize my uncategorized notes into appropriate folders.',
+        '',
+        '### Available Folders:',
+        foldersSummary,
+        '',
+        '### Uncategorized Notes to Categorize:',
+        notesSummary,
+        '',
+        '### Instructions:',
+        '1. Propose which existing folder each note belongs to based on its subject.',
+        '2. If a note does not fit any existing folder, suggest creating a new folder.',
+        '3. Suggest moving notes using `ikeen_organize_note` with `{ noteId, folderId }`.',
+      ]);
     },
   );
 

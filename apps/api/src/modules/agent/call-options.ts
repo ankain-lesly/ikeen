@@ -47,6 +47,28 @@ export const optionalId = z
   .optional()
   .transform((value) => (value ? value : undefined));
 
+/**
+ * Optional field that the model may omit or pass as `null`.
+ * Normalizes `null` to `undefined` while keeping the object property optional (`?:`).
+ */
+export function optionalNullable<T extends z.ZodTypeAny>(schema: T) {
+  return schema
+    .nullable()
+    .transform((value) => value ?? undefined)
+    .optional();
+}
+
+/**
+ * Defaulted field that the model may omit or pass as `null`.
+ * Normalizes `null | undefined` to `defaultValue`.
+ */
+export function defaultNullable<T extends z.ZodTypeAny>(
+  schema: T,
+  defaultValue: z.output<T>,
+) {
+  return schema.nullish().transform((value) => value ?? defaultValue);
+}
+
 export function toolFailure(): { ok: false; error: string } {
   return {
     ok: false,
