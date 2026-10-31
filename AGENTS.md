@@ -4,6 +4,7 @@ This repository uses **Bun** (`1.3.6`) and **Turborepo v2** (`^2.10.12`) to effi
 
 - **apps/mobile**: Expo SDK 57 / React Native 0.86 / Expo Router v57 (Metro bundler)
 - **apps/web**: Next.js 16.3.4 (Turbopack, React 19.2, Tailwind CSS v4)
+- **apps/desktop**: Tauri v2 / React 19.2 / Vite / Tailwind CSS v4
 - **apps/backend**: Node or Bun backend (Express + Prisma 6+)
 - **packages/**: All reusable internal packages (`@repo/*`)
 
@@ -132,6 +133,46 @@ All app and package releases must strictly follow [docs/releases/RELEASE_PROCESS
 - **Documentation Gate**: Every release requires a dedicated markdown document under `docs/releases/<app>/v<version>.md` detailing functional highlights, schema diffs, API contracts, and QA verification steps, plus an entry in `docs/releases/<app>/README.md`.
 - **Pre-flight Quality Gates**: Release candidates must pass `bun run check-types`, `bun --filter=@repo/api run test`, and production bundle export (`expo export` for mobile) with 0 errors before tagging.
 - **Git Tag Convention**: Follow annotated platform tagging (e.g., `git tag -a v2.0.0-mobile -m "..."`). Remember: coding agents NEVER stage, commit, or tag code directly; provide the commands for the user to run.
+
+---
+
+## 9. Feature Discipline & Anti-Bloat Invariants (No Speculative Features)
+
+- **Zero Speculative Features**: Agents must **NEVER** introduce unplanned "nice-to-have" sub-features, speculative toggles, or secondary modes (e.g., unrequested pinning/docking modes, extra view switches, superfluous settings, or speculative UI animations) that are not explicitly documented in `TODO.md`, `FEATURE-CHECKLIST.md`, or requested in the user prompt.
+- **Maintain Low Complexity & LoC**: Every extra line of code introduces maintenance debt, cognitive load, and potential regression vectors. Strive for the leanest, most direct implementation that satisfies requirements.
+- **Avoid Over-Engineering**: If the specification or user prompt asks for a drawer, build a drawer. Do not build a hybrid dockable/floating/collapsible multi-state system unless explicitly tasked.
+- **Feature Triage**: If a potential enhancement or edge-case feature is identified during implementation, document it as a proposed item in `TODO.md` or present it for user approval—never implement it preemptively.
+
+---
+
+## 10. UI & Frontend Architecture: Component-Based Modularization & Existing Primitives
+
+- **Use Existing Primitives & Design Systems**:
+  - **Never create UI components or primitives from scratch** when pre-installed design system libraries (e.g. **shadcn UI**, Base UI primitives, Lucide / Phosphor icons, Tailwind CSS v4, React Native core primitives) already provide them.
+  - Check `components/ui/` or `@repo/ui` before writing custom modals, buttons, inputs, dropdowns, tooltips, or drawers.
+- **Component Self-Encapsulation**:
+  - Components must encapsulate and manage their own local UI states (e.g., a Sidebar component manages its own Sheet drawer, trigger button, and open/close state rather than leaking state management into parent layout orchestrators).
+  - Parent layouts (e.g., `App.tsx`) should act as high-level orchestrators, composing domain components rather than holding scattered UI flags and low-level DOM logic.
+- **State Management Standards (Zustand & Providers)**:
+  - For cross-component state that needs to be accessed globally or across non-adjacent panes (e.g. sidebar toggle, search query, modal open states), use **Zustand stores** (`src/stores/` or `src/hooks/use-<domain>.ts`) rather than ad-hoc prop-drilling or giant monolithic React Context trees.
+  - When React Context is appropriate (e.g. scoping theme, local forms, or library configurations), keep providers small, focused, and close to their consuming tree.
+- **Clean UI Hygiene & Anti-Clutter Invariants**:
+  - **Zero "Garbage Badges"**: Never pollute primary layouts, headers, or cards with framework/engine trivia (`v2`, `SQLite indexed`, `Tauri IPC Active`), fake sync pills, or loud status chips.
+  - **Single-Responsibility Focus**: Every component must be dedicated solely to its target user feature (e.g., the editor canvas is strictly for writing and previewing notes; developer diagnostics belong in dedicated Settings modals or debug logs).
+  - **Typography Over Chrome**: Prefer subtle muted typography, font weights, and spacing over nested borders, boxes, and badge chips.
+- **Modular Directory Organization**:
+  - Organize app code into clean, domain-driven directories:
+    ```
+    src/
+    ├── components/
+    │   ├── layout/       # App-level layout shells (Sidebar, TopBar, Header)
+    │   ├── <domain>/     # Domain-specific components (notes, editor, folders)
+    │   ├── modals/       # Dialogs, command palettes, settings sheets
+    │   └── ui/           # Pre-built design system primitives (shadcn / Base UI)
+    ├── hooks/            # Custom hooks and zustand stores
+    ├── stores/           # Dedicated domain stores (when separated from hooks)
+    └── lib/              # Shared utilities and helpers
+    ```
 
 ---
 

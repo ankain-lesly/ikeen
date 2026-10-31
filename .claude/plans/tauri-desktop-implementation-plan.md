@@ -34,48 +34,51 @@ This plan defines the end-to-end roadmap for introducing the **iKeen Desktop Cli
 
 ---
 
-## Phase 1: Workspace Scaffolding & Core Shell
+## Phase 1: Workspace Scaffolding & Core Shell (Completed ✅)
 
 ### Goal
 Establish `apps/desktop` inside the Turborepo monorepo with Tauri v2, Vite, React 19, Tailwind CSS v4, and internal package linkages.
 
 ### Target Features & Tasks
-- [ ] **1.1 Workspace Directory Setup**:
+- [x] **1.1 Workspace Directory Setup**:
   - Create `apps/desktop` directory structure (`src`, `src-tauri`, `public`).
-  - Configure `apps/desktop/package.json` with `@repo/desktop` scope and scripts (`dev`, `build`, `check-types`, `lint`).
-  - Ensure root `package.json` workspaces (`apps/*`) and `turbo.json` incorporate `@repo/desktop`.
-- [ ] **1.2 Frontend Toolchain (Vite + React 19 + Tailwind CSS v4)**:
+  - Configure `apps/desktop/package.json` with `@repo/desktop` scope and scripts (`dev`, `build`, `check-types`, `lint`, `tauri`).
+  - Ensure root `package.json` workspaces (`apps/*`) incorporate `@repo/desktop` and add `"dev:desktop"`.
+- [x] **1.2 Frontend Toolchain (Vite + React 19 + Tailwind CSS v4)**:
   - Configure `vite.config.ts` with `@tailwindcss/vite` and React plugin.
-  - Setup `apps/desktop/tsconfig.json` extending `@repo/typescript-config/base.json`.
-  - Link internal monorepo packages: `@repo/types: "workspace:*"`, `@repo/utils: "workspace:*"`.
-- [ ] **1.3 Tauri v2 Core Initialization**:
-  - Setup `src-tauri/Cargo.toml` with `tauri = { version = "2", features = [...] }`.
-  - Add Tauri plugins: `tauri-plugin-sql`, `tauri-plugin-global-shortcut`, `tauri-plugin-shell`, `tauri-plugin-fs`, `tauri-plugin-notification`.
-  - Configure `src-tauri/tauri.conf.json` with app identifier `com.ikeen.desktop` and dual-window definitions.
+  - Setup `apps/desktop/tsconfig.json` with bundler module resolution and modern options.
+  - Link internal monorepo packages: `@repo/types: "workspace:*"`, `@repo/utils: "workspace:*"`, `@repo/typescript-config: "workspace:*"`, `@repo/eslint-config: "workspace:*"`.
+  - Design initial 3-pane knowledge canvas wireframe in `apps/desktop/src/App.tsx` matching iKeen's dark cybernetic aesthetic.
+- [x] **1.3 Tauri v2 Core Initialization**:
+  - Setup `src-tauri/Cargo.toml` with `tauri = { version = "2", features = ["tray-icon"] }`.
+  - Add Tauri v2 plugins: `tauri-plugin-sql`, `tauri-plugin-global-shortcut`, `tauri-plugin-shell`, `tauri-plugin-fs`, `tauri-plugin-notification`, `tauri-plugin-opener`.
+  - Configure `src-tauri/tauri.conf.json` with app identifier `com.techforgelee.ikeen-desktop` and dual-window definitions (`main` 1280x840 and `quick-capture` HUD 640x380).
+  - Register capabilities in `src-tauri/capabilities/default.json` and initialize plugin handlers in `src-tauri/src/lib.rs`.
 
 ### Verification & Acceptance Criteria
-- `bun run --filter=@repo/desktop check-types` passes with zero type errors.
-- `bun run --filter=@repo/desktop dev` boots the native Tauri window with instant HMR.
+- [x] `bun run --filter=@repo/desktop check-types` passed with zero type errors.
+- [x] `bun run --filter=@repo/desktop build` completed in ~27s, outputting optimized production bundle to `apps/desktop/dist`.
+- [x] `cargo check` in `apps/desktop/src-tauri` completed cleanly across all Rust dependencies and Tauri v2 plugins.
 
 ---
 
-## Phase 2: Local Storage Engine & Sync Architecture
+## Phase 2: Local Storage Engine & Sync Architecture (Completed ✅)
 
 ### Goal
 Implement the embedded SQLite database on desktop with Drizzle ORM, FTS5 full-text search, and the outbox sync engine mirroring mobile.
 
 ### Target Features & Tasks
-- [ ] **2.1 Embedded SQLite & Drizzle ORM Setup**:
+- [x] **2.1 Embedded SQLite & Drizzle ORM Setup**:
   - Configure `@tauri-apps/plugin-sql` loading `sqlite:ikeen_desktop.db`.
   - Create `apps/desktop/src/db/client.ts` implementing Drizzle's SQLite proxy adapter (`drizzle-orm/sqlite-proxy`).
   - Port schema from `apps/mobile/src/db/schema.ts` (`folders`, `notes`, `note_blocks`, `sync_outbox`, `sync_metadata`).
-- [ ] **2.2 Client Migrations & FTS5 Setup**:
+- [x] **2.2 Client Migrations & FTS5 Setup**:
   - Implement automated startup migration runner executing bundled SQL tables.
   - Create SQLite FTS5 virtual table (`notes_fts`) with triggers on `notes` (INSERT, UPDATE, DELETE) for instant full-text search.
-- [ ] **2.3 Outbox Mutation Queue**:
+- [x] **2.3 Outbox Mutation Queue**:
   - Port `enqueueMutation` utility into `apps/desktop/src/lib/sync/outbox.ts`.
   - Intercept all local creates/updates/deletes to write to SQLite first and record outbox mutations.
-- [ ] **2.4 Bi-Directional Serverless Sync**:
+- [x] **2.4 Bi-Directional Serverless Sync**:
   - Implement push worker: Batches pending mutations and posts to `POST /api/sync/push`.
   - Implement pull worker: Queries `GET /api/sync/pull?since={lastPulledAt}` and applies changes using Last-Write-Wins.
   - Integrate Pusher / Ably websocket client to trigger pull refreshes upon server invalidation events.
