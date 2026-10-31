@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Note } from "@repo/types";
 import { formatDate } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,17 +19,14 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { DiagnosticCard } from "./DiagnosticCard";
 import { MarkdownPreview } from "./MarkdownPreview";
 import {
   Pin,
   Archive,
   Trash2,
   MoreVertical,
-  CheckCircle2,
   FileEdit,
   Eye,
-  Activity,
   Plus,
 } from "lucide-react";
 
@@ -41,8 +37,6 @@ interface EditorPaneProps {
   onArchiveNote: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
   onNewNote: () => void;
-  rustGreeting: string;
-  ipcConnected: boolean;
 }
 
 export function EditorPane({
@@ -52,11 +46,65 @@ export function EditorPane({
   onArchiveNote,
   onDeleteNote,
   onNewNote,
-  rustGreeting,
-  ipcConnected,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<string>("edit");
   const [newTagInput, setNewTagInput] = useState<string>("");
+
+  // In-memory staged editing to avoid per-keystroke SQLite disk writes
+  const [localTitle, setLocalTitle] = useState(note?.title ?? "");
+  const [localContent, setLocalContent] = useState(note?.content ?? "");
+  const lastSavedRef = useRef<{ title: string; content: string }>({
+    title: note?.title ?? "",
+    content: note?.content ?? "",
+  });
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync state whenever note selection switches
+  useEffect(() => {
+    if (note) {
+      setLocalTitle(note.title);
+      setLocalContent(note.content);
+      lastSavedRef.current = { title: note.title, content: note.content };
+    }
+  }, [note?.id]);
+
+  const commitChanges = useCallback(
+    (overrides?: { title?: string; content?: string }) => {
+      if (!note) return;
+      const currentTitle = overrides?.title !== undefined ? overrides.title : localTitle;
+      const currentContent = overrides?.content !== undefined ? overrides.content : localContent;
+
+      if (
+        currentTitle !== lastSavedRef.current.title ||
+        currentContent !== lastSavedRef.current.content
+      ) {
+        lastSavedRef.current = { title: currentTitle, content: currentContent };
+        onUpdateNote({
+          title: currentTitle,
+          content: currentContent,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    },
+    [note, localTitle, localContent, onUpdateNote]
+  );
+
+  const scheduleDebounce = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      commitChanges();
+    }, 400);
+  }, [commitChanges]);
+
+  // Clean up debounce on unmount and commit
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        commitChanges();
+      }
+    };
+  }, [commitChanges]);
 
   if (!note) {
     return (
@@ -100,7 +148,7 @@ export function EditorPane({
 
   return (
     <main className="h-full w-full bg-background flex flex-col overflow-hidden">
-      {/* Top Action Bar */}
+      {/* Top Action Bar: Clean, distraction-free */}
       <header className="h-14 px-4 lg:px-6 border-b border-border flex items-center justify-between shrink-0 select-none bg-card/10 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -113,10 +161,6 @@ export function EditorPane({
                 <Eye className="h-3.5 w-3.5" />
                 <span>Preview</span>
               </TabsTrigger>
-              <TabsTrigger value="diagnostic" className="gap-1.5 text-xs">
-                <Activity className="h-3.5 w-3.5 text-[#39ff14]" />
-                <span>System</span>
-              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -125,20 +169,8 @@ export function EditorPane({
           </span>
         </div>
 
-        {/* Right Action Tools */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Status pill */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-muted/40 border border-border text-[11px]">
-            <CheckCircle2
-              className={`w-3.5 h-3.5 ${
-                ipcConnected ? "text-[#39ff14]" : "text-amber-400"
-              }`}
-            />
-            <span className="text-[10px] font-mono text-muted-foreground">
-              {ipcConnected ? "Local Sync" : "Tauri Core"}
-            </span>
-          </div>
-
+        {/* Right Action Tools: Focused, minimal */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <Tooltip>
             <TooltipTrigger render={
               <Button
@@ -157,7 +189,7 @@ export function EditorPane({
 
           <DropdownMenu>
             <DropdownMenuTrigger render={
-              <Button variant="ghost" size="icon-xs" className="text-muted-foreground">
+              <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             } />
@@ -181,78 +213,64 @@ export function EditorPane({
 
       {/* Editor Content Area */}
       <ScrollArea className="flex-1">
-        <div className="p-8 max-w-4xl mx-auto space-y-6">
-          {activeTab === "edit" && (
+        <div className="p-8 max-w-3xl mx-auto space-y-6">
+          {activeTab === "edit" ? (
             <div className="space-y-4">
-              {/* Title input */}
+              {/* Clean Title Input with local staging */}
               <Input
-                value={note.title}
-                onChange={(e) =>
-                  onUpdateNote({
-                    title: e.target.value,
-                    updatedAt: new Date().toISOString(),
-                  })
-                }
+                value={localTitle}
+                onChange={(e) => {
+                  setLocalTitle(e.target.value);
+                  scheduleDebounce();
+                }}
+                onBlur={() => commitChanges()}
                 placeholder="Note Title..."
-                className="text-2xl font-bold tracking-tight h-auto p-0 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/50 text-foreground"
+                className="text-2xl font-bold tracking-tight h-auto p-0 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/40 text-foreground"
               />
 
-              {/* Tags list */}
-              <div className="flex flex-wrap items-center gap-1.5 py-1">
+              {/* Clean Tags: Typography-driven, no loud badge boxes */}
+              <div className="flex flex-wrap items-center gap-2 py-1 text-xs">
                 {note.tags.map((tag) => (
-                  <Badge
+                  <span
                     key={tag}
-                    variant="secondary"
-                    className="gap-1 text-[10px] pl-2 pr-1 py-0.5 bg-muted border-border font-mono cursor-pointer hover:bg-destructive/20 hover:text-destructive transition-colors"
                     onClick={() => handleRemoveTag(tag)}
+                    className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-destructive cursor-pointer transition-colors"
                     title="Click to remove tag"
                   >
                     <span>#{tag}</span>
-                    <span className="text-muted-foreground hover:text-destructive">×</span>
-                  </Badge>
+                    <span className="text-[10px] opacity-60">×</span>
+                  </span>
                 ))}
                 <input
                   type="text"
                   value={newTagInput}
                   onChange={(e) => setNewTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
-                  placeholder="+ Add tag..."
-                  className="text-[10px] font-mono bg-transparent border-0 outline-none text-muted-foreground placeholder:text-muted-foreground/40 w-20"
+                  placeholder="+ add tag"
+                  className="text-[11px] font-mono bg-transparent border-0 outline-none text-muted-foreground placeholder:text-muted-foreground/30 w-20"
                 />
               </div>
 
               <Separator />
 
-              {/* Body textarea */}
+              {/* Clean Markdown/Text Body with local staging */}
               <Textarea
-                value={note.content}
-                onChange={(e) =>
-                  onUpdateNote({
-                    content: e.target.value,
-                    updatedAt: new Date().toISOString(),
-                  })
-                }
+                value={localContent}
+                onChange={(e) => {
+                  setLocalContent(e.target.value);
+                  scheduleDebounce();
+                }}
+                onBlur={() => commitChanges()}
                 placeholder="Write in markdown or plain text..."
-                className="min-h-[440px] text-xs leading-relaxed border-0 bg-transparent p-0 focus-visible:ring-0 resize-none font-mono text-foreground placeholder:text-muted-foreground/40"
+                className="min-h-[460px] text-xs leading-relaxed border-0 bg-transparent p-0 focus-visible:ring-0 resize-none font-mono text-foreground placeholder:text-muted-foreground/30"
               />
             </div>
-          )}
-
-          {activeTab === "preview" && (
+          ) : (
             <div className="space-y-4">
               <h1 className="text-2xl font-bold tracking-tight text-foreground border-b border-border pb-2">
-                {note.title || "Untitled Note"}
+                {localTitle || "Untitled Note"}
               </h1>
-              <MarkdownPreview content={note.content} />
-            </div>
-          )}
-
-          {activeTab === "diagnostic" && (
-            <div className="space-y-6">
-              <DiagnosticCard
-                rustGreeting={rustGreeting}
-                ipcConnected={ipcConnected}
-              />
+              <MarkdownPreview content={localContent} />
             </div>
           )}
         </div>

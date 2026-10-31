@@ -42,4 +42,6 @@ example
 /ios
 /android
 
+../desktop/src-tauri/target
+apps/desktop/src-tauri/target
 delivohub-ceaeac73f682.json

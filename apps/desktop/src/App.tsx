@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Note, Folder } from "@repo/types";
+import type { Note } from "@repo/types";
 
 import {
   ResizablePanelGroup,
@@ -14,100 +14,56 @@ import { NotesListPane } from "@/components/notes/NotesListPane";
 import { EditorPane } from "@/components/editor/EditorPane";
 import { CommandPalette } from "@/components/modals/CommandPalette";
 import { SettingsDialog } from "@/components/modals/SettingsDialog";
-
-const INITIAL_FOLDERS: Folder[] = [
-  {
-    id: "folder-1",
-    name: "General",
-    color: "#3b82f6",
-    icon: "folder",
-    isLocked: false,
-    sortOrder: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "folder-2",
-    name: "Ideas & Architecture",
-    color: "#39ff14",
-    icon: "lightbulb",
-    isLocked: false,
-    sortOrder: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const INITIAL_NOTES: Note[] = [
-  {
-    id: "note-1",
-    title: "Tauri v2 Desktop Architecture",
-    content: `# Tauri v2 Desktop Architecture
-
-Local-first desktop client running on embedded SQLite with zero-latency FTS5 and MCP sidecar orchestration.
-
-## Key Capabilities
-- **Local-First SQLite**: Full offline capability with instant indexed queries.
-- **Global Quick-Capture HUD**: Floating translucent overlay triggered via Cmd+Shift+Space.
-- **Bi-directional Sync**: Outbox mutation queue automatically pushes changes when online.`,
-    tags: ["architecture", "tauri", "desktop"],
-    isPinned: true,
-    isArchived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "note-2",
-    title: "Fast Keyboard Ergonomics",
-    content: `# Fast Keyboard Ergonomics
-
-All major workflows are accessible through single or dual-key shortcuts:
-- **⌘N**: Create new note
-- **⌘K**: Open Command Palette
-- **⌘\\**: Open Navigation Drawer (Sheet)
-- **⌘⇧Space**: Summon Quick-Capture HUD
-- **⌘,**: Preferences & Settings`,
-    tags: ["ux", "shortcuts"],
-    isPinned: false,
-    isArchived: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { useNotesStore } from "@/stores/use-notes-store";
 
 export default function App() {
-  const [notes, setNotes] = useState<Note[]>(INITIAL_NOTES);
-  const [folders] = useState<Folder[]>(INITIAL_FOLDERS);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>("note-1");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const {
+    notes,
+    folders,
+    activeNoteId,
+    activeFilter,
+    searchQuery,
+    isLoading,
+    isInitialized,
+    init,
+    selectNote,
+    setActiveFilter,
+    setSearchQuery,
+    createNewNote,
+    saveActiveNote,
+    deleteActiveNote,
+  } = useNotesStore();
 
   // Modals
   const [isCommandOpen, setIsCommandOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
-  // Tauri IPC status
-  const [rustGreeting, setRustGreeting] = useState<string>("Connecting to Tauri IPC...");
+  // Tauri IPC status (for Settings preferences dialog)
   const [ipcConnected, setIpcConnected] = useState<boolean>(false);
 
-  // Initialize Tauri IPC
+  // 1. Initialize SQLite Database, Migrations, and Starter Notes on mount
+  useEffect(() => {
+    void init();
+  }, [init]);
+
+  // 2. Initialize Tauri IPC test
   useEffect(() => {
     invoke<string>("greet", { name: "iKeen Desktop Shell" })
-      .then((res) => {
-        setRustGreeting(res);
+      .then(() => {
         setIpcConnected(true);
       })
-      .catch((err) => {
-        setRustGreeting(`IPC Ready: ${String(err)}`);
+      .catch(() => {
+        setIpcConnected(false);
       });
   }, []);
 
-  // Global keybindings (⌘N for new note, ⌘, for settings)
+  // 3. Global keybindings (⌘N for new note, ⌘, for settings)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ⌘N or Ctrl+N -> New Note
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        handleNewNote();
+        void createNewNote();
       }
       // ⌘, or Ctrl+, -> Settings
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
@@ -118,130 +74,104 @@ export default function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [notes]);
+  }, [createNewNote]);
 
   // Handlers for note operations
-  const handleNewNote = () => {
-    const newNote: Note = {
-      id: `note-${Date.now()}`,
-      title: "Untitled Note",
-      content: "",
-      tags: [],
-      isPinned: false,
-      isArchived: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
-    setActiveNoteId(newNote.id);
-  };
-
   const handleUpdateActiveNote = (updated: Partial<Note>) => {
-    if (!activeNoteId) return;
-    setNotes((prev) =>
-      prev.map((n) => (n.id === activeNoteId ? { ...n, ...updated } : n))
-    );
+    void saveActiveNote(updated);
   };
 
   const handleTogglePin = (noteId: string) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, isPinned: !n.isPinned } : n))
-    );
+    const note = notes.find((n) => n.id === noteId);
+    if (note) {
+      void saveActiveNote({ isPinned: !note.isPinned });
+    }
   };
 
   const handleArchiveNote = (noteId: string) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, isArchived: !n.isArchived } : n))
-    );
-  };
-
-  const handleDeleteNote = (noteId: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    if (activeNoteId === noteId) {
-      const remaining = notes.filter((n) => n.id !== noteId);
-      setActiveNoteId(remaining.length > 0 ? remaining[0].id : null);
+    const note = notes.find((n) => n.id === noteId);
+    if (note) {
+      void saveActiveNote({ isArchived: !note.isArchived });
     }
   };
 
-  // Filter notes based on active sidebar filter
-  const displayedNotes = useMemo(() => {
-    if (activeFilter.startsWith("folder:")) {
-      const folderId = activeFilter.replace("folder:", "");
-      return notes.filter((n) => n.folderId === folderId);
-    }
-    if (activeFilter === "ai") {
-      return notes.filter((n) => n.tags.includes("ai") || n.tags.includes("memories"));
-    }
-    if (activeFilter === "mcp") {
-      return notes.filter((n) => n.tags.includes("mcp") || n.tags.includes("tools"));
-    }
-    return notes;
-  }, [notes, activeFilter]);
+  const handleDeleteNote = (_noteId: string) => {
+    void deleteActiveNote();
+  };
 
   const activeNote = notes.find((n) => n.id === activeNoteId);
 
   return (
     <TooltipProvider delay={150}>
-      <div className="h-screen w-screen overflow-hidden bg-background text-foreground antialiased font-sans">
-        {/* 1. Sidebar Component: Self-contained shadcn Sheet managed via Zustand store */}
+      <div className="h-screen w-screen overflow-hidden bg-background text-foreground antialiased font-sans flex">
+        {/* 1. Sidebar Component: In-flow sticky desktop navigation */}
         <AppSidebar
           folders={folders}
           totalNotesCount={notes.length}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
-          onNewNote={handleNewNote}
+          onNewNote={() => void createNewNote()}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          ipcConnected={ipcConnected}
         />
 
         {/* 2. Workspace Resizable Split: Notes List (32%) + Editor (68%) */}
-        <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
-          {/* Notes List Pane */}
-          <ResizablePanel
-            id="notes-list"
-            defaultSize="32%"
-            minSize="24%"
-            maxSize="45%"
-          >
-            <NotesListPane
-              notes={displayedNotes}
-              activeNoteId={activeNoteId}
-              onSelectNote={setActiveNoteId}
-              onTogglePin={handleTogglePin}
-              onDeleteNote={handleDeleteNote}
-              onArchiveNote={handleArchiveNote}
-              onOpenCommand={() => setIsCommandOpen(true)}
-            />
-          </ResizablePanel>
+        <div className="flex-1 h-full min-w-0">
+          <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
+            {/* Notes List Pane */}
+            <ResizablePanel
+              id="notes-list"
+              defaultSize="32%"
+              minSize="24%"
+              maxSize="45%"
+            >
+              <NotesListPane
+                notes={notes}
+                activeNoteId={activeNoteId}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onSelectNote={selectNote}
+                onTogglePin={handleTogglePin}
+                onDeleteNote={handleDeleteNote}
+                onArchiveNote={handleArchiveNote}
+                onOpenCommand={() => setIsCommandOpen(true)}
+                onNewNote={() => void createNewNote()}
+              />
+            </ResizablePanel>
 
-          <ResizableHandle withHandle />
+            <ResizableHandle withHandle />
 
-          {/* Editor Workspace Pane */}
-          <ResizablePanel
-            id="editor"
-            defaultSize="68%"
-            minSize="40%"
-          >
-            <EditorPane
-              note={activeNote}
-              onUpdateNote={handleUpdateActiveNote}
-              onTogglePin={handleTogglePin}
-              onArchiveNote={handleArchiveNote}
-              onDeleteNote={handleDeleteNote}
-              onNewNote={handleNewNote}
-              rustGreeting={rustGreeting}
-              ipcConnected={ipcConnected}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            {/* Editor Workspace Pane */}
+            <ResizablePanel
+              id="editor"
+              defaultSize="68%"
+              minSize="40%"
+            >
+              {isLoading && !isInitialized ? (
+                <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                  Initializing local SQLite database...
+                </div>
+              ) : (
+                <EditorPane
+                  note={activeNote}
+                  onUpdateNote={handleUpdateActiveNote}
+                  onTogglePin={handleTogglePin}
+                  onArchiveNote={handleArchiveNote}
+                  onDeleteNote={handleDeleteNote}
+                  onNewNote={() => void createNewNote()}
+                />
+              )}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
 
         {/* Global Modals */}
         <CommandPalette
           open={isCommandOpen}
           onOpenChange={setIsCommandOpen}
           notes={notes}
-          onSelectNote={setActiveNoteId}
-          onNewNote={handleNewNote}
+          onSelectNote={selectNote}
+          onSelectFilter={setActiveFilter}
+          onNewNote={() => void createNewNote()}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
 

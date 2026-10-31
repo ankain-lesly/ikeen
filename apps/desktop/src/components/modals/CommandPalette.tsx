@@ -23,6 +23,7 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void;
   notes: Note[];
   onSelectNote: (noteId: string) => void;
+  onSelectFilter?: (filter: string) => void;
   onNewNote: () => void;
   onOpenSettings: () => void;
 }
@@ -32,6 +33,7 @@ export function CommandPalette({
   onOpenChange,
   notes,
   onSelectNote,
+  onSelectFilter,
   onNewNote,
   onOpenSettings,
 }: CommandPaletteProps) {
@@ -108,11 +110,12 @@ export function CommandPalette({
         <CommandGroup heading="AI & Automation">
           <CommandItem
             onSelect={() => {
+              onSelectFilter?.("ai");
               onOpenChange(false);
             }}
           >
             <Sparkles className="mr-2 h-4 w-4 text-amber-400" />
-            <span>Search AI Memories</span>
+            <span>Filter AI Memories</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>
