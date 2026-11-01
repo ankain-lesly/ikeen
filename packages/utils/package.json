@@ -35,6 +35,12 @@
       "require": "./dist/string.cjs",
       "import": "./dist/string.js",
       "default": "./dist/string.js"
+    },
+    "./sync": {
+      "types": "./dist/sync.d.ts",
+      "require": "./dist/sync.cjs",
+      "import": "./dist/sync.js",
+      "default": "./dist/sync.js"
     }
   },
   "scripts": {

@@ -9,6 +9,7 @@ import type {
   NoteMutationPayload,
   BlockMutationPayload,
 } from '@repo/types';
+import { SYNC_CONSTANTS } from '@repo/utils/constants';
 import {
   getPendingOutbox,
   getOutboxCount,
@@ -107,7 +108,7 @@ class DesktopSyncManager {
   }
 
   async push(): Promise<void> {
-    const items = await getPendingOutbox(50);
+    const items = await getPendingOutbox(SYNC_CONSTANTS.BATCH_SIZE);
     if (items.length === 0) return;
 
     const batchIds = items.map((i) => i.id);
@@ -131,12 +132,12 @@ class DesktopSyncManager {
           | NoteChanges
           | BlockChanges;
         const version = payloadData.version as number | undefined;
-        const updatedAt = (payloadData.updatedAt as string | undefined) || item.updated_at;
+        const updatedAt = (payloadData.updatedAt as string | undefined) || item.updatedAt;
 
         if (item.entity === 'folders') {
           folderMutations.push({
-            id: item.entity_id,
-            mutationId: item.mutation_id,
+            id: item.entityId,
+            mutationId: item.mutationId,
             action: item.action,
             version,
             updatedAt,
@@ -144,8 +145,8 @@ class DesktopSyncManager {
           });
         } else if (item.entity === 'notes') {
           noteMutations.push({
-            id: item.entity_id,
-            mutationId: item.mutation_id,
+            id: item.entityId,
+            mutationId: item.mutationId,
             action: item.action,
             version,
             updatedAt,
@@ -153,8 +154,8 @@ class DesktopSyncManager {
           });
         } else if (item.entity === 'note_blocks') {
           blockMutations.push({
-            id: item.entity_id,
-            mutationId: item.mutation_id,
+            id: item.entityId,
+            mutationId: item.mutationId,
             action: item.action,
             version,
             updatedAt,

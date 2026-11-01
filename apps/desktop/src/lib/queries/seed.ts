@@ -2,12 +2,13 @@ import { db } from '@/db/client';
 import { folders, notes } from '@/db/schema';
 import { isNull, count } from 'drizzle-orm';
 import type { Folder, Note } from '@repo/types';
+import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 
 export const DEFAULT_STARTER_FOLDERS: Folder[] = [
   {
     id: 'folder-general',
     name: 'General',
-    color: '#3b82f6',
+    color: DEFAULT_FOLDER_COLOR,
     icon: 'folder',
     isLocked: false,
     sortOrder: 0,

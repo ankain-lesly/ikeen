@@ -5,7 +5,15 @@ export type SyncEntityType = "folders" | "notes" | "note_blocks";
 export type SyncActionType = "upsert" | "delete";
 export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
 
+export type SyncStatus = "idle" | "syncing" | "offline" | "error";
+
+export type SyncFailureCategory =
+  | "transient_no_penalty"
+  | "server_error"
+  | "client_rejected";
+
 export type BlockChanges = Partial<NoteBlock>;
+export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
 
 /**
  * Common mutation metadata outside of entity changes.

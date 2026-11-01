@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import type { Note, Folder } from '@repo/types';
+import type {
+  Note,
+  Folder,
+  ListNotesOptions,
+  UpdateNoteInput,
+} from '@repo/types';
 import { initDatabase } from '@/db/client';
 import { seedStarterNotesIfEmpty } from '@/lib/queries/seed';
 import {
@@ -7,7 +12,6 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  type ListNotesFilter,
 } from '@/lib/queries/notes';
 import { listFolders } from '@/lib/queries/folders';
 import { syncManager, onSyncComplete } from '@/lib/sync/sync-manager';
@@ -29,7 +33,7 @@ export interface NotesStoreState {
   setSearchQuery: (query: string) => void;
   selectNote: (id: string | null) => void;
   createNewNote: () => Promise<Note | null>;
-  saveActiveNote: (input: Partial<{ title: string; content: string; tags: string[]; isPinned: boolean; isArchived: boolean; folderId: string | null }>) => Promise<void>;
+  saveActiveNote: (input: UpdateNoteInput) => Promise<void>;
   deleteActiveNote: () => Promise<void>;
 }
 
@@ -68,14 +72,14 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
 
       // Select first note if available
       const currentNotes = get().notes;
-      if (currentNotes.length > 0 && !get().activeNoteId) {
+      if (currentNotes.length > 0) {
         set({ activeNoteId: currentNotes[0].id });
       }
-
-      set({ isInitialized: true, isLoading: false });
+      set({ isInitialized: true });
     } catch (err: unknown) {
-      console.error('[NotesStore:init:Error]', err);
-      set({ isLoading: false, isInitialized: true });
+      console.error('[NotesStore:Init:Error]', err);
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -91,7 +95,7 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
   loadNotes: async () => {
     const { activeFilter, searchQuery } = get();
 
-    const filter: ListNotesFilter = {
+    const filter: ListNotesOptions = {
       search: searchQuery.trim() || undefined,
     };
 
@@ -163,13 +167,22 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     return note;
   },
 
-  saveActiveNote: async (input) => {
+  saveActiveNote: async (input: UpdateNoteInput) => {
     const activeId = get().activeNoteId;
     if (!activeId) return;
 
     // Optimistically update in-memory note
     set((state) => ({
-      notes: state.notes.map((n) => (n.id === activeId ? { ...n, ...input, updatedAt: new Date().toISOString() } : n)),
+      notes: state.notes.map((n) =>
+        n.id === activeId
+          ? {
+              ...n,
+              ...input,
+              tags: input.tags ?? n.tags,
+              updatedAt: new Date().toISOString(),
+            }
+          : n
+      ),
     }));
 
     await updateNote(activeId, input);

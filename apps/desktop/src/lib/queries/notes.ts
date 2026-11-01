@@ -1,15 +1,14 @@
 import { db } from '@/db/client';
 import { notes, type NoteSelect } from '@/db/schema';
 import { eq, isNull, and, desc, or, like, type SQL } from 'drizzle-orm';
-import type { Note, NoteChanges } from '@repo/types';
+import type {
+  Note,
+  NoteChanges,
+  CreateNoteInput,
+  UpdateNoteInput,
+  ListNotesOptions,
+} from '@repo/types';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-
-export interface ListNotesFilter {
-  folderId?: string | null;
-  archivedOnly?: boolean;
-  pinnedOnly?: boolean;
-  search?: string;
-}
 
 function mapSelectToNote(row: NoteSelect): Note {
   let parsedTags: string[] = [];
@@ -33,7 +32,7 @@ function mapSelectToNote(row: NoteSelect): Note {
   };
 }
 
-export async function listNotes(filter: ListNotesFilter = {}): Promise<Note[]> {
+export async function listNotes(filter: ListNotesOptions = {}): Promise<Note[]> {
   const conditions: SQL[] = [isNull(notes.deletedAt)];
 
   if (filter.search && filter.search.trim().length > 0) {
@@ -94,14 +93,10 @@ export async function getNoteById(id: string): Promise<Note | null> {
   }
 }
 
-export async function createNote(input: {
-  title?: string;
-  content?: string;
-  folderId?: string;
-  tags?: string[];
-  isPinned?: boolean;
-}): Promise<Note | null> {
-  const id = `note-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+export async function createNote(
+  input: CreateNoteInput = {}
+): Promise<Note | null> {
+  const id = input.id ?? `note-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const now = new Date().toISOString();
   const title = input.title ?? 'Untitled Note';
   const content = input.content ?? '';
@@ -155,14 +150,7 @@ export async function createNote(input: {
 
 export async function updateNote(
   id: string,
-  input: Partial<{
-    title: string;
-    content: string;
-    folderId: string | null;
-    tags: string[];
-    isPinned: boolean;
-    isArchived: boolean;
-  }>
+  input: UpdateNoteInput
 ): Promise<boolean> {
   const now = new Date().toISOString();
 
@@ -212,21 +200,7 @@ export async function deleteNote(id: string): Promise<boolean> {
   }
 }
 
-export async function upsertNoteFromSync(n: {
-  id: string;
-  folderId?: string | null;
-  title?: string;
-  content?: string;
-  tags?: string[] | string;
-  isPinned?: boolean;
-  isArchived?: boolean;
-  summary?: string | null;
-  version?: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-  userId?: string | null;
-}): Promise<void> {
+export async function upsertNoteFromSync(n: Note): Promise<void> {
   const [existing] = await db
     .select({ updatedAt: notes.updatedAt, version: notes.version })
     .from(notes)

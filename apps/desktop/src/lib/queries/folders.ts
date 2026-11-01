@@ -1,7 +1,13 @@
 import { db } from '@/db/client';
 import { folders, notes } from '@/db/schema';
 import { eq, isNull, and, asc } from 'drizzle-orm';
-import type { Folder, FolderChanges } from '@repo/types';
+import type {
+  Folder,
+  FolderChanges,
+  CreateFolderInput,
+  UpdateFolderInput,
+} from '@repo/types';
+import { DEFAULT_FOLDER_COLOR } from '@repo/utils/constants';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 
 export async function listFolders(): Promise<Folder[]> {
@@ -28,16 +34,17 @@ export async function listFolders(): Promise<Folder[]> {
   }
 }
 
-export async function createFolder(input: {
-  name: string;
-  color?: string;
-  icon?: string;
-}): Promise<Folder | null> {
-  const id = `folder-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+export async function createFolder(
+  input: CreateFolderInput
+): Promise<Folder | null> {
+  const id = input.id ?? `folder-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const now = new Date().toISOString();
   const name = input.name.trim() || 'New Folder';
-  const color = input.color ?? '#3b82f6';
+  const color = input.color ?? DEFAULT_FOLDER_COLOR;
   const icon = input.icon ?? 'folder';
+  const isLocked = Boolean(input.isLocked);
+  const pinCode = input.pinCode ?? null;
+  const sortOrder = input.sortOrder ?? 0;
 
   try {
     await db.insert(folders).values({
@@ -45,8 +52,9 @@ export async function createFolder(input: {
       name,
       color,
       icon,
-      isLocked: false,
-      sortOrder: 0,
+      isLocked,
+      pinCode,
+      sortOrder,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -57,8 +65,8 @@ export async function createFolder(input: {
       name,
       color,
       icon,
-      isLocked: false,
-      sortOrder: 0,
+      isLocked,
+      sortOrder,
       createdAt: now,
       updatedAt: now,
     };
@@ -67,6 +75,8 @@ export async function createFolder(input: {
       name,
       color,
       icon,
+      isLocked,
+      sortOrder,
       updatedAt: now,
     });
 
@@ -79,12 +89,7 @@ export async function createFolder(input: {
 
 export async function updateFolder(
   id: string,
-  input: Partial<{
-    name: string;
-    color: string;
-    icon: string;
-    sortOrder: number;
-  }>
+  input: UpdateFolderInput
 ): Promise<boolean> {
   const now = new Date().toISOString();
 
@@ -94,6 +99,8 @@ export async function updateFolder(
     if (input.color !== undefined) updateValues.color = input.color;
     if (input.icon !== undefined) updateValues.icon = input.icon;
     if (input.sortOrder !== undefined) updateValues.sortOrder = input.sortOrder;
+    if (input.isLocked !== undefined) updateValues.isLocked = input.isLocked;
+    if (input.pinCode !== undefined) updateValues.pinCode = input.pinCode;
 
     await db
       .update(folders)
@@ -132,20 +139,7 @@ export async function deleteFolder(id: string): Promise<boolean> {
   }
 }
 
-export async function upsertFolderFromSync(f: {
-  id: string;
-  name: string;
-  color?: string;
-  icon?: string;
-  isLocked?: boolean;
-  pinCode?: string | null;
-  sortOrder?: number;
-  version?: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-  userId?: string | null;
-}): Promise<void> {
+export async function upsertFolderFromSync(f: Folder): Promise<void> {
   const [existing] = await db
     .select({ updatedAt: folders.updatedAt, version: folders.version })
     .from(folders)
@@ -161,7 +155,7 @@ export async function upsertFolderFromSync(f: {
     .values({
       id: f.id,
       name: f.name,
-      color: f.color ?? '#3b82f6',
+      color: f.color ?? DEFAULT_FOLDER_COLOR,
       icon: f.icon ?? 'folder',
       isLocked: Boolean(f.isLocked),
       pinCode: f.pinCode ?? null,
@@ -175,7 +169,7 @@ export async function upsertFolderFromSync(f: {
       target: folders.id,
       set: {
         name: f.name,
-        color: f.color ?? '#3b82f6',
+        color: f.color ?? DEFAULT_FOLDER_COLOR,
         icon: f.icon ?? 'folder',
         isLocked: Boolean(f.isLocked),
         pinCode: f.pinCode ?? null,
