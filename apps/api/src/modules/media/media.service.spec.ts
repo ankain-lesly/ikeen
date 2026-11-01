@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MediaService } from './media.service.js';
-import { ServiceUnavailableException, BadGatewayException } from '@nestjs/common';
+import { BadGatewayException } from '@nestjs/common';
 import type { EnvService } from '../../config/env.service.js';
 
 describe('MediaService', () => {
@@ -24,13 +24,6 @@ describe('MediaService', () => {
   });
 
   describe('generateImageBuffer', () => {
-    it('throws ServiceUnavailableException if image service credentials are missing', async () => {
-      const unconfigured = new MediaService({} as EnvService);
-      await expect(unconfigured.generateImageBuffer('a lovely landscape')).rejects.toThrow(
-        ServiceUnavailableException,
-      );
-    });
-
     it('calls external image provider and returns raw buffer and mime type', async () => {
       const fakeImageData = new Uint8Array([1, 2, 3, 4, 5]);
 
@@ -76,13 +69,6 @@ describe('MediaService', () => {
   });
 
   describe('uploadBuffer', () => {
-    it('throws ServiceUnavailableException if Mediadock credentials are not configured', async () => {
-      const unconfigured = new MediaService({} as EnvService);
-      await expect(
-        unconfigured.uploadBuffer(Buffer.from('hello'), 'test.png', 'image/png'),
-      ).rejects.toThrow(ServiceUnavailableException);
-    });
-
     it('uploads a buffer successfully and returns metadata with remote URL', async () => {
       const mockResponse = {
         data: {
@@ -129,6 +115,40 @@ describe('MediaService', () => {
       );
     });
 
+    it('uploads a buffer with clientUserId and appends client_user_id to FormData', async () => {
+      let capturedFormData: FormData | null = null;
+      global.fetch = vi.fn().mockImplementation(async (_url: string, init: any) => {
+        capturedFormData = init.body;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            data: {
+              id: 'media-456',
+              url: 'https://cdn.mediadock.example.com/uploads/ikeen/user-123/test.png',
+              filename: 'test.png',
+              original_filename: 'test.png',
+              mime_type: 'image/png',
+              size: 5,
+            },
+          }),
+        };
+      });
+
+      const result = await service.uploadBuffer(
+        Buffer.from('hello'),
+        'test.png',
+        'image/png',
+        'ikeen/user-123',
+        'user-123',
+      );
+
+      expect(result.id).toBe('media-456');
+      expect(capturedFormData).not.toBeNull();
+      expect(capturedFormData!.get('client_user_id')).toBe('user-123');
+      expect(capturedFormData!.get('folder')).toBe('ikeen/user-123');
+    });
+
     it('throws BadGatewayException if Mediadock responds with an error status', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -172,6 +192,7 @@ describe('MediaService', () => {
         expect.stringMatching(/^generated-\d+\.png$/),
         'image/png',
         'ikeen/user-42/generated',
+        'user-42',
       );
     });
 
@@ -181,6 +202,81 @@ describe('MediaService', () => {
       const result = await service.generateAndUploadImage('busy scene', 'user-1');
       expect(result.ok).toBe(false);
       expect(result.error).toContain('Provider rate limit');
+    });
+  });
+
+  describe('getUserMedia', () => {
+    it('queries user media endpoint and returns data with pagination metadata', async () => {
+      const mockListResponse = {
+        data: [
+          {
+            id: 'media-1',
+            client_user_id: 'user-77',
+            filename: 'photo1.jpg',
+            original_filename: 'camera.jpg',
+            url: 'https://cdn.mediadock.example.com/photo1.jpg',
+            mime_type: 'image/jpeg',
+            size: 1024,
+            status: 'ready',
+            created_at: '2026-10-31T15:00:00Z',
+          },
+        ],
+        meta: {
+          current_page: 1,
+          last_page: 2,
+          per_page: 24,
+          total: 30,
+        },
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockListResponse,
+      });
+
+      const result = await service.getUserMedia('user-77', 1);
+
+      expect(result.ok).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toEqual({
+        id: 'media-1',
+        clientUserId: 'user-77',
+        filename: 'photo1.jpg',
+        originalFilename: 'camera.jpg',
+        url: 'https://cdn.mediadock.example.com/photo1.jpg',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        status: 'ready',
+        createdAt: '2026-10-31T15:00:00Z',
+      });
+      expect(result.meta).toEqual({
+        currentPage: 1,
+        lastPage: 2,
+        perPage: 24,
+        total: 30,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://mediadock.example.com/api/v1/media/user/user-77?page=1',
+        expect.objectContaining({
+          method: 'GET',
+          headers: {
+            'X-Api-Key': 'test-api-key',
+            'X-Api-Secret': 'test-api-secret',
+          },
+        }),
+      );
+    });
+
+    it('throws BadGatewayException if Mediadock user endpoint returns error', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: async () => 'Upstream service error',
+      });
+
+      await expect(service.getUserMedia('user-error')).rejects.toThrow(BadGatewayException);
     });
   });
 });

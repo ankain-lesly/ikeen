@@ -408,7 +408,14 @@ describe('NotesToolService', () => {
       );
 
       expect(result.ok).toBe(true);
-      expect(mockPrisma.noteBlock.delete).toHaveBeenCalledWith({ where: { id: 'b-1' } });
+      expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith({
+        where: { id: 'b-1' },
+        data: {
+          deletedAt: expect.any(Date),
+          version: { increment: 1 },
+          updatedAt: expect.any(Date),
+        },
+      });
       expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith({
         where: { id: 'b-2' },
         data: {
@@ -568,6 +575,12 @@ describe('NotesToolService', () => {
       expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('Expected result.ok to be true');
       expect(result.isNewBlock).toBe(true);
+      expect(result.stats).toEqual({
+        requested: 1,
+        attached: 1,
+        skippedDuplicates: 0,
+        totalInBlock: 1,
+      });
       expect(mockPrisma.noteBlock.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -577,6 +590,67 @@ describe('NotesToolService', () => {
             content: expect.arrayContaining([
               expect.objectContaining({ url: 'https://example.com/photo3.png' }),
             ]),
+          }),
+        }),
+      );
+    });
+
+    it('skips duplicate image URLs already present in the block or duplicated in batch and returns stats', async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({
+        id: 'note-1',
+        title: 'Logistics Report',
+      });
+      mockPrisma.noteBlock.findFirst.mockResolvedValue({
+        id: 'b-media-1',
+        type: 'media',
+        position: 0,
+        content: [
+          {
+            id: 'img-orig-1',
+            mediaType: 'image',
+            url: 'https://example.com/orig1.png',
+            caption: 'Original 1',
+          },
+          {
+            id: 'img-orig-2',
+            mediaType: 'image',
+            url: 'https://example.com/orig2.png',
+            caption: 'Original 2',
+          },
+        ],
+      });
+      mockPrisma.note.update.mockResolvedValue({});
+
+      const result = await service.attachImage('user-1', {
+        noteId: 'note-1',
+        images: [
+          { url: 'https://example.com/orig1.png', caption: 'Original 1' },
+          { url: 'https://example.com/orig2.png', caption: 'Original 2' },
+          { url: 'https://example.com/new1.png', caption: 'New 1' },
+          { url: 'https://example.com/new1.png', caption: 'New 1 Duplicate' },
+          { url: 'https://example.com/new2.png', caption: 'New 2' },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('Expected result.ok to be true');
+      expect(result.imagesCount).toBe(2);
+      expect(result.stats).toEqual({
+        requested: 5,
+        attached: 2,
+        skippedDuplicates: 3,
+        totalInBlock: 4,
+      });
+      expect(mockPrisma.noteBlock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'b-media-1' },
+          data: expect.objectContaining({
+            content: [
+              expect.objectContaining({ url: 'https://example.com/orig1.png' }),
+              expect.objectContaining({ url: 'https://example.com/orig2.png' }),
+              expect.objectContaining({ url: 'https://example.com/new1.png' }),
+              expect.objectContaining({ url: 'https://example.com/new2.png' }),
+            ],
           }),
         }),
       );

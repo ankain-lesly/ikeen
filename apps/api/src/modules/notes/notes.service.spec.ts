@@ -186,5 +186,35 @@ describe('NotesService', () => {
       expect(res.applied).toBe(true);
       expect(prisma.noteBlock.create).toHaveBeenCalled();
     });
+
+    it('should soft-delete block with tombstone when action is delete', async () => {
+      prisma.noteBlock.findUnique.mockResolvedValue({
+        id: 'b-1',
+        noteId: 'n-1',
+        version: 1,
+        updatedAt: new Date('2026-09-18T10:00:00.000Z'),
+      });
+      prisma.note.findFirst.mockResolvedValue({ id: 'n-1', userId: 'u-1' });
+      prisma.noteBlock.update.mockResolvedValue({ id: 'b-1' });
+
+      const res = await service.upsertBlockWithLww('u-1', {
+        id: 'b-1',
+        mutationId: 'blocks:delete:b-1',
+        action: 'delete',
+        changes: { noteId: 'n-1' },
+        updatedAt: '2026-09-18T12:00:00.000Z',
+      });
+
+      expect(res.applied).toBe(true);
+      expect(prisma.noteBlock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'b-1' },
+          data: expect.objectContaining({
+            deletedAt: expect.any(Date),
+            version: 2,
+          }),
+        }),
+      );
+    });
   });
 });

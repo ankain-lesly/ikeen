@@ -20,13 +20,44 @@ export class FoldersToolService {
     private readonly audit: AuditService,
   ) {}
 
+  private recordFolderAudit(
+    userId: string,
+    toolAction: string,
+    resourceType: 'folder' | 'note',
+    resourceId: string,
+    details: string,
+    options?: ToolExecutionOptions,
+    extra?: {
+      severity?: 'INFO' | 'WARN';
+      changes?: Record<string, { old: unknown; new: unknown }>;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    const source = options?.source ?? 'agent';
+    this.audit.logAgent({
+      userId,
+      conversationId: options?.conversationId ?? `${source}-${userId}`,
+      action: `${source === 'mcp' ? 'mcp' : 'agent'}.${toolAction}`,
+      ...(extra?.severity ? { severity: extra.severity } : {}),
+      resourceType,
+      resourceId,
+      details,
+      ...(extra?.changes ? { changes: extra.changes } : {}),
+      metadata: {
+        ...extra?.metadata,
+        source,
+        clientId: options?.clientId,
+        apiKey: options?.apiKey,
+      },
+    });
+  }
+
   async listFolders(
     userId: string,
-    { query, limit = 30 }: z.input<typeof listFoldersDef.inputSchema> = {},
+    { query, limit }: z.input<typeof listFoldersDef.inputSchema> = {},
   ) {
     try {
       const trimmedQuery = query?.trim();
-
       const folders = await this.prisma.folder.findMany({
         where: {
           userId,
@@ -41,16 +72,10 @@ export class FoldersToolService {
           color: true,
           icon: true,
           isLocked: true,
-          _count: {
-            select: {
-              notes: {
-                where: { deletedAt: null },
-              },
-            },
-          },
+          _count: { select: { notes: { where: { deletedAt: null } } } },
         },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-        take: limit,
+        take: limit ?? 30,
       });
 
       return {
@@ -79,11 +104,7 @@ export class FoldersToolService {
 
   async createFolder(
     userId: string,
-    {
-      name,
-      color = '#3b82f6',
-      icon = 'folder',
-    }: z.input<typeof createFolderDef.inputSchema>,
+    { name, color, icon }: z.input<typeof createFolderDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
@@ -115,34 +136,25 @@ export class FoldersToolService {
         data: {
           userId,
           name: trimmedName,
-          color,
-          icon,
+          color: color ?? '#3b82f6',
+          icon: icon ?? 'folder',
           version: 1,
         },
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordFolderAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.createFolder`,
-        severity: 'WARN',
-        resourceType: 'folder',
-        resourceId: folder.id,
-        details: `Created folder "${folder.name}"`,
-        metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
-      });
+        'createFolder',
+        'folder',
+        folder.id,
+        `Created folder "${folder.name}"`,
+        options,
+        { severity: 'WARN' },
+      );
 
       return {
         ok: true,
-        folder: {
-          id: folder.id,
-          name: folder.name,
-          color: folder.color,
-          icon: folder.icon,
-        },
+        folder: { id: folder.id, name: folder.name, color: folder.color, icon: folder.icon },
         folderId: folder.id,
         name: folder.name,
       };
@@ -154,22 +166,12 @@ export class FoldersToolService {
 
   async updateFolder(
     userId: string,
-    {
-      folderId,
-      name,
-      color,
-      icon,
-      sortOrder,
-    }: z.input<typeof updateFolderDef.inputSchema>,
+    { folderId, name, color, icon, sortOrder }: z.input<typeof updateFolderDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
       const existing = await this.prisma.folder.findFirst({
-        where: {
-          id: folderId,
-          userId,
-          deletedAt: null,
-        },
+        where: { id: folderId, userId, deletedAt: null },
       });
 
       if (!existing) {
@@ -182,52 +184,29 @@ export class FoldersToolService {
           ...(name ? { name: name.trim() } : {}),
           ...(color ? { color } : {}),
           ...(icon ? { icon } : {}),
-          ...(sortOrder !== undefined ? { sortOrder } : {}),
+          ...(sortOrder != null ? { sortOrder } : {}),
           version: { increment: 1 },
         },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          icon: true,
-          sortOrder: true,
-        },
+        select: { id: true, name: true, color: true, icon: true, sortOrder: true },
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordFolderAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.updateFolder`,
-        resourceType: 'folder',
-        resourceId: updated.id,
-        details: `Updated folder "${updated.name}"`,
-        changes: this.audit.trackChanges(
-          {
-            name: existing.name,
-            color: existing.color,
-            icon: existing.icon,
-            sortOrder: existing.sortOrder,
-          },
-          {
-            name: updated.name,
-            color: updated.color,
-            icon: updated.icon,
-            sortOrder: updated.sortOrder,
-          },
-          ['name', 'color', 'icon', 'sortOrder'],
-        ),
-        metadata: { source, clientId: options?.clientId, apiKey: options?.apiKey },
-      });
+        'updateFolder',
+        'folder',
+        updated.id,
+        `Updated folder "${updated.name}"`,
+        options,
+        {
+          changes: this.audit.trackChanges(
+            { name: existing.name, color: existing.color, icon: existing.icon, sortOrder: existing.sortOrder },
+            { name: updated.name, color: updated.color, icon: updated.icon, sortOrder: updated.sortOrder },
+            ['name', 'color', 'icon', 'sortOrder'],
+          ),
+        },
+      );
 
-      return {
-        ok: true,
-        folder: updated,
-        folderId: updated.id,
-        name: updated.name,
-      };
+      return { ok: true, folder: updated, folderId: updated.id, name: updated.name };
     } catch (err) {
       this.logger.error(`Error in updateFolder for user ${userId}:`, err);
       return toolFailure();
@@ -241,11 +220,7 @@ export class FoldersToolService {
   ) {
     try {
       const existingNote = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
+        where: { id: noteId, userId, deletedAt: null },
       });
 
       if (!existingNote) {
@@ -255,11 +230,7 @@ export class FoldersToolService {
       let folderName: string | null = null;
       if (folderId) {
         const folderExists = await this.prisma.folder.findFirst({
-          where: {
-            id: folderId,
-            userId,
-            deletedAt: null,
-          },
+          where: { id: folderId, userId, deletedAt: null },
           select: { id: true, name: true },
         });
         if (!folderExists) {
@@ -272,7 +243,7 @@ export class FoldersToolService {
         where: { id: noteId },
         data: {
           folderId: folderId === undefined ? existingNote.folderId : folderId,
-          ...(tags !== undefined ? { tags } : {}),
+          ...(tags != null ? { tags } : {}),
           version: { increment: 1 },
         },
         select: {
@@ -280,31 +251,22 @@ export class FoldersToolService {
           title: true,
           folderId: true,
           tags: true,
-          folder: {
-            select: { id: true, name: true },
-          },
+          folder: { select: { id: true, name: true } },
         },
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordFolderAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.organizeNote`,
-        severity: 'WARN',
-        resourceType: 'note',
-        resourceId: note.id,
-        details: `Organized note "${note.title}"`,
-        metadata: {
-          folderId: note.folderId,
-          previousFolderId: existingNote.folderId,
-          source,
-          clientId: options?.clientId,
-          apiKey: options?.apiKey,
+        'organizeNote',
+        'note',
+        note.id,
+        `Organized note "${note.title}"`,
+        options,
+        {
+          severity: 'WARN',
+          metadata: { folderId: note.folderId, previousFolderId: existingNote.folderId },
         },
-      });
+      );
 
       return {
         ok: true,

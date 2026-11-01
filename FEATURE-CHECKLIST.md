@@ -10,6 +10,18 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## 🖥️ Desktop Phase 2: Local Storage Engine & Sync Architecture — 2026-10-31
+* **Status**: Completed
+* **Scope**: Embedded SQLite engine on desktop via @tauri-apps/plugin-sql and Drizzle ORM (drizzle-orm/sqlite-proxy), FTS5 virtual tables with synchronization triggers, outbox mutation queue with coalescing, bi-directional push/pull sync engine with Last-Write-Wins (LWW) conflict resolution, startup onboarding seeder, and reactive Zustand store integration.
+
+- [x] Schema & Embedded SQLite Setup
+- [x] Local Query & Repository Layer
+- [x] Outbox & Bi-Directional Synchronization
+- [x] UI State Integration
+- [x] Verification
+
+---
+
 ## 📱 Custom Option Sheet Refactor — 2026-10-18
 * **Status**: Completed
 * **Scope**: Centralize manual bottom sheets and standardize component wrappers across the mobile app.

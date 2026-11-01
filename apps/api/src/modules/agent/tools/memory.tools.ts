@@ -1,13 +1,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
-import { toolFailure } from '../call-options.js';
+import {
+  defaultNullable,
+  ikeenAgentCallOptionsSchema as baseContextSchema,
+  toolFailure,
+} from '../call-options.js';
 import type { AuditService } from '../../audit/audit.service.js';
-
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
 
 export const MEMORY_CATEGORIES = [
   'PREFERENCE',
@@ -41,15 +40,9 @@ export function createMemoryTools({
         .describe(
           'Specific, concise summary of the insight, preference, or goal',
         ),
-      importance: z
-        .number()
-        .int()
-        .min(1)
-        .max(5)
-        .default(3)
-        .describe(
-          'Importance level: 1 = minor note, 3 = helpful insight, 5 = critical foundational goal/preference',
-        ),
+      importance: defaultNullable(z.number().int().min(1).max(5), 3).describe(
+        'Importance level: 1 = minor note, 3 = helpful insight, 5 = critical foundational goal/preference',
+      ),
     }),
     execute: async ({ category, description, importance }, { context }) => {
       try {

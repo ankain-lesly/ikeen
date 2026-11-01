@@ -1,7 +1,3 @@
-## Keywords
-
-- tombstones
-
 ## Markdown Renderer
 
 - https://github.com/software-mansion/enriched-markdown
@@ -11,17 +7,7 @@
 
 - Add a link that users can use to request that their account and associated data is deleted 
 
-######################
-
-I need  a workflow that send a summary of all recent discord events every 3days? whats the best fit system to do this?
-
-################
-
-## Note Block Issues
-
-### Phase 4: NoteCard Structured Block & Media Previews
-- [ ] **First Block Preview Fallback**: When `note.content` is empty, render a structured preview of the first block in `note.blocks` (e.g., text excerpt or compact checklist preview) inside `NoteCard`.
-- [ ] **NoteCard Media Thumbnail**: When a note contains a `media` block, display a thumbnail for the first or most recently added media item on `NoteCard`.
+---
 
 ## Note Content Legacy
 
@@ -29,16 +15,7 @@ I need  a workflow that send a summary of all recent discord events every 3days?
 
 ## Add Background Image
 
-Add a setting background image to the notes app and optionally for each note setup
-
-
-## Note List and Wrapper 
-- Re-evaluate the note list items and wrapper base business logic if it can be simplified. It has a lot of source code for simple tasks
-- apps\mobile\src\components\notes\blocks\list-block.tsx
-
-## Validate In Flight Sync
-- in flights should not reset on startup, simple updates the query to find plus failed or processing before syncing fresh Todo
-- conflicts between updating outbox data in in inflight. What is the flow and mitigations
+- Add a setting background image to the notes app and optionally for each note setup
 
 ## Tool Definition & Sync Invalidation Co-location (Approach A)
 - [ ] Refactor `TOOL_MUTATION_ENTITIES` record lookup to co-locate `mutates: readonly SyncEntity[]` directly on tool definition schemas (e.g., `notes.tool-definitions.ts`, `folders.tool-definitions.ts`).
@@ -48,11 +25,6 @@ Add a setting background image to the notes app and optionally for each note set
     - Both `AgentService` and `IkeenMcpServer` derive invalidation targets dynamically from the tool definition metadata.
     - Deprecate static `TOOL_MUTATION_ENTITIES` dictionary in `apps/api/src/modules/sync/sync-events.constants.ts`.
 
-
----
-
-Atlassian
- 
 ---
 
 ## Features
@@ -61,6 +33,11 @@ Atlassian
 - Scratchpad: A single view For dumping unorganized notes ideas. Also Synced. (Architecture. User creates/assigns a specific note only visible as scratchpad)
 - Sides when integrating reminders
 
+
+##
+
+- Gallery
+- Agents sidebar
 
 ## Home Sidebar Design
 
@@ -92,7 +69,6 @@ Atlassian
 
 ## Desktop
 
-Give me a roach map to build a desktop app with tauri for my notes app. I need a floating app toolbar on screen for quick actions, open app, it should alway launch on startup
+- Roadmap to build a desktop app with Tauri for the notes app (floating app toolbar on screen for quick actions, open app, launch on startup)
 
-
-R4FJ4S
+C88FUV

@@ -2,6 +2,7 @@ import { getToolMutatedEntities } from '../sync/sync-events.constants.js';
 import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import {
   pipeAgentUIStreamToResponse,
+  pruneMessages,
   ToolLoopAgent,
 } from 'ai';
 import type { ServerResponse } from 'node:http';
@@ -122,14 +123,12 @@ export class AgentService {
 
     // 2. Eagerly persist incoming user message before launching the agent loop
     const lastUserMessage = latestUserTextMessage(messages);
-    let savedUserMessageId: string | undefined;
 
     if (lastUserMessage) {
       await this.chatPersistence.saveMessages({
         conversationId: activeConversationId,
         messages: [lastUserMessage],
       });
-      savedUserMessageId = lastUserMessage.id;
 
       // 3. Initiate non-blocking semantic title generation if this is a new conversation
       if (isNew) {
@@ -184,9 +183,17 @@ export class AgentService {
       toolsContext: ikeenToolContext(userId, activeConversationId),
       // stopWhen: [stepCountIs(maxSteps)],
       callOptionsSchema: ikeenAgentCallOptionsSchema,
-      prepareCall: ({ options, ...settings }) => ({
+      prepareCall: ({ options, prompt, ...settings }) => ({
         ...settings,
         instructions,
+        prompt: Array.isArray(prompt)
+          ? pruneMessages({
+              messages: prompt,
+              reasoning: 'before-last-message',
+              toolCalls: 'before-last-2-messages',
+              emptyMessages: 'remove',
+            })
+          : prompt,
         toolsContext: ikeenToolContext(options.userId, options.conversationId),
       }),
 
@@ -210,12 +217,11 @@ export class AgentService {
         'X-Agent-Conversation-Id': activeConversationId,
         'X-Agent-Conversation-Title': encodeURIComponent(initialTitle),
       },
-      onEnd: async ({ messages: completedMessages }) => {
+      onEnd: async ({ messages: completedMessages, responseMessage }) => {
         try {
-          let resolvedTitle: string | undefined;
           if (titlePromise) {
             try {
-              resolvedTitle = await titlePromise;
+              const resolvedTitle = await titlePromise;
               await this.chatPersistence.updateTitle({
                 conversationId: activeConversationId,
                 title: resolvedTitle,
@@ -227,65 +233,17 @@ export class AgentService {
             }
           }
 
-          // Filter and update the saved message(s) from above
-          const existingInDb = await this.prisma.chatMessage.findMany({
-            where: { conversationId: activeConversationId },
-            select: { id: true },
+          await this.chatPersistence.persistChat({
+            conversationId: activeConversationId,
+            initialMessages: stored.uiMessages,
+            messages: completedMessages,
           });
-          const savedIds = new Set(
-            existingInDb.map((row: { id: string }) => row.id),
-          );
-          if (savedUserMessageId) {
-            savedIds.add(savedUserMessageId);
-          }
 
-          const initialStoredMap = new Map(
-            (stored?.uiMessages ?? []).map((m: UIMessage) => [m.id, m]),
-          );
-
-          for (const msg of completedMessages) {
-            if (msg.id && savedIds.has(msg.id)) {
-              const initialMsg = initialStoredMap.get(msg.id);
-              if (initialMsg) {
-                const partsUnchanged =
-                  JSON.stringify(initialMsg.parts ?? []) ===
-                  JSON.stringify(msg.parts ?? []);
-                if (partsUnchanged) {
-                  continue;
-                }
-              }
-
-              await this.chatPersistence.updateMessage({
-                id: msg.id,
-                message: msg,
-              });
-            }
-          }
-
-          // The rest will serve as saveMessages
-          const rest = completedMessages.filter(
-            (m) => !m.id || !savedIds.has(m.id),
-          );
-
-          if (rest.length > 0) {
-            // Deduplicate intermediate tool loop chunks by id, keeping latest state
-            const uniqueRest = new Map<string, UIMessage>();
-            for (const msg of rest) {
-              if (msg.id) {
-                uniqueRest.set(msg.id, msg);
-              } else {
-                uniqueRest.set(`temp_${uniqueRest.size}`, msg);
-              }
-            }
-
-            await this.chatPersistence.saveMessages({
-              conversationId: activeConversationId,
-              messages: Array.from(uniqueRest.values()),
-            });
-          }
-
-          // Strategy B: Consolidated real-time sync invalidation ping across conversational turn
-          const mutatedEntities = this.extractMutatedEntities(completedMessages);
+          // Consolidated real-time sync invalidation ping scoped to current turn
+          const turnMessages = responseMessage
+            ? [responseMessage]
+            : completedMessages.slice(-1);
+          const mutatedEntities = this.extractMutatedEntities(turnMessages);
           if (mutatedEntities.size > 0) {
             const entities = Array.from(mutatedEntities);
             this.logger.log(
@@ -293,8 +251,6 @@ export class AgentService {
             );
             await this.ably.publishInvalidation(userId, entities);
           }
-
-          await this.chatPersistence.touchConversation(activeConversationId);
         } catch (error) {
           this.logger.error(
             `Failed to persist completed chat for convId=${activeConversationId}`,
@@ -334,27 +290,8 @@ export class AgentService {
           if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
             const toolName = p.type.replace(/^tool-/, '');
             const result = p.output ?? p.result;
-            if (p.state !== 'error') {
+            if (p.state !== 'error' && p.state !== 'output-error') {
               recordMutation(toolName, result);
-            }
-          } else if (p.toolInvocation && typeof p.toolInvocation === 'object') {
-            const inv = p.toolInvocation as Record<string, unknown>;
-            const toolName = String(inv.toolName || '');
-            if (inv.state !== 'error') {
-              recordMutation(toolName, inv.result);
-            }
-          }
-        }
-      }
-
-      const legacyInvocations = (msg as unknown as Record<string, unknown>).toolInvocations;
-      if (Array.isArray(legacyInvocations)) {
-        for (const inv of legacyInvocations) {
-          if (inv && typeof inv === 'object') {
-            const i = inv as Record<string, unknown>;
-            const toolName = String(i.toolName || '');
-            if (i.state !== 'error') {
-              recordMutation(toolName, i.result);
             }
           }
         }

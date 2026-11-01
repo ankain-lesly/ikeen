@@ -14,6 +14,19 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '2.0.1',
+    build: 7,
+    releasedAt: '2026-10-31',
+    title: 'iKeen 2.0.1: Agent Resilience & Media Enhancements',
+    notes: [
+      'Tool Execution Reliability: resilient schema handling for AI agent note and folder operations',
+      'Media Vault & User Gallery: authenticated media upload tracking and user asset retrieval',
+      'Smoother Agent Chat: real-time streaming indicator and accurate tool completion states',
+      'Sync Performance: optimized turn-boundary WebSocket invalidation and wire size budgets',
+      'Checklist Polish: refined checkbox interactions, multi-line paste, and gesture ergonomics',
+    ],
+  },
+  {
     version: '2.0.0',
     build: 6,
     releasedAt: '2026-10-30',

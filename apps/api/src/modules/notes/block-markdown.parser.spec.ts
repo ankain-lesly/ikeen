@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   parseBlockMarkdown,
   parseListMarkdown,
-  projectBlocksToSearchText,
 } from './block-markdown.parser.js';
 
 describe('block-markdown.parser', () => {
@@ -61,30 +60,6 @@ describe('block-markdown.parser', () => {
     expect(result.content[1].content).toBe('Second step');
   });
 
-  it('generates a unified search projection text', () => {
-    const baseContent = 'Base note content';
-    const blocks = [
-      { type: 'text', content: 'Section 1 text' },
-      {
-        type: 'list',
-        content: {
-          header: 'Todos',
-          content: [
-            { content: 'Task 1', checked: false },
-            { content: 'Task 2', checked: true },
-          ],
-        },
-      },
-    ];
-
-    const projection = projectBlocksToSearchText(baseContent, blocks);
-    expect(projection).toContain('Base note content');
-    expect(projection).toContain('Section 1 text');
-    expect(projection).toContain('Todos');
-    expect(projection).toContain('[ ] Task 1');
-    expect(projection).toContain('[x] Task 2');
-  });
-
   it('parses list blocks and auto-extracts trailing footers', () => {
     const markdown = `
 ### Ingredients
@@ -116,20 +91,5 @@ describe('block-markdown.parser', () => {
     expect((result.content as Record<string, unknown>).footer).toBe(
       '*Note: Cooking time may vary by oven.*',
     );
-  });
-
-  it('includes list footers in search projection text', () => {
-    const blocks = [
-      {
-        type: 'list',
-        content: {
-          header: 'Todos',
-          footer: 'Remember to double check doors',
-          content: [{ content: 'Task 1', checked: false }],
-        },
-      },
-    ];
-    const projection = projectBlocksToSearchText('', blocks);
-    expect(projection).toContain('Remember to double check doors');
   });
 });

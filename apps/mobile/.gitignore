@@ -45,3 +45,5 @@ example
 delivohub-ceaeac73f682.json
 google-services.json
 google-services-dev.json
+
+apps/desktop/src-tauri/target

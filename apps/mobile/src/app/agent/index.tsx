@@ -24,6 +24,7 @@ import {
   ConversationDrawer,
 } from "@/components/chat";
 import { toast } from "@/lib/toast";
+
 import { fetch as expoFetch } from "expo/fetch";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
 import { API_BASE_URL } from "@/lib/api/api-client";
@@ -81,11 +82,15 @@ function ChatSessionContent({
         prepareSendMessagesRequest: ({ messages, body }) => {
           const rest = { ...(body ?? {}) } as Record<string, unknown>;
           delete rest.id;
+          const latestUser = [...messages]
+          .reverse()
+          .find((m) => m.role === "user");
+
           return {
             body: {
               ...rest,
               conversationId,
-              messages,
+              messages: latestUser ? [latestUser] : messages.slice(-1),
             },
           };
         },

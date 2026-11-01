@@ -45,7 +45,6 @@ export interface BlockWrapperProps {
   onMoveDown?: () => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
-  dragHandleProps?: any;
   children: React.ReactNode;
 }
 
@@ -58,7 +57,6 @@ export const BlockWrapper = React.memo(function BlockWrapper({
   onMoveDown,
   onDelete,
   onDuplicate,
-  dragHandleProps,
   children,
 }: BlockWrapperProps) {
   const colors = useTheme();
@@ -84,27 +82,13 @@ export const BlockWrapper = React.memo(function BlockWrapper({
       fn?.();
     };
 
-  // Build sheet actions strictly inside event handler so refs are never accessed during render
   const handleOpenOptions = () => {
     Haptics.selectionAsync();
-    const contextual = contextualActionsRef.current;
-    const actions: SheetAction[] = [
-      ...contextual.map((action) => ({
+    setOptionsActions([
+      ...contextualActionsRef.current.map((action) => ({
         ...action,
         onPress: wrapAction(action.onPress),
       })),
-      // {
-      //   label: "Move Up",
-      //   icon: <ChevronUp size={18} color={colors.text} />,
-      //   onPress: wrapAction(onMoveUp),
-      //   visible: canMoveUp,
-      // },
-      // {
-      //   label: "Move Down",
-      //   icon: <ChevronDown size={18} color={colors.text} />,
-      //   onPress: wrapAction(onMoveDown),
-      //   visible: canMoveDown,
-      // },
       {
         label: "Duplicate",
         icon: <Copy size={18} color={colors.text} />,
@@ -118,68 +102,49 @@ export const BlockWrapper = React.memo(function BlockWrapper({
         onPress: wrapAction(onDelete, true),
         visible: !!onDelete,
       },
-    ];
-    setOptionsActions(actions);
+    ]);
   };
 
   return (
     <BlockWrapperContext.Provider value={contextualActionsRef}>
-      <View
-        className={`group relative w-full mb-1 ${isEditing ? "mb-1" : "py-1"}`}>
+      <View className={`group relative w-full ${isEditing ? "mb-1" : "py-1 mb-1"}`}>
         {isEditing && (
-          <View className="flex-row items-center justify-between py-1.5 bg-card_rounded-md">
-            <Pressable
-              {...dragHandleProps}
-              accessibilityRole="button"
-              accessibilityLabel="Reorder block"
-              className="flex-row items-center gap-1.5 py-1 px-1.5 rounded-md active:bg-background-element active:opacity-70"
-              hitSlop={8}>
-              {/* TODO: Drag Does not work -> SKip For Later Review */}
-              {/* <GripVertical size={20} color={colors.textSecondary} /> */}
+          <View className="flex-row items-center justify-between py-1.5">
+            <View className="flex-row items-center gap-1.5 py-1 px-1.5 rounded-md">
               <PanelBottom size={20} color={colors.primary} />
-
               <View className="px-1.5 py-0.5 rounded bg-background-element">
                 <Text className="text-xs font-bold tracking-wider text-primary">
-                  {capitalize(badgeText.toString())}{" "}
+                  {capitalize(badgeText)}
                 </Text>
               </View>
-            </Pressable>
+            </View>
 
-            {/* Actions */}
             <Card className="px-3 flex-row items-center gap-4 rounded-full">
-              {/* Move Up */}
               {canMoveUp && (
-                <Pressable 
+                <Pressable
                   onPress={wrapAction(onMoveUp)}
                   accessibilityRole="button"
                   accessibilityLabel="Move block up"
-                  hitSlop={8}
-                >
+                  hitSlop={8}>
                   <ArrowUp size={18} color={colors.text} />
                 </Pressable>
               )}
-              {/* Move Down */}
               {canMoveDown && (
-                <Pressable 
+                <Pressable
                   onPress={wrapAction(onMoveDown)}
                   accessibilityRole="button"
                   accessibilityLabel="Move block down"
-                  hitSlop={8}
-                >
+                  hitSlop={8}>
                   <ArrowDown size={18} color={colors.text} />
                 </Pressable>
               )}
-
-              {/* Block Options */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Block options" 
+                accessibilityLabel="Block options"
                 hitSlop={8}
-                onPress={handleOpenOptions}
-              >
+                onPress={handleOpenOptions}>
                 <MoreVertical size={18} color={colors.textSecondary} />
               </Pressable>
-         
             </Card>
           </View>
         )}
@@ -188,10 +153,8 @@ export const BlockWrapper = React.memo(function BlockWrapper({
 
         {optionsActions !== null && (
           <OptionSheet
-            isPresented={true}
+            isPresented
             onDismiss={() => setOptionsActions(null)}
-            // title={`Block Options (${block.type})`}
-            // title={`${capitalize(block.type)} Block`.split(" ").join(" ")}
             actions={optionsActions}
           />
         )}

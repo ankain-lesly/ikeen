@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  ServiceUnavailableException,
   BadGatewayException,
 } from '@nestjs/common';
 import { EnvService } from '../../config/env.service.js';
@@ -28,19 +27,54 @@ export interface GenerateImageResult {
   error?: string;
 }
 
-interface MediadockRawResponse {
-  data?: {
-    id?: string;
-    bucket_id?: string;
-    filename?: string;
-    original_filename?: string;
-    url?: string;
-    mime_type?: string;
-    size?: number;
-    status?: string;
-    metadata?: Record<string, unknown>;
-    created_at?: string;
+export interface UserMediaItem {
+  id: string;
+  clientUserId?: string;
+  filename: string;
+  originalFilename?: string;
+  url: string;
+  mimeType: string;
+  size: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface UserMediaPaginationMeta {
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
+}
+
+export interface UserMediaResponse {
+  ok: boolean;
+  data: UserMediaItem[];
+  meta?: UserMediaPaginationMeta;
+}
+
+export interface MediadockItem {
+  id: string;
+  bucket_id?: string;
+  client_user_id?: string;
+  filename: string;
+  original_filename?: string;
+  url: string;
+  mime_type: string;
+  size: number;
+  status: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface MediadockRawResponse<T = MediadockItem> {
+  data?: T;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
   };
+  message?: string;
 }
 
 @Injectable()
@@ -49,28 +83,30 @@ export class MediaService {
 
   constructor(private readonly env: EnvService) {}
 
+  private get mediadockHeaders(): Record<string, string> {
+    return {
+      'X-Api-Key': this.env.MEDIADOCK_API_KEY,
+      'X-Api-Secret': this.env.MEDIADOCK_API_SECRET,
+    };
+  }
+
+  private get mediadockBaseUrl(): string {
+    const raw = this.env.MEDIADOCK_URL.replace(/\/upload\/?$/, '').replace(/\/+$/, '');
+    return raw.endsWith('/api/v1') ? raw : `${raw}/api/v1`;
+  }
+
   /**
    * Calls the configured external image generation service with a description prompt
    * and returns the raw image binary Buffer and mime type.
    */
   async generateImageBuffer(description: string): Promise<GeneratedImageBuffer> {
-    const imageUrl = this.env.IMAGE_SERVICE_URL;
-    const apiKey = this.env.IMAGE_SERVICE_API_KEY;
-
-    if (!imageUrl || !apiKey) {
-      this.logger.warn('Image generation service is not configured in environment.');
-      throw new ServiceUnavailableException(
-        'Image generation service is not configured in the system environment.',
-      );
-    }
-
     try {
       this.logger.log(`Calling image generation provider with prompt: "${description}"`);
 
-      const response = await fetch(imageUrl, {
+      const response = await fetch(this.env.IMAGE_SERVICE_URL, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${this.env.IMAGE_SERVICE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ prompt: description }),
@@ -84,8 +120,8 @@ export class MediaService {
         );
       }
 
-      const contentType = response.headers.get('content-type') || 'image/png';
-      const mimeType = contentType.includes('image/')
+      const contentType = response.headers.get('content-type');
+      const mimeType = contentType?.includes('image/')
         ? contentType.split(';')[0].trim()
         : 'image/png';
 
@@ -98,10 +134,7 @@ export class MediaService {
 
       return { buffer, mimeType };
     } catch (err) {
-      if (
-        err instanceof ServiceUnavailableException ||
-        err instanceof BadGatewayException
-      ) {
+      if (err instanceof BadGatewayException) {
         throw err;
       }
       const message = err instanceof Error ? err.message : String(err);
@@ -111,38 +144,34 @@ export class MediaService {
   }
 
   /**
-   * Upload a memory buffer (e.g., from generated image or file upload) directly to Mediadock storage.
+   * Upload a memory buffer directly to Mediadock storage.
    */
   async uploadBuffer(
     buffer: Buffer | Uint8Array,
     filename: string,
     mimeType: string,
-    folder: string = 'notes',
+    folder?: string,
+    clientUserId?: string,
   ): Promise<UploadedMediaResult> {
-    const mediadockUrl = this.env.MEDIADOCK_URL;
-    const apiKey = this.env.MEDIADOCK_API_KEY;
-    const apiSecret = this.env.MEDIADOCK_API_SECRET;
-
-    if (!mediadockUrl || !apiKey || !apiSecret) {
-      this.logger.error('Mediadock storage credentials are not configured in environment.');
-      throw new ServiceUnavailableException('Media storage service is not configured.');
-    }
-
-    const baseUrl = mediadockUrl.replace(/\/+$/, '');
-    const uploadUrl = baseUrl.includes('/upload') ? baseUrl : `${baseUrl}/api/v1/upload`;
+    const uploadUrl = `${this.mediadockBaseUrl}/upload`;
 
     try {
       const formData = new FormData();
-      const blob = new Blob([buffer as unknown as BlobPart], { type: mimeType });
-      formData.append('file', blob, filename);
-      formData.append('folder', folder);
+      formData.append(
+        'file',
+        new Blob([buffer as unknown as BlobPart], { type: mimeType }),
+        filename,
+      );
+      if (folder) {
+        formData.append('folder', folder);
+      }
+      if (clientUserId) {
+        formData.append('client_user_id', clientUserId);
+      }
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
-        headers: {
-          'X-Api-Key': apiKey,
-          'X-Api-Secret': apiSecret,
-        },
+        headers: this.mediadockHeaders,
         body: formData,
       });
 
@@ -152,8 +181,8 @@ export class MediaService {
         throw new BadGatewayException(`Media upload failed: HTTP ${response.status}`);
       }
 
-      const json = (await response.json()) as MediadockRawResponse;
-      const data = json?.data;
+      const json = (await response.json()) as MediadockRawResponse<MediadockItem>;
+      const data = json.data;
 
       if (!data?.url) {
         this.logger.error('Mediadock upload returned 200 but response missing data.url');
@@ -161,18 +190,15 @@ export class MediaService {
       }
 
       return {
-        id: data.id || `media-${Date.now()}`,
+        id: data.id,
         url: data.url,
-        filename: data.filename || filename,
-        originalFilename: data.original_filename || filename,
-        mimeType: data.mime_type || mimeType,
-        size: data.size || (buffer as Buffer).length || 0,
+        filename: data.filename ?? filename,
+        originalFilename: data.original_filename ?? filename,
+        mimeType: data.mime_type ?? mimeType,
+        size: data.size ?? buffer.byteLength,
       };
     } catch (err) {
-      if (
-        err instanceof ServiceUnavailableException ||
-        err instanceof BadGatewayException
-      ) {
+      if (err instanceof BadGatewayException) {
         throw err;
       }
       this.logger.error(
@@ -183,8 +209,7 @@ export class MediaService {
   }
 
   /**
-   * Generates an image buffer from the description, uploads it to storage,
-   * and returns a safe result with a public CDN URL (never base64).
+   * Generates an image buffer from description and uploads it to storage.
    */
   async generateAndUploadImage(
     description: string,
@@ -192,12 +217,17 @@ export class MediaService {
   ): Promise<GenerateImageResult> {
     try {
       const { buffer, mimeType } = await this.generateImageBuffer(description);
-
       const extension = mimeType === 'image/jpeg' ? 'jpg' : 'png';
       const filename = `generated-${Date.now()}.${extension}`;
       const folder = `ikeen/${userId}/generated`;
 
-      const uploaded = await this.uploadBuffer(buffer, filename, mimeType, folder);
+      const uploaded = await this.uploadBuffer(
+        buffer,
+        filename,
+        mimeType,
+        folder,
+        userId,
+      );
 
       return {
         ok: true,
@@ -213,6 +243,64 @@ export class MediaService {
         description,
         error: message,
       };
+    }
+  }
+
+  /**
+   * Fetches uploaded media for a user from Mediadock storage by client_user_id.
+   */
+  async getUserMedia(
+    userId: string,
+    page: number = 1,
+  ): Promise<UserMediaResponse> {
+    const queryUrl = `${this.mediadockBaseUrl}/media/user/${encodeURIComponent(userId)}?page=${page}`;
+
+    try {
+      const response = await fetch(queryUrl, {
+        method: 'GET',
+        headers: this.mediadockHeaders,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Mediadock getUserMedia failed for user ${userId}: HTTP ${response.status} - ${errorText}`,
+        );
+        throw new BadGatewayException(`Media retrieval failed: HTTP ${response.status}`);
+      }
+
+      const json = (await response.json()) as MediadockRawResponse<MediadockItem[]>;
+
+      return {
+        ok: true,
+        data: (json.data ?? []).map((item) => ({
+          id: item.id,
+          clientUserId: item.client_user_id,
+          filename: item.filename,
+          originalFilename: item.original_filename ?? item.filename,
+          url: item.url,
+          mimeType: item.mime_type,
+          size: item.size,
+          status: item.status,
+          createdAt: item.created_at,
+        })),
+        meta: json.meta
+          ? {
+              currentPage: json.meta.current_page,
+              lastPage: json.meta.last_page,
+              perPage: json.meta.per_page,
+              total: json.meta.total,
+            }
+          : undefined,
+      };
+    } catch (err) {
+      if (err instanceof BadGatewayException) {
+        throw err;
+      }
+      this.logger.error(
+        `Unexpected error during Mediadock getUserMedia: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new BadGatewayException('Failed to communicate with media storage.');
     }
   }
 }

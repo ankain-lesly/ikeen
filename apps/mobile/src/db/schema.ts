@@ -63,10 +63,12 @@ export const noteBlocks = sqliteTable(
     content: text('content').notNull(),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
+    deletedAt: text('deleted_at'),
   },
   (table) => [
     index('idx_note_blocks_note_id_position').on(table.noteId, table.position),
     index('idx_note_blocks_note_id').on(table.noteId),
+    index('idx_note_blocks_deleted_at').on(table.deletedAt),
   ]
 );
 

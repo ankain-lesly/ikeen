@@ -206,6 +206,11 @@ export class BlockChangesDto {
   @IsOptional()
   footer?: string | null;
 
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @IsOptional()
+  deletedAt?: string | null;
+
   @IsString()
   @IsOptional()
   createdAt?: string;
@@ -214,6 +219,8 @@ export class BlockChangesDto {
   @IsOptional()
   updatedAt?: string;
 }
+
+
 
 // BlockMutationPayload.changes is BlockChanges (a union) — omit `implements` for same reason.
 export class BlockMutationDto {

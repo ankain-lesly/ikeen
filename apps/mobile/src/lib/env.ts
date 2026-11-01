@@ -5,5 +5,5 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse({
-  API_URL: process.env.EXPO_PUBLIC_API_URL || "http://192.168.40.59:3001/api/v1",
+  API_URL: process.env.EXPO_PUBLIC_API_URL || "http://192.168.40.4:3001/api/v1",
 });

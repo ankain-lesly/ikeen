@@ -264,15 +264,9 @@ export class ChatPersistenceService {
     updatedCount: number;
   }> {
     try {
-      // 1. Touch conversation timestamp
-      await this.prisma.chatConversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      });
+      await this.touchConversation(conversationId);
 
-      // 2. Identify saved messages from above
       const savedIds = new Set(initialMessages.map((m) => m.id).filter(Boolean));
-
       const existingInDb = await this.prisma.chatMessage.findMany({
         where: { conversationId },
         select: { id: true },
@@ -288,38 +282,27 @@ export class ChatPersistenceService {
       for (const msg of messages) {
         const msgId = msg.id && typeof msg.id === 'string' ? msg.id : null;
         if (msgId && savedIds.has(msgId)) {
-          // If the message is from initialMessages and has not mutated, skip updating DB
           const initialMsg = initialMap.get(msgId);
-          if (initialMsg) {
-            const partsUnchanged =
-              JSON.stringify(initialMsg.parts ?? []) ===
-              JSON.stringify(msg.parts ?? []);
-            if (partsUnchanged) {
-              continue;
-            }
+          if (
+            initialMsg &&
+            JSON.stringify(initialMsg.parts ?? []) === JSON.stringify(msg.parts ?? [])
+          ) {
+            continue;
           }
-
-          // Message was saved from above or changed; update content & tool parts
           await this.updateMessage({ id: msgId, message: msg });
           updatedCount++;
         } else if (msgId) {
-          // Deduplicate multi-step tool chunks for the same turn, keeping latest state
           restMap.set(msgId, msg);
         } else {
           restMap.set(`temp_${restMap.size}`, msg);
         }
       }
 
-      // 3. The rest will serve as saveMessages
       const toSave = Array.from(restMap.values());
-      let insertedCount = 0;
-
-      if (toSave.length > 0) {
-        insertedCount = await this.saveMessages({
-          conversationId,
-          messages: toSave,
-        });
-      }
+      const insertedCount =
+        toSave.length > 0
+          ? await this.saveMessages({ conversationId, messages: toSave })
+          : 0;
 
       this.logger.log(
         `[ChatPersistence:Persisted] convId=${conversationId} inserted=${insertedCount} updated=${updatedCount}`,
@@ -366,16 +349,11 @@ export class ChatPersistenceService {
    * Loads the highest-importance memories for prompt injection (no extra agent step).
    */
   async listMemoriesForUser(userId: string, { limit = 12 }: { limit?: number } = {}) {
-    const take = Math.min(Math.max(limit, 1), 24);
     const rows = await this.prisma.chatMemory.findMany({
       where: { userId },
       orderBy: [{ importance: 'desc' }, { createdAt: 'desc' }],
-      take,
-      select: {
-        category: true,
-        description: true,
-        importance: true,
-      },
+      take: Math.min(Math.max(limit, 1), 24),
+      select: { category: true, description: true, importance: true },
     });
 
     return rows.map((row) => ({
@@ -398,15 +376,9 @@ export class ChatPersistenceService {
           messages: {
             take: 1,
             orderBy: { sequence: 'desc' },
-            select: {
-              content: true,
-              role: true,
-              createdAt: true,
-            },
+            select: { content: true, role: true, createdAt: true },
           },
-          _count: {
-            select: { messages: true },
-          },
+          _count: { select: { messages: true } },
         },
       }),
       this.prisma.chatConversation.count({ where: { userId } }),
@@ -416,27 +388,14 @@ export class ChatPersistenceService {
       total,
       limit,
       offset,
-      conversations: conversations.map(
-        (c: {
-          id: string;
-          title: string | null;
-          createdAt: Date;
-          updatedAt: Date;
-          _count: { messages: number };
-          messages: Array<{
-            content: string;
-            role: string;
-            createdAt: Date;
-          }>;
-        }) => ({
+      conversations: conversations.map((c) => ({
         id: c.id,
         title: c.title,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
         messageCount: c._count.messages,
         lastMessage: c.messages[0] || null,
-      }),
-      ),
+      })),
     };
   }
 

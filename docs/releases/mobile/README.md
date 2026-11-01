@@ -10,7 +10,8 @@ For the monorepo release process standard, see [docs/releases/RELEASE_PROCESS.md
 
 | Version | Build | Release Date | Codename / Focus | Status | Documentation |
 | :--- | :---: | :---: | :--- | :---: | :--- |
-| **`2.0.0`** | `6` | 2026-10-30 | **The Modular Block & Media Era** | **Current** | [v2.0.0.md](v2.0.0.md) |
+| **`2.0.1`** | `7` | 2026-10-31 | **Agent Resilience & Media Enhancements** | **Current** | [v2.0.1.md](v2.0.1.md) |
+| **`2.0.0`** | `6` | 2026-10-30 | **The Modular Block & Media Era** | Supported | [v2.0.0.md](v2.0.0.md) |
 | **`1.3.0`** | `5` | 2026-10-03 | AI Web Search, Composio Integrations & Account Deletion | Archived | [v1.3.0 in registry](../../../apps/api/src/modules/sync/app-updates.registry.ts#L16-L29) |
 | **`1.2.0`** | `4` | 2026-09-28 | Brand Refresh, Haptics & Fast Sync | Archived | [v1.2.0 in registry](../../../apps/api/src/modules/sync/app-updates.registry.ts#L30-L44) |
 | **`1.1.1`** | `3` | 2026-10-02 | Iconography, Splash & Notification Artwork | Archived | [v1.1.1 in registry](../../../apps/api/src/modules/sync/app-updates.registry.ts#L45-L51) |
@@ -34,3 +35,21 @@ For the monorepo release process standard, see [docs/releases/RELEASE_PROCESS.md
 * **Major Releases (`X.0.0`)**: Released when major architectural or data model paradigms change. Supported for a minimum of 6 months with hotfix patches.
 * **Minor Releases (`x.Y.0`)**: Monthly or bi-weekly feature drops containing non-breaking enhancements.
 * **Patch Releases (`x.y.Z`)**: Shipped as needed for sync stability, crash resolution, and critical bug fixes.
+
+
+## Build Process
+
+
+[[EAS JSON config](https://docs.expo.dev/build/eas-json/)]
+
+## 5. Create the Development Build
+
+```bash
+# Android
+eas build --platform android --profile development
+
+eas build --platform android --profile production --auto-submit
+
+# iOS
+eas build --platform ios --profile development
+```

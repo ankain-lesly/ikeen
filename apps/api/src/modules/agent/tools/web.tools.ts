@@ -1,16 +1,16 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { toolFailure } from '../call-options.js';
+import {
+  defaultNullable,
+  ikeenAgentCallOptionsSchema as baseContextSchema,
+  optionalNullable,
+  toolFailure,
+} from '../call-options.js';
 import {
   WEB_SEARCH_TIME_RANGES,
   WEB_SEARCH_TOPICS,
   type WebResearchClient,
 } from '../web-research.js';
-
-const baseContextSchema = z.object({
-  userId: z.string(),
-  conversationId: z.string(),
-});
 
 export function createWebTools({
   webResearch,
@@ -27,18 +27,12 @@ export function createWebTools({
         .trim()
         .min(1)
         .describe('Concise search query for current or external information'),
-      topic: z
-        .enum(WEB_SEARCH_TOPICS)
-        .default('general')
-        .describe(
-          'Search category. Use news for headlines and recent articles, finance for markets, general for docs and other lookups.',
-        ),
-      timeRange: z
-        .enum(WEB_SEARCH_TIME_RANGES)
-        .optional()
-        .describe(
-          'Limit results to sources published or updated within this window. Prefer week or month for recent articles.',
-        ),
+      topic: defaultNullable(z.enum(WEB_SEARCH_TOPICS), 'general').describe(
+        'Search category. Use news for headlines and recent articles, finance for markets, general for docs and other lookups.',
+      ),
+      timeRange: optionalNullable(z.enum(WEB_SEARCH_TIME_RANGES)).describe(
+        'Limit results to sources published or updated within this window. Prefer week or month for recent articles.',
+      ),
     }),
     execute: async ({ query, topic, timeRange }) => {
       try {

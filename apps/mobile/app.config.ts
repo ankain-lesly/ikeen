@@ -28,8 +28,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.android,
       package: isProd ? APP_BUNDLE_IDENTIFIER : APP_DEV_BUNDLE_IDENTIFIER,
       googleServicesFile: isProd
-        ? "./google-services.json"
-        : "./google-services-dev.json",
+        ? process.env.GOOGLE_SERVICES_FILE
+        : process.env.GOOGLE_SERVICES_FILE_DEV
     },
   };
 };

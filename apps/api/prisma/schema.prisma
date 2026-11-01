@@ -384,7 +384,10 @@ model NoteBlock {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  deletedAt DateTime?
+
   @@index([noteId, position])
+  @@index([noteId, deletedAt])
   @@map("note_blocks")
 }
 

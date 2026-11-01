@@ -5,9 +5,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toolFailure } from '../agent/call-options.js';
-import {
-  parseBlockMarkdown,
-} from './block-markdown.parser.js';
+import { parseBlockMarkdown } from './block-markdown.parser.js';
 import {
   unpackServerNoteBlock,
   parseStoredList,
@@ -101,13 +99,50 @@ export class NotesToolService {
     return fn(this.prisma as unknown as Prisma.TransactionClient);
   }
 
+  private findActiveNote(userId: string, noteId: string) {
+    return this.prisma.note.findFirst({
+      where: { id: noteId, userId, deletedAt: null },
+    });
+  }
+
+  private recordToolAudit(
+    userId: string,
+    toolAction: string,
+    resourceId: string,
+    details: string,
+    options?: ToolExecutionOptions,
+    extra?: {
+      severity?: 'INFO' | 'WARN';
+      changes?: Record<string, { old: unknown; new: unknown }>;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    const source = options?.source ?? 'agent';
+    this.audit.logAgent({
+      userId,
+      conversationId: options?.conversationId ?? `${source}-${userId}`,
+      action: `${source === 'mcp' ? 'mcp' : 'agent'}.${toolAction}`,
+      ...(extra?.severity ? { severity: extra.severity } : {}),
+      resourceType: 'note',
+      resourceId,
+      details,
+      ...(extra?.changes ? { changes: extra.changes } : {}),
+      metadata: {
+        ...extra?.metadata,
+        source,
+        ...(options?.clientId !== undefined ? { clientId: options.clientId } : {}),
+        ...(options?.apiKey !== undefined ? { apiKey: options.apiKey } : {}),
+      },
+    });
+  }
+
   async searchNotes(
     userId: string,
     {
       query,
       folderId,
-      limit = 10,
-      includeArchived = false,
+      limit,
+      includeArchived,
     }: z.input<typeof searchNotesDef.inputSchema>,
   ) {
     try {
@@ -124,9 +159,8 @@ export class NotesToolService {
             {
               blocks: {
                 some: {
-                  content: {
-                    string_contains: query,
-                  },
+                  deletedAt: null,
+                  content: { string_contains: query },
                 },
               },
             },
@@ -134,14 +168,10 @@ export class NotesToolService {
         },
         select: discoverySelect,
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
-        take: limit,
+        take: limit ?? 10,
       });
 
-      return {
-        ok: true,
-        count: notes.length,
-        notes: notes.map(mapDiscoveryNote),
-      };
+      return { ok: true, count: notes.length, notes: notes.map(mapDiscoveryNote) };
     } catch (err) {
       this.logger.error(`Error in searchNotes for user ${userId}:`, err);
       return toolFailure();
@@ -154,18 +184,10 @@ export class NotesToolService {
   ) {
     try {
       const note = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
+        where: { id: noteId, userId, deletedAt: null },
         include: {
-          folder: {
-            select: { id: true, name: true, color: true, isLocked: true },
-          },
-          blocks: {
-            orderBy: { position: 'asc' },
-          },
+          folder: { select: { id: true, name: true, color: true, isLocked: true } },
+          blocks: { where: { deletedAt: null }, orderBy: { position: 'asc' } },
         },
       });
 
@@ -173,15 +195,13 @@ export class NotesToolService {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
-      const unpackedBlocks = (note.blocks ?? []).map(unpackServerNoteBlock);
-
       return {
         ok: true as const,
         note: {
           id: note.id,
           title: note.title,
           content: note.content,
-          blocks: unpackedBlocks,
+          blocks: (note.blocks ?? []).map(unpackServerNoteBlock),
           tags: note.tags,
           folder: note.folder,
           isPinned: note.isPinned,
@@ -199,9 +219,9 @@ export class NotesToolService {
   async listRecentNotes(
     userId: string,
     {
-      limit = 8,
-      pinnedOnly = false,
-      includeArchived = false,
+      limit,
+      pinnedOnly,
+      includeArchived,
     }: z.input<typeof listRecentNotesDef.inputSchema> = {},
   ) {
     try {
@@ -214,14 +234,10 @@ export class NotesToolService {
         },
         select: discoverySelect,
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
-        take: limit,
+        take: limit ?? 8,
       });
 
-      return {
-        ok: true,
-        count: notes.length,
-        notes: notes.map(mapDiscoveryNote),
-      };
+      return { ok: true, count: notes.length, notes: notes.map(mapDiscoveryNote) };
     } catch (err) {
       this.logger.error(`Error in listRecentNotes for user ${userId}:`, err);
       return toolFailure();
@@ -232,14 +248,16 @@ export class NotesToolService {
     userId: string,
     {
       title,
-      content = '',
+      content,
       blocks,
       folderId,
-      tags = [],
+      tags,
     }: z.input<typeof createNoteDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
+      const resolvedContent = content ?? '';
+      const resolvedTags = tags ?? [];
       let resolvedFolderId = folderId || null;
       let warning: string | undefined;
 
@@ -265,8 +283,8 @@ export class NotesToolService {
             userId,
             folderId: resolvedFolderId,
             title: title.trim(),
-            content: content ? content.trim() : '',
-            tags,
+            content: resolvedContent ? resolvedContent.trim() : '',
+            tags: resolvedTags,
             version: 1,
           },
         });
@@ -287,25 +305,20 @@ export class NotesToolService {
         return created;
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.createNote`,
-        resourceType: 'note',
-        resourceId: note.id,
-        details: `Created note "${note.title}"${parsedBlocks.length > 0 ? ` with ${parsedBlocks.length} blocks` : ''}`,
-        metadata: {
-          folderId: note.folderId,
-          blocksCount: parsedBlocks.length,
-          warning,
-          source,
-          clientId: options?.clientId,
-          apiKey: options?.apiKey,
+        'createNote',
+        note.id,
+        `Created note "${note.title}"${parsedBlocks.length > 0 ? ` with ${parsedBlocks.length} blocks` : ''}`,
+        options,
+        {
+          metadata: {
+            folderId: note.folderId,
+            blocksCount: parsedBlocks.length,
+            warning,
+          },
         },
-      });
+      );
 
       return {
         ok: true as const,
@@ -344,7 +357,12 @@ export class NotesToolService {
     try {
       const existingNote = await this.prisma.note.findFirst({
         where: { id: noteId, userId, deletedAt: null },
-        include: { blocks: { orderBy: { position: 'asc' } } },
+        include: {
+          blocks: {
+            where: { deletedAt: null },
+            orderBy: { position: 'asc' },
+          },
+        },
       });
 
       if (!existingNote) {
@@ -354,7 +372,7 @@ export class NotesToolService {
       const parsed = parseBlockMarkdown({ type, markdown, header, footer });
       const currentBlocks = existingNote.blocks;
       const targetPosition =
-        position !== undefined
+        position != null
           ? Math.max(0, Math.min(position, currentBlocks.length))
           : currentBlocks.length;
 
@@ -365,6 +383,7 @@ export class NotesToolService {
           await tx.noteBlock.updateMany({
             where: {
               noteId,
+              deletedAt: null,
               position: { gte: targetPosition },
             },
             data: {
@@ -395,18 +414,20 @@ export class NotesToolService {
         });
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.addBlock`,
-        resourceType: 'note',
-        resourceId: noteId,
-        details: `Added ${type} block to note "${existingNote.title}" at position ${targetPosition}`,
-        metadata: { blockId: newBlockId, type, position: targetPosition, source },
-      });
+        'addBlock',
+        noteId,
+        `Added ${type} block to note "${existingNote.title}" at position ${targetPosition}`,
+        options,
+        {
+          metadata: {
+            blockId: newBlockId,
+            type,
+            position: targetPosition,
+          },
+        },
+      );
 
       return {
         ok: true as const,
@@ -443,7 +464,7 @@ export class NotesToolService {
       }
 
       const existingBlock = await this.prisma.noteBlock.findFirst({
-        where: { id: blockId, noteId },
+        where: { id: blockId, noteId, deletedAt: null },
       });
 
       if (!existingBlock) {
@@ -471,7 +492,7 @@ export class NotesToolService {
           );
           if (targetItem) {
             targetItem.checked =
-              checklistPatch.setChecked !== undefined
+              checklistPatch.setChecked != null
                 ? checklistPatch.setChecked
                 : !targetItem.checked;
           }
@@ -492,8 +513,8 @@ export class NotesToolService {
           }
         }
 
-        const nextHeader = header !== undefined ? header.trim() : stored.header;
-        const nextFooter = footer !== undefined ? footer.trim() : stored.footer;
+        const nextHeader = header != null ? header.trim() : stored.header;
+        const nextFooter = footer != null ? footer.trim() : stored.footer;
         updatedContent = packServerBlockContent(
           'list',
           {
@@ -504,22 +525,22 @@ export class NotesToolService {
           },
           existingBlock.content,
         );
-      } else if (markdown !== undefined) {
+      } else if (markdown != null) {
         const parsed = parseBlockMarkdown({
           type: existingBlock.type as 'text' | 'list',
           markdown,
-          header: header !== undefined ? header : undefined,
-          footer: footer !== undefined ? footer : undefined,
+          header: header ?? undefined,
+          footer: footer ?? undefined,
         });
         updatedContent = parsed.content;
         updatedType = parsed.type;
       } else if (
-        (header !== undefined || footer !== undefined) &&
+        (header != null || footer != null) &&
         existingBlock.type === 'list'
       ) {
         const stored = parseStoredList(existingBlock.content);
-        const nextHeader = header !== undefined ? header.trim() : stored.header;
-        const nextFooter = footer !== undefined ? footer.trim() : stored.footer;
+        const nextHeader = header != null ? header.trim() : stored.header;
+        const nextFooter = footer != null ? footer.trim() : stored.footer;
         updatedContent = packServerBlockContent(
           'list',
           {
@@ -552,18 +573,14 @@ export class NotesToolService {
         });
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.updateBlock`,
-        resourceType: 'note',
-        resourceId: noteId,
-        details: `Updated block ${blockId} in note "${existingNote.title}"`,
-        metadata: { blockId, noteId, source },
-      });
+        'updateBlock',
+        noteId,
+        `Updated block ${blockId} in note "${existingNote.title}"`,
+        options,
+        { metadata: { blockId, noteId } },
+      );
 
       return {
         ok: true as const,
@@ -591,24 +608,31 @@ export class NotesToolService {
       }
 
       const existingBlock = await this.prisma.noteBlock.findFirst({
-        where: { id: blockId, noteId },
+        where: { id: blockId, noteId, deletedAt: null },
       });
 
       if (!existingBlock) {
         return { ok: false, error: 'Block not found.' };
       }
 
+      const now = new Date();
       await this.executeTx(async (tx) => {
-        await tx.noteBlock.delete({
+        // Soft-delete the block with a tombstone timestamp (ensures delta sync propagates deletion)
+        await tx.noteBlock.update({
           where: { id: blockId },
+          data: {
+            deletedAt: now,
+            version: { increment: 1 },
+            updatedAt: now,
+          },
         });
 
+        // Re-index remaining active blocks
         const remainingBlocks = await tx.noteBlock.findMany({
-          where: { noteId },
+          where: { noteId, deletedAt: null },
           orderBy: { position: 'asc' },
         });
 
-        const now = new Date();
         for (let i = 0; i < remainingBlocks.length; i++) {
           if (remainingBlocks[i].position !== i) {
             await tx.noteBlock.update({
@@ -631,18 +655,14 @@ export class NotesToolService {
         });
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.deleteBlock`,
-        resourceType: 'note',
-        resourceId: noteId,
-        details: `Deleted block ${blockId} from note "${existingNote.title}"`,
-        metadata: { blockId, noteId, source },
-      });
+        'deleteBlock',
+        noteId,
+        `Deleted block ${blockId} from note "${existingNote.title}"`,
+        options,
+        { metadata: { blockId, noteId } },
+      );
 
       return {
         ok: true as const,
@@ -661,11 +681,12 @@ export class NotesToolService {
     {
       noteId,
       images,
-      createNewBlock = false,
+      createNewBlock,
     }: z.input<typeof attachImageDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
+      const shouldCreateNewBlock = createNewBlock ?? false;
       const existingNote = await this.prisma.note.findFirst({
         where: { id: noteId, userId, deletedAt: null },
       });
@@ -674,46 +695,97 @@ export class NotesToolService {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
-      const newMediaItems = images.map((img) => ({
-        id: randomUUID(),
-        mediaType: 'image' as const,
-        url: img.url.trim(),
-        localUri: '',
-        name: img.name?.trim() || undefined,
-        caption: img.caption?.trim() || undefined,
-      }));
+      // 1. Deduplicate incoming batch by normalized URL
+      const uniqueByUrl = new Map<
+        string,
+        { url: string; name?: string; caption?: string }
+      >();
+      for (const img of images) {
+        const url = img.url.trim();
+        if (!url) continue;
+        uniqueByUrl.set(url, {
+          url,
+          name: img.name?.trim() || undefined,
+          caption: img.caption?.trim() || undefined,
+        });
+      }
+      const dedupedBatch = Array.from(uniqueByUrl.values());
 
       let resolvedBlockId = '';
       let isNewBlock = false;
+      let newMediaItems: Array<{
+        id: string;
+        mediaType: 'image';
+        url: string;
+        localUri: string;
+        name?: string;
+        caption?: string;
+      }> = [];
+      let totalInBlock = 0;
 
-      // Concurrency-safe transactional execution
+      // 2. Concurrency-safe transactional execution with block-level URL deduplication
       await this.executeTx(async (tx) => {
-        // Query inside tx so concurrent calls observe any newly created media block
-        const existingMediaBlock = !createNewBlock
+        const existingMediaBlock = !shouldCreateNewBlock
           ? await tx.noteBlock.findFirst({
-              where: { noteId, type: 'media' },
+              where: { noteId, type: 'media', deletedAt: null },
               orderBy: { position: 'asc' },
             })
           : null;
 
         if (existingMediaBlock) {
           const currentItems = Array.isArray(existingMediaBlock.content)
-            ? existingMediaBlock.content
+            ? (existingMediaBlock.content as Array<Record<string, unknown>>)
             : [];
+          const existingUrls = new Set(
+            currentItems
+              .map((item) =>
+                typeof item?.url === 'string' ? item.url.trim() : '',
+              )
+              .filter(Boolean),
+          );
 
-          await tx.noteBlock.update({
-            where: { id: existingMediaBlock.id },
-            data: {
-              content: [...currentItems, ...newMediaItems] as Prisma.InputJsonValue,
-              version: { increment: 1 },
-              updatedAt: new Date(),
-            },
-          });
+          newMediaItems = dedupedBatch
+            .filter((img) => !existingUrls.has(img.url))
+            .map((img) => ({
+              id: randomUUID(),
+              mediaType: 'image' as const,
+              url: img.url,
+              localUri: '',
+              name: img.name,
+              caption: img.caption,
+            }));
+
+          totalInBlock = currentItems.length + newMediaItems.length;
           resolvedBlockId = existingMediaBlock.id;
+
+          if (newMediaItems.length > 0) {
+            await tx.noteBlock.update({
+              where: { id: existingMediaBlock.id },
+              data: {
+                content: [
+                  ...currentItems,
+                  ...newMediaItems,
+                ] as Prisma.InputJsonValue,
+                version: { increment: 1 },
+                updatedAt: new Date(),
+              },
+            });
+          }
         } else {
           isNewBlock = true;
           resolvedBlockId = randomUUID();
-          const blockCount = await tx.noteBlock.count({ where: { noteId } });
+          newMediaItems = dedupedBatch.map((img) => ({
+            id: randomUUID(),
+            mediaType: 'image' as const,
+            url: img.url,
+            localUri: '',
+            name: img.name,
+            caption: img.caption,
+          }));
+          totalInBlock = newMediaItems.length;
+          const blockCount = await tx.noteBlock.count({
+            where: { noteId, deletedAt: null },
+          });
 
           await tx.noteBlock.create({
             data: {
@@ -727,32 +799,41 @@ export class NotesToolService {
           });
         }
 
-        await tx.note.update({
-          where: { id: noteId },
-          data: {
-            version: { increment: 1 },
-            updatedAt: new Date(),
-          },
-        });
+        if (newMediaItems.length > 0 || isNewBlock) {
+          await tx.note.update({
+            where: { id: noteId },
+            data: {
+              version: { increment: 1 },
+              updatedAt: new Date(),
+            },
+          });
+        }
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
+      const skippedDuplicates = images.length - newMediaItems.length;
+      const stats = {
+        requested: images.length,
+        attached: newMediaItems.length,
+        skippedDuplicates,
+        totalInBlock,
+      };
 
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.attachImage`,
-        resourceType: 'note',
-        resourceId: noteId,
-        details: `Attached ${newMediaItems.length} image(s) to note "${existingNote.title}" (${isNewBlock ? 'new block' : 'appended'})`,
-        metadata: {
-          blockId: resolvedBlockId,
-          imagesCount: newMediaItems.length,
-          imageIds: newMediaItems.map((i) => i.id),
-          firstUrl: newMediaItems[0]?.url,
+        'attachImage',
+        noteId,
+        `Attached ${newMediaItems.length} image(s) to note "${existingNote.title}" (${isNewBlock ? 'new block' : 'appended'}, ${skippedDuplicates} duplicate(s) skipped)`,
+        options,
+        {
+          metadata: {
+            blockId: resolvedBlockId,
+            imagesCount: newMediaItems.length,
+            imageIds: newMediaItems.map((i) => i.id),
+            firstUrl: newMediaItems[0]?.url,
+            stats,
+          },
         },
-      });
+      );
 
       return {
         ok: true as const,
@@ -761,6 +842,7 @@ export class NotesToolService {
         imagesCount: newMediaItems.length,
         imageIds: newMediaItems.map((i) => i.id),
         isNewBlock,
+        stats,
       };
     } catch (err) {
       this.logger.error(`Error in attachImage for user ${userId}:`, err);
@@ -781,26 +863,19 @@ export class NotesToolService {
     options?: ToolExecutionOptions,
   ) {
     try {
-      if (content !== undefined && appendContent) {
+      if (content != null && appendContent) {
         return {
           ok: false,
           error: 'Pass content or appendContent, not both.',
         };
       }
 
-      const existing = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
-      });
-
+      const existing = await this.findActiveNote(userId, noteId);
       if (!existing) {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
-      const isReplace = content !== undefined && content !== existing.content;
+      const isReplace = content != null && content !== existing.content;
       if (isReplace && confirm !== true) {
         return {
           ok: false,
@@ -815,59 +890,39 @@ export class NotesToolService {
         };
       }
 
-      let updatedContent = existing.content;
-      if (content !== undefined) {
-        updatedContent = content;
-      } else if (appendContent) {
-        updatedContent = `${existing.content}\n\n${appendContent.trim()}`;
-      }
+      const updatedContent =
+        content != null
+          ? content
+          : appendContent
+            ? `${existing.content}\n\n${appendContent.trim()}`
+            : existing.content;
 
       const note = await this.prisma.note.update({
         where: { id: noteId },
         data: {
-          ...(title !== undefined ? { title: title.trim() } : {}),
+          ...(title != null ? { title: title.trim() } : {}),
           content: updatedContent,
-          ...(tags !== undefined ? { tags } : {}),
+          ...(tags != null ? { tags } : {}),
           version: { increment: 1 },
         },
       });
 
       const changes = this.audit.trackChanges(
-        {
-          title: existing.title,
-          content: existing.content,
-          tags: existing.tags,
-        },
-        {
-          title: note.title,
-          content: note.content,
-          tags: note.tags,
-        },
+        { title: existing.title, content: existing.content, tags: existing.tags },
+        { title: note.title, content: note.content, tags: note.tags },
         ['title', 'content', 'tags'],
       );
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: isReplace
-          ? `${actionPrefix}.replaceNote`
-          : `${actionPrefix}.updateNote`,
-        severity: isReplace ? 'WARN' : 'INFO',
-        resourceType: 'note',
-        resourceId: note.id,
-        details: isReplace
+        isReplace ? 'replaceNote' : 'updateNote',
+        note.id,
+        isReplace
           ? `Replaced content of note "${note.title}"`
           : `Updated note "${note.title}"`,
-        changes,
-        metadata: {
-          source,
-          clientId: options?.clientId,
-          apiKey: options?.apiKey,
-        },
-      });
+        options,
+        { severity: isReplace ? 'WARN' : 'INFO', changes },
+      );
 
       return {
         ok: true,
@@ -885,50 +940,33 @@ export class NotesToolService {
 
   async pinNote(
     userId: string,
-    { noteId, isPinned = true }: z.input<typeof pinNoteDef.inputSchema>,
+    { noteId, isPinned }: z.input<typeof pinNoteDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
-      const existing = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
-      });
-
+      const targetPinned = isPinned ?? true;
+      const existing = await this.findActiveNote(userId, noteId);
       if (!existing) {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
       const note = await this.prisma.note.update({
         where: { id: noteId },
-        data: {
-          isPinned,
-          version: { increment: 1 },
-        },
+        data: { isPinned: targetPinned, version: { increment: 1 } },
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: isPinned ? `${actionPrefix}.pinNote` : `${actionPrefix}.unpinNote`,
-        resourceType: 'note',
-        resourceId: note.id,
-        details: `${isPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
-        metadata: { isPinned, source, clientId: options?.clientId, apiKey: options?.apiKey },
-      });
+        targetPinned ? 'pinNote' : 'unpinNote',
+        note.id,
+        `${targetPinned ? 'Pinned' : 'Unpinned'} note "${note.title}"`,
+        options,
+        { metadata: { isPinned: targetPinned } },
+      );
 
       return {
         ok: true as const,
-        note: {
-          id: note.id,
-          title: note.title,
-          isPinned: note.isPinned,
-        },
+        note: { id: note.id, title: note.title, isPinned: note.isPinned },
       };
     } catch (err) {
       this.logger.error(`Error in pinNote for user ${userId}:`, err);
@@ -938,52 +976,33 @@ export class NotesToolService {
 
   async archiveNote(
     userId: string,
-    { noteId, isArchived = true }: z.input<typeof archiveNoteDef.inputSchema>,
+    { noteId, isArchived }: z.input<typeof archiveNoteDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
-      const existing = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
-      });
-
+      const targetArchived = isArchived ?? true;
+      const existing = await this.findActiveNote(userId, noteId);
       if (!existing) {
         return { ok: false, error: 'Note not found or deleted.' };
       }
 
       const note = await this.prisma.note.update({
         where: { id: noteId },
-        data: {
-          isArchived,
-          version: { increment: 1 },
-        },
+        data: { isArchived: targetArchived, version: { increment: 1 } },
       });
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: isArchived
-          ? `${actionPrefix}.archiveNote`
-          : `${actionPrefix}.unarchiveNote`,
-        resourceType: 'note',
-        resourceId: note.id,
-        details: `${isArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
-        metadata: { isArchived, source, clientId: options?.clientId, apiKey: options?.apiKey },
-      });
+        targetArchived ? 'archiveNote' : 'unarchiveNote',
+        note.id,
+        `${targetArchived ? 'Archived' : 'Restored'} note "${note.title}"`,
+        options,
+        { metadata: { isArchived: targetArchived } },
+      );
 
       return {
         ok: true as const,
-        note: {
-          id: note.id,
-          title: note.title,
-          isArchived: note.isArchived,
-        },
+        note: { id: note.id, title: note.title, isArchived: note.isArchived },
       };
     } catch (err) {
       this.logger.error(`Error in archiveNote for user ${userId}:`, err);
@@ -993,56 +1012,40 @@ export class NotesToolService {
 
   async deleteNote(
     userId: string,
-    { noteId, hardDelete = false }: z.input<typeof deleteNoteDef.inputSchema>,
+    { noteId, hardDelete }: z.input<typeof deleteNoteDef.inputSchema>,
     options?: ToolExecutionOptions,
   ) {
     try {
-      const existing = await this.prisma.note.findFirst({
-        where: {
-          id: noteId,
-          userId,
-          deletedAt: null,
-        },
-      });
-
+      const isHardDelete = hardDelete ?? false;
+      const existing = await this.findActiveNote(userId, noteId);
       if (!existing) {
         return { ok: false, error: 'Note not found or already deleted.' };
       }
 
-      if (hardDelete) {
-        await this.prisma.note.delete({
-          where: { id: noteId },
-        });
+      if (isHardDelete) {
+        await this.prisma.note.delete({ where: { id: noteId } });
       } else {
         await this.prisma.note.update({
           where: { id: noteId },
-          data: {
-            deletedAt: new Date(),
-            version: { increment: 1 },
-          },
+          data: { deletedAt: new Date(), version: { increment: 1 } },
         });
       }
 
-      const source = options?.source ?? 'agent';
-      const actionPrefix = source === 'mcp' ? 'mcp' : 'agent';
-
-      this.audit.logAgent({
+      this.recordToolAudit(
         userId,
-        conversationId: options?.conversationId ?? `${source}-${userId}`,
-        action: `${actionPrefix}.deleteNote`,
-        severity: 'WARN',
-        resourceType: 'note',
-        resourceId: existing.id,
-        details: `${hardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
-        metadata: { hardDelete, source, clientId: options?.clientId, apiKey: options?.apiKey },
-      });
+        'deleteNote',
+        existing.id,
+        `${isHardDelete ? 'Permanently deleted' : 'Soft-deleted'} note "${existing.title}"`,
+        options,
+        { severity: 'WARN', metadata: { hardDelete: isHardDelete } },
+      );
 
       return {
         ok: true,
         noteId: existing.id,
         title: existing.title,
         deleted: true,
-        hardDelete,
+        hardDelete: isHardDelete,
       };
     } catch (err) {
       this.logger.error(`Error in deleteNote for user ${userId}:`, err);

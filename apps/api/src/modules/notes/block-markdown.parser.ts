@@ -16,8 +16,8 @@ export interface ParsedBlockPayload {
 export interface InputBlockMarkdown {
   type: 'text' | 'list';
   markdown: string;
-  header?: string;
-  footer?: string;
+  header?: string | null;
+  footer?: string | null;
 }
 
 /**
@@ -26,8 +26,8 @@ export interface InputBlockMarkdown {
  */
 export function parseListMarkdown(
   markdown: string,
-  fallbackHeader?: string,
-  fallbackFooter?: string,
+  fallbackHeader?: string | null,
+  fallbackFooter?: string | null,
 ): {
   listType: ListType;
   header?: string;
@@ -146,59 +146,4 @@ export function parseBlockMarkdown(input: InputBlockMarkdown): ParsedBlockPayloa
       content: parsedList.content,
     },
   };
-}
-
-/**
- * Generates a unified text search projection across note.content and all note blocks.
- * Storing this in Note.content guarantees fast case-insensitive PostgreSQL search
- * without needing complex JSONB queries.
- */
-export function projectBlocksToSearchText(
-  baseContent: string | null | undefined,
-  blocks: Array<{ type: string; content: unknown }>,
-): string {
-  const parts: string[] = [];
-
-  const trimmedBase = (baseContent || '').trim();
-  if (trimmedBase) {
-    parts.push(trimmedBase);
-  }
-
-  for (const block of blocks) {
-    if (block.type === 'text') {
-      const text = typeof block.content === 'string' ? block.content.trim() : '';
-      if (text) parts.push(text);
-    } else if (block.type === 'list') {
-      const listData =
-        typeof block.content === 'object' && block.content !== null
-          ? (block.content as Record<string, unknown>)
-          : {};
-
-      const header = typeof listData.header === 'string' ? listData.header.trim() : '';
-      if (header) parts.push(header);
-
-      const items = Array.isArray(listData.content)
-        ? (listData.content as Array<{ content?: string; checked?: boolean }>)
-        : Array.isArray(block.content)
-          ? (block.content as Array<{ content?: string; checked?: boolean }>)
-          : [];
-
-      const listLines = items
-        .map((item) => {
-          if (!item?.content) return '';
-          const prefix = item.checked !== undefined ? (item.checked ? '[x]' : '[ ]') : '•';
-          return `${prefix} ${item.content}`;
-        })
-        .filter(Boolean);
-
-      if (listLines.length > 0) {
-        parts.push(listLines.join('\n'));
-      }
-
-      const footer = typeof listData.footer === 'string' ? listData.footer.trim() : '';
-      if (footer) parts.push(footer);
-    }
-  }
-
-  return parts.join('\n\n').trim();
 }

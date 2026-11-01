@@ -125,6 +125,7 @@ export interface BaseBlock {
   position: number;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface TextBlock extends BaseBlock {
