@@ -1,4 +1,4 @@
-# Implementation Checklists
+﻿# Implementation Checklists
 
 Grouped by todo topic / issue for clearer tracking and context.
 
@@ -7,6 +7,69 @@ Grouped by todo topic / issue for clearer tracking and context.
 > - A section may only be updated when continuing the **same** checklist progress.
 > - If work resumes on a **different day**, the section header date is updated to that day (the in-progress date) — never silently edited.
 > - A brand-new feature always opens a new section with today's date, even if an older section exists.
+
+---
+
+## 🤖 Agent Autonomy, Response Brevity & NestJS 12 Route Migration — 2026-11-08
+* **Status**: Completed
+* **Scope**: Google Gemini-style prompt architecture (zero preamble, zero echoing, autonomous execution, outcome-only confirmations), in-memory active agent session preservation (useAgentSession), agent sidebar drawer with infinite conversation query, and NestJS 12 path-to-regexp v8 wildcard route migration ({*path}).
+
+- [x] Agent Prompt Overhaul (ikeen.prompt.ts, segments.ts): Gemini outcome pattern, anti-filler constraints
+- [x] Prompt Test Suite (ikeen.prompt.spec.ts): 9/9 unit tests asserting brevity, zero echoing, and outcome patterns
+- [x] In-Memory Session Hook (use-agent-session.ts): Continuous mounting & draft preservation
+- [x] Agent Sidebar Drawer (_layout.tsx, agent-drawer-content.tsx): Infinite conversation pagination
+- [x] NestJS 12 Route Migration (main.ts): Replaced deprecated (.*) wildcards with {*path}
+- [x] Task Triage (TODO.md): Resolved warning logs and completed sidebar item
+
+---
+
+## 🖥️ Desktop Polish: Sidebar Cleanup, Folder Manager & Packaging Dry Run — 2026-11-08
+* **Status**: Completed
+* **Scope**: Remove deprecated AI Memories and MCP sidebar buttons, promote Pinned Notes and Archived Notes smart filters with live badges, implement complete folder management (create modal, edit name/color with 8 curated swatches, safe delete with unfiling, sidebar hover actions, note folder assignment dropdown), generate Ed25519 in-app updater keys, and perform end-to-end Windows x64 release packaging dry-run producing signed NSIS (.exe) and WiX (.msi) bundles.
+
+- [x] Deprecate & remove AI Memories and MCP Tools from sidebar and command palette
+- [x] Promote Pinned Notes and Archived Notes smart filter navigation items with real-time counts
+- [x] Build `FolderEditDialog` modal supporting Create/Edit, 8 curated colors, live preview, and safe deletion
+- [x] Add inline folder create trigger (`+`) and hover action menu (`...` -> Edit / Delete) in sidebar
+- [x] Add note folder assignment dropdown pill in `EditorPane` header
+- [x] Wire folder CRUD mutations into `use-notes-store` with Drizzle SQLite persistence and sync outbox queue
+- [x] Add `⌘⇧F` keyboard shortcut in `CommandPalette` to open folder creation modal
+- [x] Generate Ed25519 updater keypair (`ikeen.key` & `ikeen.key.pub`) and configure `pubkey` in `tauri.conf.json`
+- [x] Add root packaging convenience script `"package:desktop"` in `package.json`
+- [x] Reclaim disk space on drive `C:` by clearing debug caches
+- [x] Execute release packaging dry-run generating verified installers and minisign signatures:
+  - [x] `iKeen_0.1.0_x64-setup.exe` (3.97 MB) + `.sig`
+  - [x] `iKeen_0.1.0_x64_en-US.msi` (5.38 MB) + `.sig`
+- [x] Document GitHub Actions secret configuration (`TAURI_SIGNING_PRIVATE_KEY`) in `walkthrough.md`
+
+---
+
+## 🖥️ Desktop Phase 4: Production Release Pipeline & In-App Updater — 2026-11-08
+* **Status**: Completed
+* **Scope**: Automated in-app updater pipeline (`@tauri-apps/plugin-updater`, `tauri-plugin-updater` v2, Ed25519 signatures, `latest.json` release manifest), settings updates card (`apps/desktop/src/components/modals/SettingsDialog.tsx`), multi-platform GitHub Actions workflows (`.github/workflows/desktop-ci.yml` & `.github/workflows/desktop-release.yml`), and centralized remote MCP strategy documented in `docs/architecture/MCP_ARCHITECTURE.md`.
+
+- [x] Automated In-App Updater Plugin Integration (`Cargo.toml`, `lib.rs`, `tauri.conf.json`, `capabilities/default.json`)
+- [x] In-App Updater React Hook (`apps/desktop/src/lib/updater/use-updater.ts`)
+- [x] Software Updates Settings Card (`apps/desktop/src/components/modals/SettingsDialog.tsx`)
+- [x] GitHub Actions Continuous Integration Workflow (`.github/workflows/desktop-ci.yml`)
+- [x] GitHub Actions Multi-Platform Release Matrix Workflow (`.github/workflows/desktop-release.yml`)
+- [x] Centralized Remote MCP Architecture & Strategy Documentation (`docs/architecture/MCP_ARCHITECTURE.md`)
+- [x] Verification (TypeScript check passed with 0 errors)
+
+---
+
+## 🖥️ Desktop Phase 3: Desktop UX, Multi-Window & Native Ergonomics — 2026-11-08
+* **Status**: Completed
+* **Scope**: Spotlight Quick-Capture HUD (`⌘⇧Space`), background system tray persistence with dynamic sync status, full-featured `⌘K` command palette across notes, folders, tags, and actions, note list arrow (`↑`/`↓`) and vim (`j`/`k`) navigation, editor keyboard ergonomics (`Tab` indentation, `⌘B`/`⌘I` markdown formatting, `⌘S` flush), and keyboard shortcuts cheatsheet (`?`/`⌘/`).
+
+- [x] Three-Pane Layout & Sidebar Integration
+- [x] Global Quick-Capture Window (`⌘⇧Space`) & Autostart
+- [x] System Tray Applet & Dynamic Sync Tooltip (`update_tray_status`)
+- [x] Full-Featured Command Palette (`⌘K`)
+- [x] Note List Keyboard Navigation & Auto-Scroll
+- [x] Editor Formatting & Indentation Ergonomics
+- [x] Shortcuts Cheatsheet Modal (`?` / `⌘/`)
+- [x] Verification (TypeScript check, Tauri IPC, Drizzle ORM)
 
 ---
 

@@ -49,7 +49,7 @@ function formatKnownMemories(memories: KnownMemory[]): string {
  */
 export function buildIkeenInstructions(user?: UserPromptContext): string {
   const greetingSegment = user?.firstName
-    ? `\n\n## User Context\nYou are working directly with ${user.firstName} (@${user.username || 'user'}). Greet them warmly and tailor brainstorms to their workspace.`
+    ? `\n\n## User Context\nYou are working directly with ${user.firstName} (@${user.username || 'user'}). Tailor actions to their workspace. Never use greeting pleasantries, conversational filler, or introductory pleasantries.`
     : '';
   const memorySegment = formatKnownMemories(user?.memories ?? []);
   const executionBudget = buildExecutionBudgetSegment(

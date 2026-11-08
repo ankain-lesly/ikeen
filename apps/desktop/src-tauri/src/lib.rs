@@ -52,6 +52,13 @@ fn open_main_app(app: tauri::AppHandle) {
     }
 }
 
+#[tauri::command]
+fn update_tray_status(app: tauri::AppHandle, status: String) {
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        let _ = tray.set_tooltip(Some(format!("iKeen • {}", status)));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -61,6 +68,8 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
@@ -74,7 +83,8 @@ pub fn run() {
                 true,
                 None::<&str>,
             )?;
-            let new_note = MenuItem::with_id(app, "new_note", "New Note", true, None::<&str>)?;
+            let new_note = MenuItem::with_id(app, "new_note", "New Note (⌘N)", true, None::<&str>)?;
+            let sync_now = MenuItem::with_id(app, "sync_now", "Sync with Server", true, None::<&str>)?;
             let toggle_main = MenuItem::with_id(
                 app,
                 "toggle_main",
@@ -98,6 +108,7 @@ pub fn run() {
                 &[
                     &quick_capture,
                     &new_note,
+                    &sync_now,
                     &toggle_main,
                     &sep1,
                     &preferences,
@@ -107,8 +118,9 @@ pub fn run() {
             )?;
 
             // 2. Build and Register System Tray Icon
-            let mut tray_builder = TrayIconBuilder::new()
+            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
+                .tooltip("iKeen • All notes synced")
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quick_capture" => {
@@ -125,6 +137,11 @@ pub fn run() {
                             let _ = window.unminimize();
                             let _ = window.set_focus();
                             let _ = window.emit("tray:new-note", ());
+                        }
+                    }
+                    "sync_now" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("tray:sync-now", ());
                         }
                     }
                     "toggle_main" => {
@@ -211,7 +228,8 @@ pub fn run() {
             toggle_quick_capture,
             hide_quick_capture,
             show_main_window,
-            open_main_app
+            open_main_app,
+            update_tray_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

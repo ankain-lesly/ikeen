@@ -95,4 +95,15 @@ describe('buildIkeenInstructions', () => {
     expect(instructions).toContain(PROMPT_SEGMENT_CONNECTED_APPS);
     expect(instructions).toContain('Connect Link');
   });
+
+  it('enforces purposeful brevity, zero preamble, zero echoing, and outcome confirmations', () => {
+    const instructions = buildIkeenInstructions({ firstName: 'Dev' });
+
+    expect(instructions).toContain('Zero Preamble & Zero Throat-Clearing');
+    expect(instructions).toContain('Zero Prompt Echoing');
+    expect(instructions).toContain('Action Tasks: Outcome-Only Confirmation');
+    expect(instructions).toContain('Question Tasks: Direct Answer & Scannable Summary');
+    expect(instructions).toContain('Tailor actions to their workspace. Never use greeting pleasantries');
+    expect(instructions).not.toContain('Greet them warmly');
+  });
 });

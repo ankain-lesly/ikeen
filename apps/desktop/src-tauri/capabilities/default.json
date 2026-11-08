@@ -22,6 +22,8 @@
     "shell:default",
     "fs:default",
     "notification:default",
-    "autostart:default"
+    "autostart:default",
+    "process:default",
+    "updater:default"
   ]
 }

@@ -9,14 +9,24 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   FileText,
   Folder as FolderIcon,
-  Sparkles,
-  Terminal,
+  Zap,
+  Archive,
   Settings,
   Plus,
   PanelLeft,
   PanelLeftClose,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { cn } from "@/lib/utils";
@@ -27,20 +37,22 @@ export function AppSidebarTrigger({ className }: { className?: string }) {
 
   return (
     <Tooltip>
-      <TooltipTrigger render={
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={toggleSidebar}
-          className={cn(
-            "text-muted-foreground hover:text-foreground shrink-0 transition-colors",
-            isOpen && "text-[#39ff14]",
-            className
-          )}
-        >
-          <PanelLeft className="w-4 h-4" />
-        </Button>
-      } />
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={toggleSidebar}
+            className={cn(
+              "text-muted-foreground hover:text-foreground shrink-0 transition-colors",
+              isOpen && "text-[#39ff14]",
+              className
+            )}
+          >
+            <PanelLeft className="w-4 h-4" />
+          </Button>
+        }
+      />
       <TooltipContent side="bottom">
         <p className="text-xs">{isOpen ? "Collapse Sidebar (⌘\\)" : "Expand Sidebar (⌘\\)"}</p>
       </TooltipContent>
@@ -52,9 +64,15 @@ export function AppSidebarTrigger({ className }: { className?: string }) {
 export interface AppSidebarProps {
   folders: Folder[];
   totalNotesCount: number;
+  pinnedNotesCount?: number;
+  archivedNotesCount?: number;
+  folderNotesCountMap?: Record<string, number>;
   activeFilter: string;
   onFilterChange: (filter: string) => void;
   onNewNote: () => void;
+  onNewFolder: () => void;
+  onEditFolder: (folder: Folder) => void;
+  onDeleteFolder?: (folder: Folder) => void;
   onOpenSettings: () => void;
 }
 
@@ -62,9 +80,15 @@ export interface AppSidebarProps {
 export function AppSidebar({
   folders,
   totalNotesCount,
+  pinnedNotesCount = 0,
+  archivedNotesCount = 0,
+  folderNotesCountMap = {},
   activeFilter,
   onFilterChange,
   onNewNote,
+  onNewFolder,
+  onEditFolder,
+  onDeleteFolder,
   onOpenSettings,
 }: AppSidebarProps) {
   const { isOpen, toggleSidebar, closeSidebar } = useSidebar();
@@ -100,16 +124,18 @@ export function AppSidebar({
           </div>
 
           <Tooltip>
-            <TooltipTrigger render={
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={closeSidebar}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <PanelLeftClose className="w-3.5 h-3.5" />
-              </Button>
-            } />
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={closeSidebar}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5" />
+                </Button>
+              }
+            />
             <TooltipContent side="right">
               <p className="text-xs">Collapse Sidebar (⌘\)</p>
             </TooltipContent>
@@ -146,54 +172,148 @@ export function AppSidebar({
           </Button>
 
           <Button
-            variant={activeFilter === "ai" ? "secondary" : "ghost"}
+            variant={activeFilter === "pinned" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => onFilterChange("ai")}
+            onClick={() => onFilterChange("pinned")}
             className="w-full justify-start gap-2.5 text-xs font-normal text-muted-foreground hover:text-foreground"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">AI Memories</span>
+            <Zap className="w-3.5 h-3.5 text-[#39ff14] shrink-0" />
+            <span className="truncate">Pinned</span>
+            {pinnedNotesCount > 0 && (
+              <span className="ml-auto text-[11px] font-mono text-muted-foreground shrink-0">
+                {pinnedNotesCount}
+              </span>
+            )}
           </Button>
 
           <Button
-            variant={activeFilter === "mcp" ? "secondary" : "ghost"}
+            variant={activeFilter === "archived" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => onFilterChange("mcp")}
+            onClick={() => onFilterChange("archived")}
             className="w-full justify-start gap-2.5 text-xs font-normal text-muted-foreground hover:text-foreground"
           >
-            <Terminal className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-            <span className="truncate">MCP Tools</span>
+            <Archive className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+            <span className="truncate">Archived</span>
+            {archivedNotesCount > 0 && (
+              <span className="ml-auto text-[11px] font-mono text-muted-foreground shrink-0">
+                {archivedNotesCount}
+              </span>
+            )}
           </Button>
         </nav>
 
         <Separator className="my-3 mx-2 w-auto shrink-0" />
 
-        {/* Folders List */}
-        <div className="px-3 pb-4">
+        {/* Folders List with Management */}
+        <div className="px-3 pb-4 flex-1">
           <div className="flex items-center justify-between mb-1.5 px-1">
             <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground font-semibold">
-              Folders
+              Folders ({folders.length})
             </span>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={onNewFolder}
+                    className="h-5 w-5 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="right">
+                <p className="text-xs">New Folder</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
+
           <div className="space-y-0.5">
-            {folders.map((folder) => {
-              const isSelected = activeFilter === `folder:${folder.id}`;
-              return (
-                <Button
-                  key={folder.id}
-                  variant={isSelected ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => onFilterChange(`folder:${folder.id}`)}
-                  className="w-full justify-start gap-2 text-xs font-normal text-muted-foreground hover:text-foreground"
+            {folders.length === 0 ? (
+              <div className="px-2 py-3 text-center rounded border border-dashed border-border/60">
+                <p className="text-[11px] text-muted-foreground">No folders yet</p>
+                <button
+                  type="button"
+                  onClick={onNewFolder}
+                  className="text-[11px] text-[#39ff14] hover:underline mt-1 inline-block"
                 >
-                  <FolderIcon
-                    className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: folder.color || "#3b82f6" }}
-                  />
-                  <span className="truncate">{folder.name}</span>
-                </Button>
-              );
-            })}
+                  Create your first folder
+                </button>
+              </div>
+            ) : (
+              folders.map((folder) => {
+                const isSelected = activeFilter === `folder:${folder.id}`;
+                const noteCount = folderNotesCountMap[folder.id] ?? 0;
+
+                return (
+                  <div
+                    key={folder.id}
+                    className={cn(
+                      "group flex items-center justify-between rounded-md transition-colors pr-1",
+                      isSelected
+                        ? "bg-secondary text-foreground"
+                        : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onFilterChange(`folder:${folder.id}`)}
+                      className="flex-1 flex items-center gap-2 px-2 py-1.5 text-xs font-normal truncate text-left"
+                    >
+                      <FolderIcon
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: folder.color || "#3b82f6" }}
+                      />
+                      <span className="truncate">{folder.name}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {noteCount > 0 && (
+                        <span className="text-[10px] font-mono text-muted-foreground px-1">
+                          {noteCount}
+                        </span>
+                      )}
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            </Button>
+                          }
+                        />
+                        <DropdownMenuContent align="end" className="w-36 text-xs">
+                          <DropdownMenuItem
+                            onClick={() => onEditFolder(folder)}
+                            className="gap-2 text-xs"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit Folder
+                          </DropdownMenuItem>
+                          {onDeleteFolder && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => onDeleteFolder(folder)}
+                                className="gap-2 text-xs text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -201,16 +321,18 @@ export function AppSidebar({
       {/* Footer: Quiet, settings-only */}
       <div className="p-3 border-t border-border bg-background/50 flex items-center justify-end text-xs shrink-0 w-60">
         <Tooltip>
-          <TooltipTrigger render={
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={onOpenSettings}
-              className="text-muted-foreground hover:text-foreground shrink-0"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </Button>
-          } />
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={onOpenSettings}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </Button>
+            }
+          />
           <TooltipContent side="top">
             <p className="text-xs">Preferences (⌘,)</p>
           </TooltipContent>

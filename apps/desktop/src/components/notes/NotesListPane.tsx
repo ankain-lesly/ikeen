@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { Note } from "@repo/types";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
@@ -18,6 +18,8 @@ interface NotesListPaneProps {
   onArchiveNote: (noteId: string) => void;
   onOpenCommand: () => void;
   onNewNote?: () => void;
+  onFocusEditor?: () => void;
+  searchRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function NotesListPane({
@@ -31,6 +33,8 @@ export function NotesListPane({
   onArchiveNote,
   onOpenCommand,
   onNewNote,
+  onFocusEditor,
+  searchRef: externalSearchRef,
 }: NotesListPaneProps) {
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const isControlled = onSearchChange !== undefined;
@@ -38,6 +42,8 @@ export function NotesListPane({
 
   // Local immediate input state for 0ms typing response
   const [inputValue, setInputValue] = useState(targetSearchQuery);
+  const localSearchRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = externalSearchRef || localSearchRef;
 
   // Sync when external query resets
   useEffect(() => {
@@ -81,6 +87,112 @@ export function NotesListPane({
     });
   }, [displayedNotes]);
 
+  // Auto-scroll active card into view on selection change
+  useEffect(() => {
+    if (activeNoteId) {
+      const activeEl = document.querySelector(`[data-note-id="${activeNoteId}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+  }, [activeNoteId]);
+
+  // High-throughput keyboard navigation in note list (Arrow keys, j/k, Enter, Esc)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const activeEl = document.activeElement;
+      const isSearchFocused = activeEl === searchInputRef.current;
+      const isInputFocused =
+        activeEl?.tagName === "INPUT" ||
+        activeEl?.tagName === "TEXTAREA" ||
+        (activeEl as HTMLElement)?.isContentEditable;
+
+      // 1. When typing inside the search input:
+      if (isSearchFocused) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (inputValue) {
+            setInputValue("");
+            if (isControlled) onSearchChange?.("");
+            else setInternalSearchQuery("");
+          } else {
+            searchInputRef.current?.blur();
+          }
+          return;
+        }
+
+        if (e.key === "ArrowDown" && sortedNotes.length > 0) {
+          e.preventDefault();
+          searchInputRef.current?.blur();
+          if (!activeNoteId) {
+            onSelectNote(sortedNotes[0].id);
+          } else {
+            const idx = sortedNotes.findIndex((n) => n.id === activeNoteId);
+            const nextIdx = Math.min(sortedNotes.length - 1, idx + 1);
+            onSelectNote(sortedNotes[nextIdx].id);
+          }
+          return;
+        }
+
+        if (e.key === "Enter" && sortedNotes.length > 0) {
+          e.preventDefault();
+          searchInputRef.current?.blur();
+          if (!activeNoteId) {
+            onSelectNote(sortedNotes[0].id);
+          }
+          onFocusEditor?.();
+          return;
+        }
+      }
+
+      // If typing in another input (like editor), do not intercept general list navigation keys
+      if (isInputFocused) return;
+
+      // 2. Global / Pane List Navigation:
+      if (e.key === "ArrowDown" || e.key === "j") {
+        if (sortedNotes.length === 0) return;
+        e.preventDefault();
+        const currentIndex = sortedNotes.findIndex((n) => n.id === activeNoteId);
+        if (currentIndex === -1) {
+          onSelectNote(sortedNotes[0].id);
+        } else {
+          const nextIndex = Math.min(sortedNotes.length - 1, currentIndex + 1);
+          onSelectNote(sortedNotes[nextIndex].id);
+        }
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        if (sortedNotes.length === 0) return;
+        e.preventDefault();
+        const currentIndex = sortedNotes.findIndex((n) => n.id === activeNoteId);
+        if (currentIndex === -1) {
+          onSelectNote(sortedNotes[0].id);
+        } else {
+          const prevIndex = Math.max(0, currentIndex - 1);
+          onSelectNote(sortedNotes[prevIndex].id);
+        }
+      } else if (e.key === "Enter") {
+        if (activeNoteId) {
+          e.preventDefault();
+          onFocusEditor?.();
+        }
+      } else if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    sortedNotes,
+    activeNoteId,
+    inputValue,
+    isControlled,
+    onSearchChange,
+    onSelectNote,
+    onFocusEditor,
+    searchInputRef,
+  ]);
+
   return (
     <section className="h-full w-full bg-card/20 flex flex-col border-r border-border select-none overflow-hidden">
       {/* Search Header: Clean with Sidebar Trigger and ⌘K */}
@@ -90,9 +202,10 @@ export function NotesListPane({
         <div className="relative flex-1 flex items-center min-w-0">
           <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
+            ref={searchInputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search notes (FTS5)..."
+            placeholder="Search notes (FTS5)... [/]"
             className="pl-8 pr-12 h-8 text-xs bg-transparent border-border/60 focus-visible:ring-1 focus-visible:ring-[#39ff14]/50"
           />
           <button

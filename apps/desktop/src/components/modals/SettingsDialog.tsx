@@ -16,10 +16,13 @@ import {
   ShieldCheck,
   Keyboard,
   CloudSync,
-  Sparkles,
   Power,
+  RefreshCw,
+  Download,
+  RotateCcw,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { useUpdater } from "@/lib/updater/use-updater";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -39,6 +42,15 @@ export function SettingsDialog({
     }
     return false;
   });
+
+  const {
+    status: updaterStatus,
+    updateInfo,
+    downloadProgress,
+    checkForUpdates,
+    downloadAndInstall,
+    relaunchApp,
+  } = useUpdater();
 
   // Query autostart state on open
   useEffect(() => {
@@ -207,12 +219,69 @@ export function SettingsDialog({
                 </div>
                 <Switch defaultChecked />
               </div>
+            </div>
+          </div>
+
+          {/* Software Updates */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5 text-sky-400" />
+              Software Updates
+            </h4>
+            <div className="rounded border border-border p-3 bg-muted/30 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-3 w-3 text-amber-400" />
-                  <span className="font-medium text-foreground">MCP Tool Sidecars</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">iKeen Desktop</p>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      v0.1.0
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {updaterStatus === 'checking' && 'Checking for updates...'}
+                    {updaterStatus === 'up-to-date' && 'You are running the latest release.'}
+                    {updaterStatus === 'available' && `Update v${updateInfo?.version} available!`}
+                    {updaterStatus === 'downloading' && `Downloading update: ${downloadProgress}%`}
+                    {updaterStatus === 'ready' && 'Update downloaded. Ready to relaunch.'}
+                    {updaterStatus === 'error' && 'Unable to reach update server.'}
+                    {updaterStatus === 'idle' && 'Release channel: GitHub Stable Releases'}
+                  </p>
                 </div>
-                <Switch defaultChecked />
+
+                <div className="flex items-center gap-2">
+                  {updaterStatus === 'available' && (
+                    <Button
+                      size="sm"
+                      onClick={() => void downloadAndInstall()}
+                      className="h-7 text-xs gap-1.5 bg-[#39ff14] text-black hover:bg-[#32e012]"
+                    >
+                      <Download className="h-3 w-3" />
+                      Download
+                    </Button>
+                  )}
+                  {updaterStatus === 'ready' && (
+                    <Button
+                      size="sm"
+                      onClick={() => void relaunchApp()}
+                      className="h-7 text-xs gap-1.5 bg-[#39ff14] text-black hover:bg-[#32e012]"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Relaunch
+                    </Button>
+                  )}
+                  {updaterStatus !== 'available' && updaterStatus !== 'ready' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void checkForUpdates()}
+                      disabled={updaterStatus === 'checking' || updaterStatus === 'downloading'}
+                      className="h-7 text-xs gap-1.5"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${updaterStatus === 'checking' ? 'animate-spin' : ''}`} />
+                      Check
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

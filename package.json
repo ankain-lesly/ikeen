@@ -7,6 +7,7 @@
     "dev:web": "turbo run dev --filter=web",
     "dev:mobile": "turbo run dev --filter=@repo/mobile",
     "dev:desktop": "turbo run dev --filter=@repo/desktop",
+    "package:desktop": "bun run --cwd apps/desktop tauri build",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

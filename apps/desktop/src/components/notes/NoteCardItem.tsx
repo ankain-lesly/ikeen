@@ -31,6 +31,7 @@ export const NoteCardItem = memo(
     return (
       <ContextMenu>
         <ContextMenuTrigger
+          data-note-id={note.id}
           onClick={() => onSelect(note.id)}
           className={`block p-3 cursor-pointer transition-colors border-b border-border/40 text-left select-none ${
             isActive
