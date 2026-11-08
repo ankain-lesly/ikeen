@@ -29,8 +29,9 @@ import { RecentNotes } from "@/components/recent-notes";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { hex2RGBA, log } from "@repo/utils";
+import { HeaderGradient, useHeaderInset } from "@/hooks/use-header-inset";
 
-export function RootCustomDrawerContent(props: any) {
+export function AppDrawerContent(props: any) {
   const colors = useTheme();
   const { theme, setTheme } = useSettingsStore();
 
@@ -79,7 +80,7 @@ export function RootCustomDrawerContent(props: any) {
         badge: foldersCount,
       },
       {
-        name: "Brainstorm",
+        name: "Chat",
         icon: Sparkles,
         path: "/agent",
         badge: "AI",
@@ -98,31 +99,25 @@ export function RootCustomDrawerContent(props: any) {
     ],
     [activeCount, foldersCount],
   );
-
-  const insets = useSafeAreaInsets();
-  const headerHeight = 40;
+ 
+  const { insetHeight, height } = useHeaderInset(40);
 
   return (
     <View className="flex-1 bg-background">
       {/* Clean Header: iKeen only, no border, no version, no sparkle */}
-      <View className="absolute top-0 w-full z-20">
-        <View
-          style={{ height: insets.top, width: "100%", backgroundColor: colors.background }}
+      <View className="absolute top-0 w-full z-20 pt-safe">
+        {/* Gradient */}
+        <HeaderGradient
+          featherOffset={2}
+          colors={[colors.background, colors.background, "transparent"]}
+          locations={[0.0, 0.35, 1]}
         />
+        {/* Header */}
         <View
           className="px-5 flex-row items-center justify-between relative"
           style={{
-            height: headerHeight,
+            height,
           }}>
-          <LinearGradient
-            colors={[
-              colors.background,
-              hex2RGBA(colors.background, 0.8),
-              "transparent",
-            ]}
-            // locations={[0, 0.35, 1]}
-            style={StyleSheet.absoluteFill}
-          />
           <ThemedText type="title" className="font-normal">
             iKeen
           </ThemedText>
@@ -152,7 +147,7 @@ export function RootCustomDrawerContent(props: any) {
         onMomentumScrollEnd={handleScrollEnd}
         scrollEventThrottle={16}
         contentContainerStyle={{
-          paddingTop: insets.top + headerHeight,
+          paddingTop: insetHeight,
           paddingBottom: 100,
         }}
         showsVerticalScrollIndicator={false}

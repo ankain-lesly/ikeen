@@ -2,10 +2,10 @@ import React from "react";
 import { View, Pressable, ScrollView } from "react-native";
 import { type Href, useRouter } from "expo-router";
 import {
+  ListFilter,
   ListOrdered,
   Pin,
   Search,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -13,7 +13,6 @@ import { ThemedText } from "../ui/themed-text";
 import { ListNotesOptions } from "@/lib/types/notes";
 import { Card } from "../ui/card";
 import { useDrawerActions } from "../drawer-nav-items";
-import DrawerLeft from "@/assets/svg/drawer-left.svg";
 
 interface NotesHeaderProps {
   onOpenFilter: () => void;
@@ -94,7 +93,7 @@ export function NotesHeader({
         </View>
 
         {/* Action Cluster: Search -> Filter -> AI */}
-        <Card className="px-3 rounded-full flex-row items-center gap-4">
+        <View className="px-3 rounded-full flex-row items-center gap-4">
           {/* <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open folders"
@@ -125,17 +124,17 @@ export function NotesHeader({
           </Pressable>
 
           {/* Filter Modal Trigger */}
-          <Pressable
+          {/* <Pressable
             accessibilityRole="button"
             accessibilityLabel="Filter and sort notes"
             hitSlop={8}
             onPress={onOpenFilter}
             className="relative items-center justify-center rounded-full">
-            <SlidersHorizontal size={20} color={colors.text} strokeWidth={2} />
+            <ListFilter size={20} color={colors.text} strokeWidth={2} />
             {hasActiveFilters && (
               <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
             )}
-          </Pressable>
+          </Pressable> */}
 
           {/* AI Agent Navigation Trigger */}
           <Pressable
@@ -146,7 +145,7 @@ export function NotesHeader({
             className="items-center justify-center rounded-full">
             <Sparkles size={20} color={colors.primary} strokeWidth={2.2} />
           </Pressable>
-        </Card>
+        </View>
       </View>
 
       {/* Segmented Filter Pills */}
@@ -155,7 +154,21 @@ export function NotesHeader({
           className="flex-row gap-2"
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-3">
+          contentContainerClassName="gap-1.5">
+            {/* Filter */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Filter and sort notes"
+            hitSlop={8}
+            onPress={onOpenFilter}
+            className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 border-background-selected bg-card`}>
+            <ListFilter size={18} color={colors.text} strokeWidth={2} />
+            {hasActiveFilters && (
+              <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
+            )}
+          </Pressable>
+
+          {/* Recent */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Recent notes"

@@ -30,7 +30,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { CheckForUpdatesMain } from "@/components/check-for-updates";
-import { RootCustomDrawerContent } from "@/components/root-custom-drawer-content";
+import { AppDrawerContent } from "@/components/app-drawer-content";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -129,7 +129,7 @@ function RootDrawerLayout() {
 
   return (
     <Drawer
-      drawerContent={RootCustomDrawerContent}
+      drawerContent={AppDrawerContent}
       screenOptions={{
         headerShown: false,
         drawerStyle: {
