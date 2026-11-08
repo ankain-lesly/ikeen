@@ -17,14 +17,6 @@
 
 - Add a setting background image to the notes app and optionally for each note setup
 
-## Tool Definition & Sync Invalidation Co-location (Approach A)
-- [ ] Refactor `TOOL_MUTATION_ENTITIES` record lookup to co-locate `mutates: readonly SyncEntity[]` directly on tool definition schemas (e.g., `notes.tool-definitions.ts`, `folders.tool-definitions.ts`).
-  - **Motivation**: Eliminate risk of dictionary drift when adding new tools in the future.
-  - **Design**:
-    - Extend tool definition interfaces with `mutates?: readonly ('notes' | 'note_blocks' | 'folders')[]` (aligned with MCP annotations like `readOnlyHint`).
-    - Both `AgentService` and `IkeenMcpServer` derive invalidation targets dynamically from the tool definition metadata.
-    - Deprecate static `TOOL_MUTATION_ENTITIES` dictionary in `apps/api/src/modules/sync/sync-events.constants.ts`.
-
 ---
 
 ## Features
@@ -69,6 +61,8 @@
 
 ## Desktop
 
-- Roadmap to build a desktop app with Tauri for the notes app (floating app toolbar on screen for quick actions, open app, launch on startup)
+- [x] Desktop Phase 1 & 2: Local SQLite + Drizzle ORM, bidirectional sync manager, clean sidebar layout, and single-source-of-truth types.
+- [x] Desktop Phase 3: Global Quick-Capture HUD (`⌘⇧Space` / `Ctrl+Shift+Space`), background system tray actions, minimize-to-tray on close, and launch on startup (`tauri-plugin-autostart`).
+- [ ] Desktop Phase 4: Native keyboard navigation shortcuts & command palette (Cmd+K / Ctrl+K).
 
-C88FUV
+5BVHJ5

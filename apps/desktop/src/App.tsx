@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { Note } from "@repo/types";
 
 import {
@@ -46,7 +47,7 @@ export default function App() {
     void init();
   }, [init]);
 
-  // 2. Initialize Tauri IPC test
+  // 2. Initialize Tauri IPC test and listen for system tray / HUD events
   useEffect(() => {
     invoke<string>("greet", { name: "iKeen Desktop Shell" })
       .then(() => {
@@ -55,7 +56,27 @@ export default function App() {
       .catch(() => {
         setIpcConnected(false);
       });
-  }, []);
+
+    // Listen for new notes created via Quick-Capture HUD
+    const unlistenNoteCreated = listen("note:created", () => {
+      void useNotesStore.getState().loadNotes();
+    });
+
+    // Listen for tray actions
+    const unlistenTrayNewNote = listen("tray:new-note", () => {
+      void createNewNote();
+    });
+
+    const unlistenTraySettings = listen("tray:open-settings", () => {
+      setIsSettingsOpen(true);
+    });
+
+    return () => {
+      unlistenNoteCreated.then((f) => f()).catch(() => {});
+      unlistenTrayNewNote.then((f) => f()).catch(() => {});
+      unlistenTraySettings.then((f) => f()).catch(() => {});
+    };
+  }, [createNewNote]);
 
   // 3. Global keybindings (⌘N for new note, ⌘, for settings)
   useEffect(() => {

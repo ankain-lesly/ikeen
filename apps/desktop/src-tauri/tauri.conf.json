@@ -23,12 +23,14 @@
         "label": "quick-capture",
         "title": "Quick Capture",
         "width": 640,
-        "height": 380,
+        "height": 340,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "visible": false,
-        "skipTaskbar": true
+        "skipTaskbar": true,
+        "center": true,
+        "resizable": false
       }
     ],
     "security": {

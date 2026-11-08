@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Kbd } from "@/components/ui/kbd";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { ShieldCheck, Keyboard, CloudSync, Sparkles } from "lucide-react";
+import {
+  ShieldCheck,
+  Keyboard,
+  CloudSync,
+  Sparkles,
+  Power,
+} from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -24,6 +32,44 @@ export function SettingsDialog({
   onOpenChange,
   ipcConnected,
 }: SettingsDialogProps) {
+  const [autostartEnabled, setAutostartEnabled] = useState(false);
+  const [startMinimized, setStartMinimized] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ikeen_start_minimized") === "true";
+    }
+    return false;
+  });
+
+  // Query autostart state on open
+  useEffect(() => {
+    if (open) {
+      invoke<boolean>("plugin:autostart|is_enabled")
+        .then((res: boolean) => setAutostartEnabled(res))
+        .catch(() => setAutostartEnabled(false));
+    }
+  }, [open]);
+
+  async function handleToggleAutostart(checked: boolean) {
+    try {
+      if (checked) {
+        await invoke("plugin:autostart|enable");
+        setAutostartEnabled(true);
+      } else {
+        await invoke("plugin:autostart|disable");
+        setAutostartEnabled(false);
+      }
+    } catch (err: unknown) {
+      console.warn("[Settings:AutostartToggleError]", err);
+    }
+  }
+
+  function handleToggleStartMinimized(checked: boolean) {
+    setStartMinimized(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ikeen_start_minimized", String(checked));
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-card text-card-foreground border-border">
@@ -37,23 +83,58 @@ export function SettingsDialog({
             </Badge>
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
-            Configure local-first SQLite storage, keyboard shortcuts, and cloud sync.
+            Configure system integration, startup preferences, keyboard shortcuts, and sync.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2 text-xs">
-          {/* Storage & Runtime */}
+          {/* System & Startup */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#39ff14]" />
+              <Power className="h-3.5 w-3.5 text-[#39ff14]" />
+              System & Startup Integration
+            </h4>
+            <div className="rounded border border-border p-3 bg-muted/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Launch on System Startup</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Automatically launch iKeen in the background when your computer boots
+                  </p>
+                </div>
+                <Switch
+                  checked={autostartEnabled}
+                  onCheckedChange={(checked) => void handleToggleAutostart(checked)}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Start Minimized to System Tray</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Keep main window hidden on launch; access via tray or global shortcut
+                  </p>
+                </div>
+                <Switch
+                  checked={startMinimized}
+                  onCheckedChange={handleToggleStartMinimized}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Local Storage & Runtime */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
               Local Storage & Engine
             </h4>
             <div className="rounded border border-border p-3 bg-muted/30 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">SQLite Database</p>
+                  <p className="font-medium text-foreground">SQLite Storage Engine</p>
                   <p className="text-[10px] text-muted-foreground">
-                    ikeen_desktop.db with FTS5 virtual tables
+                    ikeen_desktop.db with pure Drizzle ORM query builders
                   </p>
                 </div>
                 <Badge variant={ipcConnected ? "default" : "secondary"} className="text-[10px]">
@@ -71,10 +152,21 @@ export function SettingsDialog({
           {/* Shortcuts */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Keyboard className="h-3.5 w-3.5 text-sky-400" />
+              <Keyboard className="h-3.5 w-3.5 text-amber-400" />
               Keyboard Ergonomics
             </h4>
             <div className="rounded border border-border divide-y divide-border bg-muted/30">
+              <div className="flex items-center justify-between p-2.5">
+                <div>
+                  <span className="text-muted-foreground">Quick-Capture HUD</span>
+                  <p className="text-[10px] text-muted-foreground/70">Global shortcut anywhere on OS</p>
+                </div>
+                <div className="flex gap-1">
+                  <Kbd>⌘</Kbd>
+                  <Kbd>⇧</Kbd>
+                  <Kbd>Space</Kbd>
+                </div>
+              </div>
               <div className="flex items-center justify-between p-2.5">
                 <span className="text-muted-foreground">Command Palette</span>
                 <div className="flex gap-1">
@@ -90,20 +182,19 @@ export function SettingsDialog({
                 </div>
               </div>
               <div className="flex items-center justify-between p-2.5">
-                <span className="text-muted-foreground">Quick-Capture HUD</span>
+                <span className="text-muted-foreground">Toggle Sidebar</span>
                 <div className="flex gap-1">
                   <Kbd>⌘</Kbd>
-                  <Kbd>⇧</Kbd>
-                  <Kbd>Space</Kbd>
+                  <Kbd>\</Kbd>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sync & AI */}
+          {/* Sync & Network */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <CloudSync className="h-3.5 w-3.5 text-amber-400" />
+              <CloudSync className="h-3.5 w-3.5 text-purple-400" />
               Sync & Network
             </h4>
             <div className="rounded border border-border p-3 bg-muted/30 space-y-3">
@@ -111,7 +202,7 @@ export function SettingsDialog({
                 <div>
                   <p className="font-medium text-foreground">Background Sync Outbox</p>
                   <p className="text-[10px] text-muted-foreground">
-                    Non-blocking sync queue when online
+                    Non-blocking outbox mutation queue pushes when online
                   </p>
                 </div>
                 <Switch defaultChecked />
