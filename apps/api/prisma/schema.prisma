@@ -68,6 +68,7 @@ model User {
   auditLogs           AuditLog[]
   folders             Folder[]
   notes               Note[]
+  reminders           Reminder[]
   syncLogs            SyncLog[]
   chatConversations   ChatConversation[]
   chatMemories        ChatMemory[]
@@ -355,6 +356,7 @@ model Note {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
   blocks     NoteBlock[]
+  reminders  Reminder[]
 
   @@index([userId, updatedAt])
   @@index([userId, deletedAt])
@@ -391,10 +393,44 @@ model NoteBlock {
   @@map("note_blocks")
 }
 
+
+enum ReminderRepeat {
+  none
+  daily
+  weekly
+  monthly
+  yearly
+  custom
+}
+
+model Reminder {
+  id             String         @id @default(uuid())
+  userId         String?        @map("user_id")
+  noteId         String?        @map("note_id")
+  title          String         @default("") @db.VarChar(255)
+  dueAt          DateTime       @map("due_at")
+  repeat         ReminderRepeat @default(none)
+  isCompleted    Boolean        @default(false) @map("is_completed")
+  notificationId String?        @map("notification_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  deletedAt      DateTime?      @map("deleted_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note Note? @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@index([noteId, deletedAt])
+  @@index([userId, dueAt])
+  @@index([isCompleted])
+  @@map("reminders")
+}
+
 enum SyncEntity {
   folders
   notes
   note_blocks
+  reminders
 }
 
 model SyncLog {

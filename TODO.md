@@ -18,9 +18,7 @@
 
 ## Features
 
-- Reminders: Add reminder button on the note-bulk-actions when feature is implemented
 - Scratchpad: A single view For dumping unorganized notes ideas. Also Synced. (Architecture. User creates/assigns a specific note only visible as scratchpad)
-- Sides when integrating reminders
 - Gallery Nav Link On Agent sidebar when gallery feature is implemented
 
 ---

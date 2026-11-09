@@ -39,6 +39,15 @@ import type {
   NoteSelect,
 } from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
+import {
+  useLiveRemindersForNote,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from "@/lib/queries/reminders";
+import { ReminderSheet } from "./reminder-sheet";
+import type { ReminderRepeat } from "@repo/types";
+
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
 import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
 import { GestureDetector } from "react-native-gesture-handler";
@@ -110,6 +119,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
+  const [isReminderSheetVisible, setIsReminderSheetVisible] = useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
   const [targetAudioBlockId, setTargetAudioBlockId] = useState<string | null>(
@@ -118,6 +128,45 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
   const { data: liveBlocks } = useLiveNoteBlocks(note.id);
+  const { data: noteReminders = [] } = useLiveRemindersForNote(note?.id);
+  const activeReminder = useMemo(
+    () => noteReminders.find((r) => !r.isCompleted && !r.deletedAt) ?? null,
+    [noteReminders]
+  );
+
+  const handleSaveReminder = async (dueAt: string, repeat: ReminderRepeat) => {
+    if (!note.id) return;
+    try {
+      if (activeReminder) {
+        await updateReminder(activeReminder.id, {
+          dueAt,
+          repeat,
+          isCompleted: false,
+        });
+        toast.success("Reminder updated");
+      } else {
+        await createReminder({
+          noteId: note.id,
+          title: note.title || "Note Reminder",
+          dueAt,
+          repeat,
+        });
+        toast.success("Reminder set");
+      }
+    } catch {
+      toast.error("Failed to set reminder");
+    }
+  };
+
+  const handleClearReminder = useCallback(async () => {
+    if (!activeReminder) return;
+    try {
+      await deleteReminder(activeReminder.id);
+      toast.success("Reminder removed");
+    } catch {
+      toast.error("Failed to remove reminder");
+    }
+  }, [activeReminder]);
 
   // Once any block is created, `createBlock` has already persisted the parent note in SQLite
   const isUnpersistedDraft = isNewDraft && liveBlocks.length === 0;
@@ -446,6 +495,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             note={noteWithFullContent}
             onUpdateState={updateNoteState}
             onDeleteSuccess={handleDeleteSuccess}
+            onReminder={!isUnpersistedDraft ? () => setIsReminderSheetVisible(true) : undefined}
             onShowInfo={() => setInfoSheetVisible(true)}
             onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
           />
@@ -612,6 +662,18 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           }
         }}
       />
+            {/* Reminder Sheet */}
+      {note?.id ? (
+        <ReminderSheet
+          isPresented={isReminderSheetVisible}
+          onDismiss={() => setIsReminderSheetVisible(false)}
+          initialDueAt={activeReminder?.dueAt}
+          initialRepeat={activeReminder?.repeat}
+          onSave={handleSaveReminder}
+          onClear={activeReminder ? handleClearReminder : undefined}
+        />
+      ) : null}
+
       {/* Audio Recording Sheet */}
       <AudioRecordingSheet
         visible={isAudioRecordingOpen}

@@ -20,6 +20,10 @@
     "./notes": {
       "types": "./src/notes.ts",
       "default": "./src/notes.ts"
+    },
+    "./reminders": {
+      "types": "./src/reminders.ts",
+      "default": "./src/reminders.ts"
     }
   },
   "scripts": {

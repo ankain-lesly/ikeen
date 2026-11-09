@@ -1,14 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import {
   openBrowserAsync,
   WebBrowserPresentationStyle,
 } from "expo-web-browser";
-import { Host, Switch } from "@expo/ui/jetpack-compose";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
-  ArrowUpDown,
+  Bell,
   ChevronRight,
   Cloud,
   CloudUpload,
@@ -26,10 +25,15 @@ import {
   Sparkles,
   Sun,
   Trash,
-  Vibrate,
-  Wifi,
 } from "lucide-react-native";
 import Constants from "expo-constants";
+
+import {
+  getNotificationPermissionsAsync,
+  requestNotificationPermissionsAsync,
+  openDeviceNotificationSettings,
+} from "@/lib/services/notification";
+import { toast } from "@/lib/toast";
 
 import { ThemedText } from "@/components/ui/themed-text";
 import { useTheme } from "@/hooks/use-theme";
@@ -38,11 +42,7 @@ import { useLiveNotes } from "@/lib/queries/notes";
 import { useLiveFolders } from "@/lib/queries/folders";
 import { useSyncStore } from "@/lib/sync/use-sync";
 import { syncManager } from "@/lib/sync/sync-manager";
-import {
-  useSettingsStore,
-  type AppTheme,
-  type DefaultNoteSort,
-} from "@/lib/settings/settings-store";
+import { useSettingsStore, type AppTheme } from "@/lib/settings/settings-store";
 import { NewBadge } from "@/components/ui/new-badge";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { or, eq } from "drizzle-orm";
@@ -70,12 +70,12 @@ export default function ProfileScreen() {
   const {
     theme,
     setTheme,
-    defaultSort,
-    setDefaultSort,
+    // defaultSort,
+    // setDefaultSort,
     hapticsEnabled,
-    setHapticsEnabled,
-    autoSyncOnCellular,
-    setAutoSyncOnCellular,
+    // setHapticsEnabled,
+    // autoSyncOnCellular,
+    // setAutoSyncOnCellular,
   } = useSettingsStore();
 
   const { data: notes = [] } = useLiveNotes({
@@ -87,6 +87,54 @@ export default function ProfileScreen() {
 
   const pinnedCount = notes.filter((n) => n.isPinned).length;
   const trashedCount = notes.filter((n) => !!n.deletedAt).length;
+
+  const [hasNotificationPermission, setHasNotificationPermission] =
+    useState(false);
+
+  useEffect(() => {
+    getNotificationPermissionsAsync().then((res) => {
+      setHasNotificationPermission(res.granted);
+    });
+  }, []);
+
+  const handleToggleNotifications = async () => {
+    if (hapticsEnabled) Haptics.selectionAsync();
+    const current = await getNotificationPermissionsAsync();
+    if (current.granted) {
+      Alert.alert(
+        "Notifications Active",
+        "Reminders and note alerts are currently enabled. To adjust alert sounds or banners, open device settings.",
+        [
+          { text: "Done", style: "cancel" },
+          {
+            text: "Open Settings",
+            onPress: () => openDeviceNotificationSettings(),
+          },
+        ],
+      );
+      return;
+    }
+
+    if (current.canAskAgain) {
+      const granted = await requestNotificationPermissionsAsync();
+      setHasNotificationPermission(granted);
+      if (granted) {
+        toast.success("Notifications enabled for reminders!");
+      }
+    } else {
+      Alert.alert(
+        "Enable Notifications",
+        "Notifications were previously disabled for iKeen. Open Settings to allow alerts for note reminders.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Open Settings",
+            onPress: () => openDeviceNotificationSettings(),
+          },
+        ],
+      );
+    }
+  };
 
   const handleOpenAuth = () => {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -108,15 +156,15 @@ export default function ProfileScreen() {
     setTheme(newTheme);
   };
 
-  const handleSortCycle = () => {
-    if (hapticsEnabled) Haptics.selectionAsync();
-    const cycleMap: Record<DefaultNoteSort, DefaultNoteSort> = {
-      updatedAt: "createdAt",
-      createdAt: "title",
-      title: "updatedAt",
-    };
-    setDefaultSort(cycleMap[defaultSort] || "updatedAt");
-  };
+  // const handleSortCycle = () => {
+  //   if (hapticsEnabled) Haptics.selectionAsync();
+  //   const cycleMap: Record<DefaultNoteSort, DefaultNoteSort> = {
+  //     updatedAt: "createdAt",
+  //     createdAt: "title",
+  //     title: "updatedAt",
+  //   };
+  //   setDefaultSort(cycleMap[defaultSort] || "updatedAt");
+  // };
 
   const handleSignOut = () => {
     if (hapticsEnabled) {
@@ -148,11 +196,11 @@ export default function ProfileScreen() {
       "U"
     : "G";
 
-  const sortLabel = {
-    updatedAt: "Recently Edited",
-    createdAt: "Date Created",
-    title: "Title (A-Z)",
-  }[defaultSort];
+  // const sortLabel = {
+  //   updatedAt: "Recently Edited",
+  //   createdAt: "Date Created",
+  //   title: "Title (A-Z)",
+  // }[defaultSort];
 
   const username = [user?.firstName, user?.lastName]?.filter(Boolean).join(" ");
 
@@ -268,6 +316,51 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
         )}
+
+        {/* 🔔 Notifications & Reminders Permission Section */}
+        <View className="gap-2.5">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+            Notifications
+          </Text>
+
+          <View className="rounded-2xl bg-card border border-border overflow-hidden">
+            <Pressable
+              onPress={handleToggleNotifications}
+              className="p-3.5 flex-row items-center justify-between active:bg-background-element">
+              <View className="flex-row items-center gap-3">
+                <Bell size={17} color={colors.textSecondary} />
+                <View>
+                  <Text className="text-sm font-medium text-text">
+                    Reminders & Alerts
+                  </Text>
+                  <Text className="text-[11px] text-text-secondary">
+                    {hasNotificationPermission
+                      ? "Notifications are enabled for note reminders"
+                      : "Tap to enable notifications for note reminders"}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-1.5">
+                <View
+                  className={`w-2 h-2 rounded-full ${
+                    hasNotificationPermission
+                      ? "bg-emerald-500"
+                      : "bg-amber-500"
+                  }`}
+                />
+                <Text
+                  className={`text-xs font-semibold ${
+                    hasNotificationPermission
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  }`}>
+                  {hasNotificationPermission ? "Enabled" : "Enable"}
+                </Text>
+                <ChevronRight size={14} color={colors.textSecondary} />
+              </View>
+            </Pressable>
+          </View>
+        </View>
 
         {/* 🎨 Theme & Appearance Settings */}
         <View className="gap-2.5">
@@ -582,7 +675,9 @@ export default function ProfileScreen() {
                       className="text-xs font-bold font-mono"
                       style={{
                         color:
-                          pendingMediaCount > 0 ? "#f59e0b" : colors.textSecondary,
+                          pendingMediaCount > 0
+                            ? "#f59e0b"
+                            : colors.textSecondary,
                       }}>
                       {pendingMediaCount > 0
                         ? `${pendingMediaCount} queued`

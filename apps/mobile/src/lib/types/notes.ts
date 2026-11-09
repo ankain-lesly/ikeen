@@ -3,6 +3,7 @@ import type {
   InsertNote,
   NoteBlockSelect,
   InsertNoteBlock,
+  ReminderSelect,
 } from '../../db/schema';
 import type {
   Note,
@@ -32,6 +33,7 @@ export { hasActiveNotesFilters } from '@repo/types';
 
 export type NoteWithBlocks = NoteSelect & {
   blocks?: NoteBlock[];
+  reminders?: ReminderSelect[];
 };
 
 export type {

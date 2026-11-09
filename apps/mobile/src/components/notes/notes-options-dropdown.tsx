@@ -10,6 +10,7 @@ import { OptionSheet } from "@/components/ui/option-sheet";
 
 import {
   Share2,
+  Bell,
   Info,
   Pin,
   Trash2,
@@ -47,6 +48,7 @@ type NotesOptionsDropdownProps = {
   onUpdateState?: (key: NoteUpdateStateKey, value: any) => void;
   onDeleteSuccess?: () => void;
   onRestoreSuccess?: () => void;
+  onReminder?: () => void;
   onMoveToFolder?: () => void;
   onShowInfo?: () => void;
 };
@@ -63,6 +65,7 @@ export function NotesOptionsDropdown({
   onUpdateState,
   onDeleteSuccess,
   onRestoreSuccess,
+  onReminder,
   onMoveToFolder,
   onShowInfo,
 }: NotesOptionsDropdownProps) {
@@ -93,6 +96,7 @@ export function NotesOptionsDropdown({
         iconStyle={iconStyle}
         customTrigger={customTrigger}
         lastEdited={lastEdited}
+        onReminder={onReminder}
         onMoveToFolder={onMoveToFolder}
         onShowInfo={onShowInfo}
       />
@@ -166,6 +170,22 @@ export function NotesOptionsDropdown({
                 </DropdownMenuItem.Text>
               </DropdownMenuItem>
 
+              {onReminder && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    dropdown.close();
+                    onReminder();
+                  }}>
+                  <DropdownMenuItem.LeadingIcon>
+                    <RNHostView matchContents>
+                      <Bell size={20} color={colors.textSecondary} />
+                    </RNHostView>
+                  </DropdownMenuItem.LeadingIcon>
+                  <DropdownMenuItem.Text>
+                    <Text color={colors.text}>Remind Me</Text>
+                  </DropdownMenuItem.Text>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => {
                   dropdown.close();
@@ -275,6 +295,7 @@ function NotesOptionsSheet({
   iconStyle,
   customTrigger,
   lastEdited,
+  onReminder,
   onMoveToFolder,
   onShowInfo,
 }: {
@@ -283,6 +304,7 @@ function NotesOptionsSheet({
   iconStyle: NotesOptionsDropdownProps["iconStyle"];
   customTrigger: NotesOptionsDropdownProps["customTrigger"];
   lastEdited?: string;
+  onReminder?: () => void;
   onMoveToFolder?: () => void;
   onShowInfo?: () => void;
 }) {
@@ -322,6 +344,16 @@ function NotesOptionsSheet({
       },
       color: colors.text,
       visible: !isDeleted,
+    },
+    {
+      label: "Remind Me",
+      icon: <Bell size={20} color={colors.textSecondary} />,
+      onPress: () => {
+        sheet.close();
+        onReminder?.();
+      },
+      color: colors.text,
+      visible: !isDeleted && !!onReminder,
     },
     {
       label: "Share",

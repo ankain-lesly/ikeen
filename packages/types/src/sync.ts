@@ -1,7 +1,8 @@
 import type { Folder, FolderChanges } from "./folders";
 import type { Note, NoteChanges, NoteBlock } from "./notes";
+import type { Reminder } from "./reminders";
 
-export type SyncEntityType = "folders" | "notes" | "note_blocks";
+export type SyncEntityType = "folders" | "notes" | "note_blocks" | "reminders";
 export type SyncActionType = "upsert" | "delete";
 export type SyncQueueStatus = "pending" | "in_flight" | "success" | "failed";
 
@@ -13,7 +14,8 @@ export type SyncFailureCategory =
   | "client_rejected";
 
 export type BlockChanges = Partial<NoteBlock>;
-export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
+export type ReminderChanges = Partial<Reminder>;
+export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges | ReminderChanges;
 
 /**
  * Common mutation metadata outside of entity changes.
@@ -24,7 +26,7 @@ export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
  * - updatedAt: Client mutation timestamp for LWW conflict resolution
  */
 export interface SyncMutationPayload<
-  TChanges extends FolderChanges | NoteChanges | BlockChanges,
+  TChanges extends FolderChanges | NoteChanges | BlockChanges | ReminderChanges,
 > {
   id: string;
   mutationId: string;
@@ -34,7 +36,7 @@ export interface SyncMutationPayload<
   changes: TChanges;
 }
 
-export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges | BlockChanges>;
+export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges | BlockChanges | ReminderChanges>;
 
 /**
  * Generic sync mutation payload: metadata sits outside, entity fields sit strictly inside `changes`.
@@ -42,12 +44,14 @@ export type SyncMutationBase = SyncMutationPayload<FolderChanges | NoteChanges |
 export type FolderMutationPayload = SyncMutationPayload<FolderChanges>;
 export type NoteMutationPayload = SyncMutationPayload<NoteChanges>;
 export type BlockMutationPayload = SyncMutationPayload<BlockChanges>;
+export type ReminderMutationPayload = SyncMutationPayload<ReminderChanges>;
 
 export interface SyncPushPayload {
   clientTimestamp: string;
   folders?: FolderMutationPayload[];
   notes?: NoteMutationPayload[];
   note_blocks?: BlockMutationPayload[];
+  reminders?: ReminderMutationPayload[];
 }
 
 export interface SyncPushResponse {
@@ -60,6 +64,7 @@ export interface SyncPullResponse {
   folders: Folder[];
   notes: Note[];
   note_blocks?: NoteBlock[];
+  reminders?: Reminder[];
 }
 
 export interface RealtimeAuthResponse {

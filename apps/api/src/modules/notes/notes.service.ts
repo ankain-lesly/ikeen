@@ -9,7 +9,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
-import { BlockMutationDto } from '../sync/dto/sync-push.dto.js';
+import { BlockMutationDto, ReminderMutationDto } from '../sync/dto/sync-push.dto.js';
 import { packServerBlockContent } from './block-content.codec.js';
 
 export type NoteSyncData = NoteMutationPayload;
@@ -331,4 +331,72 @@ export class NotesService {
 
     return { applied: true, blockId: b.id };
   }
+
+  async upsertReminderWithLww(
+    userId: string,
+    r: ReminderMutationDto,
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<{ applied: boolean; reminderId: string }> {
+    const clientUpdatedAt = new Date(r.updatedAt);
+    const existing = await prismaClient.reminder.findUnique({
+      where: { id: r.id },
+    });
+
+    if (existing && clientUpdatedAt < existing.updatedAt) {
+      this.logger.debug(
+        `LWW: Skipping older reminder mutation for ${r.id} (client: ${r.updatedAt}, server: ${existing.updatedAt.toISOString()})`,
+      );
+      return { applied: false, reminderId: r.id };
+    }
+
+    if (r.action === 'delete') {
+      if (!existing) {
+        return { applied: false, reminderId: r.id };
+      }
+      await prismaClient.reminder.update({
+        where: { id: r.id },
+        data: {
+          deletedAt: clientUpdatedAt,
+          updatedAt: clientUpdatedAt,
+        },
+      });
+      return { applied: true, reminderId: r.id };
+    }
+
+    const targetNoteId = r.changes?.noteId ?? existing?.noteId;
+    const dueAt = r.changes?.dueAt ? new Date(r.changes.dueAt) : (existing?.dueAt ?? new Date());
+
+    await prismaClient.reminder.upsert({
+      where: { id: r.id },
+      create: {
+        id: r.id,
+        userId,
+        noteId: targetNoteId,
+        title: r.changes?.title ?? '',
+        dueAt,
+        repeat: (r.changes?.repeat as any) ?? 'none',
+        isCompleted: r.changes?.isCompleted ?? false,
+        notificationId: r.changes?.notificationId,
+        createdAt: r.changes?.createdAt ? new Date(r.changes.createdAt) : clientUpdatedAt,
+        updatedAt: clientUpdatedAt,
+        deletedAt: r.changes?.deletedAt ? new Date(r.changes.deletedAt) : null,
+      },
+      update: {
+        userId,
+        noteId: targetNoteId,
+        ...(r.changes?.title !== undefined && { title: r.changes.title }),
+        ...(r.changes?.dueAt !== undefined && { dueAt: new Date(r.changes.dueAt) }),
+        ...(r.changes?.repeat !== undefined && { repeat: r.changes.repeat as any }),
+        ...(r.changes?.isCompleted !== undefined && { isCompleted: r.changes.isCompleted }),
+        ...(r.changes?.notificationId !== undefined && { notificationId: r.changes.notificationId }),
+        ...(r.changes?.deletedAt !== undefined && {
+          deletedAt: r.changes.deletedAt ? new Date(r.changes.deletedAt) : null,
+        }),
+        updatedAt: clientUpdatedAt,
+      },
+    });
+
+    return { applied: true, reminderId: r.id };
+  }
+
 }

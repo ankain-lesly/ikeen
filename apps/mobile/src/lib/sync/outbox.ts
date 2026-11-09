@@ -10,6 +10,7 @@ import type {
   FolderChanges,
   NoteChanges,
   BlockChanges,
+  ReminderChanges,
   OutboxPayloadData,
   SyncFailureCategory,
 } from '@repo/types';
@@ -28,7 +29,7 @@ export async function enqueueOutbox(
   entity: SyncEntityType,
   entityId: string,
   action: SyncActionType,
-  changes: FolderChanges | NoteChanges | BlockChanges,
+  changes: FolderChanges | NoteChanges | BlockChanges | ReminderChanges,
   version?: number
 ): Promise<void> {
   const now = new Date().toISOString();

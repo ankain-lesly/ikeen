@@ -91,7 +91,7 @@ export const syncOutbox = sqliteTable(
   'sync_outbox',
   {
     id: text('id').primaryKey(),
-    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks'] }).notNull(),
+    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks', 'reminders'] }).notNull(),
     entityId: text('entity_id').notNull(),
     action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
     status: text('status', { enum: ['pending', 'in_flight', 'success', 'failed'] })

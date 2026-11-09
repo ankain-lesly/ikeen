@@ -42,6 +42,9 @@ import {
   type NotesGridVariant,
 } from "./notes-bulk-action-bar";
 import { MoveToFolderSheet } from "./move-to-folder-sheet";
+import { ReminderSheet } from "./reminder-sheet";
+import { batchCreateReminders } from "@/lib/queries/reminders";
+import type { ReminderRepeat } from "@repo/types";
 import { AnimatedEntryView } from "../ui/animated";
 import { Card } from "../ui/card";
 import { HeaderGradient } from "@/hooks/use-header-inset";
@@ -84,6 +87,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isMoveSheetVisible, setIsMoveSheetVisible] = useState(false);
+  const [isReminderSheetVisible, setIsReminderSheetVisible] = useState(false);
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -208,6 +212,26 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
       "Could not update archive state for selected notes",
     );
   }, [isAllArchived, runBulk]);
+
+  const handleBulkReminder = useCallback(
+    async (dueAt: string, repeat: ReminderRepeat) => {
+      const count = selectedNotes.length;
+      if (count === 0) return;
+      try {
+        await batchCreateReminders(
+          selectedNotes.map((n) => n.id),
+          { title: '', dueAt, repeat }
+        );
+        toast.success(
+          count === 1 ? "Reminder set for note" : `Reminders set for ${count} notes`
+        );
+        handleCancelSelection();
+      } catch (err) {
+        toast.error("Failed to set reminders");
+      }
+    },
+    [selectedNotes, handleCancelSelection]
+  );
 
   const handleBulkMoveToFolder = useCallback(
     (folderId: string | null) =>
@@ -377,6 +401,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
                   isAllPinned={isAllPinned}
                   isAllArchived={isAllArchived}
                   onPin={handleBulkPin}
+                  onReminder={() => setIsReminderSheetVisible(true)}
                   onMove={() => setIsMoveSheetVisible(true)}
                   onArchive={handleBulkArchive}
                   onDelete={handleBulkDelete}
@@ -504,6 +529,16 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         ListEmptyComponent={empty}
         ListFooterComponent={footer}
       />
+
+            {/* Reminder Sheet */}
+      {!isTrash && (
+        <ReminderSheet
+          isPresented={isReminderSheetVisible}
+          onDismiss={() => setIsReminderSheetVisible(false)}
+          targetCount={selectedNotes.length}
+          onSave={handleBulkReminder}
+        />
+      )}
 
       {/* Move to Folder Sheet */}
       {!isTrash && (

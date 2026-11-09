@@ -8,7 +8,9 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { ensureReminderChannelAsync } from "@/lib/services/notification";
 import { Drawer } from "expo-router/drawer";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -97,6 +99,21 @@ function RootDrawerLayout() {
         });
     }
   }, [success]);
+
+  useEffect(() => {
+    ensureReminderChannelAsync().catch(() => {});
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.noteId) {
+        router.push({
+          pathname: "/notes/[id]",
+          params: { id: data.noteId as string },
+        });
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     useAuthStore.getState().init();

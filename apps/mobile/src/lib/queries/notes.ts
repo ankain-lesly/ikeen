@@ -133,6 +133,11 @@ function buildNotesRelationalQuery(
       blocks: {
         orderBy: (blocks, { asc: ascOrder }) => [ascOrder(blocks.position)],
       },
+      reminders: {
+        where: (reminders, { isNull, and, eq }) =>
+          and(isNull(reminders.deletedAt), eq(reminders.isCompleted, false)),
+        orderBy: (reminders, { asc: ascOrder }) => [ascOrder(reminders.dueAt)],
+      },
     },
   });
 }
@@ -178,6 +183,7 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
       blocks: Array.isArray(n.blocks)
         ? (n.blocks as any[]).map(getCachedUnpackedBlock)
         : undefined,
+      reminders: Array.isArray(n.reminders) ? n.reminders : undefined,
     }));
   }, [res.data, withBlocks]);
 

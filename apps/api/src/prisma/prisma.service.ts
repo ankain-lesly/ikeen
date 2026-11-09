@@ -42,6 +42,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get noteBlock() {
     return this.prisma.noteBlock;
   }
+  get reminder() {
+    return this.prisma.reminder;
+  }
   get syncLog() {
     return this.prisma.syncLog;
   }

@@ -4,6 +4,7 @@ import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import {
   Archive,
   ArchiveRestore,
+  Bell,
   FolderInput,
   Pin,
   RotateCcw,
@@ -20,6 +21,7 @@ interface NotesBulkActionBarProps {
   isAllPinned?: boolean;
   isAllArchived?: boolean;
   onPin?: () => void;
+  onReminder?: () => void;
   onMove?: () => void;
   onArchive?: () => void;
   onDelete?: () => void;
@@ -34,6 +36,7 @@ export function NotesBulkActionBar({
   isAllPinned = false,
   isAllArchived = false,
   onPin,
+  onReminder,
   onMove,
   onArchive,
   onDelete,
@@ -79,6 +82,7 @@ export function NotesBulkActionBar({
           isAllPinned={isAllPinned}
           isAllArchived={isAllArchived}
           onPin={onPin}
+          onReminder={onReminder}
           onMove={onMove}
           onArchive={onArchive}
           onDelete={onDelete}
@@ -97,6 +101,7 @@ export function NotesBulkActions({
   isAllPinned = false,
   isAllArchived = false,
   onPin,
+  onReminder,
   onMove,
   onArchive,
   onDelete,
@@ -155,6 +160,17 @@ export function NotesBulkActions({
               color={isAllPinned ? colors.primary : colors.text}
               fill={isAllPinned ? colors.primary : "transparent"}
             />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Set reminder for selected notes"
+            onPress={() => {
+              onReminder?.();
+            }}
+            hitSlop={4}
+            className="">
+            <Bell size={20} color={colors.text} />
           </Pressable>
 
           <Pressable

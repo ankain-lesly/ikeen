@@ -10,6 +10,24 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## ⏰ Note Reminders, Local Notification Engine & Discrete Schema — 2026-11-08
+* **Status**: Completed
+* **Scope**: Discrete `reminders` schema across mobile (Drizzle SQLite) and API (Prisma PostgreSQL), shared types in `@repo/types`, background & scheduled notifications via `expo-notifications`, native deep-linking to `/notes/[id]`, profile notification permission toggle, bulk action bar `Bell` trigger, interactive card chips, and offline outbox synchronization.
+
+- [x] Shared Types (`@repo/types`): `Reminder`, `CreateReminderInput`, `UpdateReminderInput`, `ReminderRepeat`, `SyncEntityType`
+- [x] Mobile Drizzle Schema (`schema.ts`, `0008_unknown_mastermind.sql`): `reminders` table, cascade foreign keys, indices, and `sync_outbox` enum
+- [x] Backend Prisma Schema (`schema.prisma`): `model Reminder`, `ReminderRepeat` enum, `SyncEntity.reminders`
+- [x] Notification Engine (`reminder-service.ts`): Channels, permissions, local OS scheduling, cancellation, deep-linking listener
+- [x] Reminder Queries & Mutations (`reminders.ts`): `useLiveRemindersForNote`, `useLiveUpcomingReminders`, `createReminder`, `batchCreateReminders`, `toggleReminderCompleted`, `deleteReminder`, outbox enqueue
+- [x] Profile Permission Action (`profile/index.tsx`): Added Reminders & Alerts permission row with 1-tap request / settings trigger
+- [x] UI Components (`reminder-sheet.tsx`): Quick presets (Later today, Tomorrow 9 AM, Next week, Custom), repeat options, save & clear
+- [x] Bulk Actions Integration (`notes-bulk-action-bar.tsx`, `notes-grid-container.tsx`): `Bell` button and batch scheduling
+- [x] Note Card Integration (`note-card.tsx`): Live reminder hook, action bar bell indicator, and interactive completion chip
+- [x] Note Editor Integration (`note-editor.tsx`, `notes-options-dropdown.tsx`): Contextual "Remind Me" action and sheet mounting
+- [x] Bi-Directional Sync Pipeline (`sync.service.ts`, `sync-manager.ts`): LWW mutation processing and delta pull
+
+---
+
 ## 🤖 Agent Autonomy, Response Brevity & NestJS 12 Route Migration — 2026-11-08
 * **Status**: Completed
 * **Scope**: Google Gemini-style prompt architecture (zero preamble, zero echoing, autonomous execution, outcome-only confirmations), in-memory active agent session preservation (useAgentSession), agent sidebar drawer with infinite conversation query, and NestJS 12 path-to-regexp v8 wildcard route migration ({*path}).

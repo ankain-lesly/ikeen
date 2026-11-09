@@ -11,6 +11,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type {
+  ReminderChanges,
+  ReminderMutationPayload,
+  ReminderRepeat,
   FolderChanges,
   FolderMutationPayload,
   NoteChanges,
@@ -247,6 +250,76 @@ export class BlockMutationDto {
 }
 
 
+
+export class ReminderChangesDto implements ReminderChanges {
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
+  @IsOptional()
+  userId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  noteId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  dueAt?: string;
+
+  @IsIn(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
+  @IsOptional()
+  repeat?: ReminderRepeat;
+
+  @IsBoolean()
+  @IsOptional()
+  isCompleted?: boolean;
+
+  @IsString()
+  @IsOptional()
+  notificationId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  deletedAt?: string | null;
+}
+
+export class ReminderMutationDto implements ReminderMutationPayload {
+  @IsString()
+  id: string;
+
+  @IsString()
+  mutationId: string;
+
+  @IsIn(['upsert', 'delete'])
+  action: SyncActionType;
+
+  @IsNumber()
+  @IsOptional()
+  version?: number;
+
+  @IsString()
+  updatedAt: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ReminderChangesDto)
+  changes: ReminderChangesDto;
+}
+
 export class SyncPushDto {
   @IsString()
   @IsOptional()
@@ -269,5 +342,11 @@ export class SyncPushDto {
   @Type(() => BlockMutationDto)
   @IsOptional()
   note_blocks?: BlockMutationDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReminderMutationDto)
+  @IsOptional()
+  reminders?: ReminderMutationDto[];
 }
 

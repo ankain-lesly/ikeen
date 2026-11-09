@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
   ArchiveRestore,
+  Bell,
   Check,
   GalleryHorizontal,
   Pin,
@@ -18,6 +19,15 @@ import type {
   NoteBlock,
 } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  toggleReminderCompleted,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from "@/lib/queries/reminders";
+import { ReminderSheet } from "./reminder-sheet";
+import type { ReminderRepeat } from "@repo/types";
+
 import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
 import {
@@ -52,6 +62,9 @@ function areNoteCardPropsEqual(
   prev: NoteCardProps,
   next: NoteCardProps,
 ): boolean {
+  const prevReminder = prev.note.reminders?.[0]
+  const nextReminder = next.note.reminders?.[0]
+
   return (
     prev.note.id === next.note.id &&
     prev.note.title === next.note.title &&
@@ -62,6 +75,10 @@ function areNoteCardPropsEqual(
     prev.note.isArchived === next.note.isArchived &&
     prev.note.deletedAt === next.note.deletedAt &&
     prev.note.updatedAt === next.note.updatedAt &&
+    prevReminder?.id === nextReminder?.id &&
+    prevReminder?.dueAt === nextReminder?.dueAt &&
+    prevReminder?.isCompleted === nextReminder?.isCompleted &&
+    (prev.note.reminders?.length ?? 0) === (next.note.reminders?.length ?? 0) &&
     areBlocksEqual(prev.note.blocks, next.note.blocks) &&
     prev.layout === next.layout &&
     prev.isSelectionMode === next.isSelectionMode &&
@@ -75,6 +92,32 @@ function areNoteCardPropsEqual(
 /**
  * Shared Action Bar: Date, Pin, Archive, and the stable 20x20 slot
  */
+
+function formatReminderChip(dueAt: string): string {
+  const due = new Date(dueAt);
+  const now = new Date();
+  if (isNaN(due.getTime())) return "Reminder";
+  if (due.getTime() < now.getTime()) return "Overdue";
+
+  const isToday =
+    due.getDate() === now.getDate() &&
+    due.getMonth() === now.getMonth() &&
+    due.getFullYear() === now.getFullYear();
+
+  const tomorrow = new Date();
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow =
+    due.getDate() === tomorrow.getDate() &&
+    due.getMonth() === tomorrow.getMonth() &&
+    due.getFullYear() === tomorrow.getFullYear();
+
+  const timeStr = due.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (isToday) return `Today ${timeStr}`;
+  if (isTomorrow) return `Tomorrow ${timeStr}`;
+
+  return `${due.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} ${timeStr}`;
+}
+
 const CardActionBar = React.memo(function CardActionBar({
   note,
   formattedDate,
@@ -83,6 +126,8 @@ const CardActionBar = React.memo(function CardActionBar({
   isSelected,
   isMenuOpen,
   setIsMenuOpen,
+  hasReminder = false,
+  onReminder,
   variant = "in-flow",
 }: {
   note: NoteWithBlocks;
@@ -92,6 +137,8 @@ const CardActionBar = React.memo(function CardActionBar({
   isSelected: boolean;
   isMenuOpen: boolean;
   setIsMenuOpen: (v: boolean) => void;
+  hasReminder?: boolean;
+  onReminder?: () => void;
   variant?: "in-flow" | "floating";
 }) {
   const isFloating = variant === "floating";
@@ -131,6 +178,14 @@ const CardActionBar = React.memo(function CardActionBar({
           />
         )}
 
+        {hasReminder && (
+          <Bell
+            size={13}
+            color={isFloating ? "#ffffff" : colors.primary}
+            fill={isFloating ? "#ffffff" : colors.primary}
+          />
+        )}
+
         {note.isArchived && (
           <ArchiveRestore
             size={14}
@@ -148,6 +203,7 @@ const CardActionBar = React.memo(function CardActionBar({
               variant="dropdown"
               isExpanded={isMenuOpen}
               setIsExpanded={setIsMenuOpen}
+              onReminder={onReminder}
               note={note}
               iconStyle={{
                 size: 16,
@@ -221,6 +277,34 @@ export const NoteCard = React.memo(function NoteCard({
     };
   }, [note.blocks]);
 
+  const activeReminder = useMemo(
+    () => note.reminders?.find((r) => !r.isCompleted && !r.deletedAt) ?? null,
+    [note.reminders]
+  );
+  const [isReminderSheetOpen, setIsReminderSheetOpen] = useState(false);
+
+  const handleSaveReminder = useCallback(
+    async (dueAt: string, repeat: ReminderRepeat) => {
+      if (activeReminder) {
+        await updateReminder(activeReminder.id, { dueAt, repeat, isCompleted: false });
+      } else {
+        await createReminder({
+          noteId: note.id,
+          title: note.title || '',
+          dueAt,
+          repeat,
+        });
+      }
+    },
+    [activeReminder, note.id, note.title]
+  );
+
+  const handleClearReminder = useCallback(async () => {
+    if (activeReminder) {
+      await deleteReminder(activeReminder.id);
+    }
+  }, [activeReminder]);
+
   const displaySnippet = useMemo(() => {
     if (contentBlock?.type === "text") {
       return stripMarkdown(contentBlock.content);
@@ -288,6 +372,8 @@ export const NoteCard = React.memo(function NoteCard({
                 isSelected={isSelected}
                 isMenuOpen={isMenuOpen}
                 setIsMenuOpen={setIsMenuOpen}
+                hasReminder={!!activeReminder}
+                onReminder={() => setIsReminderSheetOpen(true)}
                 variant="in-flow"
               />
 
@@ -335,6 +421,24 @@ export const NoteCard = React.memo(function NoteCard({
               )}
             </View>
 
+              {/* Active Reminder Chip */}
+              {activeReminder && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Toggle reminder complete"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Haptics.selectionAsync();
+                    toggleReminderCompleted(activeReminder.id);
+                  }}
+                  className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+                  <Bell size={11} color={colors.primary} />
+                  <Text className="text-[10px] font-semibold text-primary">
+                    {formatReminderChip(activeReminder.dueAt)}
+                  </Text>
+                </Pressable>
+              )}
+
             {/* Right Column: Square Thumbnail if media exists */}
             {coverMedia ? (
               <View className="relative h-full flex-1 min-h-21">
@@ -353,6 +457,15 @@ export const NoteCard = React.memo(function NoteCard({
             )}
           </View>
         </View>
+      {/* Single Note Reminder Sheet */}
+      <ReminderSheet
+        isPresented={isReminderSheetOpen}
+        onDismiss={() => setIsReminderSheetOpen(false)}
+        initialDueAt={activeReminder?.dueAt}
+        initialRepeat={activeReminder?.repeat}
+        onSave={handleSaveReminder}
+        onClear={activeReminder ? handleClearReminder : undefined}
+      />
       </Pressable>
     );
   }
@@ -389,6 +502,8 @@ export const NoteCard = React.memo(function NoteCard({
               isSelected={isSelected}
               isMenuOpen={isMenuOpen}
               setIsMenuOpen={setIsMenuOpen}
+              hasReminder={!!activeReminder}
+              onReminder={() => setIsReminderSheetOpen(true)}
               variant="floating"
             />
           </View>
@@ -405,7 +520,9 @@ export const NoteCard = React.memo(function NoteCard({
               isSelected={isSelected}
               isMenuOpen={isMenuOpen}
               setIsMenuOpen={setIsMenuOpen}
-              variant="in-flow"
+                hasReminder={!!activeReminder}
+                onReminder={() => setIsReminderSheetOpen(true)}
+                variant="in-flow"
             />
           )}
 
@@ -434,6 +551,24 @@ export const NoteCard = React.memo(function NoteCard({
                 </Text>
               )}
             </View>
+          )}
+
+          {/* Active Reminder Chip */}
+          {activeReminder && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Toggle reminder complete"
+              onPress={(e) => {
+                e.stopPropagation();
+                Haptics.selectionAsync();
+                toggleReminderCompleted(activeReminder.id);
+              }}
+              className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+              <Bell size={11} color={colors.primary} />
+              <Text className="text-[10px] font-semibold text-primary">
+                {formatReminderChip(activeReminder.dueAt)}
+              </Text>
+            </Pressable>
           )}
 
           {/* Structured Preview / Snippet Row */}
