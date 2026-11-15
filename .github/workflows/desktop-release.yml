@@ -79,6 +79,8 @@ jobs:
 
       - name: Build Web Application Dist
         run: bun run --cwd apps/desktop build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || secrets.VITE_API_URL }}
 
       - name: Build Tauri Application & Generate Updater Manifest
         uses: tauri-apps/tauri-action@v0

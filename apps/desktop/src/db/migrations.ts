@@ -98,6 +98,26 @@ export const BASE_TABLE_STATEMENTS: string[] = [
   );`,
   `CREATE INDEX IF NOT EXISTS idx_desktop_media_sync_outbox_status ON media_sync_outbox(status);`,
   `CREATE INDEX IF NOT EXISTS idx_desktop_media_sync_outbox_block_id ON media_sync_outbox(block_id);`,
+
+  // 7. Reminders table & indexes
+  `CREATE TABLE IF NOT EXISTS reminders (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT,
+    note_id TEXT REFERENCES notes(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT '',
+    due_at TEXT NOT NULL,
+    repeat TEXT NOT NULL DEFAULT 'none',
+    is_completed INTEGER NOT NULL DEFAULT 0,
+    notification_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_desktop_reminders_user_id ON reminders(user_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_desktop_reminders_note_id ON reminders(note_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_desktop_reminders_due_at ON reminders(due_at);`,
+  `CREATE INDEX IF NOT EXISTS idx_desktop_reminders_completed ON reminders(is_completed);`,
+  `CREATE INDEX IF NOT EXISTS idx_desktop_reminders_deleted_at ON reminders(deleted_at);`,
 ];
 
 export async function runStartupMigrations(db: QueryExecutor): Promise<void> {

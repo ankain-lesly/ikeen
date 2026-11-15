@@ -23,6 +23,7 @@ import {
   Trash2,
   HelpCircle,
   Sidebar,
+  Layers,
 } from "lucide-react";
 
 interface CommandPaletteProps {
@@ -41,6 +42,7 @@ interface CommandPaletteProps {
   onArchiveNote?: (noteId: string) => void;
   onDeleteNote?: (noteId: string) => void;
   onSyncNow?: () => void;
+  onOpenOutbox?: () => void;
   onToggleSidebar?: () => void;
 }
 
@@ -60,6 +62,7 @@ export function CommandPalette({
   onArchiveNote,
   onDeleteNote,
   onSyncNow,
+  onOpenOutbox,
   onToggleSidebar,
 }: CommandPaletteProps) {
   // Global ⌘K / Ctrl+K listener
@@ -152,6 +155,19 @@ export function CommandPalette({
               <RefreshCw className="mr-2 h-4 w-4 text-blue-400" />
               <span>Sync with Server Now</span>
               <CommandShortcut>⌘R</CommandShortcut>
+            </CommandItem>
+          )}
+
+          {onOpenOutbox && (
+            <CommandItem
+              onSelect={() => {
+                onOpenOutbox();
+                onOpenChange(false);
+              }}
+            >
+              <Layers className="mr-2 h-4 w-4 text-purple-400" />
+              <span>View Sync Outbox Ledger</span>
+              <CommandShortcut>⌘⇧O</CommandShortcut>
             </CommandItem>
           )}
 

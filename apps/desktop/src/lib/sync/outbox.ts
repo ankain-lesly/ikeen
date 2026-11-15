@@ -21,6 +21,9 @@ export async function enqueueOutbox(
   version?: number
 ): Promise<void> {
   const now = new Date().toISOString();
+  const definedChanges = Object.fromEntries(
+    Object.entries(changes as Record<string, unknown>).filter(([, v]) => v !== undefined)
+  );
 
   try {
     // Check if there is already a pending or failed item for this entity & entityId
@@ -41,15 +44,17 @@ export async function enqueueOutbox(
 
     if (pendingItem) {
       let existingChanges: Record<string, unknown> = {};
-      try {
-        existingChanges = JSON.parse(pendingItem.payload);
-      } catch {
-        existingChanges = {};
+      if (action !== 'delete') {
+        try {
+          existingChanges = JSON.parse(pendingItem.payload);
+        } catch {
+          existingChanges = {};
+        }
       }
 
       const mergedChanges = {
         ...existingChanges,
-        ...changes,
+        ...definedChanges,
         ...(version !== undefined && { version }),
       };
 
@@ -59,14 +64,15 @@ export async function enqueueOutbox(
           payload: JSON.stringify(mergedChanges),
           status: 'pending',
           action,
+          retryCount: 0,
           updatedAt: now,
         })
         .where(eq(syncOutbox.id, pendingItem.id));
     } else {
-      const id = `outbox-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const id = crypto.randomUUID();
       const mutationId = `desk-${entity}:${action}:${id}`;
       const payload = JSON.stringify({
-        ...changes,
+        ...definedChanges,
         ...(version !== undefined && { version }),
       });
 
@@ -88,6 +94,23 @@ export async function enqueueOutbox(
   }
 }
 
+export async function resetOutboxInFlightOnStartup(): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    await db
+      .update(syncOutbox)
+      .set({ status: 'pending', updatedAt: now })
+      .where(
+        and(
+          inArray(syncOutbox.status, ['in_flight', 'failed']),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      );
+  } catch (err: unknown) {
+    console.error('[Outbox:resetOutboxInFlightOnStartup:Error]', err);
+  }
+}
+
 export async function getPendingOutbox(
   limit = SYNC_CONSTANTS.BATCH_SIZE
 ): Promise<SyncOutboxItem[]> {
@@ -97,7 +120,7 @@ export async function getPendingOutbox(
       .from(syncOutbox)
       .where(
         and(
-          eq(syncOutbox.status, 'pending'),
+          inArray(syncOutbox.status, ['pending', 'failed']),
           lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
         )
       )
@@ -173,11 +196,55 @@ export async function getOutboxCount(): Promise<number> {
     const res = await db
       .select({ val: count() })
       .from(syncOutbox)
-      .where(eq(syncOutbox.status, 'pending'));
+      .where(
+        and(
+          inArray(syncOutbox.status, ['pending', 'failed']),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      );
 
     return res[0]?.val ?? 0;
   } catch (err: unknown) {
     console.error('[Outbox:getOutboxCount:Error]', err);
     return 0;
+  }
+}
+
+export async function getAllOutbox(): Promise<SyncOutboxItem[]> {
+  try {
+    return await db
+      .select()
+      .from(syncOutbox)
+      .orderBy(desc(syncOutbox.createdAt));
+  } catch (err: unknown) {
+    console.error('[Outbox:getAllOutbox:Error]', err);
+    return [];
+  }
+}
+
+export async function clearSuccessfulOutbox(): Promise<void> {
+  try {
+    await db
+      .delete(syncOutbox)
+      .where(eq(syncOutbox.status, 'success'));
+  } catch (err: unknown) {
+    console.error('[Outbox:clearSuccessfulOutbox:Error]', err);
+  }
+}
+
+export async function retryFailedOutbox(): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    await db
+      .update(syncOutbox)
+      .set({
+        status: 'pending',
+        retryCount: 0,
+        lastError: null,
+        updatedAt: now,
+      })
+      .where(eq(syncOutbox.status, 'failed'));
+  } catch (err: unknown) {
+    console.error('[Outbox:retryFailedOutbox:Error]', err);
   }
 }

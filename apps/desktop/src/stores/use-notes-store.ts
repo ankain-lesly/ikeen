@@ -19,6 +19,7 @@ import {
   updateFolder as queryUpdateFolder,
   deleteFolder as queryDeleteFolder,
 } from '@/lib/queries/folders';
+import { countActiveReminders } from '@/lib/queries/reminders';
 import { syncManager, onSyncComplete } from '@/lib/sync/sync-manager';
 
 export interface NotesStoreState {
@@ -29,17 +30,19 @@ export interface NotesStoreState {
   searchQuery: string;
   isLoading: boolean;
   isInitialized: boolean;
+  remindersCount: number;
 
   // Actions
   init: () => Promise<void>;
   loadNotes: () => Promise<void>;
   loadFolders: () => Promise<void>;
+  loadRemindersCount: () => Promise<void>;
   setActiveFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   selectNote: (id: string | null) => void;
   createNewNote: () => Promise<Note | null>;
-  saveActiveNote: (input: UpdateNoteInput) => Promise<void>;
-  deleteActiveNote: () => Promise<void>;
+  saveActiveNote: (input: UpdateNoteInput, targetNoteId?: string) => Promise<void>;
+  deleteActiveNote: (targetNoteId?: string) => Promise<void>;
   addFolder: (input: { name: string; color?: string; icon?: string }) => Promise<Folder | null>;
   editFolder: (id: string, updates: { name?: string; color?: string; icon?: string }) => Promise<boolean>;
   removeFolder: (id: string) => Promise<boolean>;
@@ -53,6 +56,7 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
   searchQuery: '',
   isLoading: true,
   isInitialized: false,
+  remindersCount: 0,
 
   init: async () => {
     if (get().isInitialized) return;
@@ -72,11 +76,13 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       onSyncComplete(() => {
         void get().loadNotes();
         void get().loadFolders();
+        void get().loadRemindersCount();
       });
 
-      // 5. Load initial folders and notes
+      // 5. Load initial folders, notes, and reminders count
       await get().loadFolders();
       await get().loadNotes();
+      await get().loadRemindersCount();
 
       // Select first note if available
       const currentNotes = get().notes;
@@ -100,6 +106,15 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     }
   },
 
+  loadRemindersCount: async () => {
+    try {
+      const count = await countActiveReminders();
+      set({ remindersCount: count });
+    } catch (err: unknown) {
+      console.error('[NotesStore:loadRemindersCount:Error]', err);
+    }
+  },
+
   loadNotes: async () => {
     const { activeFilter, searchQuery } = get();
 
@@ -113,6 +128,8 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       filter.pinnedOnly = true;
     } else if (activeFilter === 'archived') {
       filter.archivedOnly = true;
+    } else if (activeFilter === 'reminders') {
+      filter.remindersOnly = true;
     } else if (activeFilter === 'unorganized') {
       filter.folderId = null;
     } else if (activeFilter !== 'all') {
@@ -151,12 +168,10 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
 
   createNewNote: async () => {
     const { activeFilter } = get();
+    const virtualFilters = new Set(['all', 'pinned', 'archived', 'unorganized', 'reminders']);
     const folderId = activeFilter.startsWith('folder:')
       ? activeFilter.replace('folder:', '')
-      : activeFilter !== 'all' &&
-          activeFilter !== 'pinned' &&
-          activeFilter !== 'archived' &&
-          activeFilter !== 'unorganized'
+      : !virtualFilters.has(activeFilter)
         ? activeFilter
         : undefined;
 
@@ -175,10 +190,11 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     return note;
   },
 
-  saveActiveNote: async (input: UpdateNoteInput) => {
-    const activeId = get().activeNoteId;
+  saveActiveNote: async (input: UpdateNoteInput, targetNoteId?: string) => {
+    const activeId = targetNoteId ?? get().activeNoteId;
     if (!activeId) return;
 
+    const now = new Date().toISOString();
     // Optimistically update in-memory note
     set((state) => ({
       notes: state.notes.map((n) =>
@@ -186,8 +202,9 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
           ? {
               ...n,
               ...input,
+              folderId: input.folderId === null ? undefined : (input.folderId ?? n.folderId),
               tags: input.tags ?? n.tags,
-              updatedAt: new Date().toISOString(),
+              updatedAt: now,
             }
           : n
       ),
@@ -197,8 +214,8 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     void syncManager.updatePendingCount();
   },
 
-  deleteActiveNote: async () => {
-    const activeId = get().activeNoteId;
+  deleteActiveNote: async (targetNoteId?: string) => {
+    const activeId = targetNoteId ?? get().activeNoteId;
     if (!activeId) return;
 
     await deleteNote(activeId);

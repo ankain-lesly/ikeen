@@ -19,6 +19,7 @@ import {
   FileText,
   Folder as FolderIcon,
   Zap,
+  Bell,
   Archive,
   Settings,
   Plus,
@@ -27,8 +28,10 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  User,
 } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { useAuthStore } from "@/stores/use-auth-store";
 import { cn } from "@/lib/utils";
 
 // 1. Sidebar Trigger button (placed in headers or navigation rails)
@@ -66,6 +69,7 @@ export interface AppSidebarProps {
   totalNotesCount: number;
   pinnedNotesCount?: number;
   archivedNotesCount?: number;
+  remindersCount?: number;
   folderNotesCountMap?: Record<string, number>;
   activeFilter: string;
   onFilterChange: (filter: string) => void;
@@ -74,6 +78,7 @@ export interface AppSidebarProps {
   onEditFolder: (folder: Folder) => void;
   onDeleteFolder?: (folder: Folder) => void;
   onOpenSettings: () => void;
+  onOpenAuth?: () => void;
 }
 
 // 3. Self-contained Sticky Desktop Sidebar
@@ -82,6 +87,7 @@ export function AppSidebar({
   totalNotesCount,
   pinnedNotesCount = 0,
   archivedNotesCount = 0,
+  remindersCount = 0,
   folderNotesCountMap = {},
   activeFilter,
   onFilterChange,
@@ -90,8 +96,10 @@ export function AppSidebar({
   onEditFolder,
   onDeleteFolder,
   onOpenSettings,
+  onOpenAuth,
 }: AppSidebarProps) {
   const { isOpen, toggleSidebar, closeSidebar } = useSidebar();
+  const { user, isAuthenticated } = useAuthStore();
 
   // Keyboard shortcut listener: ⌘\ or ⌘B
   React.useEffect(() => {
@@ -109,8 +117,8 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "h-full bg-card border-r border-border shrink-0 transition-all duration-200 select-none overflow-hidden flex flex-col justify-between",
-        isOpen ? "w-60 min-w-[240px]" : "w-0 border-r-0"
+        "h-full bg-card border-r border-border shrink-0 transition-[width] duration-200 select-none overflow-hidden flex flex-col justify-between",
+        isOpen ? "w-60 min-w-[240px]" : "w-0 min-w-0 border-r-0 opacity-0 pointer-events-none"
       )}
     >
       <div className="flex flex-col min-h-0 w-60 overflow-y-auto">
@@ -182,6 +190,21 @@ export function AppSidebar({
             {pinnedNotesCount > 0 && (
               <span className="ml-auto text-[11px] font-mono text-muted-foreground shrink-0">
                 {pinnedNotesCount}
+              </span>
+            )}
+          </Button>
+
+          <Button
+            variant={activeFilter === "reminders" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onFilterChange("reminders")}
+            className="w-full justify-start gap-2.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Reminders</span>
+            {remindersCount > 0 && (
+              <span className="ml-auto text-[11px] font-mono text-muted-foreground shrink-0">
+                {remindersCount}
               </span>
             )}
           </Button>
@@ -318,8 +341,29 @@ export function AppSidebar({
         </div>
       </div>
 
-      {/* Footer: Quiet, settings-only */}
-      <div className="p-3 border-t border-border bg-background/50 flex items-center justify-end text-xs shrink-0 w-60">
+      {/* Footer: Account profile & settings */}
+      <div className="p-2.5 border-t border-border bg-background/50 flex items-center justify-between text-xs shrink-0 w-60">
+        {onOpenAuth && (
+          <button
+            onClick={onOpenAuth}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors min-w-0 px-1 py-1 rounded hover:bg-muted/40 cursor-pointer"
+            title={isAuthenticated && user ? `Signed in as ${user.email}` : "Sign In to sync"}
+          >
+            <div className="h-6 w-6 rounded-full bg-muted/60 border border-border/80 flex items-center justify-center text-[10px] font-semibold text-foreground shrink-0">
+              {isAuthenticated && user ? (
+                user.firstName ? user.firstName[0].toUpperCase() : user.email[0].toUpperCase()
+              ) : (
+                <User className="h-3 w-3 text-muted-foreground" />
+              )}
+            </div>
+            <span className="text-[11px] truncate max-w-[130px]">
+              {isAuthenticated && user
+                ? user.firstName || user.email.split("@")[0]
+                : "Sign In"}
+            </span>
+          </button>
+        )}
+
         <Tooltip>
           <TooltipTrigger
             render={
@@ -327,7 +371,7 @@ export function AppSidebar({
                 variant="ghost"
                 size="icon-xs"
                 onClick={onOpenSettings}
-                className="text-muted-foreground hover:text-foreground shrink-0"
+                className="text-muted-foreground hover:text-foreground shrink-0 ml-auto"
               >
                 <Settings className="w-3.5 h-3.5" />
               </Button>

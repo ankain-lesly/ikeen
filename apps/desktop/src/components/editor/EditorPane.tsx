@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Note, Folder } from "@repo/types";
+import type {
+  Note,
+  Folder,
+  NoteBlock,
+  TextBlock,
+  ListBlock,
+  MediaBlock,
+  MediaItem,
+} from "@repo/types";
 import { formatDate } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +28,18 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { MarkdownPreview } from "./MarkdownPreview";
+import { NoteBlocksSection } from "./NoteBlocksSection";
+import { ReminderDialog } from "@/components/modals/ReminderDialog";
+import { getReminderForNote } from "@/lib/queries/reminders";
+import {
+  listBlocksForNote,
+  saveBlocksForNote,
+  enforceSingleMediaBlockRule,
+} from "@/lib/queries/note-blocks";
+import { saveMediaAssetToSandbox } from "@/lib/media/file-system";
+import { enqueueMediaUpload, onMediaUploaded } from "@/lib/media/upload-service";
+import { onSyncComplete } from "@/lib/sync/sync-manager";
+import { useNotesStore } from "@/stores/use-notes-store";
 import {
   Pin,
   Archive,
@@ -30,12 +50,16 @@ import {
   Plus,
   Folder as FolderIcon,
   ChevronDown,
+  Bell,
+  CheckSquare,
+  Image as ImageIcon,
+  Type,
 } from "lucide-react";
 
 interface EditorPaneProps {
   note: Note | undefined;
   folders?: Folder[];
-  onUpdateNote: (updated: Partial<Note>) => void;
+  onUpdateNote: (updated: Partial<Note>, targetNoteId?: string) => Promise<void> | void;
   onTogglePin: (noteId: string) => void;
   onArchiveNote: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
@@ -57,31 +81,86 @@ export function EditorPane({
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<string>("edit");
   const [newTagInput, setNewTagInput] = useState<string>("");
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [activeReminder, setActiveReminder] = useState<{
+    id: string;
+    dueAt: string;
+    isCompleted: boolean;
+  } | null>(null);
+  const [blocks, setBlocks] = useState<NoteBlock[]>([]);
+
   const currentFolder = note ? folders?.find((f) => f.id === note.folderId) : undefined;
 
-  // In-memory staged editing to avoid per-keystroke SQLite disk writes
   const [localTitle, setLocalTitle] = useState(note?.title ?? "");
   const [localContent, setLocalContent] = useState(note?.content ?? "");
   const lastSavedRef = useRef<{ title: string; content: string }>({
     title: note?.title ?? "",
     content: note?.content ?? "",
   });
+  const pendingNotePatchRef = useRef<{ title: string; content: string } | null>(null);
+  const pendingBlocksRef = useRef<{ noteId: string; blocks: NoteBlock[] } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blockDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteIdRef = useRef<string | undefined>(note?.id);
+  noteIdRef.current = note?.id;
+  const onUpdateNoteRef = useRef(onUpdateNote);
+  onUpdateNoteRef.current = onUpdateNote;
 
   const internalTitleRef = useRef<HTMLInputElement>(null);
   const internalContentRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const titleInputRef = externalTitleRef || internalTitleRef;
   const contentInputRef = externalContentRef || internalContentRef;
 
-  // Sync state whenever note selection switches
+  const refreshNoteReminder = useCallback((noteId: string) => {
+    void getReminderForNote(noteId).then((rem) => {
+      setActiveReminder(
+        rem && !rem.deletedAt
+          ? { id: rem.id, dueAt: rem.dueAt, isCompleted: rem.isCompleted }
+          : null
+      );
+    });
+  }, []);
+
   useEffect(() => {
-    if (note) {
+    if (!note) {
+      setBlocks([]);
+      setActiveReminder(null);
+      return;
+    }
+
+    if (!pendingNotePatchRef.current) {
       setLocalTitle(note.title);
       setLocalContent(note.content);
       lastSavedRef.current = { title: note.title, content: note.content };
     }
-  }, [note?.id]);
+
+    refreshNoteReminder(note.id);
+    void listBlocksForNote(note.id).then((loaded) => {
+      setBlocks(enforceSingleMediaBlockRule(loaded));
+    });
+
+    const unsubMedia = onMediaUploaded(() => {
+      void listBlocksForNote(note.id).then((loaded) => {
+        setBlocks(enforceSingleMediaBlockRule(loaded));
+      });
+    });
+
+    const unsubSync = onSyncComplete(() => {
+      if (!pendingBlocksRef.current) {
+        void listBlocksForNote(note.id).then((loaded) => {
+          setBlocks(enforceSingleMediaBlockRule(loaded));
+        });
+      }
+      refreshNoteReminder(note.id);
+    });
+
+    return () => {
+      unsubMedia();
+      unsubSync();
+    };
+  }, [note?.id, note?.updatedAt, refreshNoteReminder]);
 
   const commitChanges = useCallback(
     (overrides?: { title?: string; content?: string }) => {
@@ -89,37 +168,206 @@ export function EditorPane({
       const currentTitle = overrides?.title !== undefined ? overrides.title : localTitle;
       const currentContent = overrides?.content !== undefined ? overrides.content : localContent;
 
+      pendingNotePatchRef.current = null;
       if (
         currentTitle !== lastSavedRef.current.title ||
         currentContent !== lastSavedRef.current.content
       ) {
         lastSavedRef.current = { title: currentTitle, content: currentContent };
-        onUpdateNote({
-          title: currentTitle,
-          content: currentContent,
-          updatedAt: new Date().toISOString(),
-        });
+        void onUpdateNoteRef.current(
+          {
+            title: currentTitle,
+            content: currentContent,
+            updatedAt: new Date().toISOString(),
+          },
+          note.id
+        );
       }
     },
-    [note, localTitle, localContent, onUpdateNote]
+    [note, localTitle, localContent]
   );
 
-  const scheduleDebounce = useCallback(() => {
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(() => {
-      commitChanges();
-    }, 400);
-  }, [commitChanges]);
+  const scheduleDebounce = useCallback(
+    (nextTitle: string, nextContent: string) => {
+      pendingNotePatchRef.current = { title: nextTitle, content: nextContent };
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null;
+        commitChanges({ title: nextTitle, content: nextContent });
+      }, 400);
+    },
+    [commitChanges]
+  );
 
-  // Clean up debounce on unmount and commit
+  // Flush debounced changes on unmount (e.g. switching notes)
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
-        commitChanges();
+        debounceTimerRef.current = null;
+      }
+      if (pendingNotePatchRef.current && noteIdRef.current) {
+        const { title, content } = pendingNotePatchRef.current;
+        pendingNotePatchRef.current = null;
+        if (
+          title !== lastSavedRef.current.title ||
+          content !== lastSavedRef.current.content
+        ) {
+          lastSavedRef.current = { title, content };
+          void onUpdateNoteRef.current(
+            { title, content, updatedAt: new Date().toISOString() },
+            noteIdRef.current
+          );
+        }
+      }
+      if (blockDebounceTimerRef.current) {
+        clearTimeout(blockDebounceTimerRef.current);
+        blockDebounceTimerRef.current = null;
+      }
+      if (pendingBlocksRef.current) {
+        const { noteId, blocks: pendingBlocks } = pendingBlocksRef.current;
+        pendingBlocksRef.current = null;
+        void saveBlocksForNote(noteId, pendingBlocks);
       }
     };
-  }, [commitChanges]);
+  }, []);
+
+  const handleUpdateBlocks = useCallback(
+    async (newBlocks: NoteBlock[], immediate = true) => {
+      if (!note) return;
+      const validated = enforceSingleMediaBlockRule(newBlocks);
+      setBlocks(validated);
+
+      if (blockDebounceTimerRef.current) {
+        clearTimeout(blockDebounceTimerRef.current);
+      }
+
+      if (immediate) {
+        pendingBlocksRef.current = null;
+        await saveBlocksForNote(note.id, validated);
+      } else {
+        pendingBlocksRef.current = { noteId: note.id, blocks: validated };
+        blockDebounceTimerRef.current = setTimeout(() => {
+          pendingBlocksRef.current = null;
+          void saveBlocksForNote(note.id, validated);
+        }, 400);
+      }
+    },
+    [note]
+  );
+
+  const handleAddTextBlock = () => {
+    if (!note) return;
+    const now = new Date().toISOString();
+    const newBlock: TextBlock = {
+      id: crypto.randomUUID(),
+      noteId: note.id,
+      type: "text",
+      position: blocks.length,
+      content: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    void handleUpdateBlocks([...blocks, newBlock]);
+  };
+
+  const handleAddChecklistBlock = () => {
+    if (!note) return;
+    const now = new Date().toISOString();
+    const newBlock: ListBlock = {
+      id: crypto.randomUUID(),
+      noteId: note.id,
+      type: "list",
+      listType: "checkbox",
+      position: blocks.length,
+      content: [{ id: crypto.randomUUID(), content: "", checked: false }],
+      createdAt: now,
+      updatedAt: now,
+    };
+    void handleUpdateBlocks([...blocks, newBlock]);
+  };
+
+  const handleTriggerMediaUpload = () => {
+    if (note) fileInputRef.current?.click();
+  };
+
+  const handleMediaFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!note || !e.target.files?.length) return;
+    const selectedFiles = Array.from(e.target.files);
+    // Immediately clear input so the same files or new files can be re-selected reliably
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    const newMediaItems: MediaItem[] = [];
+
+    for (const file of selectedFiles) {
+      try {
+        const mediaId = crypto.randomUUID();
+        const saved = await saveMediaAssetToSandbox(file, mediaId);
+        newMediaItems.push({
+          id: mediaId,
+          mediaType: "image",
+          name: saved.name,
+          localUri: saved.localUri,
+          url: undefined,
+          metadata: { mimeType: file.type || "image/jpeg", size: saved.size },
+        });
+      } catch (err) {
+        console.warn("[EditorPane] Skipping media file after sandbox write failure:", err);
+      }
+    }
+
+    if (newMediaItems.length === 0) return;
+    const now = new Date().toISOString();
+    const existingIdx = blocks.findIndex((b) => b.type === "media");
+    let targetBlockId = "";
+    let updatedBlocks: NoteBlock[] = [];
+
+    if (existingIdx >= 0) {
+      const existingMedia = blocks[existingIdx] as MediaBlock;
+      targetBlockId = existingMedia.id;
+      updatedBlocks = [...blocks];
+      updatedBlocks[existingIdx] = {
+        ...existingMedia,
+        content: [...existingMedia.content, ...newMediaItems],
+        updatedAt: now,
+      };
+    } else {
+      targetBlockId = crypto.randomUUID();
+      const newMediaBlock: MediaBlock = {
+        id: targetBlockId,
+        noteId: note.id,
+        type: "media",
+        position: blocks.length,
+        content: newMediaItems,
+        createdAt: now,
+        updatedAt: now,
+      };
+      updatedBlocks = [...blocks, newMediaBlock];
+    }
+
+    // Await database write of the block first so SQLite foreign key is guaranteed
+    await handleUpdateBlocks(updatedBlocks, true);
+
+    // Enqueue media uploads for background sync (matches Mobile pattern - runs strictly on sync)
+    for (const item of newMediaItems) {
+      await enqueueMediaUpload({
+        id: item.id,
+        blockId: targetBlockId,
+        localUri: item.localUri || "",
+      });
+    }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === ",") && newTagInput.trim()) {
+      e.preventDefault();
+      const sanitized = newTagInput.trim().replace(/^#/, "");
+      if (note && !note.tags.includes(sanitized)) {
+        void onUpdateNote({ tags: [...note.tags, sanitized] }, note.id);
+      }
+      setNewTagInput("");
+    }
+  };
 
   if (!note) {
     return (
@@ -129,16 +377,21 @@ export function EditorPane({
             <FileEdit className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">No Note Selected</h2>
+            <h3 className="text-sm font-medium text-foreground">No note selected</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Select an existing note from the list or press <kbd className="font-mono text-[10px] bg-muted px-1 py-0.5 rounded border border-border">⌘N</kbd> to create a fresh one.
+              Select an existing note from the list or press{" "}
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">
+                ⌘N
+              </kbd>{" "}
+              to create a new one.
             </p>
           </div>
           <Button
+            size="sm"
             onClick={onNewNote}
-            className="bg-[#39ff14] text-black font-medium text-xs hover:bg-[#32e012]"
+            className="text-xs bg-[#39ff14] text-black hover:bg-[#32e012] font-medium"
           >
-            <Plus className="h-4 w-4 mr-1.5" />
+            <Plus className="w-3.5 h-3.5 mr-1" />
             Create Note
           </Button>
         </div>
@@ -146,122 +399,11 @@ export function EditorPane({
     );
   }
 
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && newTagInput.trim()) {
-      e.preventDefault();
-      const cleanTag = newTagInput.trim().replace(/^#/, "");
-      if (!note.tags.includes(cleanTag)) {
-        onUpdateNote({ tags: [...note.tags, cleanTag] });
-      }
-      setNewTagInput("");
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    onUpdateNote({ tags: note.tags.filter((t) => t !== tagToRemove) });
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      contentInputRef.current?.focus();
-    }
-  };
-
-  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-
-    // ⌘S or Ctrl+S -> Immediate commit & flush
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      commitChanges();
-      return;
-    }
-
-    // ⌘B or Ctrl+B -> Bold markdown wrapping
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
-      e.preventDefault();
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selected = localContent.substring(start, end);
-      const replacement = `**${selected}**`;
-      const updated = localContent.substring(0, start) + replacement + localContent.substring(end);
-      setLocalContent(updated);
-      scheduleDebounce();
-      setTimeout(() => {
-        if (start === end) {
-          textarea.setSelectionRange(start + 2, start + 2);
-        } else {
-          textarea.setSelectionRange(start, start + replacement.length);
-        }
-      }, 0);
-      return;
-    }
-
-    // ⌘I or Ctrl+I -> Italic markdown wrapping
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i") {
-      e.preventDefault();
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selected = localContent.substring(start, end);
-      const replacement = `*${selected}*`;
-      const updated = localContent.substring(0, start) + replacement + localContent.substring(end);
-      setLocalContent(updated);
-      scheduleDebounce();
-      setTimeout(() => {
-        if (start === end) {
-          textarea.setSelectionRange(start + 1, start + 1);
-        } else {
-          textarea.setSelectionRange(start, start + replacement.length);
-        }
-      }, 0);
-      return;
-    }
-
-    // Tab -> 2-space indentation; Shift+Tab -> Outdent
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-
-      if (e.shiftKey) {
-        // Outdent line
-        const beforeCursor = localContent.substring(0, start);
-        const lineStart = beforeCursor.lastIndexOf("\n") + 1;
-        const line = localContent.substring(lineStart, end);
-        if (line.startsWith("  ")) {
-          const updated = localContent.substring(0, lineStart) + line.substring(2) + localContent.substring(end);
-          setLocalContent(updated);
-          scheduleDebounce();
-          setTimeout(() => {
-            textarea.setSelectionRange(Math.max(lineStart, start - 2), Math.max(lineStart, end - 2));
-          }, 0);
-        }
-      } else {
-        // Indent 2 spaces
-        const updated = localContent.substring(0, start) + "  " + localContent.substring(end);
-        setLocalContent(updated);
-        scheduleDebounce();
-        setTimeout(() => {
-          textarea.setSelectionRange(start + 2, start + 2);
-        }, 0);
-      }
-      return;
-    }
-  };
-
   return (
-    <main className="h-full w-full bg-background flex flex-col overflow-hidden">
-      {/* Distraction-Free Header: Scope-Dedicated Toolbar */}
+    <main className="h-full w-full bg-background flex flex-col overflow-hidden min-h-0">
       <header className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 select-none">
-        {/* Left: Mode Switcher (Edit / Preview) */}
         <div className="flex items-center gap-3">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-auto"
-          >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
             <TabsList className="h-8 bg-muted/40 p-0.5 border border-border/60">
               <TabsTrigger
                 value="edit"
@@ -280,7 +422,6 @@ export function EditorPane({
             </TabsList>
           </Tabs>
 
-          {/* Folder Selector Dropdown */}
           {folders && folders.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -303,7 +444,7 @@ export function EditorPane({
               />
               <DropdownMenuContent align="start" className="w-48 text-xs">
                 <DropdownMenuItem
-                  onClick={() => onUpdateNote({ folderId: null })}
+                  onClick={() => void onUpdateNote({ folderId: null }, note.id)}
                   className="gap-2 text-xs"
                 >
                   <FolderIcon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -314,7 +455,7 @@ export function EditorPane({
                 {folders.map((f) => (
                   <DropdownMenuItem
                     key={f.id}
-                    onClick={() => onUpdateNote({ folderId: f.id })}
+                    onClick={() => void onUpdateNote({ folderId: f.id }, note.id)}
                     className="gap-2 text-xs"
                   >
                     <FolderIcon
@@ -334,9 +475,74 @@ export function EditorPane({
           </span>
         </div>
 
-        {/* Right: Functional Action Icons */}
         <div className="flex items-center gap-1">
-          {/* Pin Toggle */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="h-6 text-xs gap-1 text-muted-foreground hover:text-foreground px-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#39ff14]" />
+                        <ChevronDown className="w-3 h-3 opacity-60" />
+                      </Button>
+                    }
+                  />
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                Add structured block
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-48 text-xs">
+              <DropdownMenuItem onClick={handleTriggerMediaUpload} className="gap-2">
+                <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                <span>Add Media</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleAddChecklistBlock} className="gap-2">
+                <CheckSquare className="w-3.5 h-3.5 text-[#39ff14]" />
+                <span>Add Checklist</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleAddTextBlock} className="gap-2">
+                <Type className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Add Text Block</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Separator orientation="vertical" className="h-4 mx-0.5" />
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setIsReminderDialogOpen(true)}
+                  className={`transition-colors ${
+                    activeReminder && !activeReminder.isCompleted
+                      ? "text-[#39ff14] bg-[#39ff14]/10 hover:bg-[#39ff14]/20"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                </Button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              {activeReminder && !activeReminder.isCompleted
+                ? `Reminder: ${new Date(activeReminder.dueAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : "Set Reminder"}
+            </TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger
               render={
@@ -359,7 +565,6 @@ export function EditorPane({
             </TooltipContent>
           </Tooltip>
 
-          {/* Archive Toggle */}
           <Tooltip>
             <TooltipTrigger
               render={
@@ -382,7 +587,6 @@ export function EditorPane({
             </TooltipContent>
           </Tooltip>
 
-          {/* More Actions Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -399,6 +603,10 @@ export function EditorPane({
               <DropdownMenuItem onClick={onNewNote}>
                 <Plus className="mr-2 h-3.5 w-3.5" />
                 <span>New Note</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsReminderDialogOpen(true)}>
+                <Bell className="mr-2 h-3.5 w-3.5" />
+                <span>{activeReminder ? "Edit Reminder" : "Add Reminder"}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onTogglePin(note.id)}>
                 <Pin className="mr-2 h-3.5 w-3.5" />
@@ -421,31 +629,30 @@ export function EditorPane({
         </div>
       </header>
 
-      {/* Editor Content Area */}
       <ScrollArea className="flex-1">
         <div className="p-8 max-w-3xl mx-auto space-y-6">
           {activeTab === "edit" ? (
             <div className="space-y-4">
-              {/* Clean Title Input with local staging */}
               <Input
                 ref={titleInputRef}
                 value={localTitle}
                 onChange={(e) => {
-                  setLocalTitle(e.target.value);
-                  scheduleDebounce();
+                  const val = e.target.value;
+                  setLocalTitle(val);
+                  scheduleDebounce(val, localContent);
                 }}
-                onKeyDown={handleTitleKeyDown}
                 onBlur={() => commitChanges()}
                 placeholder="Note Title..."
                 className="text-2xl font-bold tracking-tight h-auto p-0 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/40 text-foreground"
               />
 
-              {/* Clean Tags: Typography-driven, no loud badge boxes */}
               <div className="flex flex-wrap items-center gap-2 py-1 text-xs">
                 {note.tags.map((tag) => (
                   <span
                     key={tag}
-                    onClick={() => handleRemoveTag(tag)}
+                    onClick={() =>
+                      void onUpdateNote({ tags: note.tags.filter((t) => t !== tag) }, note.id)
+                    }
                     className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-destructive cursor-pointer transition-colors"
                     title="Click to remove tag"
                   >
@@ -465,30 +672,97 @@ export function EditorPane({
 
               <Separator />
 
-              {/* Clean Markdown/Text Body with local staging */}
               <Textarea
                 ref={contentInputRef}
                 value={localContent}
                 onChange={(e) => {
-                  setLocalContent(e.target.value);
-                  scheduleDebounce();
+                  const val = e.target.value;
+                  setLocalContent(val);
+                  scheduleDebounce(localTitle, val);
                 }}
-                onKeyDown={handleTextareaKeyDown}
                 onBlur={() => commitChanges()}
                 placeholder="Write in markdown or plain text..."
-                className="min-h-[460px] text-xs leading-relaxed border-0 bg-transparent p-0 focus-visible:ring-0 resize-none font-mono text-foreground placeholder:text-muted-foreground/30"
+                className="min-h-[280px] text-xs leading-relaxed border-0 bg-transparent p-0 focus-visible:ring-0 resize-none font-mono text-foreground placeholder:text-muted-foreground/30"
               />
+
+              <NoteBlocksSection
+                blocks={blocks}
+                readOnly={false}
+                onUpdateBlocks={(next, immediate) => void handleUpdateBlocks(next, immediate)}
+                onTriggerMediaUpload={handleTriggerMediaUpload}
+              />
+
+              <div className="flex items-center gap-2 pt-3 border-t border-border/40">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleTriggerMediaUpload}
+                  className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ImageIcon className="h-3 w-3" />
+                  Add Media
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddChecklistBlock}
+                  className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <CheckSquare className="h-3 w-3" />
+                  + Checklist
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddTextBlock}
+                  className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <Type className="h-3 w-3" />
+                  + Text Block
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <h1 className="text-2xl font-bold tracking-tight text-foreground border-b border-border pb-2">
                 {localTitle || "Untitled Note"}
               </h1>
               <MarkdownPreview content={localContent} />
+              <NoteBlocksSection
+                blocks={blocks}
+                readOnly={true}
+                onUpdateBlocks={(next, immediate) => void handleUpdateBlocks(next, immediate)}
+              />
             </div>
           )}
         </div>
       </ScrollArea>
+
+      {isReminderDialogOpen && (
+        <ReminderDialog
+          open={isReminderDialogOpen}
+          onOpenChange={setIsReminderDialogOpen}
+          noteId={note.id}
+          noteTitle={localTitle}
+          onReminderChanged={() => {
+            refreshNoteReminder(note.id);
+            const store = useNotesStore.getState();
+            void store.loadRemindersCount();
+            if (store.activeFilter === "reminders") {
+              void store.loadNotes();
+            }
+          }}
+        />
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleMediaFilesSelected}
+        className="hidden"
+      />
     </main>
   );
 }

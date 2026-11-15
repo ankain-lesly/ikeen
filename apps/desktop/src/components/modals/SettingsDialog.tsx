@@ -9,32 +9,35 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Kbd } from "@/components/ui/kbd";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
-  ShieldCheck,
-  Keyboard,
-  CloudSync,
   Power,
   RefreshCw,
   Download,
   RotateCcw,
+  Cloud,
+  Layers,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdater } from "@/lib/updater/use-updater";
+import { useSyncStore } from "@/lib/sync/use-sync";
+import { useAuthStore } from "@/stores/use-auth-store";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  ipcConnected: boolean;
+  onOpenAuth?: () => void;
+  onOpenOutbox?: () => void;
 }
 
 export function SettingsDialog({
   open,
   onOpenChange,
-  ipcConnected,
+  onOpenAuth,
+  onOpenOutbox,
 }: SettingsDialogProps) {
+  const [appVersion, setAppVersion] = useState("0.1.0");
   const [autostartEnabled, setAutostartEnabled] = useState(false);
   const [startMinimized, setStartMinimized] = useState(() => {
     if (typeof window !== "undefined") {
@@ -42,6 +45,9 @@ export function SettingsDialog({
     }
     return false;
   });
+
+  const { status: syncStatus, pendingCount } = useSyncStore();
+  const { user, isAuthenticated } = useAuthStore();
 
   const {
     status: updaterStatus,
@@ -51,6 +57,16 @@ export function SettingsDialog({
     downloadAndInstall,
     relaunchApp,
   } = useUpdater();
+
+  // Load app version on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      import("@tauri-apps/api/app")
+        .then((m) => m.getVersion())
+        .then((v) => setAppVersion(v))
+        .catch(() => setAppVersion("0.1.0"));
+    }
+  }, []);
 
   // Query autostart state on open
   useEffect(() => {
@@ -82,24 +98,119 @@ export function SettingsDialog({
     }
   }
 
+  // const handleManualSync = async () => {
+  //   if (!isAuthenticated) {
+  //     if (onOpenAuth) onOpenAuth();
+  //     return;
+  //   }
+  //   await syncManager.sync();
+  // };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-card text-card-foreground border-border">
+      <DialogContent className="max-w-xl bg-card text-card-foreground border-border">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle className="text-base font-semibold">
-              Desktop Preferences
-            </DialogTitle>
-            <Badge variant="outline" className="text-[10px] text-[#39ff14] border-[#39ff14]/30">
-              v2.0
-            </Badge>
-          </div>
+          <DialogTitle className="text-base font-semibold">
+            Desktop Preferences
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Configure system integration, startup preferences, keyboard shortcuts, and sync.
+            Configure system integration, cloud sync, and software updates.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2 text-xs">
+          {/* Cloud & Data Synchronization */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Cloud className="h-3.5 w-3.5 text-[#39ff14]" />
+              Cloud & Account
+            </h4>
+            <div className="rounded border border-border p-3 bg-muted/30 space-y-3">
+              {/* Row 1: Account */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">
+                    {isAuthenticated && user ? user.email : "Local-only (Guest)"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isAuthenticated
+                      ? "Account connected to cloud sync"
+                      : "Sign in to sync notes across devices"}
+                  </p>
+                </div>
+
+                {onOpenAuth && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onOpenAuth}
+                    className="h-7 text-xs"
+                  >
+                    {isAuthenticated ? "Account" : "Sign In"}
+                  </Button>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Row 2: Sync Engine Actions */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">Cloud Sync</p>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          !isAuthenticated
+                            ? "bg-muted-foreground"
+                            : syncStatus === "syncing"
+                            ? "bg-sky-400 animate-pulse"
+                            : syncStatus === "error"
+                            ? "bg-rose-500"
+                            : "bg-[#39ff14]"
+                        }`}
+                      />
+                      {syncStatus === "syncing"
+                        ? "Syncing..."
+                        : syncStatus === "error"
+                        ? "Error"
+                        : isAuthenticated
+                        ? "Connected"
+                        : "Offline"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pendingCount > 0 ? `${pendingCount} mutation${pendingCount === 1 ? "" : "s"} in local queue` : "All local changes pushed"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {onOpenOutbox && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onOpenOutbox}
+                      className="h-7 text-xs gap-1"
+                    >
+                      <Layers className="h-3 w-3" />
+                      Ledger
+                    </Button>
+                  )}
+
+                  {/* <Button
+                    size="sm"
+                    onClick={handleManualSync}
+                    disabled={syncStatus === "syncing"}
+                    className="h-7 text-xs gap-1.5 bg-[#39ff14] text-black hover:bg-[#32e012]"
+                  >
+                    <Send className={`h-3 w-3 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
+                    Sync Now
+                  </Button> */}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* System & Startup */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -135,93 +246,6 @@ export function SettingsDialog({
             </div>
           </div>
 
-          {/* Local Storage & Runtime */}
-          <div className="space-y-2">
-            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
-              Local Storage & Engine
-            </h4>
-            <div className="rounded border border-border p-3 bg-muted/30 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">SQLite Storage Engine</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    ikeen_desktop.db with pure Drizzle ORM query builders
-                  </p>
-                </div>
-                <Badge variant={ipcConnected ? "default" : "secondary"} className="text-[10px]">
-                  {ipcConnected ? "Connected" : "Offline"}
-                </Badge>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">Runtime Engine</span>
-                <span className="font-mono text-[10px]">Tauri v2 + Rust WebView2</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Shortcuts */}
-          <div className="space-y-2">
-            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Keyboard className="h-3.5 w-3.5 text-amber-400" />
-              Keyboard Ergonomics
-            </h4>
-            <div className="rounded border border-border divide-y divide-border bg-muted/30">
-              <div className="flex items-center justify-between p-2.5">
-                <div>
-                  <span className="text-muted-foreground">Quick-Capture HUD</span>
-                  <p className="text-[10px] text-muted-foreground/70">Global shortcut anywhere on OS</p>
-                </div>
-                <div className="flex gap-1">
-                  <Kbd>⌘</Kbd>
-                  <Kbd>⇧</Kbd>
-                  <Kbd>Space</Kbd>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-muted-foreground">Command Palette</span>
-                <div className="flex gap-1">
-                  <Kbd>⌘</Kbd>
-                  <Kbd>K</Kbd>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-muted-foreground">New Note</span>
-                <div className="flex gap-1">
-                  <Kbd>⌘</Kbd>
-                  <Kbd>N</Kbd>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-muted-foreground">Toggle Sidebar</span>
-                <div className="flex gap-1">
-                  <Kbd>⌘</Kbd>
-                  <Kbd>\</Kbd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sync & Network */}
-          <div className="space-y-2">
-            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <CloudSync className="h-3.5 w-3.5 text-purple-400" />
-              Sync & Network
-            </h4>
-            <div className="rounded border border-border p-3 bg-muted/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">Background Sync Outbox</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    Non-blocking outbox mutation queue pushes when online
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </div>
-          </div>
-
           {/* Software Updates */}
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -234,7 +258,7 @@ export function SettingsDialog({
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-foreground">iKeen Desktop</p>
                     <Badge variant="outline" className="text-[10px] font-mono">
-                      v0.1.0
+                      v{appVersion}
                     </Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
@@ -244,7 +268,7 @@ export function SettingsDialog({
                     {updaterStatus === 'downloading' && `Downloading update: ${downloadProgress}%`}
                     {updaterStatus === 'ready' && 'Update downloaded. Ready to relaunch.'}
                     {updaterStatus === 'error' && 'Unable to reach update server.'}
-                    {updaterStatus === 'idle' && 'Release channel: GitHub Stable Releases'}
+                    {updaterStatus === 'idle' && 'Up to date'}
                   </p>
                 </div>
 

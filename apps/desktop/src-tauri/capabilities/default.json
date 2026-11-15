@@ -21,6 +21,16 @@
     "global-shortcut:allow-is-registered",
     "shell:default",
     "fs:default",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-write-file",
+    "fs:allow-read-file",
+    {
+      "identifier": "fs:scope",
+      "allow": [{ "path": "$APPDATA/media/**" }]
+    },
     "notification:default",
     "autostart:default",
     "process:default",
