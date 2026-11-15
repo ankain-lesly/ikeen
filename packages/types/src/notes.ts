@@ -52,6 +52,8 @@ export interface ListNotesOptions {
   pinnedOnly?: boolean;
   /** Header/view: list only archived notes. `includeArchived` alone still mixes. */
   archivedOnly?: boolean;
+  /** Header/view: list only notes with active, uncompleted reminders. */
+  remindersOnly?: boolean;
   /** Sort: keep pinned notes above others (Recent view). Default true. */
   pinnedFirst?: boolean;
   tag?: string;

@@ -68,8 +68,12 @@ describe('IkeenMcpServer', () => {
     await client.connect(clientTransport);
 
     const toolsResult = await client.listTools();
-    expect(toolsResult.tools.length).toBe(16);
+    expect(toolsResult.tools.length).toBe(20);
     expect(toolsResult.tools.some((t) => t.name === 'ikeen_attach_image')).toBe(true);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_set_reminder')).toBe(true);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_list_reminders')).toBe(true);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_complete_reminder')).toBe(true);
+    expect(toolsResult.tools.some((t) => t.name === 'ikeen_cancel_reminder')).toBe(true);
 
     for (const tool of toolsResult.tools) {
       expect(tool.name).toMatch(/^ikeen_/);

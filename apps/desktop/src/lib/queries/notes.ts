@@ -1,15 +1,15 @@
 import { db } from '@/db/client';
-import { notes, type NoteSelect } from '@/db/schema';
-import { eq, isNull, and, desc, or, like, type SQL } from 'drizzle-orm';
-import type { Note, NoteChanges } from '@repo/types';
+import { notes, reminders, type NoteSelect } from '@/db/schema';
+import { eq, isNull, and, desc, or, like, inArray, type SQL } from 'drizzle-orm';
+import type {
+  Note,
+  NoteChanges,
+  CreateNoteInput,
+  UpdateNoteInput,
+  ListNotesOptions,
+} from '@repo/types';
 import { enqueueOutbox } from '@/lib/sync/outbox';
-
-export interface ListNotesFilter {
-  folderId?: string | null;
-  archivedOnly?: boolean;
-  pinnedOnly?: boolean;
-  search?: string;
-}
+import { newId, shouldApplySyncUpdate } from './query-utils';
 
 function mapSelectToNote(row: NoteSelect): Note {
   let parsedTags: string[] = [];
@@ -33,28 +33,34 @@ function mapSelectToNote(row: NoteSelect): Note {
   };
 }
 
-export async function listNotes(filter: ListNotesFilter = {}): Promise<Note[]> {
-  const conditions: SQL[] = [isNull(notes.deletedAt)];
+export async function listNotes(filter: ListNotesOptions = {}): Promise<Note[]> {
+  const conditions: SQL[] = [
+    isNull(notes.deletedAt),
+    eq(notes.isArchived, Boolean(filter.archivedOnly)),
+  ];
 
-  if (filter.search && filter.search.trim().length > 0) {
+  if (filter.search?.trim()) {
     const term = `%${filter.search.trim()}%`;
-    conditions.push(
-      or(
-        like(notes.title, term),
-        like(notes.content, term),
-        like(notes.tags, term)
-      )!
-    );
-  }
-
-  if (filter.archivedOnly) {
-    conditions.push(eq(notes.isArchived, true));
-  } else {
-    conditions.push(eq(notes.isArchived, false));
+    conditions.push(or(like(notes.title, term), like(notes.content, term), like(notes.tags, term))!);
   }
 
   if (filter.pinnedOnly) {
     conditions.push(eq(notes.isPinned, true));
+  }
+
+  if (filter.remindersOnly) {
+    try {
+      const activeRows = await db
+        .select({ noteId: reminders.noteId })
+        .from(reminders)
+        .where(and(isNull(reminders.deletedAt), eq(reminders.isCompleted, false)));
+      const activeNoteIds = activeRows.map((r) => r.noteId).filter((id): id is string => Boolean(id));
+      if (activeNoteIds.length === 0) return [];
+      conditions.push(inArray(notes.id, activeNoteIds));
+    } catch (err: unknown) {
+      console.error('[Queries:listNotes:remindersOnly:Error]', err);
+      return [];
+    }
   }
 
   if (filter.folderId !== undefined) {
@@ -71,7 +77,6 @@ export async function listNotes(filter: ListNotesFilter = {}): Promise<Note[]> {
       .from(notes)
       .where(and(...conditions))
       .orderBy(desc(notes.isPinned), desc(notes.updatedAt));
-
     return rows.map(mapSelectToNote);
   } catch (err: unknown) {
     console.error('[Queries:listNotes:Error]', err);
@@ -81,32 +86,25 @@ export async function listNotes(filter: ListNotesFilter = {}): Promise<Note[]> {
 
 export async function getNoteById(id: string): Promise<Note | null> {
   try {
-    const rows = await db
+    const [row] = await db
       .select()
       .from(notes)
       .where(and(eq(notes.id, id), isNull(notes.deletedAt)))
       .limit(1);
-
-    return rows.length > 0 ? mapSelectToNote(rows[0]) : null;
+    return row ? mapSelectToNote(row) : null;
   } catch (err: unknown) {
     console.error('[Queries:getNoteById:Error]', err);
     return null;
   }
 }
 
-export async function createNote(input: {
-  title?: string;
-  content?: string;
-  folderId?: string;
-  tags?: string[];
-  isPinned?: boolean;
-}): Promise<Note | null> {
-  const id = `note-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+export async function createNote(input: CreateNoteInput = {}): Promise<Note | null> {
+  const id = input.id ?? newId();
   const now = new Date().toISOString();
   const title = input.title ?? 'Untitled Note';
   const content = input.content ?? '';
   const folderId = input.folderId ?? null;
-  const tags = JSON.stringify(input.tags ?? []);
+  const tags = input.tags ?? [];
   const isPinned = Boolean(input.isPinned);
 
   try {
@@ -115,7 +113,7 @@ export async function createNote(input: {
       folderId,
       title,
       content,
-      tags,
+      tags: JSON.stringify(tags),
       isPinned,
       isArchived: false,
       version: 1,
@@ -123,71 +121,78 @@ export async function createNote(input: {
       updatedAt: now,
     });
 
-    const createdNote: Note = {
-      id,
-      folderId: folderId ?? undefined,
-      title,
-      content,
-      tags: input.tags ?? [],
-      isPinned,
-      isArchived: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // Enqueue outbox mutation
     await enqueueOutbox('notes', id, 'upsert', {
       title,
       content,
-      tags: input.tags ?? [],
+      tags,
       folderId: folderId ?? undefined,
       isPinned,
       isArchived: false,
       updatedAt: now,
     });
 
-    return createdNote;
+    return {
+      id,
+      folderId: folderId ?? undefined,
+      title,
+      content,
+      tags,
+      isPinned,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+    };
   } catch (err: unknown) {
     console.error('[Queries:createNote:Error]', err);
     return null;
   }
 }
 
-export async function updateNote(
-  id: string,
-  input: Partial<{
-    title: string;
-    content: string;
-    folderId: string | null;
-    tags: string[];
-    isPinned: boolean;
-    isArchived: boolean;
-  }>
-): Promise<boolean> {
+export async function updateNote(id: string, input: UpdateNoteInput): Promise<boolean> {
   const now = new Date().toISOString();
-
   try {
-    const updateValues: Record<string, any> = { updatedAt: now };
+    const [existing] = await db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, id), isNull(notes.deletedAt)))
+      .limit(1);
+
+    if (!existing) return false;
+
+    const nextVersion = (existing.version ?? 1) + 1;
+    const updateValues: Record<string, any> = {
+      updatedAt: now,
+      version: nextVersion,
+    };
     if (input.title !== undefined) updateValues.title = input.title;
     if (input.content !== undefined) updateValues.content = input.content;
     if (input.folderId !== undefined) updateValues.folderId = input.folderId;
     if (input.tags !== undefined) updateValues.tags = JSON.stringify(input.tags);
     if (input.isPinned !== undefined) updateValues.isPinned = input.isPinned;
     if (input.isArchived !== undefined) updateValues.isArchived = input.isArchived;
+    if (input.summary !== undefined) updateValues.summary = input.summary;
 
     await db
       .update(notes)
       .set(updateValues)
       .where(and(eq(notes.id, id), isNull(notes.deletedAt)));
 
+    const mapped = mapSelectToNote({
+      ...existing,
+      ...updateValues,
+    });
+
     const changes: NoteChanges = {
-      ...input,
-      tags: input.tags,
-      folderId: input.folderId ?? undefined,
+      title: mapped.title,
+      content: mapped.content,
+      tags: mapped.tags,
+      folderId: input.folderId !== undefined ? input.folderId : (existing.folderId ?? null),
+      isPinned: mapped.isPinned,
+      isArchived: mapped.isArchived,
+      summary: mapped.summary ?? null,
       updatedAt: now,
     };
-
-    await enqueueOutbox('notes', id, 'upsert', changes);
+    await enqueueOutbox('notes', id, 'upsert', changes, nextVersion);
     return true;
   } catch (err: unknown) {
     console.error('[Queries:updateNote:Error]', err);
@@ -197,13 +202,8 @@ export async function updateNote(
 
 export async function deleteNote(id: string): Promise<boolean> {
   const now = new Date().toISOString();
-
   try {
-    await db
-      .update(notes)
-      .set({ deletedAt: now })
-      .where(eq(notes.id, id));
-
+    await db.update(notes).set({ deletedAt: now }).where(eq(notes.id, id));
     await enqueueOutbox('notes', id, 'delete', { deletedAt: now });
     return true;
   } catch (err: unknown) {
@@ -212,65 +212,30 @@ export async function deleteNote(id: string): Promise<boolean> {
   }
 }
 
-export async function upsertNoteFromSync(n: {
-  id: string;
-  folderId?: string | null;
-  title?: string;
-  content?: string;
-  tags?: string[] | string;
-  isPinned?: boolean;
-  isArchived?: boolean;
-  summary?: string | null;
-  version?: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-  userId?: string | null;
-}): Promise<void> {
+export async function upsertNoteFromSync(n: Note): Promise<void> {
   const [existing] = await db
-    .select({ updatedAt: notes.updatedAt, version: notes.version })
+    .select({ updatedAt: notes.updatedAt })
     .from(notes)
     .where(eq(notes.id, n.id))
     .limit(1);
 
-  if (existing && new Date(existing.updatedAt).getTime() > new Date(n.updatedAt).getTime()) {
-    return;
-  }
+  if (!shouldApplySyncUpdate(existing?.updatedAt, n.updatedAt)) return;
 
-  const tagsStr =
-    typeof n.tags === 'string'
-      ? n.tags
-      : JSON.stringify(n.tags ?? []);
+  const setFields = {
+    folderId: n.folderId ?? null,
+    title: n.title ?? 'Untitled Note',
+    content: n.content ?? '',
+    tags: typeof n.tags === 'string' ? n.tags : JSON.stringify(n.tags ?? []),
+    isPinned: Boolean(n.isPinned),
+    isArchived: Boolean(n.isArchived),
+    summary: n.summary ?? null,
+    version: n.version ?? 1,
+    updatedAt: n.updatedAt,
+    deletedAt: n.deletedAt ?? null,
+  };
 
   await db
     .insert(notes)
-    .values({
-      id: n.id,
-      folderId: n.folderId ?? null,
-      title: n.title ?? 'Untitled Note',
-      content: n.content ?? '',
-      tags: tagsStr,
-      isPinned: Boolean(n.isPinned),
-      isArchived: Boolean(n.isArchived),
-      summary: n.summary ?? null,
-      version: n.version ?? 1,
-      createdAt: n.createdAt,
-      updatedAt: n.updatedAt,
-      deletedAt: n.deletedAt ?? null,
-    })
-    .onConflictDoUpdate({
-      target: notes.id,
-      set: {
-        folderId: n.folderId ?? null,
-        title: n.title ?? 'Untitled Note',
-        content: n.content ?? '',
-        tags: tagsStr,
-        isPinned: Boolean(n.isPinned),
-        isArchived: Boolean(n.isArchived),
-        summary: n.summary ?? null,
-        version: n.version ?? 1,
-        updatedAt: n.updatedAt,
-        deletedAt: n.deletedAt ?? null,
-      },
-    });
+    .values({ id: n.id, createdAt: n.createdAt, ...setFields })
+    .onConflictDoUpdate({ target: notes.id, set: setFields });
 }

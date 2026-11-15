@@ -1,51 +1,17 @@
 import { db } from '@/db/client';
-import { syncOutbox } from '@/db/schema';
+import { syncOutbox, type SyncOutboxItem } from '@/db/schema';
 import { eq, and, inArray, lt, desc, asc, count, sql } from 'drizzle-orm';
 import type {
   SyncEntityType,
   SyncActionType,
-  FolderChanges,
-  NoteChanges,
-  BlockChanges,
+  OutboxPayloadData,
+  SyncFailureCategory,
 } from '@repo/types';
+import { classifySyncPushFailure } from '@repo/utils';
+import { SYNC_CONSTANTS } from '@repo/utils/constants';
 
-export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
-
-export type SyncFailureCategory =
-  | 'transient_no_penalty'
-  | 'server_error'
-  | 'client_rejected';
-
-export function classifySyncPushFailure(status?: number): SyncFailureCategory {
-  if (
-    status === undefined ||
-    status === 0 ||
-    status === 401 ||
-    status === 403 ||
-    status === 408 ||
-    status === 429
-  ) {
-    return 'transient_no_penalty';
-  }
-  if (status >= 500 && status < 600) {
-    return 'server_error';
-  }
-  return 'client_rejected';
-}
-
-export interface RawOutboxItem {
-  id: string;
-  entity: SyncEntityType;
-  entity_id: string;
-  action: SyncActionType;
-  status: 'pending' | 'in_flight' | 'success' | 'failed';
-  mutation_id: string;
-  payload: string;
-  created_at: string;
-  updated_at: string;
-  retry_count: number;
-  last_error: string | null;
-}
+export type { OutboxPayloadData, SyncFailureCategory };
+export { classifySyncPushFailure };
 
 export async function enqueueOutbox(
   entity: SyncEntityType,
@@ -55,6 +21,9 @@ export async function enqueueOutbox(
   version?: number
 ): Promise<void> {
   const now = new Date().toISOString();
+  const definedChanges = Object.fromEntries(
+    Object.entries(changes as Record<string, unknown>).filter(([, v]) => v !== undefined)
+  );
 
   try {
     // Check if there is already a pending or failed item for this entity & entityId
@@ -75,15 +44,17 @@ export async function enqueueOutbox(
 
     if (pendingItem) {
       let existingChanges: Record<string, unknown> = {};
-      try {
-        existingChanges = JSON.parse(pendingItem.payload);
-      } catch {
-        existingChanges = {};
+      if (action !== 'delete') {
+        try {
+          existingChanges = JSON.parse(pendingItem.payload);
+        } catch {
+          existingChanges = {};
+        }
       }
 
       const mergedChanges = {
         ...existingChanges,
-        ...changes,
+        ...definedChanges,
         ...(version !== undefined && { version }),
       };
 
@@ -93,14 +64,15 @@ export async function enqueueOutbox(
           payload: JSON.stringify(mergedChanges),
           status: 'pending',
           action,
+          retryCount: 0,
           updatedAt: now,
         })
         .where(eq(syncOutbox.id, pendingItem.id));
     } else {
-      const id = `outbox-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const id = crypto.randomUUID();
       const mutationId = `desk-${entity}:${action}:${id}`;
       const payload = JSON.stringify({
-        ...changes,
+        ...definedChanges,
         ...(version !== undefined && { version }),
       });
 
@@ -122,28 +94,38 @@ export async function enqueueOutbox(
   }
 }
 
-export async function getPendingOutbox(limit = 50): Promise<RawOutboxItem[]> {
+export async function resetOutboxInFlightOnStartup(): Promise<void> {
+  const now = new Date().toISOString();
   try {
-    const rows = await db
+    await db
+      .update(syncOutbox)
+      .set({ status: 'pending', updatedAt: now })
+      .where(
+        and(
+          inArray(syncOutbox.status, ['in_flight', 'failed']),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      );
+  } catch (err: unknown) {
+    console.error('[Outbox:resetOutboxInFlightOnStartup:Error]', err);
+  }
+}
+
+export async function getPendingOutbox(
+  limit = SYNC_CONSTANTS.BATCH_SIZE
+): Promise<SyncOutboxItem[]> {
+  try {
+    return await db
       .select()
       .from(syncOutbox)
-      .where(and(eq(syncOutbox.status, 'pending'), lt(syncOutbox.retryCount, 5)))
+      .where(
+        and(
+          inArray(syncOutbox.status, ['pending', 'failed']),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      )
       .orderBy(asc(syncOutbox.createdAt))
       .limit(limit);
-
-    return rows.map((r) => ({
-      id: r.id,
-      entity: r.entity,
-      entity_id: r.entityId,
-      action: r.action,
-      status: r.status,
-      mutation_id: r.mutationId,
-      payload: r.payload,
-      created_at: r.createdAt,
-      updated_at: r.updatedAt,
-      retry_count: r.retryCount,
-      last_error: r.lastError,
-    }));
   } catch (err: unknown) {
     console.error('[Outbox:getPendingOutbox:Error]', err);
     return [];
@@ -198,7 +180,7 @@ export async function markOutboxFailed(
         .update(syncOutbox)
         .set({
           retryCount: sql`${syncOutbox.retryCount} + 1`,
-          status: sql`CASE WHEN ${syncOutbox.retryCount} + 1 >= 5 THEN 'failed' ELSE 'pending' END`,
+          status: sql`CASE WHEN ${syncOutbox.retryCount} + 1 >= ${SYNC_CONSTANTS.MAX_RETRIES} THEN 'failed' ELSE 'pending' END`,
           lastError: errorMessage,
           updatedAt: now,
         })
@@ -214,11 +196,55 @@ export async function getOutboxCount(): Promise<number> {
     const res = await db
       .select({ val: count() })
       .from(syncOutbox)
-      .where(eq(syncOutbox.status, 'pending'));
+      .where(
+        and(
+          inArray(syncOutbox.status, ['pending', 'failed']),
+          lt(syncOutbox.retryCount, SYNC_CONSTANTS.MAX_RETRIES)
+        )
+      );
 
     return res[0]?.val ?? 0;
   } catch (err: unknown) {
     console.error('[Outbox:getOutboxCount:Error]', err);
     return 0;
+  }
+}
+
+export async function getAllOutbox(): Promise<SyncOutboxItem[]> {
+  try {
+    return await db
+      .select()
+      .from(syncOutbox)
+      .orderBy(desc(syncOutbox.createdAt));
+  } catch (err: unknown) {
+    console.error('[Outbox:getAllOutbox:Error]', err);
+    return [];
+  }
+}
+
+export async function clearSuccessfulOutbox(): Promise<void> {
+  try {
+    await db
+      .delete(syncOutbox)
+      .where(eq(syncOutbox.status, 'success'));
+  } catch (err: unknown) {
+    console.error('[Outbox:clearSuccessfulOutbox:Error]', err);
+  }
+}
+
+export async function retryFailedOutbox(): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    await db
+      .update(syncOutbox)
+      .set({
+        status: 'pending',
+        retryCount: 0,
+        lastError: null,
+        updatedAt: now,
+      })
+      .where(eq(syncOutbox.status, 'failed'));
+  } catch (err: unknown) {
+    console.error('[Outbox:retryFailedOutbox:Error]', err);
   }
 }

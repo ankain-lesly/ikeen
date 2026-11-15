@@ -21,9 +21,12 @@ export default function NoteDetailScreen() {
     }
   }, [updatedAt, syncDone, note]);
 
+  // console.log("CONTENT: ", note)
+  
   if (note) {
     return <NoteEditor key={note.id} note={note} />;
   }
+
 
   return (
     <View className="flex-1 bg-background pt-safe pb-safe justify-center items-center px-4">

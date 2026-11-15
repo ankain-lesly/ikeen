@@ -1,6 +1,6 @@
-import type { SyncPushPayload, SyncPushResponse, SyncPullResponse } from '@repo/types';
+import type { SyncPushPayload, SyncPushResponse, SyncPullResponse, RealtimeAuthResponse } from '@repo/types';
 
-export const DEFAULT_API_URL = 'http://localhost:3000/api';
+export const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'
 
 class SyncApiClient {
   private baseUrl: string = DEFAULT_API_URL;
@@ -71,7 +71,9 @@ class SyncApiClient {
   }
 
   async pull(since?: string | null): Promise<SyncPullResponse> {
-    const endpoint = since ? `${this.baseUrl}/sync/pull?since=${encodeURIComponent(since)}` : `${this.baseUrl}/sync/pull`;
+    const endpoint = since
+      ? `${this.baseUrl}/sync/pull?since=${encodeURIComponent(since)}`
+      : `${this.baseUrl}/sync/pull`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -92,6 +94,34 @@ class SyncApiClient {
     }
 
     return await res.json();
+  }
+
+  async getRealtimeAuth(): Promise<RealtimeAuthResponse> {
+    const url = `${this.baseUrl}/sync/realtime-auth`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!res.ok) {
+        return { enabled: false, error: `Realtime auth HTTP error: ${res.status}` };
+      }
+
+      return await res.json();
+    } catch (err: unknown) {
+      return {
+        enabled: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 }
 

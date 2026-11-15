@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
   ArchiveRestore,
+  Bell,
   Check,
   GalleryHorizontal,
   Pin,
@@ -18,6 +19,15 @@ import type {
   NoteBlock,
 } from "@/lib/types/notes";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  toggleReminderCompleted,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from "@/lib/queries/reminders";
+import { ReminderSheet } from "./reminder-sheet";
+import type { Reminder, ReminderRepeat } from "@repo/types";
+
 import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
 import {
@@ -48,6 +58,27 @@ function areBlocksEqual(prev?: NoteBlock[], next?: NoteBlock[]): boolean {
   return true;
 }
 
+function areRemindersEqual(prev?: Reminder[], next?: Reminder[]): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    const p = prev[i];
+    const n = next[i];
+    if (
+      p.id !== n.id ||
+      p.dueAt !== n.dueAt ||
+      p.repeat !== n.repeat ||
+      p.isCompleted !== n.isCompleted ||
+      p.deletedAt !== n.deletedAt ||
+      p.updatedAt !== n.updatedAt
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function areNoteCardPropsEqual(
   prev: NoteCardProps,
   next: NoteCardProps,
@@ -62,6 +93,7 @@ function areNoteCardPropsEqual(
     prev.note.isArchived === next.note.isArchived &&
     prev.note.deletedAt === next.note.deletedAt &&
     prev.note.updatedAt === next.note.updatedAt &&
+    areRemindersEqual(prev.note.reminders, next.note.reminders) &&
     areBlocksEqual(prev.note.blocks, next.note.blocks) &&
     prev.layout === next.layout &&
     prev.isSelectionMode === next.isSelectionMode &&
@@ -72,9 +104,34 @@ function areNoteCardPropsEqual(
   );
 }
 
-/**
- * Shared Action Bar: Date, Pin, Archive, and the stable 20x20 slot
- */
+function formatReminderChip(dueAt: string): string {
+  const due = new Date(dueAt);
+  const now = new Date();
+  if (isNaN(due.getTime())) return "Reminder";
+  if (due.getTime() < now.getTime()) return "Overdue";
+
+  const isToday =
+    due.getDate() === now.getDate() &&
+    due.getMonth() === now.getMonth() &&
+    due.getFullYear() === now.getFullYear();
+
+  const tomorrow = new Date();
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow =
+    due.getDate() === tomorrow.getDate() &&
+    due.getMonth() === tomorrow.getMonth() &&
+    due.getFullYear() === tomorrow.getFullYear();
+
+  const timeStr = due.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  if (isToday) return `Tdy ${timeStr}`;
+  if (isTomorrow) return `Tmr ${timeStr}`;
+
+  return `${due.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} ${timeStr}`;
+}
+
 const CardActionBar = React.memo(function CardActionBar({
   note,
   formattedDate,
@@ -83,6 +140,8 @@ const CardActionBar = React.memo(function CardActionBar({
   isSelected,
   isMenuOpen,
   setIsMenuOpen,
+  hasReminder = false,
+  onReminder,
   variant = "in-flow",
 }: {
   note: NoteWithBlocks;
@@ -92,6 +151,8 @@ const CardActionBar = React.memo(function CardActionBar({
   isSelected: boolean;
   isMenuOpen: boolean;
   setIsMenuOpen: (v: boolean) => void;
+  hasReminder?: boolean;
+  onReminder?: () => void;
   variant?: "in-flow" | "floating";
 }) {
   const isFloating = variant === "floating";
@@ -131,6 +192,14 @@ const CardActionBar = React.memo(function CardActionBar({
           />
         )}
 
+        {hasReminder && (
+          <Bell
+            size={13}
+            color={isFloating ? "#ffffff" : colors.primary}
+            fill={isFloating ? "#ffffff" : colors.primary}
+          />
+        )}
+
         {note.isArchived && (
           <ArchiveRestore
             size={14}
@@ -148,6 +217,7 @@ const CardActionBar = React.memo(function CardActionBar({
               variant="dropdown"
               isExpanded={isMenuOpen}
               setIsExpanded={setIsMenuOpen}
+              onReminder={onReminder}
               note={note}
               iconStyle={{
                 size: 16,
@@ -221,6 +291,59 @@ export const NoteCard = React.memo(function NoteCard({
     };
   }, [note.blocks]);
 
+  const activeReminders = useMemo(
+    () => note.reminders?.filter((r) => !r.isCompleted && !r.deletedAt) ?? [],
+    [note.reminders],
+  );
+
+  const [isReminderSheetOpen, setIsReminderSheetOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+
+  const handleOpenEditReminder = useCallback((reminder: Reminder) => {
+    setEditingReminder(reminder);
+    setIsReminderSheetOpen(true);
+  }, []);
+
+  const handleOpenNewReminder = useCallback(() => {
+    setEditingReminder(null);
+    setIsReminderSheetOpen(true);
+  }, []);
+
+  const handleSaveReminder = useCallback(
+    async (dueAt: string, repeat: ReminderRepeat) => {
+      if (editingReminder) {
+        await updateReminder(editingReminder.id, {
+          dueAt,
+          repeat,
+          isCompleted: false,
+        });
+      } else {
+        await createReminder({
+          noteId: note.id,
+          title: note.title || "",
+          dueAt,
+          repeat,
+        });
+      }
+      setEditingReminder(null);
+    },
+    [editingReminder, note.id, note.title],
+  );
+
+  const handleClearReminder = useCallback(async () => {
+    if (editingReminder) {
+      await deleteReminder(editingReminder.id);
+      setEditingReminder(null);
+    }
+  }, [editingReminder]);
+
+  const handleCompleteReminder = useCallback(async () => {
+    if (editingReminder) {
+      await toggleReminderCompleted(editingReminder.id);
+      setEditingReminder(null);
+    }
+  }, [editingReminder]);
+
   const displaySnippet = useMemo(() => {
     if (contentBlock?.type === "text") {
       return stripMarkdown(contentBlock.content);
@@ -288,6 +411,8 @@ export const NoteCard = React.memo(function NoteCard({
                 isSelected={isSelected}
                 isMenuOpen={isMenuOpen}
                 setIsMenuOpen={setIsMenuOpen}
+                hasReminder={activeReminders.length > 0}
+                onReminder={handleOpenNewReminder}
                 variant="in-flow"
               />
 
@@ -333,6 +458,27 @@ export const NoteCard = React.memo(function NoteCard({
                   )}
                 </View>
               )}
+
+              {/* Active Reminders */}
+              <View className="flex-row flex-wrap gap-0.5">
+                {activeReminders.map((reminder) => (
+                  <Pressable
+                    key={reminder.id}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit reminder"
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Haptics.selectionAsync();
+                      handleOpenEditReminder(reminder);
+                    }}
+                    className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+                    <Bell size={11} color={colors.primary} />
+                    <Text className="text-[10px] font-semibold text-primary">
+                      {formatReminderChip(reminder.dueAt)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
             {/* Right Column: Square Thumbnail if media exists */}
@@ -353,6 +499,19 @@ export const NoteCard = React.memo(function NoteCard({
             )}
           </View>
         </View>
+        {/* Single Note Reminder Sheet */}
+        <ReminderSheet
+          isPresented={isReminderSheetOpen}
+          onDismiss={() => {
+            setIsReminderSheetOpen(false);
+            setEditingReminder(null);
+          }}
+          initialDueAt={editingReminder?.dueAt}
+          initialRepeat={editingReminder?.repeat}
+          onSave={handleSaveReminder}
+          onClear={editingReminder ? handleClearReminder : undefined}
+          onComplete={editingReminder ? handleCompleteReminder : undefined}
+        />
       </Pressable>
     );
   }
@@ -389,6 +548,8 @@ export const NoteCard = React.memo(function NoteCard({
               isSelected={isSelected}
               isMenuOpen={isMenuOpen}
               setIsMenuOpen={setIsMenuOpen}
+              hasReminder={activeReminders.length > 0}
+              onReminder={handleOpenNewReminder}
               variant="floating"
             />
           </View>
@@ -405,6 +566,8 @@ export const NoteCard = React.memo(function NoteCard({
               isSelected={isSelected}
               isMenuOpen={isMenuOpen}
               setIsMenuOpen={setIsMenuOpen}
+              hasReminder={activeReminders.length > 0}
+              onReminder={handleOpenNewReminder}
               variant="in-flow"
             />
           )}
@@ -446,8 +609,43 @@ export const NoteCard = React.memo(function NoteCard({
               {displaySnippet}
             </ThemedText>
           ) : null}
+
+          {/* Active Reminders */}
+        <View className="flex-row flex-wrap gap-0.5">
+          {activeReminders.map((reminder) => (
+            <Pressable
+              key={reminder.id}
+              accessibilityRole="button"
+              accessibilityLabel="Edit reminder"
+              onPress={(e) => {
+                e.stopPropagation();
+                Haptics.selectionAsync();
+                handleOpenEditReminder(reminder);
+              }}
+              className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+              <Bell size={11} color={colors.primary} />
+              <Text className="text-[10px] font-semibold text-primary">
+                {formatReminderChip(reminder.dueAt)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
         </View>
       </View>
+
+      {/* Single Note Reminder Sheet (Grid Layout) */}
+      <ReminderSheet
+        isPresented={isReminderSheetOpen}
+        onDismiss={() => {
+          setIsReminderSheetOpen(false);
+          setEditingReminder(null);
+        }}
+        initialDueAt={editingReminder?.dueAt}
+        initialRepeat={editingReminder?.repeat}
+        onSave={handleSaveReminder}
+        onClear={editingReminder ? handleClearReminder : undefined}
+        onComplete={editingReminder ? handleCompleteReminder : undefined}
+      />
     </Pressable>
   );
 }, areNoteCardPropsEqual);

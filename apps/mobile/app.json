@@ -5,7 +5,7 @@
     "description": "iKeen is your personal thought partner—helping you brainstorm, organize, and connect ideas as an extension of your mind. Notes, folders, Chats, Agents and ideas are connected to your workspace.",
     "version": "2.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-logo.png",
     "scheme": "ikeen",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -31,7 +31,9 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.techforgelee.ikeen"
@@ -58,6 +60,16 @@
       ],
       "expo-image",
       "expo-video",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#004040",
+          "defaultChannel": "general",
+          "enableBackgroundRemoteNotifications": true,
+          "sounds": ["./assets/sounds/notification.wav"]
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -8,11 +8,12 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Zap, Pin, Trash2, Archive, Copy } from "lucide-react";
+import { Zap, Pin, Trash2, Archive, Copy, Bell } from "lucide-react";
 
 interface NoteCardItemProps {
   note: Note;
   isActive: boolean;
+  reminderDueAt?: string | null;
   onSelect: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
@@ -23,6 +24,7 @@ export const NoteCardItem = memo(
   function NoteCardItem({
     note,
     isActive,
+    reminderDueAt,
     onSelect,
     onTogglePin,
     onDeleteNote,
@@ -31,6 +33,7 @@ export const NoteCardItem = memo(
     return (
       <ContextMenu>
         <ContextMenuTrigger
+          data-note-id={note.id}
           onClick={() => onSelect(note.id)}
           className={`block p-3 cursor-pointer transition-colors border-b border-border/40 text-left select-none ${
             isActive
@@ -55,11 +58,22 @@ export const NoteCardItem = memo(
             {note.content || "Empty note..."}
           </p>
 
-          {/* Footer: Date & Subtle Text Tags (No Badge Chip Clutter) */}
+          {/* Footer: Date & Subtle Text Tags & Reminder */}
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className="font-mono text-[9px] text-muted-foreground/70">
               {formatDate(new Date(note.updatedAt))}
             </span>
+            {reminderDueAt && (
+              <span
+                className="inline-flex items-center gap-1 text-[9px] font-mono text-[#39ff14] bg-[#39ff14]/10 px-1 py-0.5 rounded"
+                title={`Reminder: ${new Date(reminderDueAt).toLocaleString()}`}
+              >
+                <Bell className="w-2.5 h-2.5" />
+                <span>
+                  {new Date(reminderDueAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </span>
+            )}
             {note.tags.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-hidden font-mono text-[9px] text-muted-foreground/60">
                 {note.tags.slice(0, 3).map((tag) => (

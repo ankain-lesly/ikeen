@@ -5,7 +5,6 @@ describe('FoldersToolService', () => {
   let service: FoldersToolService;
   let mockPrisma: any;
   let mockAudit: any;
-  let mockAbly: any;
 
   beforeEach(() => {
     mockPrisma = {

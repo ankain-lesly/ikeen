@@ -30,6 +30,14 @@ import {
   organizeNoteDef,
   updateFolderDef,
 } from '../folders/folders.tool-definitions.js';
+import {
+  cancelReminderDef,
+  completeReminderDef,
+  listRemindersDef,
+  setReminderDef,
+} from '../reminders/reminders.tool-definitions.js';
+import { RemindersToolService } from '../reminders/reminders-tool.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import { generateImageKeenDef } from '../media/media.tool-definitions.js';
 import type { MediaService } from '../media/media.service.js';
 
@@ -37,6 +45,7 @@ export interface IkeenMcpServerOptions {
   ably?: AblyService;
   notesToolService: NotesToolService;
   foldersToolService: FoldersToolService;
+  remindersToolService?: RemindersToolService;
   mediaService?: MediaService;
   prisma: PrismaService;
   userId: string;
@@ -83,6 +92,7 @@ function toolError(message: string): CallToolResult {
 export function createIkeenMcpServer({
   notesToolService,
   foldersToolService,
+  remindersToolService,
   mediaService,
   prisma,
   userId,
@@ -90,6 +100,10 @@ export function createIkeenMcpServer({
   apiKey,
   ably,
 }: IkeenMcpServerOptions): McpServer {
+  const remindersSvc =
+    remindersToolService ??
+    new RemindersToolService(prisma, new AuditService(prisma));
+
   const server = new McpServer(
     {
       name: 'ikeen',
@@ -183,6 +197,18 @@ export function createIkeenMcpServer({
   );
   registerMcpTool(organizeNoteDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
     foldersToolService.organizeNote(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(setReminderDef, { readOnlyHint: false, destructiveHint: false }, (args) =>
+    remindersSvc.setReminder(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(listRemindersDef, { readOnlyHint: true }, (args) =>
+    remindersSvc.listReminders(userId, args),
+  );
+  registerMcpTool(completeReminderDef, { readOnlyHint: false, destructiveHint: false, idempotentHint: true }, (args) =>
+    remindersSvc.completeReminder(userId, args, toolExecutionOpts),
+  );
+  registerMcpTool(cancelReminderDef, { readOnlyHint: false, destructiveHint: true }, (args) =>
+    remindersSvc.cancelReminder(userId, args, toolExecutionOpts),
   );
 
   // --- 2. RESOURCES ---

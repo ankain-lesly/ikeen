@@ -23,26 +23,39 @@
         "label": "quick-capture",
         "title": "Quick Capture",
         "width": 640,
-        "height": 380,
+        "height": 340,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "visible": false,
-        "skipTaskbar": true
+        "skipTaskbar": true,
+        "center": true,
+        "resizable": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/media/**"]
+      }
     }
   },
   "plugins": {
     "sql": {
       "preload": ["sqlite:ikeen_desktop.db"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGODVFNkYwQTg3Nzk4M0MKUldROG1IZW84T2FGLzUxdzVFOVdvYkhoUTkzTjE4V2ZmY2lndmRXeE1HMUJNWVY0R0NJMXRPanEK",
+      "endpoints": [
+        "https://github.com/ankain-lesly/ikeen/releases/latest/download/latest.json"
+      ]
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

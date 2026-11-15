@@ -36,6 +36,12 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+*.key
+ikeen.key
+
+# Rust / Tauri Build Outputs
+target/
+src-tauri/target/
 
 
 

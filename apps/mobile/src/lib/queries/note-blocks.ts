@@ -23,7 +23,7 @@ import {
   toBlockOutboxPayload,
   unpackNoteBlock,
 } from "./block-content.codec";
-import { createNote, getNoteById } from "./notes";
+import { createNote, getNoteById, touchNote } from "./notes";
 
 export { formatNoteWithBlocks, serializeBlockContent };
 
@@ -88,11 +88,7 @@ export async function getNoteBlocks(noteId: string): Promise<NoteBlock[]> {
  * and feed sortings immediately reflect block modifications across consumer screens.
  */
 async function touchParentNote(noteId: string): Promise<void> {
-  const now = new Date().toISOString();
-  await db
-    .update(notes)
-    .set({ updatedAt: now })
-    .where(eq(notes.id, noteId));
+  await touchNote(noteId);
 }
 
 /**

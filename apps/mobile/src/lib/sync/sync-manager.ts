@@ -13,11 +13,14 @@ import type {
   FolderChanges,
   NoteChanges,
   BlockChanges,
+  ReminderMutationPayload,
+  ReminderChanges,
 } from '@repo/types';
 import { useAuthStore } from '../auth/auth-store';
 import { upsertFolderFromSync, migrateGuestFolders } from '../queries/folders';
 import { upsertNoteFromSync, migrateGuestNotes } from '../queries/notes';
 import { upsertBlockFromSync } from '../queries/note-blocks';
+import { upsertReminderFromSync } from '../queries/reminders';
 import {
   reconcileUnsyncedMedia,
   processMediaUploadQueue,
@@ -35,6 +38,7 @@ import {
 import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
+import { toast } from '../toast';
 
 class SyncManager {
   private isSyncing = false;
@@ -167,6 +171,7 @@ class SyncManager {
 
       this.ablyChannel = this.ablyClient.channels.get(`user:${userId}`);
       this.ablyChannel.subscribe('sync:invalidate', () => {
+        toast.success("Invalidate From Server")
         log('[Sync:Realtime:InvalidateReceived]', { userId });
         this.pull().catch(() => {});
       });
@@ -246,6 +251,7 @@ class SyncManager {
       const folderMutations: FolderMutationPayload[] = [];
       const noteMutations: NoteMutationPayload[] = [];
       const blockMutations: BlockMutationPayload[] = [];
+      const reminderMutations: ReminderMutationPayload[] = [];
 
       for (const item of items) {
         try {
@@ -391,6 +397,14 @@ class SyncManager {
           }
         }
 
+        
+        // Apply Reminders (LWW)
+        if (response.reminders?.length) {
+          for (const r of response.reminders) {
+            await upsertReminderFromSync({ ...r, userId: user?.id });
+          }
+        }
+
         // Save new checkpoint
         await db
           .insert(syncMetadata)
@@ -419,7 +433,8 @@ class SyncManager {
         const hasMore =
           response.folders.length >= 250 ||
           response.notes.length >= 250 ||
-          (response.note_blocks?.length ?? 0) >= 250;
+          (response.note_blocks?.length ?? 0) >= 250 ||
+          (response.reminders?.length ?? 0) >= 250;
 
         if (!hasMore || response.serverTimestamp === currentSince) {
           break;

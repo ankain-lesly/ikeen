@@ -10,6 +10,167 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## 🛡️ User Privacy & Account Deletion Compliance — 2026-11-15
+* **Status**: Completed
+* **Scope**: In-app user account deletion surface integration satisfying Apple App Store & Google Play privacy compliance requirements.
+
+- [x] Account Deletion Surface (`profile/index.tsx`): Configured `ACCOUNT_DELETION_URL` (`https://ikeen.leslychuo.me/delete-account`) with interactive `Pressable` button and `openBrowserAsync` WebBrowser presentation.
+- [x] Task Cleanup (`TODO.md`): Removed completed account deletion requirement from active backlog.
+
+---
+
+## 🖥️ Desktop Parity: Note Blocks, Reminders Engine, Scrolling Fix & Ably Realtime — 2026-11-10
+* **Status**: Completed
+* **Scope**: Universal scrolling repair across NoteList, Editor, Delivery Ledger, and Modals (`scroll-area.tsx`), Note Blocks integration with strict single media block invariant (`block-codec.ts`, `note-blocks.ts`, `EditorPane.tsx`), desktop Reminders engine with SQLite persistence, native notification scheduling (`reminders.ts`, `ReminderDialog.tsx`), focus sync cooldown throttle (`MIN_FOCUS_SYNC_INTERVAL_MS = 30_000`), and Ably Realtime WebSocket delta synchronization on `'sync:invalidate'` events.
+
+- [x] Universal Scrolling Fix (`scroll-area.tsx`): Configured `overflow-y-auto overscroll-contain` on Viewport and `min-h-0 overflow-hidden` on Root
+- [x] Focus Sync Throttle (`sync-manager.ts`): Enforced 30-second cooldown on window focus to eliminate redundant DB queries and network calls
+- [x] Desktop Reminders Engine (`schema.ts`, `migrations.ts`, `reminders.ts`):
+  - [x] SQLite `reminders` table and relations matching mobile schema
+  - [x] CRUD operations with `sync_outbox` bi-directional mutation queueing
+  - [x] Local desktop notification dispatch via `@tauri-apps/plugin-notification`
+- [x] Reminders UI Surfaces (`ReminderDialog.tsx`, `EditorPane.tsx`, `NoteCardItem.tsx`, `AppSidebar.tsx`):
+  - [x] Modal with quick presets (Later Today 6 PM, Tomorrow 9 AM, Next Week), custom date/time, and repeat intervals
+  - [x] Interactive bell action button in `EditorPane` header displaying current due date
+  - [x] Contextual reminder timestamp chip on `NoteCardItem`
+  - [x] Reminders navigation item in `AppSidebar` with live uncompleted reminders count badge
+  - [x] Pure Drizzle ORM query filtering (`filter.remindersOnly`) using `inArray(notes.id, activeNoteIds)` with zero raw SQL
+- [x] Modular Note Blocks Integration (`block-codec.ts`, `note-blocks.ts`, `EditorPane.tsx`):
+  - [x] Serialization & deserialization codec for Text, Checklist, and Media blocks
+  - [x] Strict Single Media Block Invariant: Enforced at most one media block per note on desktop; excess blocks merged into primary block
+  - [x] Zero Content Loss: Safe `getBaseBlocks()` transition converting existing note text into Block 0 before appending new blocks
+  - [x] Editor Header Menu: `+ Block` dropdown with Text Block, Checklist Block, and Media Block options
+  - [x] Inserter Actions: Explicit `+ Add Text Block` in both structured and markdown views
+  - [x] Interactive Checklist Editor: Inline `<input>` item editing, Enter-to-focus newly created tasks automatically without mouse clicks, hover delete button, and checked toggle
+  - [x] Clean Media Upload Pipeline (Zero Base64): Local sandboxed storage (`file-system.ts`), background queueing via `media_sync_outbox`, multipart upload to `POST /media/upload`, reactive `useMediaUploadStore`, cloud URL reconciliation, and outbox sanitization
+  - [x] Full Preview Mode Blocks: Seamless rendering of main note markdown along with all modular blocks (checklists, text blocks, and media image grid) in the Preview tab
+  - [x] Delta sync ingestion in `sync-manager.ts` (`upsertBlockFromSync`, `upsertReminderFromSync`)
+- [x] Ably Realtime Integration (`sync-manager.ts`, `sync-api.ts`):
+  - [x] Client connection to `user:${userId}` channel via `/sync/realtime-auth` token requests
+  - [x] Automatic delta pull on `'sync:invalidate'` events
+  - [x] Automatic channel cleanup on user logout
+- [x] Version Invariant: Maintained `v0.1.0` dynamically retrieved from `@tauri-apps/api/app` in `SettingsDialog.tsx`
+
+---
+
+## 🔔 Server Push Notifications, Multi-Token Engine & Agent Creation Triggers — 2026-11-10
+* **Status**: Completed
+* **Scope**: Server-to-device push notification pipeline utilizing the official Expo Server SDK (`expo-server-sdk` v8.0.0), multi-token per device and multi-device per user tracking (`PushToken`), database persistence (`Notification`), creation-only triggers for Agent and MCP (`createNote`, `createFolder`, `setReminder`), test push API endpoint (`POST /notifications/test`), and mobile push token lifecycle registration (`push-token.service.ts`).
+
+- [x] Push Token & Notification Schema Delegates (`apps/api/src/prisma/prisma.service.ts`): Wired `pushToken` and `notification` delegates
+- [x] Push Token DTOs (`apps/api/src/modules/notifications/dto/`): `RegisterPushTokenDto`, `DeregisterPushTokenDto`, and `SendTestNotificationDto`
+- [x] Dedicated Push Notification Service (`apps/api/src/modules/notifications/push-notification.service.ts`):
+  - [x] `sendPushNotification(props)`: Dedicated method with proper props, database persistence, and Expo push dispatch
+  - [x] `registerPushToken(userId, dto)`: Upsert by unique token supporting multi-token per device and multi-device per user
+  - [x] `deregisterPushToken(userId, token)`: Prunes tokens on logout
+  - [x] Dead token cleanup: Automatic removal from `prisma.pushToken` on `DeviceNotRegistered` ticket error
+  - [x] `sendAgentEntityCreatedPush(userId, options)`: Dedicated entity creation dispatch
+- [x] Creation-Only Hooks:
+  - [x] `NotesToolService` (`notes-tool.service.ts`): Dispatches push notification strictly on note creation
+  - [x] `FoldersToolService` (`folders-tool.service.ts`): Dispatches push notification strictly on new folder creation (`!alreadyExisted`)
+  - [x] `RemindersToolService` (`reminders-tool.service.ts`): Dispatches push notification strictly on new reminder creation (`!existing`)
+- [x] Notifications API Endpoints (`apps/api/src/modules/notifications/notifications.controller.ts`):
+  - [x] `POST /notifications/push-token`: Register/refresh device push token
+  - [x] `DELETE /notifications/push-token`: Deregister device push token
+  - [x] `POST /notifications/test`: Send test push notification using userId
+- [x] Mobile Client Push Registration (`apps/mobile/src/lib/services/push-token.service.ts`):
+  - [x] Permission check and Expo push token retrieval via `expo-notifications`, `expo-device`, `expo-constants`
+  - [x] Hardware metadata payload and local cache to avoid duplicate network calls
+  - [x] Auto-registration on user authentication in `_layout.tsx`
+  - [x] Token deregistration on user logout in `auth-store.ts`
+  - [x] Tapping notification routes user directly to `/notes/[id]`
+- [x] Unit Test Suite (`apps/api/test/notifications/push-notification.service.spec.ts`): Token registration, push delivery, DB persistence, and dead token cleanup
+- [x] Multi-Reminder NoteCard Loop & Right-Aligned Inline Check Buttons (`note-card.tsx`):
+  - [x] Looping over all non-deleted reminders for a note with uncompleted-first sorting
+  - [x] Pressing any reminder chip opens `ReminderSheet` in edit mode targeting that specific reminder
+  - [x] Right-aligned small circular inline button (`Pressable`, `hitSlop={8}`) to mark as complete/incomplete with haptic feedback
+  - [x] Event propagation stop (`e.stopPropagation()`) ensuring taps do not trigger card navigation or open sheet
+  - [x] `ReminderSheet` state synchronization on presentation (`useEffect` on `isPresented`, `initialDueAt`, `initialRepeat`)
+  - [x] Universal rendering across both `grid` and `list` card layouts with full memoization (`areRemindersEqual`)
+
+---
+
+## ⏰ Note Reminders, Local Notification Engine & Discrete Schema — 2026-11-08
+* **Status**: Completed
+* **Scope**: Discrete `reminders` schema across mobile (Drizzle SQLite) and API (Prisma PostgreSQL), shared types in `@repo/types`, background & scheduled notifications via `expo-notifications`, native deep-linking to `/notes/[id]`, profile notification permission toggle, bulk action bar `Bell` trigger, interactive card chips, and offline outbox synchronization.
+
+- [x] Shared Types (`@repo/types`): `Reminder`, `CreateReminderInput`, `UpdateReminderInput`, `ReminderRepeat`, `SyncEntityType`
+- [x] Mobile Drizzle Schema (`schema.ts`, `0008_unknown_mastermind.sql`): `reminders` table, cascade foreign keys, indices, and `sync_outbox` enum
+- [x] Backend Prisma Schema (`schema.prisma`): `model Reminder`, `ReminderRepeat` enum, `SyncEntity.reminders`
+- [x] Notification Engine (`reminder-service.ts`): Channels, permissions, local OS scheduling, cancellation, deep-linking listener
+- [x] Reminder Queries & Mutations (`reminders.ts`): `useLiveRemindersForNote`, `useLiveUpcomingReminders`, `createReminder`, `batchCreateReminders`, `toggleReminderCompleted`, `deleteReminder`, outbox enqueue
+- [x] Profile Permission Action (`profile/index.tsx`): Added Reminders & Alerts permission row with 1-tap request / settings trigger
+- [x] UI Components (`reminder-sheet.tsx`): Quick presets (Later today, Tomorrow 9 AM, Next week, Custom), repeat options, save & clear
+- [x] Bulk Actions Integration (`notes-bulk-action-bar.tsx`, `notes-grid-container.tsx`): `Bell` button and batch scheduling
+- [x] Note Card Integration (`note-card.tsx`): Live reminder hook, action bar bell indicator, and interactive completion chip
+- [x] Note Editor Integration (`note-editor.tsx`, `notes-options-dropdown.tsx`): Contextual "Remind Me" action and sheet mounting
+- [x] Bi-Directional Sync Pipeline (`sync.service.ts`, `sync-manager.ts`): LWW mutation processing and delta pull
+
+---
+
+## 🤖 Agent Autonomy, Response Brevity & NestJS 12 Route Migration — 2026-11-08
+* **Status**: Completed
+* **Scope**: Google Gemini-style prompt architecture (zero preamble, zero echoing, autonomous execution, outcome-only confirmations), in-memory active agent session preservation (useAgentSession), agent sidebar drawer with infinite conversation query, and NestJS 12 path-to-regexp v8 wildcard route migration ({*path}).
+
+- [x] Agent Prompt Overhaul (ikeen.prompt.ts, segments.ts): Gemini outcome pattern, anti-filler constraints
+- [x] Prompt Test Suite (ikeen.prompt.spec.ts): 9/9 unit tests asserting brevity, zero echoing, and outcome patterns
+- [x] In-Memory Session Hook (use-agent-session.ts): Continuous mounting & draft preservation
+- [x] Agent Sidebar Drawer (_layout.tsx, agent-drawer-content.tsx): Infinite conversation pagination
+- [x] NestJS 12 Route Migration (main.ts): Replaced deprecated (.*) wildcards with {*path}
+- [x] Task Triage (TODO.md): Resolved warning logs and completed sidebar item
+
+---
+
+## 🖥️ Desktop Polish: Sidebar Cleanup, Folder Manager & Packaging Dry Run — 2026-11-08
+* **Status**: Completed
+* **Scope**: Remove deprecated AI Memories and MCP sidebar buttons, promote Pinned Notes and Archived Notes smart filters with live badges, implement complete folder management (create modal, edit name/color with 8 curated swatches, safe delete with unfiling, sidebar hover actions, note folder assignment dropdown), generate Ed25519 in-app updater keys, and perform end-to-end Windows x64 release packaging dry-run producing signed NSIS (.exe) and WiX (.msi) bundles.
+
+- [x] Deprecate & remove AI Memories and MCP Tools from sidebar and command palette
+- [x] Promote Pinned Notes and Archived Notes smart filter navigation items with real-time counts
+- [x] Build `FolderEditDialog` modal supporting Create/Edit, 8 curated colors, live preview, and safe deletion
+- [x] Add inline folder create trigger (`+`) and hover action menu (`...` -> Edit / Delete) in sidebar
+- [x] Add note folder assignment dropdown pill in `EditorPane` header
+- [x] Wire folder CRUD mutations into `use-notes-store` with Drizzle SQLite persistence and sync outbox queue
+- [x] Add `⌘⇧F` keyboard shortcut in `CommandPalette` to open folder creation modal
+- [x] Generate Ed25519 updater keypair (`ikeen.key` & `ikeen.key.pub`) and configure `pubkey` in `tauri.conf.json`
+- [x] Add root packaging convenience script `"package:desktop"` in `package.json`
+- [x] Reclaim disk space on drive `C:` by clearing debug caches
+- [x] Execute release packaging dry-run generating verified installers and minisign signatures:
+  - [x] `iKeen_0.1.0_x64-setup.exe` (3.97 MB) + `.sig`
+  - [x] `iKeen_0.1.0_x64_en-US.msi` (5.38 MB) + `.sig`
+- [x] Document GitHub Actions secret configuration (`TAURI_SIGNING_PRIVATE_KEY`) in `walkthrough.md`
+
+---
+
+## 🖥️ Desktop Phase 4: Production Release Pipeline & In-App Updater — 2026-11-08
+* **Status**: Completed
+* **Scope**: Automated in-app updater pipeline (`@tauri-apps/plugin-updater`, `tauri-plugin-updater` v2, Ed25519 signatures, `latest.json` release manifest), settings updates card (`apps/desktop/src/components/modals/SettingsDialog.tsx`), multi-platform GitHub Actions workflows (`.github/workflows/desktop-ci.yml` & `.github/workflows/desktop-release.yml`), and centralized remote MCP strategy documented in `docs/architecture/MCP_ARCHITECTURE.md`.
+
+- [x] Automated In-App Updater Plugin Integration (`Cargo.toml`, `lib.rs`, `tauri.conf.json`, `capabilities/default.json`)
+- [x] In-App Updater React Hook (`apps/desktop/src/lib/updater/use-updater.ts`)
+- [x] Software Updates Settings Card (`apps/desktop/src/components/modals/SettingsDialog.tsx`)
+- [x] GitHub Actions Continuous Integration Workflow (`.github/workflows/desktop-ci.yml`)
+- [x] GitHub Actions Multi-Platform Release Matrix Workflow (`.github/workflows/desktop-release.yml`)
+- [x] Centralized Remote MCP Architecture & Strategy Documentation (`docs/architecture/MCP_ARCHITECTURE.md`)
+- [x] Verification (TypeScript check passed with 0 errors)
+
+---
+
+## 🖥️ Desktop Phase 3: Desktop UX, Multi-Window & Native Ergonomics — 2026-11-08
+* **Status**: Completed
+* **Scope**: Spotlight Quick-Capture HUD (`⌘⇧Space`), background system tray persistence with dynamic sync status, full-featured `⌘K` command palette across notes, folders, tags, and actions, note list arrow (`↑`/`↓`) and vim (`j`/`k`) navigation, editor keyboard ergonomics (`Tab` indentation, `⌘B`/`⌘I` markdown formatting, `⌘S` flush), and keyboard shortcuts cheatsheet (`?`/`⌘/`).
+
+- [x] Three-Pane Layout & Sidebar Integration
+- [x] Global Quick-Capture Window (`⌘⇧Space`) & Autostart
+- [x] System Tray Applet & Dynamic Sync Tooltip (`update_tray_status`)
+- [x] Full-Featured Command Palette (`⌘K`)
+- [x] Note List Keyboard Navigation & Auto-Scroll
+- [x] Editor Formatting & Indentation Ergonomics
+- [x] Shortcuts Cheatsheet Modal (`?` / `⌘/`)
+- [x] Verification (TypeScript check, Tauri IPC, Drizzle ORM)
+
+---
+
 ## 🖥️ Desktop Phase 2: Local Storage Engine & Sync Architecture — 2026-10-31
 * **Status**: Completed
 * **Scope**: Embedded SQLite engine on desktop via @tauri-apps/plugin-sql and Drizzle ORM (drizzle-orm/sqlite-proxy), FTS5 virtual tables with synchronization triggers, outbox mutation queue with coalescing, bi-directional push/pull sync engine with Last-Write-Wins (LWW) conflict resolution, startup onboarding seeder, and reactive Zustand store integration.
@@ -285,4 +446,21 @@ Grouped by todo topic / issue for clearer tracking and context.
 - [x] Task 3: `HomeGlancePills` for accurate, real-time note and folder statistics (replacing the 5-note query limit bug)
 - [x] Task 4: Refactor `HomeScreen` with editorial greeting, unified `px-4` padding, daily focus card, and dual feed (pinned carousel + vertical recent list)
 - [x] Task 5: Verification via TypeScript compilation and layout checks
+
+---
+
+## 🛠️ Desktop Code Reduction, Pitfall Remediation & Media Pipeline Hardening — 2026-11-10
+* **Status**: Completed
+* **Scope**: High-percentage LoC reduction (~1,200+ lines removed across `apps/desktop/src`), unified Edit/Preview modular block rendering (`NoteBlocksSection.tsx`), diff-only `saveBlocksForNote` outbox persistence, debounce unmount flush on note switch, RFC 4122 UUID standardization (`crypto.randomUUID()`), and media upload pipeline hardening.
+
+- [x] Task 1: Flush dirty debounced note & block edits on `EditorPane` unmount (`pendingNotePatchRef`, `pendingBlocksRef`)
+- [x] Task 2: Fix `createNewNote` foreign-key pitfall on `reminders` filter view and remove duplicate `syncManager.init()` call from `App.tsx`
+- [x] Task 3: Refresh `loadRemindersCount()` on sync completion and `ReminderDialog` changes
+- [x] Task 4: Standardize IDs with `crypto.randomUUID()` and implement diff-only `saveBlocksForNote` with orphaned media upload cancellation
+- [x] Task 5: Consolidate `EditorPane.tsx` + `NoteBlocksSection.tsx`, `SyncOutboxDialog.tsx`, `AuthSheet.tsx`, `ReminderDialog.tsx`, `db/client.ts`, `seed.ts`, and `lib/queries/*.ts`
+- [x] Task 6: Add `$APPDATA/media/**` Tauri FS permissions (`capabilities/default.json`) and `assetProtocol` (`tauri.conf.json`, `Cargo.toml`)
+- [x] Task 7: Preserve reconciled cloud `url` in `saveBlocksForNote`, notify `EditorPane` via `onMediaUploaded`, use `onConflictDoNothing` + `retryMediaUpload`, and classify transient upload failures via `classifySyncPushFailure`
+- [x] Task 8: Extract `MediaThumb` with per-item `useMediaUploadProgress(item.id)` subscription and read stored `metadata.mimeType` in `upload-service.ts`
+- [x] Task 9: End-to-end TypeScript (`tsc --noEmit`) and production bundle (`vite build`) verification
+
 

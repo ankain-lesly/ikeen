@@ -39,6 +39,15 @@ import type {
   NoteSelect,
 } from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
+import {
+  useLiveRemindersForNote,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from "@/lib/queries/reminders";
+import { ReminderSheet } from "./reminder-sheet";
+import type { ReminderRepeat } from "@repo/types";
+
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
 import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
 import { GestureDetector } from "react-native-gesture-handler";
@@ -99,6 +108,35 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
   const [isEditing, setIsEditing] = useState(!initialNote);
+  const lastAppliedUpdatedAtRef = useRef<string>(initialNote?.updatedAt || "");
+
+  // Sync inbound note updates (e.g. title/tags/folder from cloud pull) only when initialNote is strictly newer
+  useEffect(() => {
+    if (!initialNote?.updatedAt || hasEdited) return;
+    if (
+      initialNote.updatedAt !== lastAppliedUpdatedAtRef.current &&
+      (!note.updatedAt || initialNote.updatedAt > note.updatedAt)
+    ) {
+      lastAppliedUpdatedAtRef.current = initialNote.updatedAt;
+      setNote((prev) => ({
+        ...prev,
+        title: initialNote.title || "",
+        content: initialNote.content || "",
+        tags: (() => {
+          try {
+            const parsed: string[] = JSON.parse(initialNote.tags || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        })(),
+        isPinned: !!initialNote.isPinned,
+        isArchived: !!initialNote.isArchived,
+        folderId: initialNote.folderId,
+        updatedAt: initialNote.updatedAt,
+      }));
+    }
+  }, [initialNote, initialNote?.updatedAt, hasEdited, note.updatedAt]);
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -110,6 +148,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
+  const [isReminderSheetVisible, setIsReminderSheetVisible] = useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
   const [targetAudioBlockId, setTargetAudioBlockId] = useState<string | null>(
@@ -118,6 +157,45 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
   const { data: liveBlocks } = useLiveNoteBlocks(note.id);
+  const { data: noteReminders = [] } = useLiveRemindersForNote(note?.id);
+  const activeReminder = useMemo(
+    () => noteReminders.find((r) => !r.isCompleted && !r.deletedAt) ?? null,
+    [noteReminders]
+  );
+
+  const handleSaveReminder = async (dueAt: string, repeat: ReminderRepeat) => {
+    if (!note.id) return;
+    try {
+      if (activeReminder) {
+        await updateReminder(activeReminder.id, {
+          dueAt,
+          repeat,
+          isCompleted: false,
+        });
+        toast.success("Reminder updated");
+      } else {
+        await createReminder({
+          noteId: note.id,
+          title: note.title || "Note Reminder",
+          dueAt,
+          repeat,
+        });
+        toast.success("Reminder set");
+      }
+    } catch {
+      toast.error("Failed to set reminder");
+    }
+  };
+
+  const handleClearReminder = useCallback(async () => {
+    if (!activeReminder) return;
+    try {
+      await deleteReminder(activeReminder.id);
+      toast.success("Reminder removed");
+    } catch {
+      toast.error("Failed to remove reminder");
+    }
+  }, [activeReminder]);
 
   // Once any block is created, `createBlock` has already persisted the parent note in SQLite
   const isUnpersistedDraft = isNewDraft && liveBlocks.length === 0;
@@ -165,6 +243,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             folderId: data.folderId,
             userId: data?.userId,
           });
+          lastAppliedUpdatedAtRef.current = created.updatedAt;
           setNote((prev) => ({
             ...prev,
             createdAt: created.createdAt,
@@ -172,7 +251,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           }));
           setIsNewDraft(false);
         } else {
-          await updateNote(data.id, {
+          const updated = await updateNote(data.id, {
             title: data.title || "",
             content: data.content || "",
             tags: data.tags || [],
@@ -180,6 +259,11 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             isArchived: !!data.isArchived,
             folderId: data.folderId,
           });
+          lastAppliedUpdatedAtRef.current = updated.updatedAt;
+          setNote((prev) => ({
+            ...prev,
+            updatedAt: updated.updatedAt,
+          }));
         }
         setHasEdited(false);
       } catch (err) {
@@ -446,6 +530,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             note={noteWithFullContent}
             onUpdateState={updateNoteState}
             onDeleteSuccess={handleDeleteSuccess}
+            onReminder={!isUnpersistedDraft ? () => setIsReminderSheetVisible(true) : undefined}
             onShowInfo={() => setInfoSheetVisible(true)}
             onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
           />
@@ -470,6 +555,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
                 placeholderTextColor={colors.textSecondary}
                 value={note.title}
                 onChangeText={handleTitleChange}
+                onBlur={() => {
+                  if (hasEdited) void saveNote();
+                }}
                 returnKeyType="next"
                 onSubmitEditing={() =>
                   blockContainerRef.current?.focusContent()
@@ -612,6 +700,18 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           }
         }}
       />
+            {/* Reminder Sheet */}
+      {note?.id ? (
+        <ReminderSheet
+          isPresented={isReminderSheetVisible}
+          onDismiss={() => setIsReminderSheetVisible(false)}
+          initialDueAt={activeReminder?.dueAt}
+          initialRepeat={activeReminder?.repeat}
+          onSave={handleSaveReminder}
+          onClear={activeReminder ? handleClearReminder : undefined}
+        />
+      ) : null}
+
       {/* Audio Recording Sheet */}
       <AudioRecordingSheet
         visible={isAudioRecordingOpen}

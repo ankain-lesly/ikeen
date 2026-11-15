@@ -3,50 +3,21 @@ import { and, eq, inArray, lt, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { syncOutbox, type SyncOutboxItem } from '@/db/schema';
 import { SYNC_CONSTANTS } from '@repo/utils/constants';
-import { log } from '@repo/utils';
+import { log, classifySyncPushFailure } from '@repo/utils';
 import type {
   SyncEntityType,
   SyncActionType,
   FolderChanges,
   NoteChanges,
   BlockChanges,
+  ReminderChanges,
+  OutboxPayloadData,
+  SyncFailureCategory,
 } from '@repo/types';
 import { triggerSync } from './sync-events';
 
-export type OutboxPayloadData = FolderChanges | NoteChanges | BlockChanges;
-
-export type SyncFailureCategory =
-  | 'transient_no_penalty'
-  | 'server_error'
-  | 'client_rejected';
-
-/**
- * Strictly classifies HTTP / network push failures before mutating outbox retry state:
- * - `transient_no_penalty` (offline status 0, 401/403 auth expiry, 408 timeout, 429 rate-limit):
- *   Resets `in_flight` -> `pending` WITHOUT incrementing `retryCount`.
- * - `server_error` (5xx):
- *   Increments `retryCount`; stays `pending` until `MAX_RETRIES` is reached.
- * - `client_rejected` (400, 404, 409, 422):
- *   Explicit server rejection; increments `retryCount` and marks `failed` at `MAX_RETRIES`.
- */
-export function classifySyncPushFailure(
-  status?: number,
-): SyncFailureCategory {
-  if (
-    status === undefined ||
-    status === 0 ||
-    status === 401 ||
-    status === 403 ||
-    status === 408 ||
-    status === 429
-  ) {
-    return 'transient_no_penalty';
-  }
-  if (status >= 500 && status < 600) {
-    return 'server_error';
-  }
-  return 'client_rejected';
-}
+export type { OutboxPayloadData, SyncFailureCategory };
+export { classifySyncPushFailure };
 
 /**
  * Enqueues a local mutation into SQLite sync_outbox.
@@ -58,7 +29,7 @@ export async function enqueueOutbox(
   entity: SyncEntityType,
   entityId: string,
   action: SyncActionType,
-  changes: FolderChanges | NoteChanges | BlockChanges,
+  changes: FolderChanges | NoteChanges | BlockChanges | ReminderChanges,
   version?: number
 ): Promise<void> {
   const now = new Date().toISOString();

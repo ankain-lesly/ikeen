@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import type { SyncStatus } from '@repo/types';
 
-export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'error';
+export type { SyncStatus };
 
 export interface SyncState {
   status: SyncStatus;

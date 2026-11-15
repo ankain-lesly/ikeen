@@ -24,6 +24,8 @@ interface ExtractedTool {
   state?: string;
 }
 
+export const AGENT_HEADER_HEIGHT = 44;
+
 function getMessageText(message: UIMessage): string {
   if (Array.isArray(message.parts)) {
     const textParts = message.parts
@@ -201,21 +203,19 @@ export function ChatMessageList({
       className="flex-1"
       contentContainerStyle={{
         flexGrow: 1,
-        paddingTop: 16,
+        paddingTop: 16 + AGENT_HEADER_HEIGHT,
         paddingBottom: 20,
       }}
       ListEmptyComponent={ListEmptyComponent}
       ListFooterComponent={
-        isLoading && messages[messages.length - 1]?.role === 'user' ? (
+        isLoading && messages[messages.length - 1]?.role === "user" ? (
           <View className="flex-row items-center gap-2 px-6 py-2">
             <View className="w-5 h-5 rounded-full bg-background-element border border-border/80 items-center justify-center">
               <Sparkles size={11} color={colors.primary} />
             </View>
             <View className="flex-row items-center gap-1.5 ml-1">
               <View className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <Text className="text-xs text-text-secondary">
-                Thinking...
-              </Text>
+              <Text className="text-xs text-text-secondary">Thinking...</Text>
             </View>
           </View>
         ) : null

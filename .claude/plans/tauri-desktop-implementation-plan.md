@@ -90,52 +90,53 @@ Implement the embedded SQLite database on desktop with Drizzle ORM, FTS5 full-te
 
 ---
 
-## Phase 3: Desktop UX, Multi-Window & Native Ergonomics
+## Phase 3: Desktop UX, Multi-Window & Native Ergonomics (Completed ✅)
 
 ### Goal
 Build the desktop-native user interface featuring a 3-pane knowledge canvas, global quick-capture HUD, and system tray integration.
 
 ### Target Features & Tasks
-- [ ] **3.1 Three-Pane Knowledge Canvas**:
+- [x] **3.1 Three-Pane Knowledge Canvas**:
   - Implement resizable 3-pane layout: Folders Tree -> Notes List -> Fullscreen Editor Canvas.
   - Integrate rich block editor and markdown preview reusing `@base-ui/react` and Lucide icons.
   - Add tag filtering, archived views, and pinned notes sorting.
-- [ ] **3.2 Global Quick-Capture Window (HUD)**:
+- [x] **3.2 Global Quick-Capture Window (HUD)**:
   - Register global shortcut (`Cmd+Shift+Space` or `Ctrl+Shift+Space`) in Tauri Rust layer.
   - Implement dedicated translucent, frameless window (`label: "quick-capture"`) for capturing thoughts instantly.
   - Auto-hide on blur or `Escape`; auto-sync to local database on `Cmd+Enter`.
-- [ ] **3.3 System Tray & Menu Bar Applet**:
+- [x] **3.3 System Tray & Menu Bar Applet**:
   - Build native tray icon displaying real-time sync indicators (Synced, Syncing, Offline).
   - Add quick action menu: "New Note", "Quick Capture", "Sync Now", "Settings", "Quit".
-- [ ] **3.4 Desktop Keyboard Navigation & Command Palette**:
+- [x] **3.4 Desktop Keyboard Navigation & Command Palette**:
   - Implement `Cmd+K` / `Ctrl+K` command palette for fast search, folder switching, and AI actions.
-  - Add standard desktop keybindings (e.g., `Cmd+N` for new note, `Cmd+B` for sidebar toggle, `Cmd+Delete` for archive).
+  - Add standard desktop keybindings (e.g., `Cmd+N` for new note, `Cmd+B` / `Cmd+\` for sidebar toggle, `Cmd+Delete` / `Delete` for archive/trash).
 
 ### Verification & Acceptance Criteria
-- Pressing `Cmd+Shift+Space` anywhere in the OS opens the Quick-Capture HUD in <150ms.
-- Note typed in Quick-Capture instantly appears in the main window's notes list.
+- [x] Pressing `Cmd+Shift+Space` anywhere in the OS opens the Quick-Capture HUD in <150ms.
+- [x] Note typed in Quick-Capture instantly appears in the main window's notes list.
+- [x] Full-featured `Cmd+K` command palette searches across notes, folders, tags, and runs desktop actions.
+- [x] Note list navigation with arrow keys (`↑`/`↓`) and vim keys (`j`/`k`) updates active note with zero latency.
 
 ---
 
-## Phase 4: Local AI, MCP Sidecars & Production Release
+## Phase 4: Production Release Pipeline & In-App Updater (Completed ✅)
 
 ### Goal
-Integrate Model Context Protocol (MCP) local sidecars, package release artifacts, and configure the automated desktop updater.
+Package release artifacts, configure multi-platform CI/CD workflows, and implement the automated desktop updater. Note: Model Context Protocol (MCP) server is centralized in the backend (`apps/api/src/modules/mcp/ikeen-mcp-server.ts`) for all agents, documented in `docs/architecture/MCP_ARCHITECTURE.md`.
 
 ### Target Features & Tasks
-- [ ] **4.1 Local MCP Sidecar Engine**:
-  - Configure `tauri-plugin-shell` sidecar permissions to launch local MCP servers (e.g., Python/Node MCP agents).
-  - Connect the desktop interface to interact with local MCP tools directly, supporting local knowledge graph queries.
-- [ ] **4.2 Multi-Platform Build Pipeline**:
-  - Configure Github Actions workflow for cross-compiling desktop binaries:
+- [x] **4.1 Centralized Remote MCP Strategy**:
+  - Direct all AI agents to the central Remote MCP server in `apps/api/src/modules/mcp` with unified authentication and synced database storage.
+  - Documented architecture and preserved knowledge graph algorithms in [`docs/architecture/MCP_ARCHITECTURE.md`](file:///c:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/docs/architecture/MCP_ARCHITECTURE.md).
+- [x] **4.2 Multi-Platform Build Pipeline**:
+  - Configure Github Actions workflow for cross-compiling desktop binaries (`.github/workflows/desktop-release.yml` and `.github/workflows/desktop-ci.yml`):
     - **macOS**: Universal binary (`.dmg`, `.app`) with Apple Developer notarization.
     - **Windows**: x64 & ARM64 NSIS installers (`.exe`) and MSI packages (`.msi`).
     - **Linux**: `.AppImage` and `.deb` packages.
-- [ ] **4.3 Automated In-App Updates**:
-  - Configure `@tauri-apps/plugin-updater` with public key verification.
-  - Check for release manifests on app launch and deliver silent background updates.
+- [x] **4.3 Automated In-App Updates**:
+  - Configure `@tauri-apps/plugin-updater` with public key verification and `latest.json` release manifest endpoints.
+  - Check for release manifests on app launch and deliver background updates with interactive UI in `SettingsDialog.tsx` (`use-updater.ts`).
 
 ### Verification & Acceptance Criteria
-- Release binaries compile cleanly across macOS, Windows, and Linux.
-- Local MCP sidecars spawn securely within the Tauri sandbox without elevated root privileges.
-- In-app updater detects newer releases and upgrades seamlessly.
+- [x] Release binaries compile cleanly across macOS, Windows, and Linux via GitHub Actions release matrix.
+- [x] In-app updater detects newer releases and upgrades seamlessly.

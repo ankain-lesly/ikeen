@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PushNotificationService } from '../notifications/push-notification.service.js';
 import { toolFailure } from '../agent/call-options.js';
 import { parseBlockMarkdown } from './block-markdown.parser.js';
 import {
@@ -88,6 +89,7 @@ export class NotesToolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly pushService?: PushNotificationService,
   ) {}
 
   private async executeTx<T>(
@@ -320,6 +322,25 @@ export class NotesToolService {
         },
       );
 
+      if (this.pushService) {
+        const source = options?.source ?? 'agent';
+        await this.pushService
+          .sendAgentEntityCreatedPush(userId, {
+            entity: 'note',
+            entityId: note.id,
+            title: source === 'mcp' ? 'New Note from MCP' : 'New Note from AI Assistant',
+            body: note.title ? `Created note: "${note.title}"` : 'Created a new note',
+            source,
+            data: {
+              noteId: note.id,
+              folderId: note.folderId,
+            },
+          })
+          .catch((err) => {
+            this.logger.warn(`Failed to dispatch creation push notification for note ${note.id}:`, err);
+          });
+      }
+
       return {
         ok: true as const,
         note: {
@@ -428,6 +449,7 @@ export class NotesToolService {
           },
         },
       );
+
 
       return {
         ok: true as const,
@@ -582,6 +604,7 @@ export class NotesToolService {
         { metadata: { blockId, noteId } },
       );
 
+
       return {
         ok: true as const,
         noteId,
@@ -663,6 +686,7 @@ export class NotesToolService {
         options,
         { metadata: { blockId, noteId } },
       );
+
 
       return {
         ok: true as const,
@@ -835,6 +859,7 @@ export class NotesToolService {
         },
       );
 
+
       return {
         ok: true as const,
         noteId,
@@ -924,6 +949,7 @@ export class NotesToolService {
         { severity: isReplace ? 'WARN' : 'INFO', changes },
       );
 
+
       return {
         ok: true,
         noteId: note.id,
@@ -964,6 +990,7 @@ export class NotesToolService {
         { metadata: { isPinned: targetPinned } },
       );
 
+
       return {
         ok: true as const,
         note: { id: note.id, title: note.title, isPinned: note.isPinned },
@@ -999,6 +1026,7 @@ export class NotesToolService {
         options,
         { metadata: { isArchived: targetArchived } },
       );
+
 
       return {
         ok: true as const,
@@ -1039,6 +1067,7 @@ export class NotesToolService {
         options,
         { severity: 'WARN', metadata: { hardDelete: isHardDelete } },
       );
+
 
       return {
         ok: true,

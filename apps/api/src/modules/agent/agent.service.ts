@@ -31,6 +31,7 @@ import { EnvService } from '../../config/env.service.js';
 import { DEFAULT_AGENT_MAX_STEPS } from './agent-config.js';
 import { NotesToolService } from '../notes/notes-tool.service.js';
 import { FoldersToolService } from '../folders/folders-tool.service.js';
+import { RemindersToolService } from '../reminders/reminders-tool.service.js';
 import { MediaService } from '../media/media.service.js';
 
 @Injectable()
@@ -49,6 +50,7 @@ export class AgentService {
     private readonly composio: ComposioService,
     private readonly notesToolService: NotesToolService,
     private readonly foldersToolService: FoldersToolService,
+    @Optional() private readonly remindersToolService?: RemindersToolService,
     @Optional() private readonly mediaService?: MediaService,
   ) {
     this.tools = createIkeenTools({
@@ -57,6 +59,7 @@ export class AgentService {
       webResearch: this.webResearch,
       notesToolService: this.notesToolService,
       foldersToolService: this.foldersToolService,
+      remindersToolService: this.remindersToolService,
       mediaService: this.mediaService,
     });
     this.logger.log('Ikeen AgentService initialized with tool registry');

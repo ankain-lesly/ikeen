@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Cloud, Menu, Search } from "lucide-react-native";
+import { Cloud, Search } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import DrawerLeft from "@/assets/svg/drawer-left.svg";
@@ -10,6 +10,9 @@ import { useDrawerActions } from "@/components/drawer-nav-items";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useSyncStore } from "@/lib/sync/use-sync";
 import { useTheme } from "@/hooks/use-theme";
+import { HeaderGradient, useHeaderInset } from "@/hooks/use-header-inset";
+
+export const HEADER_HEIGHT = 44;
 
 export function HomeHeader() {
   const colors = useTheme();
@@ -17,6 +20,8 @@ export function HomeHeader() {
   const { openDrawer } = useDrawerActions();
   const { user, isAuthenticated } = useAuthStore();
   const { status: syncStatus } = useSyncStore();
+
+  const { height } = useHeaderInset(HEADER_HEIGHT);
 
   const userInitials = useMemo(() => {
     if (user?.firstName) {
@@ -54,51 +59,58 @@ export function HomeHeader() {
   };
 
   return (
-    <View className="px-4 py-2 pt-safe-offset-2 flex-row items-center justify-between border-b border-border/40 bg-card">
-      {/* Left: Drawer Trigger + Brand */}
-      <View className="flex-row items-center gap-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open navigation drawer"
-          hitSlop={8}
-          onPress={handleOpenDrawer}
-          className="w-9 h-9 rounded-full bg-card border border-border items-center justify-center active:bg-background-element">
-          <DrawerLeft width={18} height={18} color={colors.text} />
-        </Pressable>
+    <View className="absolute top-0 w-full z-10 pt-safe">
+      {/* Gradient */}
+      <HeaderGradient />
+      {/* Header */}
+      <View
+        style={{ height }}
+        className="px-4 py-2 flex-row items-center justify-between">
+        {/* Left: Drawer Trigger + Brand */}
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open navigation drawer"
+            hitSlop={8}
+            onPress={handleOpenDrawer}
+            className="flex-row gap-2 items-center justify-center active:bg-background-element">
+            <DrawerLeft width={20} height={20} color={colors.text} />
+            <ThemedText
+              type="title"
+              className="text-xl font-semibold tracking-tight">
+              iKeen
+            </ThemedText>
+          </Pressable>
+        </View>
 
-        <ThemedText type="title" className="text-xl font-bold tracking-tight">
-          iKeen
-        </ThemedText>
-      </View>
-
-      <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-card_border_border-border">
-        <Cloud color={syncDotColor} size={16} />
-        <Text className="text-xs font-mono text-text-secondary leading-none">
-          {syncStatusText}
-        </Text>
-      </View>
-
-      {/* Right: Search + Profile Avatar */}
-      <View className="flex-row items-center gap-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search notes"
-          hitSlop={8}
-          onPress={handleOpenSearch}
-          className="">
-          <Search size={20} color={colors.textSecondary} />
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open profile"
-          hitSlop={8}
-          onPress={handleOpenProfile}
-          className="w-10 h-10 rounded-full bg-background-element border-2 border-text-secondary items-center justify-center active:opacity-75">
-          <Text className="text-xs font-bold text-text font-mono">
-            {userInitials}
+        <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-card_border_border-border">
+          <Cloud color={syncDotColor} size={16} />
+          <Text className="text-xs font-mono text-text-secondary leading-none">
+            {syncStatusText}
           </Text>
-        </Pressable>
+        </View>
+
+        {/* Right: Search + Profile Avatar */}
+        <View className="flex-row items-center gap-4">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search notes"
+            hitSlop={8}
+            onPress={handleOpenSearch}>
+            <Search size={20} color={colors.textSecondary} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            hitSlop={8}
+            onPress={handleOpenProfile}
+            className="w-10 h-10 rounded-full bg-background-element border-2 border-text-secondary items-center justify-center active:opacity-75">
+            <Text className="text-xs font-bold text-text font-mono">
+              {userInitials}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );

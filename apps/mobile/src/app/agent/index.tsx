@@ -10,18 +10,20 @@ import {
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { DrawerActions } from "expo-router/build/react-navigation";
 import * as Haptics from "expo-haptics";
-import * as Crypto from "expo-crypto";
-import { ChevronLeft, Clock, Plus, WifiOff } from "lucide-react-native";
+import { Plus, WifiOff } from "lucide-react-native";
+import DrawerLeft from "@/assets/svg/drawer-left.svg";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { agentApi } from "@/lib/api/agent-api";
+import { useAgentSession } from "@/hooks/use-agent-session";
 import {
   ChatMessageList,
   ChatInputBar,
   ChatEmptyState,
-  ConversationDrawer,
+  AGENT_HEADER_HEIGHT,
 } from "@/components/chat";
 import { toast } from "@/lib/toast";
 
@@ -33,18 +35,16 @@ import { agentQueryKeys } from "@/lib/queries/agents";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ui/themed-text";
 import { Card } from "@/components/ui/card";
-
-interface ActiveSession {
-  id: string;
-  title: string;
-  initialMessages: UIMessage[];
-}
+import { HeaderGradient } from "@/hooks/use-header-inset";
 
 interface ChatSessionProps {
   conversationId: string;
   initialMessages: UIMessage[];
+  initialInput?: string;
   token: string;
   onTitleUpdate: (title: string) => void;
+  onMessagesUpdate: (messages: UIMessage[]) => void;
+  onInputChange: (input: string) => void;
   onStatusChange?: (isLoading: boolean) => void;
   initialPrompt?: string;
 }
@@ -52,12 +52,15 @@ interface ChatSessionProps {
 function ChatSessionContent({
   conversationId,
   initialMessages,
+  initialInput,
   token,
   onTitleUpdate,
+  onMessagesUpdate,
+  onInputChange,
   onStatusChange,
   initialPrompt,
 }: ChatSessionProps) {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialInput || "");
 
   const transport = useMemo(
     () =>
@@ -83,8 +86,8 @@ function ChatSessionContent({
           const rest = { ...(body ?? {}) } as Record<string, unknown>;
           delete rest.id;
           const latestUser = [...messages]
-          .reverse()
-          .find((m) => m.role === "user");
+            .reverse()
+            .find((m) => m.role === "user");
 
           return {
             body: {
@@ -114,10 +117,23 @@ function ChatSessionContent({
     onStatusChange?.(isLoading);
   }, [isLoading, onStatusChange]);
 
+  // Keep in-memory store in sync with active messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      onMessagesUpdate(messages);
+    }
+  }, [messages, onMessagesUpdate]);
+
+  const handleInputChange = (text: string) => {
+    setInput(text);
+    onInputChange(text);
+  };
+
   const handleSendText = async (textToSend: string) => {
     const trimmed = textToSend.trim();
     if (!trimmed || isLoading) return;
     setInput("");
+    onInputChange("");
     try {
       await sendMessage({ text: trimmed });
     } catch {
@@ -130,6 +146,7 @@ function ChatSessionContent({
       handleSendText(prompt);
     } else {
       setInput(prompt);
+      onInputChange(prompt);
     }
   };
 
@@ -137,9 +154,10 @@ function ChatSessionContent({
     if (initialPrompt && typeof initialPrompt === "string") {
       setTimeout(() => {
         setInput(initialPrompt);
+        onInputChange(initialPrompt);
       }, 0);
     }
-  }, [initialPrompt]);
+  }, [initialPrompt, onInputChange]);
 
   return (
     <KeyboardAvoidingView
@@ -149,7 +167,7 @@ function ChatSessionContent({
       <ChatMessageList
         messages={messages}
         isLoading={isLoading}
-        onEditMessage={setInput}
+        onEditMessage={handleInputChange}
         ListEmptyComponent={
           <ChatEmptyState onSelectPrompt={handleSelectPrompt} />
         }
@@ -157,7 +175,7 @@ function ChatSessionContent({
 
       <ChatInputBar
         input={input}
-        onChangeText={setInput}
+        onChangeText={handleInputChange}
         onSubmit={() => handleSendText(input)}
         isLoading={isLoading}
         onStop={stop}
@@ -169,9 +187,11 @@ function ChatSessionContent({
 
 export default function AgentScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const colors = useTheme();
   const { token } = useAuthStore();
-  const { prompt: initialPrompt } = useLocalSearchParams<{ prompt?: string }>();
+  const { prompt: initialPrompt, conversationId: paramConversationId } =
+    useLocalSearchParams<{ prompt?: string; conversationId?: string }>();
 
   useEffect(() => {
     if (!token) {
@@ -182,64 +202,94 @@ export default function AgentScreen() {
   const { isConnected, isInternetReachable } = useNetInfo();
   const isOnline = isConnected && isInternetReachable;
 
-  const [session, setSession] = useState<ActiveSession>(() => ({
-    id: Crypto.randomUUID(),
-    title: "Brainstorm",
-    initialMessages: [],
-  }));
+  // In-memory active session store (preserves session across screen unmount/navigation)
+  const {
+    session,
+    setSession,
+    updateTitle,
+    updateMessages,
+    setInput: setDraftInput,
+    setIsStreaming,
+    resetSession,
+  } = useAgentSession();
 
-  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
 
   const queryClient = useQueryClient();
 
   const handleTitleUpdate = useCallback(
     (newTitle: string) => {
-      setSession((prev) => ({ ...prev, title: newTitle }));
+      updateTitle(newTitle);
       queryClient.invalidateQueries({
         queryKey: agentQueryKeys.conversations(),
       });
     },
-    [queryClient],
+    [queryClient, updateTitle],
   );
 
-  const handleStatusChange = useCallback((loading: boolean) => {
-    setIsStreaming(loading);
-  }, []);
+  const handleStatusChange = useCallback(
+    (loading: boolean) => {
+      setIsStreaming(loading);
+    },
+    [setIsStreaming],
+  );
 
-  const handleSelectConversation = async (id: string) => {
-    setIsDrawerVisible(false);
-    if (id === session.id) return;
+  const handleSelectConversation = useCallback(
+    async (id: string) => {
+      if (id === session.id) return;
 
-    try {
-      setIsSwitching(true);
-      const detail = await agentApi.getConversation(id, token);
-      const loadedMessages = (detail.messages ||
-        (detail as unknown as { uiMessages?: unknown[] }).uiMessages ||
-        []) as UIMessage[];
+      try {
+        setIsSwitching(true);
+        const detail = await agentApi.getConversation(id, token);
+        const loadedMessages = (detail.messages ||
+          (detail as unknown as { uiMessages?: unknown[] }).uiMessages ||
+          []) as UIMessage[];
 
-      setSession({
-        id: detail.id,
-        title: detail.title || "Brainstorm",
-        initialMessages: Array.isArray(loadedMessages) ? loadedMessages : [],
-      });
-    } catch (error) {
-      console.log("[🚨] Failed to load selected conversation:", error);
-      toast.error("Failed to load selected conversation");
-    } finally {
-      setIsSwitching(false);
-    }
-  };
+        setSession({
+          id: detail.id,
+          title: detail.title || "Untitled Chat",
+          messages: Array.isArray(loadedMessages) ? loadedMessages : [],
+          input: "",
+        });
+      } catch (error) {
+        console.log("[🚨] Failed to load selected conversation:", error);
+        toast.error("Failed to load selected conversation");
+      } finally {
+        setIsSwitching(false);
+      }
+    },
+    [session.id, token, setSession],
+  );
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsDrawerVisible(false);
-    setSession({
-      id: Crypto.randomUUID(),
-      title: "Brainstorm",
-      initialMessages: [],
-    });
+    resetSession();
+    router.setParams({ conversationId: undefined });
+  }, [resetSession, router]);
+
+  // Listen for conversation selection or new chat trigger from sidebar drawer
+  useEffect(() => {
+    if (!paramConversationId) return;
+
+    if (paramConversationId === "new") {
+      handleNewChat();
+      return;
+    }
+
+    if (paramConversationId !== session.id && token) {
+      void handleSelectConversation(paramConversationId);
+    }
+  }, [
+    handleNewChat,
+    handleSelectConversation,
+    paramConversationId,
+    session.id,
+    token,
+  ]);
+
+  const handleOpenDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.dispatch(DrawerActions.openDrawer());
   };
 
   if (!token) {
@@ -247,58 +297,58 @@ export default function AgentScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background pt-safe">
-      {/* 🧭 Minimal Deep-Focused Header */}
-      <View className="px-4 py-2.5 flex-row items-center justify-between bg-background">
-        {/* Left: Back Button */}
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.back();
-          }}
-          hitSlop={10}
-          className="w-9 h-9 rounded-full items-center justify-center bg-background-element border border-border/80 active:bg-background-selected">
-          <ChevronLeft size={20} color={colors.text} />
-        </Pressable>
+    <View className="flex-1 bg-background pt-safe relative">
+      {/* 🧭 Header with Drawer Button & New Chat */}
 
-        {/* Center: Title & Live Status */}
-        <View className="flex-row items-center gap-2 max-w-[55%]">
-          <View
-            className={`w-2 h-2 rounded-full ${
-              isStreaming ? "bg-primary animate-pulse" : "bg-primary"
-            }`}
-          />
-          <Text
-            className="text-sm font-semibold text-text tracking-tight"
-            numberOfLines={1}>
-            {session.title}
-          </Text>
+      <View
+        className="z-50 px-4 _py-2.5 flex-row items-center absolute top-safe w-full justify-start gap-4"
+        style={{ height: AGENT_HEADER_HEIGHT }}>
+        <HeaderGradient
+          featherOffset={2}
+          colors={[colors.background, colors.background, "transparent"]}
+          locations={[0.0, 0.35, 1]}
+        />
+
+        {/* Left: Drawer Trigger (similar to HomeHeader) */}
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open conversations drawer"
+            hitSlop={8}
+            onPress={handleOpenDrawer}
+            className="flex-row gap-2 items-center justify-center active:bg-background-element">
+            <DrawerLeft width={20} height={20} color={colors.text} />
+            <ThemedText type="title" className="text-xl font-semibold">
+              Chats
+            </ThemedText>
+          </Pressable>
         </View>
 
-        {/* Right: History & New Chat Actions */}
-        <Card className="flex-row items-center gap-4 px-2 rounded-full">
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              setIsDrawerVisible(true);
-            }}
-            hitSlop={8}
-            accessibilityLabel="Chat History"
-            className="">
-            <Clock size={20} color={colors.text} />
-          </Pressable>
+        {/* Center: Live Status & Conversation Title */}
+        {session.title && (
+          <View className="flex-row items-center gap-2 flex-1">
+            <Text
+              className="font-medium text-base text-text-secondary"
+              numberOfLines={1}>
+              {session.title}
+            </Text>
+          </View>
+        )}
 
+        {/* Right: New Chat Action */}
+        <View className="ml-auto">
           <Pressable
             onPress={handleNewChat}
             hitSlop={8}
-            accessibilityLabel="New Conversation"
-            className="">
-            <Plus size={20} color={colors.text} />
+            accessibilityLabel="New Conversation">
+            <Card className="flex-row items-center px-2.5 py-1.5 rounded-full">
+              <Plus size={20} color={colors.text} />
+            </Card>
           </Pressable>
-        </Card>
+        </View>
       </View>
 
-      {!isOnline && !session.initialMessages.length && (
+      {!isOnline && !session.messages.length && (
         <View className="absolute w-full top-safe-offset-16 px-5 py-2">
           <View className="bg-background-selected p-8 rounded-4xl flex-row gap-6 items-center">
             <WifiOff color={colors.textSecondary} size={24} />
@@ -312,34 +362,24 @@ export default function AgentScreen() {
       {/* 💬 Active Keyed Chat Session */}
       {isSwitching ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text className="text-xs text-text-secondary mt-2">
-            Loading conversation...
-          </Text>
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <ChatSessionContent
           key={session.id}
           conversationId={session.id}
-          initialMessages={session.initialMessages}
+          initialMessages={session.messages}
+          initialInput={session.input}
           token={token}
           onTitleUpdate={handleTitleUpdate}
+          onMessagesUpdate={updateMessages}
+          onInputChange={setDraftInput}
           onStatusChange={handleStatusChange}
           initialPrompt={
             typeof initialPrompt === "string" ? initialPrompt : undefined
           }
         />
       )}
-
-      {/* 📁 Slide-over Conversation Drawer (@expo/ui Host + BottomSheet) */}
-      <ConversationDrawer
-        isVisible={isDrawerVisible}
-        // isVisible={true}
-        onClose={() => setIsDrawerVisible(false)}
-        activeConversationId={session.id}
-        onSelectConversation={handleSelectConversation}
-        onNewChat={handleNewChat}
-      />
     </View>
   );
 }

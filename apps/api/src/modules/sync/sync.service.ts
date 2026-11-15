@@ -169,6 +169,17 @@ export class SyncService {
           tx,
         );
         if (blocksTouched) touchedEntities.push('note_blocks');
+
+        // 4. Process Reminders
+        const remindersTouched = await this.processMutations(
+          userId,
+          'reminders',
+          dto.reminders,
+          (r, t) => this.notesService.upsertReminderWithLww(userId, r, t),
+          tx,
+        );
+        if (remindersTouched) touchedEntities.push('reminders');
+
       });
 
       // Broadcast invalidation ping over Ably to alert other devices of this user
@@ -209,7 +220,7 @@ export class SyncService {
     );
 
     try {
-      const [folders, notes, noteBlocks] = await Promise.all([
+      const [folders, notes, noteBlocks, reminders] = await Promise.all([
         this.prisma.folder.findMany({
           where: {
             userId,
@@ -234,6 +245,15 @@ export class SyncService {
           take: SYNC_CONSTANTS.PULL_LIMIT,
           orderBy: { updatedAt: 'asc' },
         }),
+
+        this.prisma.reminder.findMany({
+          where: {
+            userId,
+            updatedAt: { gt: sinceDate },
+          },
+          take: SYNC_CONSTANTS.PULL_LIMIT,
+          orderBy: { updatedAt: 'asc' },
+        }),
       ]);
 
       this.logger.log(
@@ -251,6 +271,11 @@ export class SyncService {
       if (noteBlocks.length >= SYNC_CONSTANTS.PULL_LIMIT && noteBlocks[noteBlocks.length - 1]?.updatedAt) {
         truncatedTimes.push(noteBlocks[noteBlocks.length - 1].updatedAt.getTime());
       }
+
+      if (reminders.length >= SYNC_CONSTANTS.PULL_LIMIT && reminders[reminders.length - 1]?.updatedAt) {
+        truncatedTimes.push(reminders[reminders.length - 1].updatedAt.getTime());
+      }
+
       const effectiveTimestamp =
         truncatedTimes.length > 0
           ? new Date(Math.min(...truncatedTimes)).toISOString()
@@ -286,6 +311,21 @@ export class SyncService {
           deletedAt: n.deletedAt ? n.deletedAt.toISOString() : null,
         })),
         note_blocks: noteBlocks.map(unpackServerNoteBlock),
+
+        reminders: reminders.map((r) => ({
+          id: r.id,
+          userId: r.userId,
+          noteId: r.noteId,
+          title: r.title,
+          dueAt: r.dueAt.toISOString(),
+          repeat: r.repeat as any,
+          isCompleted: r.isCompleted,
+          notificationId: r.notificationId,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+          deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
+        })),
+
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);

@@ -23,6 +23,10 @@ All platforms (`apps/mobile`, `apps/web`, `apps/api`) adhere to strict Semantic 
 * **Mobile (`apps/mobile`)**:
   - `version`: String matching SemVer (e.g., `"2.0.0"` in `app.json` and `package.json`).
   - `build` / `versionCode`: Monotonically increasing positive integer. Aligned with `APP_RELEASES` in `apps/api/src/modules/sync/app-updates.registry.ts` and managed by EAS remote auto-increment.
+* **Desktop (`apps/desktop`)**:
+  - `version`: String matching SemVer (e.g., `"0.1.0"` in `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`, and `apps/desktop/src-tauri/Cargo.toml`).
+  - Git tag convention: `v<version>-desktop` or `desktop-v<version>` (e.g., `v0.1.0-desktop`).
+  - In-app updater signing via Ed25519 (`TAURI_SIGNING_PRIVATE_KEY` repository secret). See [docs/releases/desktop/README.md](desktop/README.md).
 
 ---
 
@@ -63,6 +67,8 @@ Every release must have a dedicated documentation file in the monorepo:
 ```
 docs/releases/
 ├── RELEASE_PROCESS.md      # This specification
+├── desktop/
+│   └── README.md           # Master release matrix, signing setup & CI/CD guide
 ├── mobile/
 │   ├── README.md           # Master release matrix & changelog index
 │   └── v<version>.md       # Dedicated release documentation

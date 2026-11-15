@@ -29,6 +29,10 @@ export function ikeenToolContext(userId: string, conversationId: string) {
     createFolder: baseContext,
     updateFolder: baseContext,
     organizeNote: baseContext,
+    setReminder: baseContext,
+    listReminders: baseContext,
+    completeReminder: baseContext,
+    cancelReminder: baseContext,
     pinNote: baseContext,
     archiveNote: baseContext,
     recordMemory: baseContext,
@@ -69,9 +73,12 @@ export function defaultNullable<T extends z.ZodTypeAny>(
   return schema.nullish().transform((value) => value ?? defaultValue);
 }
 
-export function toolFailure(): { ok: false; error: string } {
+export function toolFailure(
+  message = 'Action failed or user permission denied',
+  _code?: string,
+): { ok: false; error: string } {
   return {
     ok: false,
-    error: 'Action failed or user permission denied',
+    error: message,
   };
 }

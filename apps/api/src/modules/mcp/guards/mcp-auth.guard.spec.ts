@@ -59,7 +59,7 @@ describe('McpAuthGuard', () => {
 
     expect(result).toBe(true);
     expect(context.req.user).toEqual(user);
-    expect(context.req.apiKey).toEqual({ id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' });
+    expect(context.req.apiKey).toEqual({ id: 'key-1...', name: 'My Key', keyPrefix: 'ikn_live_abc' });
     expect(mockApiKeyService.validateApiKey).toHaveBeenCalledWith('ikn_live_abcdef123456789');
   });
 
@@ -75,7 +75,7 @@ describe('McpAuthGuard', () => {
 
     expect(result).toBe(true);
     expect(context.req.user).toEqual(user);
-    expect(context.req.apiKey).toEqual({ id: 'key-1', name: 'My Key', keyPrefix: 'ikn_live_abc' });
+    expect(context.req.apiKey).toEqual({ id: 'key-1...', name: 'My Key', keyPrefix: 'ikn_live_abc' });
     expect(mockApiKeyService.validateApiKey).toHaveBeenCalledWith('ikn_live_abcdef123456789');
   });
 

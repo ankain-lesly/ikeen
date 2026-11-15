@@ -7,6 +7,7 @@ export default defineConfig({
     string: 'src/string.ts',
     date: 'src/date.ts',
     constants: 'src/constants.ts',
+    sync: 'src/sync.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

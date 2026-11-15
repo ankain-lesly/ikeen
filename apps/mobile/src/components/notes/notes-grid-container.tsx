@@ -5,20 +5,24 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Alert, BackHandler, Pressable, Text, View } from "react-native";
+import {
+  Alert,
+  BackHandler,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
   Check,
   Grid2X2,
-  List,
+  Rows2,
 } from "lucide-react-native";
 import { FlashList } from "@shopify/flash-list";
-import type {
-  ListNotesOptions,
-  NoteSelect,
-  NoteWithBlocks,
-} from "@/lib/types/notes";
+import type { ListNotesOptions, NoteWithBlocks } from "@/lib/types/notes";
 
 import { useTheme } from "@/hooks/use-theme";
 import * as Haptics from "@/lib/haptics";
@@ -28,7 +32,7 @@ import {
   applyToNotes,
   hardDeleteNote,
   restoreNote,
-  softDeleteNote, 
+  softDeleteNote,
   updateNote,
 } from "@/lib/queries/notes";
 import { ThemedText } from "../ui/themed-text";
@@ -38,7 +42,12 @@ import {
   type NotesGridVariant,
 } from "./notes-bulk-action-bar";
 import { MoveToFolderSheet } from "./move-to-folder-sheet";
+import { ReminderSheet } from "./reminder-sheet";
+import { batchCreateReminders } from "@/lib/queries/reminders";
+import type { ReminderRepeat } from "@repo/types";
 import { AnimatedEntryView } from "../ui/animated";
+import { Card } from "../ui/card";
+import { HeaderGradient } from "@/hooks/use-header-inset";
 
 function noteLabel(count: number) {
   return count === 1 ? "note" : "notes";
@@ -51,19 +60,25 @@ interface NoteGridContainerProps {
   showFilter?: boolean;
   className?: string;
   variant?: NotesGridVariant;
-  updateFilter: (key: keyof ListNotesOptions, value: any) => void;
-  filter: ListNotesOptions;
+  updateFilter?: (key: keyof ListNotesOptions, value: any) => void;
+  filter?: ListNotesOptions;
+  contentStyle?: ViewStyle;
+  hideControls?: boolean;
+  header?: React.ReactElement;
 }
 
 export const NoteGridContainer = React.memo(function NoteGridContainer({
   data,
   showFilter = true,
   empty,
-  filter,
+  filter = {},
   updateFilter,
   footer,
   className,
   variant = "default",
+  contentStyle,
+  hideControls = false,
+  header,
 }: NoteGridContainerProps) {
   const colors = useTheme();
   const isTrash = variant === "trash";
@@ -72,6 +87,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isMoveSheetVisible, setIsMoveSheetVisible] = useState(false);
+  const [isReminderSheetVisible, setIsReminderSheetVisible] = useState(false);
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -85,7 +101,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     setSelectedIds(next);
     if (next.size === 0) setIsSelectionMode(false);
   }, [data, selectedIds]);
- 
+
   const handleSelectNote = useCallback(
     (id: string) => {
       const removingLast = selectedIds.has(id) && selectedIds.size === 1;
@@ -197,6 +213,26 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     );
   }, [isAllArchived, runBulk]);
 
+  const handleBulkReminder = useCallback(
+    async (dueAt: string, repeat: ReminderRepeat) => {
+      const count = selectedNotes.length;
+      if (count === 0) return;
+      try {
+        await batchCreateReminders(
+          selectedNotes.map((n) => n.id),
+          { title: '', dueAt, repeat }
+        );
+        toast.success(
+          count === 1 ? "Reminder set for note" : `Reminders set for ${count} notes`
+        );
+        handleCancelSelection();
+      } catch (err) {
+        toast.error("Failed to set reminders");
+      }
+    },
+    [selectedNotes, handleCancelSelection]
+  );
+
   const handleBulkMoveToFolder = useCallback(
     (folderId: string | null) =>
       runBulk(
@@ -281,13 +317,19 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
         />
       </View>
     ),
-    [handleSelectNote, handleLongPressSelect, isSelectionMode, selectedIds, gridLayout],
+    [
+      handleSelectNote,
+      handleLongPressSelect,
+      isSelectionMode,
+      selectedIds,
+      gridLayout,
+    ],
   );
 
   // Filters
   const handleToggleSortDirection = () => {
     Haptics.selectionAsync();
-    updateFilter(
+    updateFilter?.(
       "orderDirection",
       filter.orderDirection === "asc" ? "desc" : "asc",
     );
@@ -295,7 +337,7 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
 
   const handleCycleFolderSort = () => {
     Haptics.selectionAsync();
-    updateFilter(
+    updateFilter?.(
       "orderBy",
       filter.orderBy === "updatedAt"
         ? "title"
@@ -322,131 +364,181 @@ export const NoteGridContainer = React.memo(function NoteGridContainer({
     return () => backHandler.remove();
   }, [isSelectionMode, resetSelection]);
 
+  const headerHeight = hideControls ? 0 : 46;
+  const headerComponent = () => {
+    if (hideControls) return null;
+    return (
+      <>
+        {!!data.length && (
+          <View
+            className="flex-row items-center justify-between px-3.5 absolute top-0 w-full z-10"
+            style={{ height: headerHeight }}>
+            <HeaderGradient featherOffset={2} colors={[colors.background, colors.background, "transparent"]} locations={[0.0,0.35,1]} />
+
+            {isSelectionMode ? (
+              /* Selection Mode Toolbar */
+              <AnimatedEntryView className="flex-1 flex-row items-center justify-between px-2">
+                <View className="flex-row items-center gap-2">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Done selection"
+                    onPress={handleToggleSelectAll}
+                    hitSlop={8}
+                    className={`items-center justify-center size-6 border-2 rounded-lg ${allSelected ? "border-primary bg-primary" : "border-foreground/60"}`}>
+                    {allSelected && (
+                      <Check size={16} color="#ffffff" strokeWidth={3} />
+                    )}
+                  </Pressable>
+
+                  <Text className="text-sm font-semibold text-text">
+                    {selectedNotes.length} Selected
+                  </Text>
+                </View>
+
+                <NotesBulkActions
+                  variant={variant}
+                  selectedCount={selectedNotes.length}
+                  isAllPinned={isAllPinned}
+                  isAllArchived={isAllArchived}
+                  onPin={handleBulkPin}
+                  onReminder={() => setIsReminderSheetVisible(true)}
+                  onMove={() => setIsMoveSheetVisible(true)}
+                  onArchive={handleBulkArchive}
+                  onDelete={handleBulkDelete}
+                  onRestore={handleBulkRestore}
+                  onHardDelete={handleBulkHardDelete}
+                  onCancel={handleCancelSelection}
+                />
+              </AnimatedEntryView>
+            ) : (
+              /* Normal Mode Toolbar */
+              <AnimatedEntryView className="flex-1 flex-row items-center justify-between">
+                {showFilter ? (
+                  <View className="flex-row items-center gap-1.5">
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        filter.orderDirection === "desc"
+                          ? "Sort descending, tap to reverse"
+                          : "Sort ascending, tap to reverse"
+                      }
+                      onPress={handleToggleSortDirection}
+                      hitSlop={8}
+                      className="min-h-11 min-w-11 items-center justify-center">
+                      {filter.orderDirection === "desc" ? (
+                        <ArrowDownWideNarrow size={17} color={colors.text} />
+                      ) : (
+                        <ArrowUpNarrowWide size={17} color={colors.text} />
+                      )}
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Change sort field"
+                      onPress={handleCycleFolderSort}
+                      className="flex-row items-center min-h-11">
+                      <Text className="text-sm font-semibold text-text">
+                        {filter.orderBy === "updatedAt"
+                          ? "Last modified"
+                          : filter.orderBy === "title"
+                            ? "Title"
+                            : "Date created"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <ThemedText type="subtitle">
+                    {/* {isTrash ? "Recently deleted" : "Notes"} */}
+                    Notes
+                  </ThemedText>
+                )}
+
+                {/* Actions Right: Select Mode & Grid/List Two-Button Layout */}
+                <Card className="px-2 py-1.5 rounded-full flex-row items-center gap-3">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="List view"
+                    accessibilityState={{ selected: gridLayout === "list" }}
+                    onPress={() => {
+                      if (gridLayout !== "list") {
+                        Haptics.selectionAsync();
+                        setGridLayout("list");
+                      }
+                    }}
+                    hitSlop={4}>
+                    <Rows2
+                      size={20}
+                      color={
+                        gridLayout === "list"
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
+                    />
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Grid view"
+                    accessibilityState={{ selected: gridLayout === "grid" }}
+                    onPress={() => {
+                      if (gridLayout !== "grid") {
+                        Haptics.selectionAsync();
+                        setGridLayout("grid");
+                      }
+                    }}
+                    hitSlop={4}>
+                    <Grid2X2
+                      size={20}
+                      color={
+                        gridLayout === "grid"
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
+                    />
+                  </Pressable>
+                </Card>
+              </AnimatedEntryView>
+            )}
+          </View>
+        )}
+      </>
+    );
+  };
   return (
     <View className={`flex-1 relative ${className || ""}`}>
       {/* Fixed-height toolbar placed outside FlashList to prevent any masonry jitter */}
-      {!!data.length && (
-        <View className="h-11.5 flex-row items-center justify-between px-3.5">
-          {isSelectionMode ? (
-            /* Selection Mode Toolbar */
-            <AnimatedEntryView className="flex-1 flex-row items-center justify-between px-2">
-              <View className="flex-row items-center gap-2">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Done selection"
-                  onPress={handleToggleSelectAll}
-                  hitSlop={8}
-                  className={`items-center justify-center size-6 border-2 rounded-lg ${allSelected ? "border-primary bg-primary" : "border-foreground/60"}`}>
-                  {allSelected && (
-                    <Check size={16} color="#ffffff" strokeWidth={3} />
-                  )}
-                </Pressable>
-
-                <Text className="text-sm font-semibold text-text">
-                  {selectedNotes.length} Selected
-                </Text>
-              </View>
-
-              <NotesBulkActions
-                variant={variant}
-                selectedCount={selectedNotes.length}
-                isAllPinned={isAllPinned}
-                isAllArchived={isAllArchived}
-                onPin={handleBulkPin}
-                onMove={() => setIsMoveSheetVisible(true)}
-                onArchive={handleBulkArchive}
-                onDelete={handleBulkDelete}
-                onRestore={handleBulkRestore}
-                onHardDelete={handleBulkHardDelete}
-                onCancel={handleCancelSelection}
-              />
-            </AnimatedEntryView>
-          ) : (
-            /* Normal Mode Toolbar */
-            <AnimatedEntryView className="flex-1 flex-row items-center justify-between">
-              {showFilter ? (
-                <View className="flex-row items-center gap-1.5">
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      filter.orderDirection === "desc"
-                        ? "Sort descending, tap to reverse"
-                        : "Sort ascending, tap to reverse"
-                    }
-                    onPress={handleToggleSortDirection}
-                    hitSlop={8}
-                    className="min-h-11 min-w-11 items-center justify-center">
-                    {filter.orderDirection === "desc" ? (
-                      <ArrowDownWideNarrow size={17} color={colors.text} />
-                    ) : (
-                      <ArrowUpNarrowWide size={17} color={colors.text} />
-                    )}
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Change sort field"
-                    onPress={handleCycleFolderSort}
-                    className="flex-row items-center min-h-11">
-                    <Text className="text-sm font-semibold text-text">
-                      {filter.orderBy === "updatedAt"
-                        ? "Last modified"
-                        : filter.orderBy === "title"
-                          ? "Title"
-                          : "Date created"}
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <ThemedText type="subtitle">
-                  {/* {isTrash ? "Recently deleted" : "Notes"} */}
-                  Notes
-                </ThemedText>
-              )}
-
-              {/* Actions Right: Select Mode & Grid/List Toggle */}
-              <View className="flex-row items-center gap-1">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    gridLayout === "grid"
-                      ? "Switch to list view"
-                      : "Switch to grid view"
-                  }
-                  onPress={() => {
-                    setGridLayout((prev) =>
-                      prev === "grid" ? "list" : "grid",
-                    );
-                  }}
-                  hitSlop={8}
-                  className="min-h-11 min-w-11 rounded-lg items-center justify-center active:bg-background-element">
-                  {gridLayout === "grid" ? (
-                    <Grid2X2 size={20} color={colors.text} />
-                  ) : (
-                    <List size={20} color={colors.text} />
-                  )}
-                </Pressable>
-              </View>
-            </AnimatedEntryView>
-          )}
-        </View>
-      )}
-
+      {headerComponent()}
+      {/* Notes Grid */}
       <FlashList
         data={data}
+        ListHeaderComponent={<View>{header}</View>}
         numColumns={gridLayout === "grid" ? 2 : 1}
         masonry={gridLayout === "grid"}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         extraData={extraData}
         className="flex-1"
-        contentContainerClassName="px-2.5"
         contentContainerStyle={{
+          ...StyleSheet.flatten(contentStyle),
+          paddingTop:
+            (Number(StyleSheet.flatten(contentStyle)?.paddingTop) || 0) +
+            headerHeight,
+          // paddingHorizontal: header ? 10 : 0,
+          paddingHorizontal: 10,
           paddingBottom: BottomTabInset + 80,
         }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={empty}
         ListFooterComponent={footer}
       />
+
+            {/* Reminder Sheet */}
+      {!isTrash && (
+        <ReminderSheet
+          isPresented={isReminderSheetVisible}
+          onDismiss={() => setIsReminderSheetVisible(false)}
+          targetCount={selectedNotes.length}
+          onSave={handleBulkReminder}
+        />
+      )}
 
       {/* Move to Folder Sheet */}
       {!isTrash && (

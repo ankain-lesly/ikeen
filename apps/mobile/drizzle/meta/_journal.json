@@ -57,6 +57,13 @@
       "when": 1793358864420,
       "tag": "0007_absurd_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794174275472,
+      "tag": "0008_unknown_mastermind",
+      "breakpoints": true
     }
   ]
 }

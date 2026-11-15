@@ -46,8 +46,9 @@ export default function AppEntryScreen() {
   // Already onboarded -> jump directly into the main tabs
   if (isOnboarded) {
     // return <Redirect href="/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809" />;
-    // return <Redirect href="/(tabs)/notes" />;
-    return <Redirect href="/(tabs)/home" />;
+    // return <Redirect href="/agent" />;
+    return <Redirect href="/(tabs)/notes" />;
+    // return <Redirect href="/(tabs)/home" />;
   }
 
   const handleGetStarted = async () => {

@@ -8,7 +8,13 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { ensureReminderChannelAsync } from "@/lib/services/notification.service";
+import {
+  registerPushTokenWithServerAsync,
+  initPushTokenAuthListener,
+} from "@/lib/services/push-token.service";
 import { Drawer } from "expo-router/drawer";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -30,7 +36,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { CheckForUpdatesMain } from "@/components/check-for-updates";
-import { RootCustomDrawerContent } from "@/components/root-custom-drawer-content";
+import { AppDrawerContent } from "@/components/app-drawer-content";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -86,6 +92,17 @@ export default function AppProvider() {
 function RootDrawerLayout() {
   const colors = useTheme();
   const { success, error } = useMigrations(db, migrations);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    const unsubscribe = initPushTokenAuthListener();
+    if (isAuthenticated) {
+      registerPushTokenWithServerAsync().catch((err) => {
+        console.log("[PushToken] Registration error:", err);
+      });
+    }
+    return unsubscribe;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (success) {
@@ -97,6 +114,21 @@ function RootDrawerLayout() {
         });
     }
   }, [success]);
+
+  useEffect(() => {
+    ensureReminderChannelAsync().catch(() => {});
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.noteId) {
+        router.push({
+          pathname: "/notes/[id]",
+          params: { id: data.noteId as string },
+        });
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     useAuthStore.getState().init();
@@ -129,7 +161,7 @@ function RootDrawerLayout() {
 
   return (
     <Drawer
-      drawerContent={RootCustomDrawerContent}
+      drawerContent={AppDrawerContent}
       screenOptions={{
         headerShown: false,
         drawerStyle: {
@@ -144,6 +176,7 @@ function RootDrawerLayout() {
       <Drawer.Screen name="index" />
       <Drawer.Screen name="agent" />
       <Drawer.Screen name="search" />
+      <Drawer.Screen name="reminders" />
       <Drawer.Screen name="notes" />
       <Drawer.Screen name="folders/[id]" />
       <Drawer.Screen name="(tabs)" />

@@ -87,11 +87,44 @@ export const noteBlocksRelations = relations(noteBlocks, ({ one }) => ({
   }),
 }));
 
+export const reminders = sqliteTable(
+  'reminders',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id'),
+    noteId: text('note_id').references(() => notes.id, { onDelete: 'cascade' }),
+    title: text('title').notNull().default(''),
+    dueAt: text('due_at').notNull(),
+    repeat: text('repeat', { enum: ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] })
+      .notNull()
+      .default('none'),
+    isCompleted: integer('is_completed', { mode: 'boolean' }).notNull().default(false),
+    notificationId: text('notification_id'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deletedAt: text('deleted_at'),
+  },
+  (table) => [
+    index('idx_desktop_reminders_user_id').on(table.userId),
+    index('idx_desktop_reminders_note_id').on(table.noteId),
+    index('idx_desktop_reminders_due_at').on(table.dueAt),
+    index('idx_desktop_reminders_completed').on(table.isCompleted),
+    index('idx_desktop_reminders_deleted_at').on(table.deletedAt),
+  ]
+);
+
+export const remindersRelations = relations(reminders, ({ one }) => ({
+  note: one(notes, {
+    fields: [reminders.noteId],
+    references: [notes.id],
+  }),
+}));
+
 export const syncOutbox = sqliteTable(
   'sync_outbox',
   {
     id: text('id').primaryKey(),
-    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks'] }).notNull(),
+    entity: text('entity', { enum: ['folders', 'notes', 'note_blocks', 'reminders'] }).notNull(),
     entityId: text('entity_id').notNull(),
     action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
     status: text('status', { enum: ['pending', 'in_flight', 'success', 'failed'] })
@@ -150,3 +183,6 @@ export type SyncOutboxItem = typeof syncOutbox.$inferSelect;
 export type InsertSyncOutboxItem = typeof syncOutbox.$inferInsert;
 export type SyncMetadataItem = typeof syncMetadata.$inferSelect;
 export type MediaSyncOutboxSelect = typeof mediaSyncOutbox.$inferSelect;
+
+export type ReminderSelect = typeof reminders.$inferSelect;
+export type InsertReminder = typeof reminders.$inferInsert;

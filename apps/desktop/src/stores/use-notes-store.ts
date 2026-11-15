@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import type { Note, Folder } from '@repo/types';
+import type {
+  Note,
+  Folder,
+  ListNotesOptions,
+  UpdateNoteInput,
+} from '@repo/types';
 import { initDatabase } from '@/db/client';
 import { seedStarterNotesIfEmpty } from '@/lib/queries/seed';
 import {
@@ -7,9 +12,14 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  type ListNotesFilter,
 } from '@/lib/queries/notes';
-import { listFolders } from '@/lib/queries/folders';
+import {
+  listFolders,
+  createFolder as queryCreateFolder,
+  updateFolder as queryUpdateFolder,
+  deleteFolder as queryDeleteFolder,
+} from '@/lib/queries/folders';
+import { countActiveReminders } from '@/lib/queries/reminders';
 import { syncManager, onSyncComplete } from '@/lib/sync/sync-manager';
 
 export interface NotesStoreState {
@@ -20,17 +30,22 @@ export interface NotesStoreState {
   searchQuery: string;
   isLoading: boolean;
   isInitialized: boolean;
+  remindersCount: number;
 
   // Actions
   init: () => Promise<void>;
   loadNotes: () => Promise<void>;
   loadFolders: () => Promise<void>;
+  loadRemindersCount: () => Promise<void>;
   setActiveFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   selectNote: (id: string | null) => void;
   createNewNote: () => Promise<Note | null>;
-  saveActiveNote: (input: Partial<{ title: string; content: string; tags: string[]; isPinned: boolean; isArchived: boolean; folderId: string | null }>) => Promise<void>;
-  deleteActiveNote: () => Promise<void>;
+  saveActiveNote: (input: UpdateNoteInput, targetNoteId?: string) => Promise<void>;
+  deleteActiveNote: (targetNoteId?: string) => Promise<void>;
+  addFolder: (input: { name: string; color?: string; icon?: string }) => Promise<Folder | null>;
+  editFolder: (id: string, updates: { name?: string; color?: string; icon?: string }) => Promise<boolean>;
+  removeFolder: (id: string) => Promise<boolean>;
 }
 
 export const useNotesStore = create<NotesStoreState>((set, get) => ({
@@ -41,6 +56,7 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
   searchQuery: '',
   isLoading: true,
   isInitialized: false,
+  remindersCount: 0,
 
   init: async () => {
     if (get().isInitialized) return;
@@ -60,22 +76,24 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       onSyncComplete(() => {
         void get().loadNotes();
         void get().loadFolders();
+        void get().loadRemindersCount();
       });
 
-      // 5. Load initial folders and notes
+      // 5. Load initial folders, notes, and reminders count
       await get().loadFolders();
       await get().loadNotes();
+      await get().loadRemindersCount();
 
       // Select first note if available
       const currentNotes = get().notes;
-      if (currentNotes.length > 0 && !get().activeNoteId) {
+      if (currentNotes.length > 0) {
         set({ activeNoteId: currentNotes[0].id });
       }
-
-      set({ isInitialized: true, isLoading: false });
+      set({ isInitialized: true });
     } catch (err: unknown) {
-      console.error('[NotesStore:init:Error]', err);
-      set({ isLoading: false, isInitialized: true });
+      console.error('[NotesStore:Init:Error]', err);
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -88,10 +106,19 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     }
   },
 
+  loadRemindersCount: async () => {
+    try {
+      const count = await countActiveReminders();
+      set({ remindersCount: count });
+    } catch (err: unknown) {
+      console.error('[NotesStore:loadRemindersCount:Error]', err);
+    }
+  },
+
   loadNotes: async () => {
     const { activeFilter, searchQuery } = get();
 
-    const filter: ListNotesFilter = {
+    const filter: ListNotesOptions = {
       search: searchQuery.trim() || undefined,
     };
 
@@ -101,6 +128,8 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       filter.pinnedOnly = true;
     } else if (activeFilter === 'archived') {
       filter.archivedOnly = true;
+    } else if (activeFilter === 'reminders') {
+      filter.remindersOnly = true;
     } else if (activeFilter === 'unorganized') {
       filter.folderId = null;
     } else if (activeFilter !== 'all') {
@@ -139,12 +168,10 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
 
   createNewNote: async () => {
     const { activeFilter } = get();
+    const virtualFilters = new Set(['all', 'pinned', 'archived', 'unorganized', 'reminders']);
     const folderId = activeFilter.startsWith('folder:')
       ? activeFilter.replace('folder:', '')
-      : activeFilter !== 'all' &&
-          activeFilter !== 'pinned' &&
-          activeFilter !== 'archived' &&
-          activeFilter !== 'unorganized'
+      : !virtualFilters.has(activeFilter)
         ? activeFilter
         : undefined;
 
@@ -163,25 +190,67 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     return note;
   },
 
-  saveActiveNote: async (input) => {
-    const activeId = get().activeNoteId;
+  saveActiveNote: async (input: UpdateNoteInput, targetNoteId?: string) => {
+    const activeId = targetNoteId ?? get().activeNoteId;
     if (!activeId) return;
 
+    const now = new Date().toISOString();
     // Optimistically update in-memory note
     set((state) => ({
-      notes: state.notes.map((n) => (n.id === activeId ? { ...n, ...input, updatedAt: new Date().toISOString() } : n)),
+      notes: state.notes.map((n) =>
+        n.id === activeId
+          ? {
+              ...n,
+              ...input,
+              folderId: input.folderId === null ? undefined : (input.folderId ?? n.folderId),
+              tags: input.tags ?? n.tags,
+              updatedAt: now,
+            }
+          : n
+      ),
     }));
 
     await updateNote(activeId, input);
     void syncManager.updatePendingCount();
   },
 
-  deleteActiveNote: async () => {
-    const activeId = get().activeNoteId;
+  deleteActiveNote: async (targetNoteId?: string) => {
+    const activeId = targetNoteId ?? get().activeNoteId;
     if (!activeId) return;
 
     await deleteNote(activeId);
     void syncManager.updatePendingCount();
     await get().loadNotes();
+  },
+
+  addFolder: async (input: { name: string; color?: string; icon?: string }) => {
+    const folder = await queryCreateFolder(input);
+    if (folder) {
+      await get().loadFolders();
+      void syncManager.updatePendingCount();
+    }
+    return folder;
+  },
+
+  editFolder: async (id: string, updates: { name?: string; color?: string; icon?: string }) => {
+    const success = await queryUpdateFolder(id, updates);
+    if (success) {
+      await get().loadFolders();
+      void syncManager.updatePendingCount();
+    }
+    return success;
+  },
+
+  removeFolder: async (id: string) => {
+    const success = await queryDeleteFolder(id);
+    if (success) {
+      if (get().activeFilter === `folder:${id}`) {
+        set({ activeFilter: 'all' });
+      }
+      await get().loadFolders();
+      await get().loadNotes();
+      void syncManager.updatePendingCount();
+    }
+    return success;
   },
 }));

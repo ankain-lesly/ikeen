@@ -14,6 +14,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { McpAuthGuard, type AuthenticatedRequest } from '../guards/mcp-auth.guard.js';
 import { NotesToolService } from '../../notes/notes-tool.service.js';
 import { FoldersToolService } from '../../folders/folders-tool.service.js';
+import { RemindersToolService } from '../../reminders/reminders-tool.service.js';
 import { MediaService } from '../../media/media.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { EnvService } from '../../../config/env.service.js';
@@ -30,6 +31,7 @@ export class McpController {
     private readonly foldersToolService: FoldersToolService,
     private readonly prisma: PrismaService,
     private readonly env: EnvService,
+    @Optional() private readonly remindersToolService?: RemindersToolService,
     @Optional() private readonly mediaService?: MediaService,
     @Optional() private readonly ably?: AblyService,
   ) {}
@@ -43,6 +45,7 @@ export class McpController {
     const server = createIkeenMcpServer({
       notesToolService: this.notesToolService,
       foldersToolService: this.foldersToolService,
+      remindersToolService: this.remindersToolService,
       mediaService: this.mediaService,
       prisma: this.prisma,
       userId: req.user.id,
