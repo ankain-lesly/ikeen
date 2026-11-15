@@ -7,6 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createIkeenMcpServer } from './modules/mcp/ikeen-mcp-server.js';
 import { NotesToolService } from './modules/notes/notes-tool.service.js';
 import { FoldersToolService } from './modules/folders/folders-tool.service.js';
+import { RemindersToolService } from './modules/reminders/reminders-tool.service.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { AuditService } from './modules/audit/audit.service.js';
 import { AblyService } from './modules/ably/ably.service.js';
@@ -32,6 +33,7 @@ async function main() {
 
   const notesToolService = new NotesToolService(prismaService, auditService);
   const foldersToolService = new FoldersToolService(prismaService, auditService);
+  const remindersToolService = new RemindersToolService(prismaService, auditService);
   const apiKeyService = new ApiKeyService(prismaService);
 
   // Authenticate user via IKEEN_API_KEY or API_KEY
@@ -61,6 +63,7 @@ async function main() {
   const server = createIkeenMcpServer({
     notesToolService,
     foldersToolService,
+    remindersToolService,
     prisma: prismaService,
     ably: ablyService,
     userId: resolvedUserId,

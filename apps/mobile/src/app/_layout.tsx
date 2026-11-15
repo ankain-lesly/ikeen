@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
 import * as Notifications from "expo-notifications";
-import { ensureReminderChannelAsync } from "@/lib/services/notification";
+import { ensureReminderChannelAsync } from "@/lib/services/notification.service";
+import {
+  registerPushTokenWithServerAsync,
+  initPushTokenAuthListener,
+} from "@/lib/services/push-token.service";
 import { Drawer } from "expo-router/drawer";
 import * as SplashScreen from "expo-splash-screen";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -88,6 +92,17 @@ export default function AppProvider() {
 function RootDrawerLayout() {
   const colors = useTheme();
   const { success, error } = useMigrations(db, migrations);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    const unsubscribe = initPushTokenAuthListener();
+    if (isAuthenticated) {
+      registerPushTokenWithServerAsync().catch((err) => {
+        console.log("[PushToken] Registration error:", err);
+      });
+    }
+    return unsubscribe;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (success) {
@@ -161,6 +176,7 @@ function RootDrawerLayout() {
       <Drawer.Screen name="index" />
       <Drawer.Screen name="agent" />
       <Drawer.Screen name="search" />
+      <Drawer.Screen name="reminders" />
       <Drawer.Screen name="notes" />
       <Drawer.Screen name="folders/[id]" />
       <Drawer.Screen name="(tabs)" />

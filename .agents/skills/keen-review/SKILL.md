@@ -40,6 +40,10 @@ When invoked, follow these 5 steps in order:
 - **Incomplete Feature Aggregation & Cloning**:
   - Derived views (share, export, word/character count, `NoteCard` previews, `NoteInfoSheet`) reading only legacy fields (`note.content`) and ignoring structured child entities (`note_blocks` via `formatNoteWithBlocks`).
   - Entity duplication that appends to the end instead of splicing at `currentIndex + 1` + re-indexing positions, or reuses child item UUIDs (`ListItem.id`, `MediaItem.id`) instead of regenerating them via `Crypto.randomUUID()` (`cloneBlockInput`).
+- **Production UI Integrity & Anti-Clutter Invariants**:
+  - Flag any user-facing settings dialog, card, or modal that discloses internal system architecture (e.g., SQLite DB filenames, ORM names such as Drizzle or Prisma, IPC connection bridges, WebView2 engine trivia) or developer status badges (`v2.0`, `IPC Connected`).
+  - Flag dummy, uncontrolled, or fake switches/toggles (e.g., `<Switch defaultChecked />` without an `onChange` binding to persistent user state or functional actions).
+  - Flag duplicated informational surfaces (e.g., static lists of keyboard shortcuts or help tips embedded inside Settings when a dedicated modal or cheatsheet already exists).
 - **Checklist & Task Tracking Hygiene**:
   - Completed items left in `TODO.md` or missing/misdated in `FEATURE-CHECKLIST.md`.
 

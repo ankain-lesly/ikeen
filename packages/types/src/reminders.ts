@@ -1,4 +1,4 @@
-export type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'monthly';
+export type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export interface Reminder {
   id: string;

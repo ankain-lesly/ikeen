@@ -108,6 +108,35 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
   const [isEditing, setIsEditing] = useState(!initialNote);
+  const lastAppliedUpdatedAtRef = useRef<string>(initialNote?.updatedAt || "");
+
+  // Sync inbound note updates (e.g. title/tags/folder from cloud pull) only when initialNote is strictly newer
+  useEffect(() => {
+    if (!initialNote?.updatedAt || hasEdited) return;
+    if (
+      initialNote.updatedAt !== lastAppliedUpdatedAtRef.current &&
+      (!note.updatedAt || initialNote.updatedAt > note.updatedAt)
+    ) {
+      lastAppliedUpdatedAtRef.current = initialNote.updatedAt;
+      setNote((prev) => ({
+        ...prev,
+        title: initialNote.title || "",
+        content: initialNote.content || "",
+        tags: (() => {
+          try {
+            const parsed: string[] = JSON.parse(initialNote.tags || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        })(),
+        isPinned: !!initialNote.isPinned,
+        isArchived: !!initialNote.isArchived,
+        folderId: initialNote.folderId,
+        updatedAt: initialNote.updatedAt,
+      }));
+    }
+  }, [initialNote, initialNote?.updatedAt, hasEdited, note.updatedAt]);
 
   // Update Notes Field - MAIN local update mechanism
   const updateNoteState = useCallback((key: keyof typeof note, value: any) => {
@@ -214,6 +243,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             folderId: data.folderId,
             userId: data?.userId,
           });
+          lastAppliedUpdatedAtRef.current = created.updatedAt;
           setNote((prev) => ({
             ...prev,
             createdAt: created.createdAt,
@@ -221,7 +251,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           }));
           setIsNewDraft(false);
         } else {
-          await updateNote(data.id, {
+          const updated = await updateNote(data.id, {
             title: data.title || "",
             content: data.content || "",
             tags: data.tags || [],
@@ -229,6 +259,11 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             isArchived: !!data.isArchived,
             folderId: data.folderId,
           });
+          lastAppliedUpdatedAtRef.current = updated.updatedAt;
+          setNote((prev) => ({
+            ...prev,
+            updatedAt: updated.updatedAt,
+          }));
         }
         setHasEdited(false);
       } catch (err) {
@@ -520,6 +555,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
                 placeholderTextColor={colors.textSecondary}
                 value={note.title}
                 onChangeText={handleTitleChange}
+                onBlur={() => {
+                  if (hasEdited) void saveNote();
+                }}
                 returnKeyType="next"
                 onSubmitEditing={() =>
                   blockContainerRef.current?.focusContent()

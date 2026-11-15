@@ -12,10 +12,11 @@ import type {
 } from '@/lib/types/reminders';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 import { currentAuthUserId, ownerCondition } from './owner';
+import { touchNote } from './notes';
 import {
   scheduleReminderNotification,
   cancelReminderNotification,
-} from '@/lib/services/notification';
+} from '@/lib/services/notification.service';
 
 // ============================================================================
 // Live Queries
@@ -123,6 +124,10 @@ export async function createReminder(
   // Enqueue outbox mutation for sync
   await enqueueOutbox('reminders', id, 'upsert', newReminder);
 
+  if (newReminder.noteId) {
+    await touchNote(newReminder.noteId);
+  }
+
   return newReminder;
 }
 
@@ -202,6 +207,10 @@ export async function updateReminder(
     }
 
     await enqueueOutbox('reminders', id, 'upsert', updatedFields);
+
+    if (updated.noteId) {
+      await touchNote(updated.noteId);
+    }
   }
 
   return (updated as Reminder) ?? null;
@@ -228,6 +237,12 @@ export async function toggleReminderCompleted(id: string): Promise<boolean> {
  * Soft deletes a reminder and clears its OS notification.
  */
 export async function deleteReminder(id: string): Promise<void> {
+  const [existing] = await db
+    .select({ noteId: reminders.noteId })
+    .from(reminders)
+    .where(eq(reminders.id, id))
+    .limit(1);
+
   const now = new Date().toISOString();
 
   await db
@@ -237,6 +252,10 @@ export async function deleteReminder(id: string): Promise<void> {
 
   await cancelReminderNotification(id);
   await enqueueOutbox('reminders', id, 'delete', { deletedAt: now });
+
+  if (existing?.noteId) {
+    await touchNote(existing.noteId);
+  }
 }
 
 /**

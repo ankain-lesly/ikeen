@@ -32,7 +32,7 @@ import {
   getNotificationPermissionsAsync,
   requestNotificationPermissionsAsync,
   openDeviceNotificationSettings,
-} from "@/lib/services/notification";
+} from "@/lib/services/notification.service";
 import { toast } from "@/lib/toast";
 
 import { ThemedText } from "@/components/ui/themed-text";

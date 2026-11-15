@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { and, asc, desc, eq, isNull, like, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, like, or, sql, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
-import { notes } from '@/db/schema';
+import { notes, reminders } from '@/db/schema';
 import type {
   CreateNoteInput,
   ListNotesOptions,
@@ -56,6 +56,20 @@ function buildNotesFiltersAndSort(
 
   if (options.pinnedOnly) {
     conditions.push(eq(notes.isPinned, true));
+  }
+
+  if (options.remindersOnly) {
+    const activeReminderNoteIds = db
+      .selectDistinct({ noteId: reminders.noteId })
+      .from(reminders)
+      .where(
+        and(
+          isNull(reminders.deletedAt),
+          eq(reminders.isCompleted, false),
+          isNotNull(reminders.noteId),
+        ),
+      );
+    conditions.push(inArray(notes.id, activeReminderNoteIds));
   }
 
   if (options.folderId !== undefined) {
@@ -166,6 +180,7 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
     options.includeArchived,
     options.pinnedOnly,
     options.archivedOnly,
+    options.remindersOnly,
     options.tag,
     options.search,
     options.pinnedFirst,
@@ -177,15 +192,30 @@ export function useLiveNotes(options: ListNotesOptions = {}) {
 
   const data = useMemo<NoteWithBlocks[]>(() => {
     if (!res.data) return [];
-    if (!withBlocks) return res.data as NoteWithBlocks[];
-    return (res.data as any[]).map((n) => ({
-      ...n,
-      blocks: Array.isArray(n.blocks)
-        ? (n.blocks as any[]).map(getCachedUnpackedBlock)
-        : undefined,
-      reminders: Array.isArray(n.reminders) ? n.reminders : undefined,
-    }));
-  }, [res.data, withBlocks]);
+    const items: NoteWithBlocks[] = !withBlocks
+      ? (res.data as NoteWithBlocks[])
+      : (res.data as any[]).map((n) => ({
+          ...n,
+          blocks: Array.isArray(n.blocks)
+            ? (n.blocks as any[]).map(getCachedUnpackedBlock)
+            : undefined,
+          reminders: Array.isArray(n.reminders) ? n.reminders : undefined,
+        }));
+
+    if (options.remindersOnly && !options.orderBy) {
+      return [...items].sort((a, b) => {
+        const aDue = a.reminders?.[0]?.dueAt
+          ? new Date(a.reminders[0].dueAt).getTime()
+          : Infinity;
+        const bDue = b.reminders?.[0]?.dueAt
+          ? new Date(b.reminders[0].dueAt).getTime()
+          : Infinity;
+        return aDue - bDue;
+      });
+    }
+
+    return items;
+  }, [res.data, withBlocks, options.remindersOnly, options.orderBy]);
 
   return {
     ...res,
@@ -226,6 +256,7 @@ export interface NotesOverviewStats {
   activeCount: number;
   pinnedCount: number;
   trashCount: number;
+  remindersCount: number;
   isLoading: boolean;
 }
 
@@ -323,7 +354,7 @@ export function useInfiniteRecentNotes(
 export function useNotesStats(): NotesOverviewStats {
   const userId = useAuthStore((s) => s.user?.id ?? null);
 
-  const query = useMemo(() => {
+  const notesQuery = useMemo(() => {
     return db
       .select({
         activeCount: sql<number>`coalesce(sum(case when ${notes.deletedAt} is null and ${notes.isArchived} = 0 then 1 else 0 end), 0)`,
@@ -334,17 +365,33 @@ export function useNotesStats(): NotesOverviewStats {
       .where(ownerCondition(notes.userId, userId));
   }, [userId]);
 
-  const res = useLiveQuery(query, [userId]);
+  const remindersQuery = useMemo(() => {
+    return db
+      .select({ count: count() })
+      .from(reminders)
+      .where(
+        and(
+          ownerCondition(reminders.userId, userId),
+          isNull(reminders.deletedAt),
+          eq(reminders.isCompleted, false),
+        ),
+      );
+  }, [userId]);
 
-  const activeCount = Number(res.data?.[0]?.activeCount ?? 0);
-  const trashCount = Number(res.data?.[0]?.trashCount ?? 0);
-  const pinnedCount = Number(res.data?.[0]?.pinnedCount ?? 0);
+  const notesRes = useLiveQuery(notesQuery, [userId]);
+  const remindersRes = useLiveQuery(remindersQuery, [userId]);
+
+  const activeCount = Number(notesRes.data?.[0]?.activeCount ?? 0);
+  const trashCount = Number(notesRes.data?.[0]?.trashCount ?? 0);
+  const pinnedCount = Number(notesRes.data?.[0]?.pinnedCount ?? 0);
+  const remindersCount = Number(remindersRes.data?.[0]?.count ?? 0);
 
   return {
     activeCount,
     trashCount,
     pinnedCount,
-    isLoading: !res.updatedAt,
+    remindersCount,
+    isLoading: !notesRes.updatedAt || !remindersRes.updatedAt,
   };
 }
 
@@ -497,15 +544,78 @@ export async function updateNote(
     throw new Error(`Note with id "${id}" not found.`);
   }
 
+  let parsedTags: string[] = [];
+  try {
+    const parsed = JSON.parse(updated.tags || "[]");
+    parsedTags = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    parsedTags = [];
+  }
+
   await enqueueOutbox(
     "notes",
     updated.id,
     "upsert",
-    valuesToUpdate,
+    {
+      folderId: updated.folderId,
+      title: updated.title,
+      content: updated.content,
+      tags: parsedTags,
+      isPinned: updated.isPinned,
+      isArchived: updated.isArchived,
+      summary: updated.summary,
+      updatedAt: updated.updatedAt,
+    },
     updated.version,
   );
 
   return updated;
+}
+
+/**
+ * Touches a note by updating its updatedAt timestamp and incrementing its version.
+ * Immediately notifies Drizzle reactive live queries and enqueues outbox sync.
+ */
+export async function touchNote(id: string): Promise<Note | null> {
+  const existing = await getNoteById(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const nextVersion = (existing.version ?? 1) + 1;
+
+  const [updated] = await db
+    .update(notes)
+    .set({ updatedAt: now, version: nextVersion })
+    .where(and(eq(notes.id, id), ownerCondition(notes.userId)))
+    .returning();
+
+  if (updated) {
+    let parsedTags: string[] = [];
+    try {
+      const parsed = JSON.parse(updated.tags || '[]');
+      parsedTags = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      parsedTags = [];
+    }
+    await enqueueOutbox(
+      'notes',
+      updated.id,
+      'upsert',
+      {
+        folderId: updated.folderId,
+        title: updated.title,
+        content: updated.content,
+        tags: parsedTags,
+        isPinned: updated.isPinned,
+        isArchived: updated.isArchived,
+        summary: updated.summary,
+        updatedAt: now,
+      },
+      updated.version,
+    );
+  }
+
+  return updated ?? null;
 }
 
 /**

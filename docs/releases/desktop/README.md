@@ -26,6 +26,7 @@ Configure these in **GitHub Repository > Settings > Secrets and variables > Acti
 
 | Secret Name | Required | Description & Source |
 | :--- | :---: | :--- |
+| `VITE_API_URL` | **Yes** (or Variable) | Production backend API base URL (e.g. `https://api.yourdomain.com/api/v1`). Injected at build time into desktop release bundles so no environment URLs are hardcoded in source. Can be set as an Action Secret or Variable. |
 | `TAURI_SIGNING_PRIVATE_KEY` | **Yes** | The unencrypted Ed25519 private key generated via `tauri signer generate --ci`. Stored in local development at `apps/desktop/src-tauri/ikeen.key`. Used by `tauri-action` to sign release packages and generate cryptographic signatures (`.sig`). |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | No | Private key password. Leave unset or blank when using unencrypted CI keys generated with the `--ci` flag. |
 | `APPLE_CERTIFICATE` | Optional | Base64-encoded `.p12` code-signing certificate for Apple Developer program. |

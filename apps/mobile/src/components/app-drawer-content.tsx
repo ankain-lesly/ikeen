@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { DrawerContentScrollView } from "expo-router/drawer";
 import {
+  Bell,
   FileText,
   Folder,
   Moon,
@@ -36,7 +37,7 @@ export function AppDrawerContent(props: any) {
   const { theme, setTheme } = useSettingsStore();
 
   // Optimized, lightweight reactive queries
-  const { activeCount } = useNotesStats();
+  const { activeCount, remindersCount } = useNotesStats();
   const { data: folders = [] } = useLiveFolders();
   const foldersCount = folders.length;
 
@@ -80,6 +81,12 @@ export function AppDrawerContent(props: any) {
         badge: foldersCount,
       },
       {
+        name: "Reminders",
+        icon: Bell,
+        path: "/reminders",
+        badge: remindersCount > 0 ? remindersCount : undefined,
+      },
+      {
         name: "Chat",
         icon: Sparkles,
         path: "/agent",
@@ -97,7 +104,7 @@ export function AppDrawerContent(props: any) {
       //   badge: trashNotesCount > 0 ? trashNotesCount : undefined,
       // },
     ],
-    [activeCount, foldersCount],
+    [activeCount, foldersCount, remindersCount],
   );
  
   const { insetHeight, height } = useHeaderInset(40);

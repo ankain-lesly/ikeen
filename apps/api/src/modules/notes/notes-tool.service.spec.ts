@@ -5,7 +5,6 @@ describe('NotesToolService', () => {
   let service: NotesToolService;
   let mockPrisma: any;
   let mockAudit: any;
-  let mockAbly: any;
 
   beforeEach(() => {
     mockPrisma = {

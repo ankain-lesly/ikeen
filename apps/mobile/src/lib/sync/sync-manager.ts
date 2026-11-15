@@ -38,6 +38,7 @@ import {
 import { registerSyncTrigger } from './sync-events';
 import { syncApi } from './sync-api';
 import { useSyncStore } from './use-sync';
+import { toast } from '../toast';
 
 class SyncManager {
   private isSyncing = false;
@@ -170,6 +171,7 @@ class SyncManager {
 
       this.ablyChannel = this.ablyClient.channels.get(`user:${userId}`);
       this.ablyChannel.subscribe('sync:invalidate', () => {
+        toast.success("Invalidate From Server")
         log('[Sync:Realtime:InvalidateReceived]', { userId });
         this.pull().catch(() => {});
       });

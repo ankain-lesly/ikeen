@@ -160,6 +160,10 @@ All app and package releases must strictly follow [docs/releases/RELEASE_PROCESS
   - **Zero "Garbage Badges"**: Never pollute primary layouts, headers, or cards with framework/engine trivia (`v2`, `SQLite indexed`, `Tauri IPC Active`), fake sync pills, or loud status chips.
   - **Single-Responsibility Focus**: Every component must be dedicated solely to its target user feature (e.g., the editor canvas is strictly for writing and previewing notes; developer diagnostics belong in dedicated Settings modals or debug logs).
   - **Typography Over Chrome**: Prefer subtle muted typography, font weights, and spacing over nested borders, boxes, and badge chips.
+  - **Production UI Invariants (No Internal Diagnostics or Fake Toggles)**:
+    - **Zero Internal Diagnostics in User Settings**: Settings and preferences must exclusively expose meaningful user-facing choices (e.g., launch at startup, start minimized, theme, app updates). Never disclose backend/engine internals (e.g., SQLite database filenames, ORM names like Drizzle/Prisma, IPC bridges, WebView2 runtime trivia) or developer status badges (`v2.0`, `IPC Connected`).
+    - **Zero Dummy / Unwired Toggles**: Every switch, toggle, or control must bind to real, persistent state and perform a tangible user action. Never render placeholder controls with static `defaultChecked` or no-op handlers.
+    - **No Duplicated Informational Surfaces**: Never duplicate full lists or cheatsheets (such as keyboard shortcuts) across multiple dialogs when dedicated modal surfaces already exist.
 - **Modular Directory Organization**:
   - Organize app code into clean, domain-driven directories:
     ```

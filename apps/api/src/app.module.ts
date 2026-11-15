@@ -10,6 +10,7 @@ import { NotesModule } from './modules/notes/notes.module.js';
 import { MediaModule } from './modules/media/media.module.js';
 import { AgentModule } from './modules/agent/agent.module.js';
 import { McpModule } from './modules/mcp/mcp.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware.js';
 import { EnvModule } from './config/env.module.js';
@@ -25,6 +26,7 @@ import { EnvModule } from './config/env.module.js';
     MediaModule,
     AuthModule,
     SyncModule,
+    NotificationsModule,
     AgentModule,
     McpModule,
   ],

@@ -10,10 +10,11 @@ import { WebResearchService } from './web-research.service.js';
 
 import { NotesModule } from '../notes/notes.module.js';
 import { FoldersModule } from '../folders/folders.module.js';
+import { RemindersModule } from '../reminders/reminders.module.js';
 import { MediaModule } from '../media/media.module.js';
 
 @Module({
-  imports: [PrismaModule, AblyModule, NotesModule, FoldersModule, MediaModule],
+  imports: [PrismaModule, AblyModule, NotesModule, FoldersModule, RemindersModule, MediaModule],
   controllers: [AgentController],
   providers: [
     AgentService,

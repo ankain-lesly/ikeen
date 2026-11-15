@@ -2,6 +2,9 @@ import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 import type { Reminder } from '@repo/types';
 
+export const NOTIFICATION_CHANNEL_ID = 'reminders';
+export const NOTIFICATION_SOUND = 'notification.wav';
+
 // Configure default notification handler for foreground display
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -11,23 +14,33 @@ Notifications.setNotificationHandler({
     shouldShowBanner: true,
     shouldPresentAlert: true,
     shouldShowList: true,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
   }),
 });
 
-export const NOTIFICATION_CHANNEL_ID = 'reminders';
-
 /**
- * Ensures the Android notification channel is configured with high priority.
+ * Ensures the Android notification channel is configured with high priority and custom sound.
  */
 export async function ensureReminderChannelAsync(): Promise<void> {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
-      name: 'Note Reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#004040',
-      sound: 'default',
-    });
+    try {
+      const existing = await Notifications.getNotificationChannelAsync(NOTIFICATION_CHANNEL_ID);
+      if (existing && existing.sound !== 'custom') {
+        await Notifications.deleteNotificationChannelAsync(NOTIFICATION_CHANNEL_ID);
+      }
+      await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
+        name: 'Note Reminders',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: NOTIFICATION_SOUND,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#004040',
+        enableLights: true,
+        enableVibrate: true,
+        showBadge: true,
+      });
+    } catch (err) {
+      console.warn('[ReminderService] Failed to set reminder channel:', err);
+    }
   }
 }
 
@@ -86,9 +99,32 @@ export async function scheduleReminderNotification(
     return null;
   }
 
-  const triggerDate = new Date(reminder.dueAt);
-  if (isNaN(triggerDate.getTime()) || triggerDate.getTime() <= Date.now()) {
+  const rawTriggerDate = new Date(reminder.dueAt);
+  if (isNaN(rawTriggerDate.getTime())) {
     return null;
+  }
+
+  const now = Date.now();
+  let triggerDate = rawTriggerDate;
+
+  // If reminder is scheduled within the current minute or slightly in the past (e.g. user just hit save)
+  // give it a 2-second future trigger so the alert reliably fires
+  if (triggerDate.getTime() <= now) {
+    if (now - triggerDate.getTime() <= 60_000) {
+      triggerDate = new Date(now + 2000);
+    } else {
+      return null;
+    }
+  }
+
+  // Ensure notification permissions are requested and granted
+  const permissions = await getNotificationPermissionsAsync();
+  if (!permissions.granted) {
+    const granted = await requestNotificationPermissionsAsync();
+    if (!granted) {
+      console.warn('[ReminderService] Notification permissions not granted');
+      return null;
+    }
   }
 
   await ensureReminderChannelAsync();
@@ -108,7 +144,8 @@ export async function scheduleReminderNotification(
           noteId: reminder.noteId,
           reminderId: reminder.id,
         },
-        sound: true,
+        sound: NOTIFICATION_SOUND,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,

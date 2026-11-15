@@ -6,8 +6,6 @@
 
 - [ ] Fix `EnrichedMarkdownTextInput` stripping markdown snippets (e.g., codeblocks converted to plain text) when editing; `MarkdownEditor` currently uses `TextInput` until a finite rich-text/markdown editor solution is finalized.
 
-- Add a link that users can use to request that their account and associated data is deleted
-
 ---
 
 ## Add Background Image
@@ -25,4 +23,4 @@
 
 ## Home Sidebar Design
 
-BB3SM8
+QXZ857

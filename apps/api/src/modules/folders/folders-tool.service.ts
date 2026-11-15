@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { z } from 'zod';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PushNotificationService } from '../notifications/push-notification.service.js';
 import { toolFailure } from '../agent/call-options.js';
 import type { ToolExecutionOptions } from '../notes/notes-tool.service.js';
 import type {
@@ -18,6 +19,7 @@ export class FoldersToolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly pushService?: PushNotificationService,
   ) {}
 
   private recordFolderAudit(
@@ -151,6 +153,24 @@ export class FoldersToolService {
         options,
         { severity: 'WARN' },
       );
+
+      if (this.pushService) {
+        const source = options?.source ?? 'agent';
+        await this.pushService
+          .sendAgentEntityCreatedPush(userId, {
+            entity: 'folder',
+            entityId: folder.id,
+            title: source === 'mcp' ? 'New Folder from MCP' : 'New Folder from AI Assistant',
+            body: `Created folder "${folder.name}"`,
+            source,
+            data: {
+              folderId: folder.id,
+            },
+          })
+          .catch((err) => {
+            this.logger.warn(`Failed to dispatch creation push notification for folder ${folder.id}:`, err);
+          });
+      }
 
       return {
         ok: true,

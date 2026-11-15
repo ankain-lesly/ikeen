@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Param,
   Query,
   UseGuards,
   UseInterceptors,
@@ -10,7 +9,6 @@ import {
   Body,
   Req,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';

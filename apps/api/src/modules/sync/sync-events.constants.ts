@@ -16,6 +16,9 @@ export const TOOL_MUTATION_ENTITIES: Record<string, readonly string[]> = {
   createFolder: ['folders'],
   updateFolder: ['folders'],
   organizeNote: ['notes', 'folders'],
+  setReminder: ['reminders'],
+  completeReminder: ['reminders'],
+  cancelReminder: ['reminders'],
 } as const;
 
 /**

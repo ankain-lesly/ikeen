@@ -2,6 +2,7 @@ import React from "react";
 import { View, Pressable, ScrollView } from "react-native";
 import { type Href, useRouter } from "expo-router";
 import {
+  Bell,
   ListFilter,
   ListOrdered,
   Pin,
@@ -10,8 +11,7 @@ import {
 } from "lucide-react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "../ui/themed-text";
-import { ListNotesOptions } from "@/lib/types/notes";
-import { Card } from "../ui/card";
+import { ListNotesOptions } from "@/lib/types/notes"; 
 import { useDrawerActions } from "../drawer-nav-items";
 
 interface NotesHeaderProps {
@@ -40,34 +40,33 @@ export function NotesHeader({
     router.push("/agent");
   };
 
-  const isRecentActive =
-    !filter.pinnedOnly && !filter.includeArchived && !filter.archivedOnly;
-  const isPinnedActive = filter.pinnedOnly === true;
+  const isRemindersActive = filter.remindersOnly === true;
+  const isPinnedActive = filter.pinnedOnly === true && !isRemindersActive;
   const isArchivedActive =
-    filter.archivedOnly === true ||
-    (filter.includeArchived === true && !filter.pinnedOnly);
+    (filter.archivedOnly === true ||
+      (filter.includeArchived === true && !filter.pinnedOnly)) &&
+    !isRemindersActive;
+  const isRecentActive =
+    !isPinnedActive && !isArchivedActive && !isRemindersActive;
 
   const applyView = (view: {
     pinnedOnly: boolean;
     includeArchived: boolean;
     archivedOnly: boolean;
+    remindersOnly?: boolean;
   }) => {
     updateFilter({
       ...filter,
       pinnedOnly: view.pinnedOnly,
       includeArchived: view.includeArchived,
       archivedOnly: view.archivedOnly,
+      remindersOnly: view.remindersOnly ?? false,
     });
   };
 
-  // const handleFolders = () => {
-  //   Haptics.selectionAsync();
-  //   router.push("/(tabs)/notes/folders");
-  // };
-
   return (
     <View className="border-b border-border/50 bg-background pb-3">
-      {/* TOp Header */}
+      {/* Top Header */}
       <View className="flex-row items-center justify-between px-4">
         {/* Title */}
         <View className="flex-row gap-3">
@@ -94,25 +93,6 @@ export function NotesHeader({
 
         {/* Action Cluster: Search -> Filter -> AI */}
         <View className="px-3 rounded-full flex-row items-center gap-4">
-          {/* <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open folders"
-            onPress={() => {
-              
-            }}
-            className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg min-h-11`}>
-            <FolderIcon size={16} color={colors.foreground} />
-            <ThemedText className={`text-sm font-semibold`}>Folders</ThemedText>
-          </Pressable> */}
-          {/* Folders */}
-          {/* <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Folders"
-            hitSlop={8}
-            onPress={handleFolders}
-            className="items-center justify-center rounded-full">
-            <FolderIcon size={20} color={colors.text} strokeWidth={2} />
-          </Pressable> */}
           {/* Search Navigation Trigger */}
           <Pressable
             accessibilityRole="button"
@@ -122,19 +102,6 @@ export function NotesHeader({
             className="items-center justify-center rounded-full">
             <Search size={20} color={colors.text} strokeWidth={2} />
           </Pressable>
-
-          {/* Filter Modal Trigger */}
-          {/* <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Filter and sort notes"
-            hitSlop={8}
-            onPress={onOpenFilter}
-            className="relative items-center justify-center rounded-full">
-            <ListFilter size={20} color={colors.text} strokeWidth={2} />
-            {hasActiveFilters && (
-              <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
-            )}
-          </Pressable> */}
 
           {/* AI Agent Navigation Trigger */}
           <Pressable
@@ -155,8 +122,8 @@ export function NotesHeader({
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="gap-1.5">
-            {/* Filter */}
-          <Pressable
+          {/* Filter */}
+          {/* <Pressable
             accessibilityRole="button"
             accessibilityLabel="Filter and sort notes"
             hitSlop={8}
@@ -166,7 +133,7 @@ export function NotesHeader({
             {hasActiveFilters && (
               <View className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
             )}
-          </Pressable>
+          </Pressable> */}
 
           {/* Recent */}
           <Pressable
@@ -182,6 +149,7 @@ export function NotesHeader({
                 pinnedOnly: false,
                 includeArchived: false,
                 archivedOnly: false,
+                remindersOnly: false,
               });
             }}>
             <ListOrdered
@@ -195,6 +163,8 @@ export function NotesHeader({
               Recent
             </ThemedText>
           </Pressable>
+
+          {/* Pinned */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Pinned notes"
@@ -208,6 +178,7 @@ export function NotesHeader({
                 pinnedOnly: true,
                 includeArchived: false,
                 archivedOnly: false,
+                remindersOnly: false,
               });
             }}>
             <Pin
@@ -221,6 +192,8 @@ export function NotesHeader({
               Pinned
             </ThemedText>
           </Pressable>
+
+          {/* Archived */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Archived notes"
@@ -234,6 +207,7 @@ export function NotesHeader({
                 pinnedOnly: false,
                 includeArchived: true,
                 archivedOnly: true,
+                remindersOnly: false,
               });
             }}>
             <ThemedText
@@ -244,20 +218,35 @@ export function NotesHeader({
             </ThemedText>
           </Pressable>
 
-          {/* TODO: Add Filter for Reminders */}
+          {/* Reminders Filter Tab */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reminders notes"
+            className={`flex-row items-center gap-1.5 px-3 py-0.5 rounded-full border active:opacity-80 ${
+              isRemindersActive
+                ? "bg-foreground border-foreground"
+                : "border-background-selected"
+            }`}
+            onPress={() => {
+              applyView({
+                pinnedOnly: false,
+                includeArchived: false,
+                archivedOnly: false,
+                remindersOnly: !isRemindersActive,
+              });
+            }}>
+            <Bell
+              size={12}
+              color={isRemindersActive ? colors.background : colors.textSecondary}
+            />
+            <ThemedText
+              className={`text-xs font-semibold ${
+                isRemindersActive ? "text-background" : "text-text"
+              }`}>
+              Reminders
+            </ThemedText>
+          </Pressable>
         </ScrollView>
-
-        {/* <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open folders"
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.push("/(tabs)/notes/folders");
-          }}
-          className={`flex-row items-center gap-1.5 px-3 py-1 rounded-lg min-h-11`}>
-          <FolderIcon size={16} color={colors.foreground} />
-          <ThemedText className={`text-sm font-semibold`}>Folders</ThemedText>
-        </Pressable> */}
       </View>
     </View>
   );

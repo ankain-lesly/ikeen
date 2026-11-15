@@ -80,7 +80,7 @@ export const reminders = sqliteTable(
     noteId: text('note_id').references(() => notes.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default(''),
     dueAt: text('due_at').notNull(),
-    repeat: text('repeat', { enum: ['none', 'daily', 'weekly', 'monthly'] })
+    repeat: text('repeat', { enum: ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] })
       .notNull()
       .default('none'),
     isCompleted: integer('is_completed', { mode: 'boolean' }).notNull().default(false),
