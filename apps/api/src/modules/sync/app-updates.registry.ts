@@ -14,6 +14,19 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '2.1.0',
+    build: 8,
+    releasedAt: '2026-11-15',
+    title: 'iKeen 2.1.0: Note Reminders, Push Notifications & Agent Polish',
+    notes: [
+      'Smart Note Reminders: schedule time-based alerts and recurring reminders directly from notes and cards',
+      'Server Push Notifications: real-time device notifications when the AI Agent or tools create notes and reminders',
+      'Interactive Reminder Chips: 1-tap quick completion buttons and full list filtering in the new Reminders screen',
+      'AI Chat Stream Fidelity: accurate tool progress states, live indicators, and schema error resilience',
+      'User Privacy & Deletion: in-app account deletion compliance in profile settings',
+    ],
+  },
+  {
     version: '2.0.1',
     build: 7,
     releasedAt: '2026-10-31',
