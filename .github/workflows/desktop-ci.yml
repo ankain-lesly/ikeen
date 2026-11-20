@@ -19,6 +19,9 @@ concurrency:
   group: desktop-ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
+
 jobs:
   typecheck-and-lint:
     name: Workspace Quality Gates
