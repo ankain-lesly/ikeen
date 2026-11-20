@@ -53,15 +53,14 @@ Notes, folders, tags, and settings stay on the device. They are sent to iKeen on
 iKeen is for people 13 and older. The agent can be wrong. Check anything important before you rely on it.
 ```
 
-### What's New in Version 2.0.0
+### What's New in Version 2.1.0
 ```
-Welcome to iKeen 2.0 — The Modular Block Workspace:
-• Modular Note Blocks: Freely arrange rich text, interactive checklists, and media in any order.
-• Voice Notes: Record voice memos directly into notes with inline playback.
-• Background Media Outbox: Seamless background photo and attachment uploading with offline retry.
-• Reimagined Navigation: Infinite recent notes drawer and a modern home shell.
-• Resilient Sync: Faster, crash-protected sync across all your devices.
-• Block AI Tools: Let the agent draft, summarize, and edit specific blocks.
+What's new in iKeen 2.1:
+• Note Reminders: Schedule alerts and recurring reminders directly from notes, cards, and bulk actions.
+• Server Push Notifications: Instant alerts when the AI Agent or tools create notes and schedule reminders.
+• Interactive Reminder Chips: 1-tap circular completion button on note cards and a dedicated Reminders view.
+• AI Chat Stream Fidelity: Real-time tool execution spinners, reliable actions, and schema error resilience.
+• Account Privacy: Transparent in-app account and data deletion request directly in Profile settings.
 ```
 
 ---
@@ -76,15 +75,14 @@ Welcome to iKeen 2.0 — The Modular Block Workspace:
 ### Full description (limit 4000)
 Use the same body as the Apple description so the two listings do not drift.
 
-### What's New in Version 2.0.0
+### What's New in Version 2.1.0
 ```
-Welcome to iKeen 2.0 — The Modular Block Workspace:
-• Modular Note Blocks: Freely arrange rich text, interactive checklists, and media in any order.
-• Voice Notes: Record voice memos directly into notes with inline playback.
-• Background Media Outbox: Seamless background photo and attachment uploading with offline retry.
-• Reimagined Navigation: Infinite recent notes drawer and a modern home shell.
-• Resilient Sync: Faster, crash-protected sync across all your devices.
-• Block AI Tools: Let the agent draft, summarize, and edit specific blocks.
+What's new in iKeen 2.1:
+• Note Reminders: Schedule alerts and recurring reminders directly from notes, cards, and bulk actions.
+• Server Push Notifications: Instant alerts when the AI Agent or tools create notes and schedule reminders.
+• Interactive Reminder Chips: 1-tap circular completion button on note cards and a dedicated Reminders view.
+• AI Chat Stream Fidelity: Real-time tool execution spinners, reliable actions, and schema error resilience.
+• Account Privacy: Transparent in-app account and data deletion request directly in Profile settings.
 ```
 
 ---

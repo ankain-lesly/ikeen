@@ -57,7 +57,7 @@ The updater public key is stored in [`apps/desktop/src-tauri/tauri.conf.json`](.
   "updater": {
     "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGODVFNkYwQTg3Nzk4M0MKUldROG1IZW84T2FGLzUxdzVFOVdvYkhoUTkzTjE4V2ZmY2lndmRXeE1HMUJNWVY0R0NJMXRPanEK",
     "endpoints": [
-      "https://github.com/techforgelee/ikeen/releases/latest/download/latest.json"
+      "https://github.com/ankain-lesly/ikeen/releases/latest/download/latest.json"
     ]
   }
 }
@@ -73,7 +73,7 @@ The client polls this endpoint on startup or on demand via `useUpdater()` in Set
   "platforms": {
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkK...",
-      "url": "https://github.com/techforgelee/ikeen/releases/download/v0.1.0-desktop/iKeen_0.1.0_x64-setup.exe"
+      "url": "https://github.com/ankain-lesly/ikeen/releases/download/v0.1.0-desktop/iKeen_0.1.0_x64-setup.exe"
     }
   }
 }
