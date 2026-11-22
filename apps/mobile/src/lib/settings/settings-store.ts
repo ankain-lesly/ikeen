@@ -11,11 +11,13 @@ export interface SettingsState {
   defaultSort: DefaultNoteSort;
   hapticsEnabled: boolean;
   autoSyncOnCellular: boolean;
+  scratchpadNoteId: string | null;
 
   setTheme: (theme: AppTheme) => void;
   setDefaultSort: (sort: DefaultNoteSort) => void;
   setHapticsEnabled: (enabled: boolean) => void;
   setAutoSyncOnCellular: (enabled: boolean) => void;
+  setScratchpadNoteId: (scratchpadNoteId: string | null) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +27,7 @@ export const useSettingsStore = create<SettingsState>()(
       defaultSort: 'updatedAt',
       hapticsEnabled: true,
       autoSyncOnCellular: true,
+      scratchpadNoteId: null,
 
       setTheme: (theme: AppTheme) => {
         Uniwind.setTheme(theme);
@@ -41,6 +44,10 @@ export const useSettingsStore = create<SettingsState>()(
 
       setAutoSyncOnCellular: (autoSyncOnCellular: boolean) => {
         set({ autoSyncOnCellular });
+      },
+
+      setScratchpadNoteId: (scratchpadNoteId: string | null) => {
+        set({ scratchpadNoteId });
       },
     }),
     {

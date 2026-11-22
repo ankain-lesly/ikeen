@@ -16,7 +16,6 @@
 
 ## Features
 
-- Scratchpad: A single view For dumping unorganized notes ideas. Also Synced. (Architecture. User creates/assigns a specific note only visible as scratchpad)
 - Gallery Nav Link On Agent sidebar when gallery feature is implemented
 
 ---

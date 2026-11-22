@@ -5,6 +5,12 @@ import type {
   ListNotesOptions,
   UpdateNoteInput,
 } from '@repo/types';
+import {
+  isScratchpadNote,
+  formatScratchpadTags,
+  removeScratchpadTag,
+  SCRATCHPAD_TAG,
+} from '@repo/utils';
 import { initDatabase } from '@/db/client';
 import { seedStarterNotesIfEmpty } from '@/lib/queries/seed';
 import {
@@ -31,6 +37,7 @@ export interface NotesStoreState {
   isLoading: boolean;
   isInitialized: boolean;
   remindersCount: number;
+  scratchpadNoteId: string | null;
 
   // Actions
   init: () => Promise<void>;
@@ -46,6 +53,9 @@ export interface NotesStoreState {
   addFolder: (input: { name: string; color?: string; icon?: string }) => Promise<Folder | null>;
   editFolder: (id: string, updates: { name?: string; color?: string; icon?: string }) => Promise<boolean>;
   removeFolder: (id: string) => Promise<boolean>;
+  createScratchpadNote: () => Promise<Note | null>;
+  assignExistingNoteToScratchpad: (noteId: string) => Promise<void>;
+  detachScratchpadNote: () => Promise<void>;
 }
 
 export const useNotesStore = create<NotesStoreState>((set, get) => ({
@@ -57,6 +67,7 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
   isLoading: true,
   isInitialized: false,
   remindersCount: 0,
+  scratchpadNoteId: typeof window !== 'undefined' ? localStorage.getItem('ikeen_scratchpad_note_id') : null,
 
   init: async () => {
     if (get().isInitialized) return;
@@ -130,6 +141,8 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       filter.archivedOnly = true;
     } else if (activeFilter === 'reminders') {
       filter.remindersOnly = true;
+    } else if (activeFilter === 'scratchpad') {
+      filter.includeArchived = true;
     } else if (activeFilter === 'unorganized') {
       filter.folderId = null;
     } else if (activeFilter !== 'all') {
@@ -139,6 +152,21 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
     try {
       const notes = await listNotes(filter);
       set({ notes });
+
+      // Special active note resolution for scratchpad filter
+      if (get().activeFilter === 'scratchpad') {
+        const scratchpadId = get().scratchpadNoteId;
+        let target = scratchpadId ? notes.find((n) => n.id === scratchpadId && !n.deletedAt) : null;
+        if (!target) {
+          target = notes.find((n) => isScratchpadNote(n) && !n.deletedAt) || null;
+          if (target && typeof window !== 'undefined') {
+            localStorage.setItem('ikeen_scratchpad_note_id', target.id);
+            set({ scratchpadNoteId: target.id });
+          }
+        }
+        set({ activeNoteId: target ? target.id : null });
+        return;
+      }
 
       // If active note is not in the filtered list, pick the first or keep selection
       const currentActive = get().activeNoteId;
@@ -252,5 +280,53 @@ export const useNotesStore = create<NotesStoreState>((set, get) => ({
       void syncManager.updatePendingCount();
     }
     return success;
+  },
+
+  createScratchpadNote: async () => {
+    const note = await createNote({
+      title: 'Scratchpad',
+      content: '',
+      tags: [SCRATCHPAD_TAG],
+      isArchived: true,
+    });
+    if (note) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ikeen_scratchpad_note_id', note.id);
+      }
+      set({ scratchpadNoteId: note.id, activeNoteId: note.id });
+      await get().loadNotes();
+      void syncManager.updatePendingCount();
+    }
+    return note;
+  },
+
+  assignExistingNoteToScratchpad: async (noteId: string) => {
+    const target = get().notes.find((n) => n.id === noteId);
+    if (!target) return;
+    const newTags = formatScratchpadTags(target.tags);
+    await updateNote(noteId, { tags: newTags, isArchived: true });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ikeen_scratchpad_note_id', noteId);
+    }
+    set({ scratchpadNoteId: noteId, activeNoteId: noteId });
+    await get().loadNotes();
+    void syncManager.updatePendingCount();
+  },
+
+  detachScratchpadNote: async () => {
+    const scratchpadId = get().scratchpadNoteId;
+    if (scratchpadId) {
+      const target = get().notes.find((n) => n.id === scratchpadId);
+      if (target) {
+        const newTags = removeScratchpadTag(target.tags);
+        await updateNote(scratchpadId, { tags: newTags, isArchived: false });
+      }
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ikeen_scratchpad_note_id');
+    }
+    set({ scratchpadNoteId: null, activeNoteId: null });
+    await get().loadNotes();
+    void syncManager.updatePendingCount();
   },
 }));

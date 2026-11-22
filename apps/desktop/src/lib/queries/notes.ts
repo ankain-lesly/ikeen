@@ -34,10 +34,13 @@ function mapSelectToNote(row: NoteSelect): Note {
 }
 
 export async function listNotes(filter: ListNotesOptions = {}): Promise<Note[]> {
-  const conditions: SQL[] = [
-    isNull(notes.deletedAt),
-    eq(notes.isArchived, Boolean(filter.archivedOnly)),
-  ];
+  const conditions: SQL[] = [isNull(notes.deletedAt)];
+
+  if (filter.archivedOnly) {
+    conditions.push(eq(notes.isArchived, true));
+  } else if (!filter.includeArchived) {
+    conditions.push(eq(notes.isArchived, false));
+  }
 
   if (filter.search?.trim()) {
     const term = `%${filter.search.trim()}%`;

@@ -15,11 +15,15 @@ import {
   ChevronDown,
   ChevronLeft,
   Folder,
+  ListTodo,
+  MoreHorizontal,
   Pin,
   Plus,
   Sparkles,
+  Type,
   X,
 } from "lucide-react-native";
+import { OptionSheet, type SheetAction } from "@/components/ui/option-sheet";
 import { NoteBottomToolBar } from "@/components/notes/note-accessory-bar";
 import { NoteInfoSheet } from "@/components/notes/note-info-sheet";
 import { useTheme } from "@/hooks/use-theme";
@@ -78,9 +82,29 @@ import { countWords } from "@repo/utils/string";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useNoteActions } from "@/hooks/use-note-actions";
 
-export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
+export interface ScratchpadActions {
+  onChangeNote?: () => void;
+  onMoveToAllNotes?: () => void;
+  onReset?: () => void;
+}
+
+export interface NoteEditorProps {
+  note?: NoteSelect;
+  variant?: "default" | "scratchpad";
+  onBack?: () => void;
+  scratchpadActions?: ScratchpadActions;
+}
+
+export function NoteEditor({
+  note: initialNote,
+  variant = "default",
+  onBack,
+  scratchpadActions,
+}: NoteEditorProps) {
+  const isScratchpad = variant === "scratchpad";
   const colors = useTheme();
   const { user } = useAuthStore();
+  const [isScratchpadOptionsOpen, setIsScratchpadOptionsOpen] = useState(false);
 
   // Local note state
   const [note, setNote] = useState({
@@ -107,7 +131,9 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   // Track Notes Edit, Touched State
   const [isNewDraft, setIsNewDraft] = useState(!initialNote);
   const [hasEdited, setHasEdited] = useState(!initialNote);
-  const [isEditing, setIsEditing] = useState(!initialNote);
+  const [isEditing, setIsEditing] = useState(
+    isScratchpad ? true : !initialNote,
+  );
   const lastAppliedUpdatedAtRef = useRef<string>(initialNote?.updatedAt || "");
 
   // Sync inbound note updates (e.g. title/tags/folder from cloud pull) only when initialNote is strictly newer
@@ -160,7 +186,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
   const { data: noteReminders = [] } = useLiveRemindersForNote(note?.id);
   const activeReminder = useMemo(
     () => noteReminders.find((r) => !r.isCompleted && !r.deletedAt) ?? null,
-    [noteReminders]
+    [noteReminders],
   );
 
   const handleSaveReminder = async (dueAt: string, repeat: ReminderRepeat) => {
@@ -316,6 +342,22 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     setIsEditing(false);
   }, [saveNote, note]);
 
+  const scratchpadOptionsActions: SheetAction[] = useMemo(
+    () => [
+      {
+        label: "Reset Scratchpad",
+        color: "#ef4444",
+        icon: <MoreHorizontal size={18} color="#ef4444" />,
+        onPress: async () => {
+          setIsScratchpadOptionsOpen(false);
+          await saveNote();
+          scratchpadActions?.onReset?.();
+        },
+      },
+    ],
+    [saveNote, scratchpadActions],
+  );
+
   const handleTitleChange = (newTitle: string) => {
     updateNoteState("title", newTitle);
   };
@@ -352,19 +394,11 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     [handleAddBlock],
   );
 
-  const handleAddMediaBlock = useCallback(
-    () => handleAddBlock(createDefaultMediaBlockInput(), "media block"),
-    [handleAddBlock],
-  );
-
   const handleAppendMediaItems = useCallback(
     async (newItems: MediaItem[]) => {
       if (newItems.length === 0) return;
       try {
-        await createBlock(
-          note.id,
-          createDefaultMediaBlockInput(newItems),
-        );
+        await createBlock(note.id, createDefaultMediaBlockInput(newItems));
 
         setHasEdited(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -449,49 +483,56 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
     <View className="flex-1 bg-background pt-safe w-full">
       {/* Navigation Bar */}
       <View className="h-12 flex-row items-center justify-between px-3.5">
-        {/* Back Button */}
+        {/* Back Button & Title / Folder */}
         <View className="flex-row items-center justify-between gap-2">
           <Pressable
             className="flex-row p-2 rounded-full justify-center items-center gap-2"
-            onPress={() => router.back()}
+            onPress={() => (onBack ? onBack() : router.back())}
             hitSlop={8}>
             <ChevronLeft size={22} color={colors.text} />
           </Pressable>
 
-          {/* Folder */}
-          <View>
-            <Pressable
-              onPress={() => setIsMoveFolderSheetVisible(true)}
-              hitSlop={4}
-              className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md active:opacity-70">
-              <Folder
-                size={16}
-                color={currentFolder?.color || colors.textSecondary}
-              />
-              <Text
-                className="text-sm font-semibold"
-                numberOfLines={1}
-                style={{
-                  color: currentFolder?.color || colors.textSecondary,
-                }}>
-                {currentFolder ? currentFolder.name : "Unorganized"}
-              </Text>
-              <ChevronDown size={14} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+          {isScratchpad ? (
+            <View>
+              <Text className="text-lg font-bold text-text">Scratchpad</Text>
+            </View>
+          ) : (
+            <View>
+              <Pressable
+                onPress={() => setIsMoveFolderSheetVisible(true)}
+                hitSlop={4}
+                className="flex-row items-center gap-1.5 px-2 py-0.5 rounded-md active:opacity-70">
+                <Folder
+                  size={16}
+                  color={currentFolder?.color || colors.textSecondary}
+                />
+                <Text
+                  className="text-sm font-semibold"
+                  numberOfLines={1}
+                  style={{
+                    color: currentFolder?.color || colors.textSecondary,
+                  }}>
+                  {currentFolder ? currentFolder.name : "Unorganized"}
+                </Text>
+                <ChevronDown size={14} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Right Header Action Icons */}
         <View className="flex-row items-center gap-2">
           <Card className="px-3 flex-row items-center gap-4 rounded-full">
             {/* Pin */}
-            <Pressable onPress={handleTogglePin}>
-              <Pin
-                size={20}
-                color={note.isPinned ? colors.primary : colors.text}
-                fill={note.isPinned ? colors.primary : undefined}
-              />
-            </Pressable>
+            {!isScratchpad && (
+              <Pressable onPress={handleTogglePin}>
+                <Pin
+                  size={20}
+                  color={note.isPinned ? colors.primary : colors.text}
+                  fill={note.isPinned ? colors.primary : undefined}
+                />
+              </Pressable>
+            )}
 
             {/* Brainstorm with iKeen */}
             <Pressable
@@ -523,17 +564,34 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
             )}
           </Card>
           {/* Dropdown */}
-          <NotesOptionsDropdown
-            variant="sheet"
-            lastEdited={note?.updatedAt}
-            isNewDraft={isUnpersistedDraft}
-            note={noteWithFullContent}
-            onUpdateState={updateNoteState}
-            onDeleteSuccess={handleDeleteSuccess}
-            onReminder={!isUnpersistedDraft ? () => setIsReminderSheetVisible(true) : undefined}
-            onShowInfo={() => setInfoSheetVisible(true)}
-            onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
-          />
+          {!isScratchpad ? (
+            <NotesOptionsDropdown
+              variant="sheet"
+              lastEdited={note?.updatedAt}
+              isNewDraft={isUnpersistedDraft}
+              note={noteWithFullContent}
+              onUpdateState={updateNoteState}
+              onDeleteSuccess={handleDeleteSuccess}
+              onReminder={
+                !isUnpersistedDraft
+                  ? () => setIsReminderSheetVisible(true)
+                  : undefined
+              }
+              onShowInfo={() => setInfoSheetVisible(true)}
+              onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+            />
+          ) : (
+            // {/* Scratchpad Options Sheet Trigger */}
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setIsScratchpadOptionsOpen(true);
+              }}
+              hitSlop={8}
+              className="w-8 h-8 rounded-full items-center justify-center active:bg-background-element">
+              <MoreHorizontal size={18} color={colors.textSecondary} />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -545,98 +603,103 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           contentContainerClassName="px-3 pt-4"
           keyboardShouldPersistTaps="handled">
           {/* Metadata and Title */}
-          <View className="pt-2 mb-2">
-            {/* Title Input */}
-            {isEditing ? (
-              <TextInput
-                ref={titleInputRef}
-                className="text-2xl font-normal leading-8 tracking-tight py-1 text-text"
-                placeholder="Untitled note"
-                placeholderTextColor={colors.textSecondary}
-                value={note.title}
-                onChangeText={handleTitleChange}
-                onBlur={() => {
-                  if (hasEdited) void saveNote();
-                }}
-                returnKeyType="next"
-                onSubmitEditing={() =>
-                  blockContainerRef.current?.focusContent()
-                }
-                multiline
-                editable={isEditing}
-                pointerEvents={isEditing ? "auto" : "none"}
-              />
-            ) : (
-              <GestureDetector gesture={titleDoubleTapGesture}>
-                <Text className="text-2xl font-normal leading-8 tracking-tight py-1 text-text">
-                  {note.title || "Untitled note"}
-                </Text>
-              </GestureDetector>
-            )}
-          </View>
+          {!isScratchpad && (
+            <View className="pt-2 mb-2">
+              {/* Title Input */}
+              {isEditing ? (
+                <TextInput
+                  ref={titleInputRef}
+                  className="text-2xl font-normal leading-8 tracking-tight py-1 text-text"
+                  placeholder={isScratchpad ? "Scratchpad" : "Untitled note"}
+                  placeholderTextColor={colors.textSecondary}
+                  value={note.title}
+                  onChangeText={handleTitleChange}
+                  onBlur={() => {
+                    if (hasEdited) void saveNote();
+                  }}
+                  returnKeyType="next"
+                  onSubmitEditing={() =>
+                    blockContainerRef.current?.focusContent()
+                  }
+                  multiline
+                  editable={isEditing}
+                  pointerEvents={isEditing ? "auto" : "none"}
+                />
+              ) : (
+                <GestureDetector gesture={titleDoubleTapGesture}>
+                  <Text className="text-2xl font-normal leading-8 tracking-tight py-1 text-text">
+                    {note.title ||
+                      (isScratchpad ? "Scratchpad" : "Untitled note")}
+                  </Text>
+                </GestureDetector>
+              )}
+            </View>
+          )}
 
-          {/* Tags */}
-          <View className="mb-4">
-            {note.tags.length > 0 || isEditing ? (
-              <View className="flex-row flex-wrap items-center gap-1.5 mb-1">
-                {note.tags.map((tag) =>
-                  isEditing ? (
-                    <View
-                      key={tag}
-                      className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
-                      <Text className="text-xs font-medium text-text">
-                        #{tag}
-                      </Text>
+          {/* Tags (Hidden in scratchpad mode) */}
+          {!isScratchpad && (
+            <View className="mb-4">
+              {note.tags.length > 0 || isEditing ? (
+                <View className="flex-row flex-wrap items-center gap-1.5 mb-1">
+                  {note.tags.map((tag) =>
+                    isEditing ? (
+                      <View
+                        key={tag}
+                        className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
+                        <Text className="text-xs font-medium text-text">
+                          #{tag}
+                        </Text>
+                        <Pressable
+                          hitSlop={8}
+                          onPress={() => handleRemoveTag(tag)}>
+                          <X size={12} color={colors.textSecondary} />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View
+                        key={tag}
+                        className="flex-row items-center px-2.5 py-1 rounded-xl border border-border bg-background-element">
+                        <Text className="text-xs font-medium text-text">
+                          #{tag}
+                        </Text>
+                      </View>
+                    ),
+                  )}
+
+                  {isEditing &&
+                    (newTagInputVisible ? (
+                      <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
+                        <Text className="text-xs text-text-secondary">#</Text>
+                        <TextInput
+                          ref={tagInputRef}
+                          className="text-xs py-0 px-0.5 min-w-10 text-text"
+                          placeholder="tag"
+                          placeholderTextColor={colors.textSecondary}
+                          autoFocus
+                          submitBehavior="submit"
+                          onSubmitEditing={handleAddTag}
+                          onEndEditing={handleAddTag}
+                          returnKeyType="done"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                    ) : (
                       <Pressable
-                        hitSlop={8}
-                        onPress={() => handleRemoveTag(tag)}>
-                        <X size={12} color={colors.textSecondary} />
+                        className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setNewTagInputVisible(true);
+                        }}>
+                        <Plus size={12} color={colors.textSecondary} />
+                        <Text className="text-xs font-medium text-text-secondary">
+                          Tag
+                        </Text>
                       </Pressable>
-                    </View>
-                  ) : (
-                    <View
-                      key={tag}
-                      className="flex-row items-center px-2.5 py-1 rounded-xl border border-border bg-background-element">
-                      <Text className="text-xs font-medium text-text">
-                        #{tag}
-                      </Text>
-                    </View>
-                  ),
-                )}
-
-                {isEditing &&
-                  (newTagInputVisible ? (
-                    <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
-                      <Text className="text-xs text-text-secondary">#</Text>
-                      <TextInput
-                        ref={tagInputRef}
-                        className="text-xs py-0 px-0.5 min-w-10 text-text"
-                        placeholder="tag"
-                        placeholderTextColor={colors.textSecondary}
-                        autoFocus
-                        submitBehavior="submit"
-                        onSubmitEditing={handleAddTag}
-                        onEndEditing={handleAddTag}
-                        returnKeyType="done"
-                        autoCapitalize="none"
-                      />
-                    </View>
-                  ) : (
-                    <Pressable
-                      className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        setNewTagInputVisible(true);
-                      }}>
-                      <Plus size={12} color={colors.textSecondary} />
-                      <Text className="text-xs font-medium text-text-secondary">
-                        Tag
-                      </Text>
-                    </Pressable>
-                  ))}
-              </View>
-            ) : null}
-          </View>
+                    ))}
+                </View>
+              ) : null}
+            </View>
+          )}
 
           {/* Block-Based Content Experience */}
           <BlockContainer
@@ -700,7 +763,7 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           }
         }}
       />
-            {/* Reminder Sheet */}
+      {/* Reminder Sheet */}
       {note?.id ? (
         <ReminderSheet
           isPresented={isReminderSheetVisible}
@@ -739,6 +802,16 @@ export function NoteEditor({ note: initialNote }: { note?: NoteSelect }) {
           setTargetAudioBlockId(null);
         }}
       />
+      {/* Scratchpad Options Sheet */}
+      {isScratchpad ? (
+        <OptionSheet
+          isPresented={isScratchpadOptionsOpen}
+          onDismiss={() => setIsScratchpadOptionsOpen(false)}
+          title="Scratchpad Options"
+          actions={scratchpadOptionsActions}
+        />
+      ) : null}
+
       <KeyboardGradualAnimation />
     </View>
   );

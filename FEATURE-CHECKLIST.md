@@ -10,6 +10,34 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## 📝 Cross-Platform Scratchpad & Idempotent Synced Drafts — 2026-11-22
+* **Status**: Completed
+* **Scope**: Dedicated distraction-free workspace for rapid idea dumping, draft outlines, and interactive checklists. Leverages canonical cross-device tag (`tags: ["scratchpad"]`) and archived isolation (`isArchived: true`) so that scratchpad notes never clutter the active notes feed while retaining 100% of SQLite persistence and bi-directional cloud sync across Mobile and Desktop.
+
+- [x] Shared Scratchpad Utilities (`@repo/utils`): Canonical `SCRATCHPAD_TAG`, `isScratchpadNote`, `formatScratchpadTags`, and `removeScratchpadTag`.
+- [x] Mobile State & Reactive Resolver (`settings-store.ts`, `useLiveScratchpadNote`):
+  - [x] Persistent `scratchpadNoteId` in `AsyncStorage` via `useSettingsStore`.
+  - [x] Cross-device discovery via `useLiveScratchpadNote` resolving tagged notes without duplicate creation.
+  - [x] Actions: `createScratchpad`, `assignExistingNote`, `detachScratchpad`, `resetScratchpad`.
+- [x] Mobile UI Surfaces (`scratchpad.tsx`, `scratchpad-editor.tsx`, `scratchpad-note-picker-sheet.tsx`):
+  - [x] Mobile drawer navigation link to `/scratchpad` with `StickyNote` icon.
+  - [x] Uninitialized setup hero card with "Create Scratchpad Note" and "Choose Existing Note" actions.
+  - [x] Streamlined block editor dedicated to content, titles, and 1-tap checklist and section additions.
+  - [x] Options menu sheet to change note, move note to All Notes, or reset scratchpad.
+- [x] Desktop State & UI Integration (`use-notes-store.ts`, `AppSidebar.tsx`, `ScratchpadPickerModal.tsx`, `App.tsx`):
+  - [x] Desktop sidebar navigation item for Scratchpad (`activeFilter === 'scratchpad'`).
+  - [x] Uninitialized setup pane with primary creation and note picker triggers.
+  - [x] Command Palette quick action to jump to Scratchpad.
+  - [x] Header badge in `EditorPane` highlighting scratchpad note status.
+- [x] Hardening & Remediation (`/keen-review`):
+  - [x] Fixed `listNotes` in `apps/desktop/src/lib/queries/notes.ts` to respect `filter.includeArchived`.
+  - [x] Scoped desktop `NotesListPane` to `[target]` under `activeFilter === 'scratchpad'` in `use-notes-store.ts`.
+  - [x] Debounced mobile content updates (500ms) with explicit `flushContent()` on unmount/actions in `scratchpad-editor.tsx`.
+  - [x] Eliminated live-query state-mirror feedback loops by rehydrating only on `note.id` transitions.
+- [x] Task Backlog Cleanup (`TODO.md`): Removed resolved scratchpad task from active items.
+
+---
+
 ## 🛡️ User Privacy & Account Deletion Compliance — 2026-11-15
 * **Status**: Completed
 * **Scope**: In-app user account deletion surface integration satisfying Apple App Store & Google Play privacy compliance requirements.

@@ -14,6 +14,7 @@ import {
   Moon,
   Search,
   Sparkles,
+  StickyNote,
   Sun,
 } from "lucide-react-native";
 
@@ -73,6 +74,11 @@ export function AppDrawerContent(props: any) {
         icon: FileText,
         path: "/notes",
         badge: activeCount,
+      },
+      {
+        name: "Scratchpad",
+        icon: StickyNote,
+        path: "/scratchpad",
       },
       {
         name: "Folders",

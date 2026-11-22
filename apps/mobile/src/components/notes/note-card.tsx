@@ -471,7 +471,7 @@ export const NoteCard = React.memo(function NoteCard({
                       Haptics.selectionAsync();
                       handleOpenEditReminder(reminder);
                     }}
-                    className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+                    className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
                     <Bell size={11} color={colors.primary} />
                     <Text className="text-[10px] font-semibold text-primary">
                       {formatReminderChip(reminder.dueAt)}
@@ -622,7 +622,7 @@ export const NoteCard = React.memo(function NoteCard({
                 Haptics.selectionAsync();
                 handleOpenEditReminder(reminder);
               }}
-              className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1 rounded-full bg-primary/10 border border-primary/20 active:opacity-70">
+              className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
               <Bell size={11} color={colors.primary} />
               <Text className="text-[10px] font-semibold text-primary">
                 {formatReminderChip(reminder.dueAt)}

@@ -41,6 +41,12 @@
       "require": "./dist/sync.cjs",
       "import": "./dist/sync.js",
       "default": "./dist/sync.js"
+    },
+    "./scratchpad": {
+      "types": "./dist/scratchpad.d.ts",
+      "require": "./dist/scratchpad.cjs",
+      "import": "./dist/scratchpad.js",
+      "default": "./dist/scratchpad.js"
     }
   },
   "scripts": {

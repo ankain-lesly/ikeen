@@ -8,7 +8,7 @@ import type {
   MediaBlock,
   MediaItem,
 } from "@repo/types";
-import { formatDate } from "@repo/utils";
+import { formatDate, isScratchpadNote } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -421,6 +421,12 @@ export function EditorPane({
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {isScratchpadNote(note) && (
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Scratchpad
+            </span>
+          )}
 
           {folders && folders.length > 0 && (
             <DropdownMenu>

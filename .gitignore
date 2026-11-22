@@ -46,6 +46,7 @@ src-tauri/target/
 
 
 .code
+bun.lock
 
 # Expo & React Native
 .expo/

@@ -8,6 +8,7 @@ export default defineConfig({
     date: 'src/date.ts',
     constants: 'src/constants.ts',
     sync: 'src/sync.ts',
+    scratchpad: 'src/scratchpad.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,
