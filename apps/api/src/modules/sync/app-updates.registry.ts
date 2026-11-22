@@ -14,6 +14,19 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '2.2.0',
+    build: 9,
+    releasedAt: '2026-11-22',
+    title: 'iKeen 2.2.0: Distraction-Free Scratchpad & Reminders Hardening',
+    notes: [
+      'Cross-Platform Scratchpad: dedicated quick-capture workspace for instant ideas, draft outlines, and checklists',
+      'Unified Note Editor: zero-data-loss block editing with automatic state flushing on background and navigation',
+      'Reminders Hardening: dynamic overdue styling, editor footer reminder pill, and multi-tenant security isolation',
+      'Cold-Start Deep Linking: tapping system reminder alerts routes directly to target notes even from cold start',
+      'Desktop Timezone Parity: local calendar date input synchronization eliminating cross-timezone drift',
+    ],
+  },
+  {
     version: '2.1.0',
     build: 8,
     releasedAt: '2026-11-15',
