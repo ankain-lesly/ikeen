@@ -70,9 +70,7 @@ function ReminderDropdownRow({
   return (
     <DropdownMenu expanded={isOpen} onDismissRequest={() => setIsOpen(false)}>
       <DropdownMenu.Trigger>
-        <RNHostView
-          matchContents={true}
-          style={{ width: "100%", backgroundColor: "red", padding: 5 }}>
+        <RNHostView matchContents={true} style={{ width: "100%" }}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
@@ -151,23 +149,6 @@ export function ReminderSheet({
   const [repeat, setRepeat] = useState<ReminderRepeat>(initialRepeat);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-
-  // useEffect(() => {
-  //   if (isPresented) {
-  //     if (initialDueAt) {
-  //       const parsed = new Date(initialDueAt);
-  //       if (!isNaN(parsed.getTime())) {
-  //         setSelectedDate(parsed);
-  //       }
-  //     } else {
-  //       const d = new Date();
-  //       d.setDate(d.getDate() + 0);
-  //       d.setHours(9, 0, 0, 0);
-  //       setSelectedDate(d);
-  //     }
-  //     setRepeat(initialRepeat || "none");
-  //   }
-  // }, [isPresented, initialDueAt, initialRepeat]);
 
   // Date Math Presets
   const datePresets = useMemo(() => {

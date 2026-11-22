@@ -612,23 +612,29 @@ export const NoteCard = React.memo(function NoteCard({
 
           {/* Active Reminders */}
         <View className="flex-row flex-wrap gap-0.5">
-          {activeReminders.map((reminder) => (
-            <Pressable
-              key={reminder.id}
-              accessibilityRole="button"
-              accessibilityLabel="Edit reminder"
-              onPress={(e) => {
-                e.stopPropagation();
-                Haptics.selectionAsync();
-                handleOpenEditReminder(reminder);
-              }}
-              className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
-              <Bell size={11} color={colors.primary} />
-              <Text className="text-[10px] font-semibold text-primary">
-                {formatReminderChip(reminder.dueAt)}
-              </Text>
-            </Pressable>
-          ))}
+          {activeReminders.map((reminder) => {
+            const isOverdue = new Date(reminder.dueAt).getTime() < Date.now();
+            return (
+              <Pressable
+                key={reminder.id}
+                accessibilityRole="button"
+                accessibilityLabel="Edit reminder"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  Haptics.selectionAsync();
+                  handleOpenEditReminder(reminder);
+                }}
+                className={`flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1`}>
+                <Bell size={11} color={isOverdue ? "#ef4444" : colors.primary} />
+                <Text
+                  className={`text-[10px] font-semibold ${
+                    isOverdue ? "text-red-500" : "text-primary"
+                  }`}>
+                  {formatReminderChip(reminder.dueAt)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
         </View>
       </View>

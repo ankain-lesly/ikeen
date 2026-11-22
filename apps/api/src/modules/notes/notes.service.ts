@@ -342,6 +342,13 @@ export class NotesService {
       where: { id: r.id },
     });
 
+    if (existing && existing.userId !== userId) {
+      this.logger.warn(
+        `LWW: Unauthorized reminder mutation attempt for ${r.id} by user ${userId}`,
+      );
+      return { applied: false, reminderId: r.id };
+    }
+
     if (existing && clientUpdatedAt < existing.updatedAt) {
       this.logger.debug(
         `LWW: Skipping older reminder mutation for ${r.id} (client: ${r.updatedAt}, server: ${existing.updatedAt.toISOString()})`,

@@ -9,6 +9,7 @@ import type {
   Reminder,
   CreateReminderInput,
   UpdateReminderInput,
+  ReminderRepeat,
 } from '@/lib/types/reminders';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 import { currentAuthUserId, ownerCondition } from './owner';
@@ -203,7 +204,14 @@ export async function updateReminder(
     if (updated.isCompleted || updated.deletedAt) {
       await cancelReminderNotification(id);
     } else {
-      await scheduleReminderNotification(updated as Reminder, noteTitle);
+      const notificationId = await scheduleReminderNotification(updated as Reminder, noteTitle);
+      if (notificationId && notificationId !== updated.notificationId) {
+        await db
+          .update(reminders)
+          .set({ notificationId })
+          .where(eq(reminders.id, id));
+        updated.notificationId = notificationId;
+      }
     }
 
     await enqueueOutbox('reminders', id, 'upsert', updatedFields);
@@ -216,8 +224,33 @@ export async function updateReminder(
   return (updated as Reminder) ?? null;
 }
 
+export function computeNextDueAt(currentDueAt: string, repeat: ReminderRepeat): string {
+  const date = new Date(currentDueAt);
+  if (isNaN(date.getTime())) return new Date().toISOString();
+
+  const next = new Date(date);
+  switch (repeat) {
+    case 'daily':
+      next.setDate(next.getDate() + 1);
+      break;
+    case 'weekly':
+      next.setDate(next.getDate() + 7);
+      break;
+    case 'monthly':
+      next.setMonth(next.getMonth() + 1);
+      break;
+    case 'yearly':
+      next.setFullYear(next.getFullYear() + 1);
+      break;
+    default:
+      return currentDueAt;
+  }
+  return next.toISOString();
+}
+
 /**
  * Toggles a reminder's completion state.
+ * For repeating reminders, completing advances dueAt to the next occurrence.
  */
 export async function toggleReminderCompleted(id: string): Promise<boolean> {
   const [existing] = await db
@@ -227,6 +260,16 @@ export async function toggleReminderCompleted(id: string): Promise<boolean> {
     .limit(1);
 
   if (!existing) return false;
+
+  // If recurring and currently uncompleted, advance dueAt to next cycle instead of terminating
+  if (!existing.isCompleted && existing.repeat && existing.repeat !== 'none') {
+    const nextDueAt = computeNextDueAt(existing.dueAt, existing.repeat as ReminderRepeat);
+    await updateReminder(id, {
+      dueAt: nextDueAt,
+      isCompleted: false,
+    });
+    return false;
+  }
 
   const nextCompleted = !existing.isCompleted;
   await updateReminder(id, { isCompleted: nextCompleted });

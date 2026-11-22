@@ -117,6 +117,18 @@ function RootDrawerLayout() {
 
   useEffect(() => {
     ensureReminderChannelAsync().catch(() => {});
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        const data = response?.notification?.request?.content?.data;
+        if (data?.noteId) {
+          router.push({
+            pathname: "/notes/[id]",
+            params: { id: data.noteId as string },
+          });
+        }
+      })
+      .catch(() => {});
+
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (data?.noteId) {

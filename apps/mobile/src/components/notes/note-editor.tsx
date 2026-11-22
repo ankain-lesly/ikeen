@@ -12,6 +12,7 @@ import {
 import { router, useNavigation } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
+  Bell,
   ChevronDown,
   ChevronLeft,
   Folder,
@@ -86,6 +87,42 @@ export interface ScratchpadActions {
   onChangeNote?: () => void;
   onMoveToAllNotes?: () => void;
   onReset?: () => void;
+}
+
+function formatEditorReminderText(dueAt: string, repeat?: ReminderRepeat | null): string {
+  const due = new Date(dueAt);
+  const now = new Date();
+  const isOverdue = due.getTime() < now.getTime();
+
+  const isToday =
+    due.getDate() === now.getDate() &&
+    due.getMonth() === now.getMonth() &&
+    due.getFullYear() === now.getFullYear();
+
+  const tomorrow = new Date();
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow =
+    due.getDate() === tomorrow.getDate() &&
+    due.getMonth() === tomorrow.getMonth() &&
+    due.getFullYear() === tomorrow.getFullYear();
+
+  const timeStr = due.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const dateLabel = isToday
+    ? "Today"
+    : isTomorrow
+      ? "Tomorrow"
+      : due.toLocaleDateString([], {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+
+  const repeatLabel = repeat && repeat !== "none" ? ` • ${repeat}` : "";
+  return `${isOverdue ? "Overdue: " : ""}${dateLabel} at ${timeStr}${repeatLabel}`;
 }
 
 export interface NoteEditorProps {
@@ -713,6 +750,45 @@ export function NoteEditor({
               setIsAudioRecordingOpen(true);
             }}
           />
+
+          {/* Active Reminder at bottom of content if available */}
+          {activeReminder ? (
+            <View className="mt-8 mb-6 pt-3 border-t border-border/40">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit Reminder"
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setIsReminderSheetVisible(true);
+                }}
+                hitSlop={8}
+                className={`flex-row items-center gap-2 self-start px-3 py-1.5 rounded-full border ${
+                  new Date(activeReminder.dueAt).getTime() < Date.now()
+                    ? "bg-red-500/10 border-red-500/25"
+                    : "bg-primary/10 border-primary/20"
+                } active:opacity-70`}>
+                <Bell
+                  size={13}
+                  color={
+                    new Date(activeReminder.dueAt).getTime() < Date.now()
+                      ? "#ef4444"
+                      : colors.primary
+                  }
+                />
+                <Text
+                  className={`text-xs font-semibold ${
+                    new Date(activeReminder.dueAt).getTime() < Date.now()
+                      ? "text-red-500"
+                      : "text-primary"
+                  }`}>
+                  {formatEditorReminderText(
+                    activeReminder.dueAt,
+                    activeReminder.repeat as ReminderRepeat,
+                  )}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
       {/* Accessory / Toolbar depending on mode */}

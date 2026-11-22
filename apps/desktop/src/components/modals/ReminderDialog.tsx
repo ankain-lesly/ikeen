@@ -32,6 +32,13 @@ const PRESETS: Array<{ label: string; daysOffset: number; time: string }> = [
   { label: "Next Week", daysOffset: 7, time: "09:00" },
 ];
 
+function formatLocalDateInput(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function ReminderDialog({
   open,
   onOpenChange,
@@ -51,7 +58,7 @@ export function ReminderDialog({
         setExistingReminder(rem);
         if (rem) {
           const d = new Date(rem.dueAt);
-          setSelectedDate(d.toISOString().split("T")[0]);
+          setSelectedDate(formatLocalDateInput(d));
           setSelectedTime(
             `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
           );
@@ -59,7 +66,7 @@ export function ReminderDialog({
         } else {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
-          setSelectedDate(tomorrow.toISOString().split("T")[0]);
+          setSelectedDate(formatLocalDateInput(tomorrow));
           setSelectedTime("09:00");
           setRepeat("none");
         }
@@ -70,7 +77,7 @@ export function ReminderDialog({
   const applyPreset = (daysOffset: number, time: string) => {
     const d = new Date();
     d.setDate(d.getDate() + daysOffset);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(formatLocalDateInput(d));
     setSelectedTime(time);
   };
 

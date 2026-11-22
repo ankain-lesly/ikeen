@@ -10,7 +10,26 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
-## 📝 Cross-Platform Scratchpad & Idempotent Synced Drafts — 2026-11-22
+## 🔔 Reminders System Remediation & Hardening — 2026-11-22
+* **Status**: Completed
+* **Scope**: End-to-end validation, remediation, and hardening of the Reminders system across Mobile, Desktop, and Backend. Eliminates stale date sync issues, cleans up debug UI artifacts, adds dynamic overdue styling and revalidation, renders active reminders in note editor footer, resolves desktop timezone drift, enables periodic desktop notification dispatch, introduces recurrence cycle progression, and hardens multi-tenant isolation.
+
+- [x] Mobile UI & UX Hardening (`reminder-sheet.tsx`, `note-card.tsx`, `note-editor.tsx`):
+  - [x] Removed commented-out redundant `useEffect` and cleaned up debug `backgroundColor: "red"` / `padding: 5` on `RNHostView`.
+  - [x] Overdue visual state & reactive revalidation: Added `bg-red-500/10 border-red-500/25 text-red-500` chip styling when `new Date(dueAt).getTime() < Date.now()`; updating overdue reminders to future dates revalidates styling back to primary theme.
+  - [x] Active reminder footer in editor: Added bottom reminder pill in `NoteEditor` below note content/blocks with formatted time & repeat interval; tapping opens `ReminderSheet`.
+  - [x] Cold-start notification deep-linking: Added `Notifications.getLastNotificationResponseAsync()` in `apps/mobile/src/app/_layout.tsx` to handle direct taps from system tray when the app is killed.
+- [x] Mobile Query & Recurrence Logic (`reminders.ts`, `notes.ts`):
+  - [x] Recurrence progression (`computeNextDueAt`): Completing a recurring reminder automatically rolls `dueAt` forward (+1 day, +1 week, +1 month, +1 year) and reschedules native notifications.
+  - [x] Synced notification ID persistence: Updated `updateReminder` to persist scheduled notification IDs directly in SQLite.
+  - [x] Multi-tenant isolation: Scoped `options.remindersOnly` subquery with `ownerCondition(reminders.userId, userId)`.
+- [x] Desktop Parity & Timezone Drift Repair (`ReminderDialog.tsx`):
+  - [x] Timezone drift fix: Replaced `toISOString().split('T')[0]` with `formatLocalDateInput(d)` using local calendar components (`getFullYear()`, `getMonth() + 1`, `getDate()`) to prevent ±1 day shifts in non-UTC timezones.
+  - [x] Cleaned up legacy ad-hoc polling logic; tracked native Tauri background notification scheduler in `TODO.md`.
+- [x] Backend Multi-Tenant Security (`notes.service.ts`):
+  - [x] Added strict ownership verification in `upsertReminderWithLww` (`if (existing && existing.userId !== userId) return { applied: false, reminderId: r.id }`).
+
+---
 * **Status**: Completed
 * **Scope**: Dedicated distraction-free workspace for rapid idea dumping, draft outlines, and interactive checklists. Leverages canonical cross-device tag (`tags: ["scratchpad"]`) and archived isolation (`isArchived: true`) so that scratchpad notes never clutter the active notes feed while retaining 100% of SQLite persistence and bi-directional cloud sync across Mobile and Desktop.
 
