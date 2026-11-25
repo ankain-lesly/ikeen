@@ -18,6 +18,7 @@ type OptionSheetProps = {
   isPresented: boolean;
   onDismiss: () => void;
   title?: string | React.ReactNode;
+  rightHeader?: React.ReactNode;
   actions?: SheetAction[];
   children?: React.ReactNode;
   snapPoints?: ("half" | "full")[];
@@ -29,6 +30,7 @@ export function OptionSheet({
   isPresented,
   onDismiss,
   title,
+  rightHeader,
   actions = [],
   children,
   snapPoints = ["half"],
@@ -54,6 +56,7 @@ export function OptionSheet({
             {title ? (
               <View className="flex-row items-center justify-between mb-4">
                 <ThemedText type="default">{title}</ThemedText>
+                {rightHeader}
               </View>
             ) : null}
 

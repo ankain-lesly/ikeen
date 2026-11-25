@@ -7,7 +7,7 @@ import type {
   ListBlock,
   MediaBlock,
   MediaItem,
-  ReminderRepeat,
+  Reminder,
 } from "@repo/types";
 import { formatDate, isScratchpadNote, formatReminderDisplay } from "@repo/utils";
 import { Button } from "@/components/ui/button";
@@ -84,12 +84,7 @@ export function EditorPane({
   const [activeTab, setActiveTab] = useState<string>("edit");
   const [newTagInput, setNewTagInput] = useState<string>("");
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
-  const [activeReminder, setActiveReminder] = useState<{
-    id: string;
-    dueAt: string;
-    isCompleted: boolean;
-    repeat: ReminderRepeat;
-  } | null>(null);
+  const [activeReminder, setActiveReminder] = useState<Reminder | null>(null);
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
 
   const currentFolder = note ? folders?.find((f) => f.id === note.folderId) : undefined;
@@ -118,16 +113,7 @@ export function EditorPane({
 
   const refreshNoteReminder = useCallback((noteId: string) => {
     void getReminderForNote(noteId).then((rem) => {
-      setActiveReminder(
-        rem && !rem.deletedAt
-          ? {
-              id: rem.id,
-              dueAt: rem.dueAt,
-              isCompleted: rem.isCompleted,
-              repeat: rem.repeat as ReminderRepeat,
-            }
-          : null
-      );
+      setActiveReminder(rem && !rem.deletedAt ? rem : null);
     });
   }, []);
 
@@ -533,7 +519,13 @@ export function EditorPane({
           {(() => {
             const reminderDisplay =
               activeReminder && !activeReminder.isCompleted
-                ? formatReminderDisplay(activeReminder.dueAt, activeReminder.repeat)
+                ? formatReminderDisplay(
+                    activeReminder.dueAt,
+                    activeReminder.repeat,
+                    activeReminder.repeatInterval,
+                    activeReminder.maxRepeats,
+                    activeReminder.repeatCount
+                  )
                 : null;
             return (
               <Tooltip>

@@ -64,6 +64,13 @@
       "when": 1794174275472,
       "tag": "0008_unknown_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795640087215,
+      "tag": "0009_flawless_sabretooth",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,8 @@ export const reminderRepeatSchema = z.enum([
   'weekly',
   'monthly',
   'yearly',
+  'custom',
+  'interval',
 ]);
 
 export const setReminderDef = {
@@ -27,7 +29,13 @@ export const setReminderDef = {
       'Optional reminder title or summary. If omitted, uses the note title.',
     ),
     repeat: defaultNullable(reminderRepeatSchema, 'none').describe(
-      'Repeat frequency: none, daily, weekly, monthly, or yearly',
+      'Repeat frequency: none, daily, weekly, monthly, yearly, custom, or interval',
+    ),
+    repeatInterval: optionalNullable(z.number().int().min(60).max(86400)).describe(
+      'For interval repeat: the recurrence interval in seconds (between 60s and 86400s / 24h, e.g. 3600 for every 1 hour, 7200 for 2 hours, 60 for 1 minute).',
+    ),
+    maxRepeats: optionalNullable(z.number().int().min(1).max(100)).describe(
+      'For interval repeat: maximum number of times the reminder should ring before automatically completing (between 1 and 100, defaults to 10).',
     ),
   }),
 };

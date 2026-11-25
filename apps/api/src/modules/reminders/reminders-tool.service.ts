@@ -92,14 +92,10 @@ export class RemindersToolService {
     const now = new Date();
     const title = args.title?.trim() || note.title || 'Note Reminder';
 
-    let reminder: {
-      id: string;
-      noteId: string | null;
-      title: string;
-      dueAt: Date;
-      repeat: any;
-      isCompleted: boolean;
-    };
+    const repeatInterval = args.repeat === 'interval' ? args.repeatInterval ?? null : null;
+    const maxRepeats = args.repeat === 'interval' ? args.maxRepeats ?? null : null;
+
+    let reminder: any;
     if (existing) {
       reminder = await this.prisma.reminder.update({
         where: { id: existing.id },
@@ -107,6 +103,8 @@ export class RemindersToolService {
           title,
           dueAt: dueAtDate,
           repeat: args.repeat ?? 'none',
+          repeatInterval,
+          maxRepeats,
           isCompleted: false,
           updatedAt: now,
         },
@@ -135,6 +133,9 @@ export class RemindersToolService {
           title,
           dueAt: dueAtDate,
           repeat: args.repeat ?? 'none',
+          repeatInterval,
+          maxRepeats,
+          repeatCount: 0,
           isCompleted: false,
           createdAt: now,
           updatedAt: now,
@@ -180,6 +181,9 @@ export class RemindersToolService {
         title: reminder.title,
         dueAt: reminder.dueAt.toISOString(),
         repeat: reminder.repeat,
+        repeatInterval: reminder.repeatInterval,
+        maxRepeats: reminder.maxRepeats,
+        repeatCount: reminder.repeatCount,
         isCompleted: reminder.isCompleted,
       },
     };
@@ -230,6 +234,9 @@ export class RemindersToolService {
         title: r.title,
         dueAt: r.dueAt.toISOString(),
         repeat: r.repeat,
+        repeatInterval: r.repeatInterval,
+        maxRepeats: r.maxRepeats,
+        repeatCount: r.repeatCount,
         isCompleted: r.isCompleted,
         createdAt: r.createdAt.toISOString(),
       })),

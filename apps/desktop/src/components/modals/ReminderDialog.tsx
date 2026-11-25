@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Calendar, Clock, Trash2, CheckCircle2, RotateCcw } from "lucide-react";
+import { Bell, Calendar, Clock, Trash2, CheckCircle2, RotateCcw, Timer } from "lucide-react";
 import type { Reminder, ReminderRepeat } from "@repo/types";
-import { formatReminderDisplay } from "@repo/utils";
+import { formatReminderDisplay, parseClockToSeconds, formatIntervalSeconds } from "@repo/utils";
 import {
   getReminderForNote,
   createReminder,
@@ -48,9 +48,15 @@ export function ReminderDialog({
   onReminderChanged,
 }: ReminderDialogProps) {
   const [existingReminder, setExistingReminder] = useState<Reminder | null>(null);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("09:00");
+  const [scheduleMode, setScheduleMode] = useState<"regular" | "interval">("regular");
+  const [selectedDate, setSelectedDate] = useState(() => formatLocalDateInput(new Date()));
+  const [selectedTime, setSelectedTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
   const [repeat, setRepeat] = useState<ReminderRepeat>("none");
+  const [intervalTime, setIntervalTime] = useState("01:00");
+  const [maxRepeats, setMaxRepeats] = useState(10);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -64,12 +70,29 @@ export function ReminderDialog({
             `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
           );
           setRepeat(rem.repeat);
+          if (rem.repeat === "interval") {
+            setScheduleMode("interval");
+            if (rem.repeatInterval && rem.repeatInterval > 0) {
+              const h = Math.floor(rem.repeatInterval / 3600);
+              const m = Math.floor((rem.repeatInterval % 3600) / 60);
+              setIntervalTime(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+            }
+            if (rem.maxRepeats && rem.maxRepeats > 0) {
+              setMaxRepeats(rem.maxRepeats);
+            }
+          } else {
+            setScheduleMode("regular");
+          }
         } else {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          setSelectedDate(formatLocalDateInput(tomorrow));
-          setSelectedTime("09:00");
+          const now = new Date();
+          setSelectedDate(formatLocalDateInput(now));
+          setSelectedTime(
+            `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+          );
           setRepeat("none");
+          setScheduleMode("regular");
+          setIntervalTime("01:00");
+          setMaxRepeats(10);
         }
       });
     }
@@ -89,21 +112,53 @@ export function ReminderDialog({
       const dueAtIso = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       const title = noteTitle || "Note Reminder";
 
-      if (existingReminder) {
-        await updateReminder(existingReminder.id, {
-          title,
-          dueAt: dueAtIso,
-          repeat,
-          isCompleted: false,
-        });
+      if (scheduleMode === "interval") {
+        const [hStr, mStr] = intervalTime.split(":");
+        const h = parseInt(hStr || "1", 10) || 0;
+        const m = parseInt(mStr || "0", 10) || 0;
+        const repeatInterval = parseClockToSeconds(h, m);
+
+        if (existingReminder) {
+          await updateReminder(existingReminder.id, {
+            title,
+            dueAt: dueAtIso,
+            repeat: "interval",
+            repeatInterval,
+            maxRepeats,
+            isCompleted: false,
+          });
+        } else {
+          await createReminder({
+            noteId,
+            title,
+            dueAt: dueAtIso,
+            repeat: "interval",
+            repeatInterval,
+            maxRepeats,
+            isCompleted: false,
+          });
+        }
       } else {
-        await createReminder({
-          noteId,
-          title,
-          dueAt: dueAtIso,
-          repeat,
-          isCompleted: false,
-        });
+        if (existingReminder) {
+          await updateReminder(existingReminder.id, {
+            title,
+            dueAt: dueAtIso,
+            repeat,
+            repeatInterval: null,
+            maxRepeats: null,
+            isCompleted: false,
+          });
+        } else {
+          await createReminder({
+            noteId,
+            title,
+            dueAt: dueAtIso,
+            repeat,
+            repeatInterval: null,
+            maxRepeats: null,
+            isCompleted: false,
+          });
+        }
       }
 
       onReminderChanged?.();
@@ -133,6 +188,20 @@ export function ReminderDialog({
     if (!selectedDate || !selectedTime) return null;
     const date = new Date(`${selectedDate}T${selectedTime}:00`);
     if (isNaN(date.getTime())) return null;
+
+    if (scheduleMode === "interval") {
+      const [hStr, mStr] = intervalTime.split(":");
+      const h = parseInt(hStr || "1", 10) || 0;
+      const m = parseInt(mStr || "0", 10) || 0;
+      const seconds = parseClockToSeconds(h, m);
+      return formatReminderDisplay(
+        date.toISOString(),
+        "interval",
+        seconds,
+        maxRepeats,
+        existingReminder?.repeatCount ?? 0
+      );
+    }
     return formatReminderDisplay(date.toISOString(), repeat);
   })();
 
@@ -151,76 +220,179 @@ export function ReminderDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5">
-          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
-            Quick Presets
-          </span>
-          <div className="grid grid-cols-3 gap-2">
-            {PRESETS.map((p) => (
-              <Button
-                key={p.label}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyPreset(p.daysOffset, p.time)}
-                className="text-[11px] h-8 text-muted-foreground hover:text-foreground"
-              >
-                {p.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-              <Calendar className="h-3 w-3 text-muted-foreground" />
-              Date
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              Time
-            </label>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1 pt-1">
-          <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-            <RotateCcw className="h-3 w-3 text-muted-foreground" />
-            Repeat
-          </label>
-          <select
-            value={repeat}
-            onChange={(e) => setRepeat(e.target.value as ReminderRepeat)}
-            className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+        {/* Schedule Mode Switcher */}
+        <div className="flex rounded-md bg-muted/40 p-0.5 border border-border">
+          <button
+            type="button"
+            onClick={() => setScheduleMode("regular")}
+            className={`flex-1 py-1 text-xs font-medium rounded transition-all ${
+              scheduleMode === "regular"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <option value="none">Does not repeat</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-          {previewSummary && (
-            <p className="text-[10px] text-muted-foreground/90 font-mono pt-0.5">
-              {previewSummary.text}
-            </p>
-          )}
+            Calendar
+          </button>
+          <button
+            type="button"
+            onClick={() => setScheduleMode("interval")}
+            className={`flex-1 py-1 text-xs font-medium rounded transition-all ${
+              scheduleMode === "interval"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Interval (Periodic)
+          </button>
         </div>
+
+        {scheduleMode === "regular" ? (
+          <>
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">
+                Quick Presets
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {PRESETS.map((p) => (
+                  <Button
+                    key={p.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyPreset(p.daysOffset, p.time)}
+                    className="text-[11px] h-8 text-muted-foreground hover:text-foreground"
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  Time
+                </label>
+                <input
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1 pt-1">
+              <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                <RotateCcw className="h-3 w-3 text-muted-foreground" />
+                Repeat
+              </label>
+              <select
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value as ReminderRepeat)}
+                className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+              >
+                <option value="none">Does not repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  First Alert Date
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  First Alert Time
+                </label>
+                <input
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Timer className="h-3 w-3 text-muted-foreground" />
+                    Repeat Every
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/80 font-mono">
+                    {formatIntervalSeconds(
+                      parseClockToSeconds(
+                        parseInt(intervalTime.split(":")[0] || "1", 10),
+                        parseInt(intervalTime.split(":")[1] || "0", 10)
+                      )
+                    )}
+                  </span>
+                </label>
+                <input
+                  type="time"
+                  value={intervalTime}
+                  onChange={(e) => setIntervalTime(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                  <RotateCcw className="h-3 w-3 text-muted-foreground" />
+                  Max Repeats (1-100)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={maxRepeats}
+                  onChange={(e) =>
+                    setMaxRepeats(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                  }
+                  className="w-full px-2.5 py-1.5 rounded border border-border bg-muted/20 text-xs focus:outline-none focus:border-[#39ff14]"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {previewSummary && (
+          <p className="text-[10px] text-muted-foreground/90 font-mono pt-0.5">
+            {previewSummary.text}
+          </p>
+        )}
 
         {existingReminder && (
           <div className="p-2.5 rounded bg-muted/30 border border-border/70 flex items-center justify-between text-[11px]">

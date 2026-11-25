@@ -401,6 +401,7 @@ enum ReminderRepeat {
   monthly
   yearly
   custom
+  interval
 }
 
 model Reminder {
@@ -410,6 +411,9 @@ model Reminder {
   title          String         @default("") @db.VarChar(255)
   dueAt          DateTime       @map("due_at")
   repeat         ReminderRepeat @default(none)
+  repeatInterval Int?           @map("repeat_interval")
+  maxRepeats     Int?           @map("max_repeats")
+  repeatCount    Int            @default(0) @map("repeat_count")
   isCompleted    Boolean        @default(false) @map("is_completed")
   notificationId String?        @map("notification_id")
   createdAt      DateTime       @default(now()) @map("created_at")

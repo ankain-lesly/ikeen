@@ -10,6 +10,44 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## ⏱️ Periodic & Clock Interval Reminders Integration — 2026-11-25
+* **Status**: Completed
+* **Scope**: Enables clock-interval-based recurring reminders (e.g. every minute, 1 hour, 2 hours, 4 hours, or arbitrary custom duration parsed to seconds) without UI templates or presets. Adds dedicated `'interval'` repeat type, native system clock time picker parsing, interval clamping (60s min, 86,400s max), maximum repetition cap (`maxRepeats`, default 10, range 1–100) to protect device battery life, automatic progression & termination reconcilers, and dual-mode (`[Calendar]` vs `[Interval]`) interfaces across Mobile and Desktop.
+
+- [x] Shared Data Architecture & Calculations (`@repo/types`, `@repo/utils`):
+  - [x] Added `'interval'` to `ReminderRepeat` union in `@repo/types/reminders.ts`.
+  - [x] Added `repeatInterval` (number | null), `maxRepeats` (number | null), and `repeatCount` (number) to `Reminder` and `CreateReminderInput`/`UpdateReminderInput`.
+  - [x] Implemented `parseClockToSeconds(hours, minutes)` with strict 60s minimum (iOS `UNTimeIntervalNotificationTrigger` invariant) and 86,400s (24h) maximum clamping.
+  - [x] Implemented `formatIntervalSeconds(seconds)` producing human-readable duration strings (e.g. `1 min`, `1 hr`, `2 hrs 30 mins`).
+  - [x] Implemented `reconcileIntervalOccurrence(dueAt, repeatInterval, maxRepeats, repeatCount, now)` calculating future timestamps and sequence exhaustion (`isExhausted = repeatCount >= maxRepeats`).
+  - [x] Updated `computeNextDueAt` and `formatReminderDisplay` to support `interval` recurrence and chips.
+- [x] Multi-Platform Database Schemas & Migrations (`Mobile SQLite`, `Desktop SQLite`, `Prisma Postgres`):
+  - [x] Mobile Drizzle: Updated `apps/mobile/src/db/schema.ts` with `repeat: interval`, `repeatInterval`, `maxRepeats`, `repeatCount`.
+  - [x] Desktop Drizzle: Updated `apps/desktop/src/db/schema.ts` with matching columns and `runStartupMigrations` additive migration statements.
+  - [x] Backend Prisma: Updated `apps/api/prisma/schema.prisma` with `ReminderRepeat.interval`, `repeatInterval`, `maxRepeats`, `repeatCount`.
+  - [x] Backend DTO & Tools: Updated `SyncPushDto` validation and AI Agent tool schemas (`reminders.tool-definitions.ts`).
+- [x] Mobile Native Notification & Reconciler (`notification.service.ts`, `reminders.ts`):
+  - [x] Added `TIME_INTERVAL` trigger branch with `{ seconds: reminder.repeatInterval, repeats: true }` when `repeatCount < maxRepeats`.
+  - [x] Hardened `catchupAndReconcileRecurringReminders` to advance interval timestamps and mark `isCompleted = true` upon reaching `maxRepeats`.
+  - [x] Updated `toggleReminderCompleted` to advance interval count or complete once exhausted.
+- [x] Mobile UI Parity (`reminder-sheet.tsx`, `note-reminders-section.tsx`, `note-card.tsx`):
+  - [x] Segmented mode switcher: Toggle between `[ Calendar ]` and `[ Interval (Periodic) ]`.
+  - [x] Interval clock picker: Native time picker (`HH:MM`) parsing directly into seconds via `parseClockToSeconds`.
+  - [x] Max repeats stepper: Range 1–100 with minus/plus controls and developer explanation notes.
+  - [x] Encapsulated `note-reminders-section.tsx` and `note-card.tsx` passing interval fields through `formatReminderDisplay` and `ReminderSheet`.
+- [x] Desktop Parity (`ReminderDialog.tsx`, `EditorPane.tsx`, `NoteCardItem.tsx`):
+  - [x] Segmented mode switcher: `[ Calendar ]` vs `[ Interval (Periodic) ]`.
+  - [x] Interval duration time picker (`type="time"`) and max repeats number input.
+  - [x] Updated `formatReminderDisplay` integrations across cards and editor toolbar.
+- [x] End-to-End Verification & Type Checking:
+  - [x] `@repo/types`: 0 errors (Passed)
+  - [x] `@repo/utils`: 0 errors (Passed)
+  - [x] `@repo/mobile`: 0 errors (Passed)
+  - [x] `@repo/desktop`: 0 errors (Passed)
+  - [x] `@repo/api`: 0 errors (Passed)
+
+---
+
 ## 🔁 Reminders Recurrence Engine & Universal Display Parity — 2026-11-25
 * **Status**: Completed
 * **Scope**: Complete the true recurring reminder alert flow and universal display across Mobile and Desktop. Adds native OS recurring notification triggers (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`), automatic database catchup on app launch and foregrounding, shared date/recurrence calculations in `@repo/utils`, and recurring visual indicators (`RotateCw`/`RotateCcw`) and formatted time previews across note cards, editor toolbars, bottom canvas pills, and reminder dialogs.
@@ -26,7 +64,7 @@ Grouped by todo topic / issue for clearer tracking and context.
   - [x] Invoked automatically on initial launch after migrations and subscribed to `AppState.change` foreground events.
 - [x] Mobile UI Display Parity (`note-card.tsx`, `note-editor.tsx`, `reminder-sheet.tsx`):
   - [x] Note Cards: Integrated `formatReminderDisplay` and `RotateCw` icon in both Grid and List card variants with overdue color differentiation.
-  - [x] Note Editor: Enhanced bottom reminder pill with `[Bell] [RotateCw] text` showing clear recurring cycles (e.g. `Repeats Daily • Next: Today at 09:00`).
+  - [x] Note Editor: Extracted dedicated `NoteRemindersSection` (`note-reminders-section.tsx`) to prevent overloading `NoteEditor`. Renders all non-deleted reminders for the note with interactive completion toggles, overdue/repeat visual cues, add reminder trigger, and self-encapsulated `ReminderSheet`.
   - [x] Reminder Sheet: Updated `formatScheduledSummary()` with friendly repeat descriptions (e.g. `Rings every day at 09:00 AM (First: Today)`).
 - [x] Desktop UI Display Parity (`NoteCardItem.tsx`, `EditorPane.tsx`, `ReminderDialog.tsx`):
   - [x] NoteCardItem: Added `reminderRepeat` prop and integrated `formatReminderDisplay` with `RotateCcw` icon.

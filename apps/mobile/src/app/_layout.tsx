@@ -11,8 +11,15 @@ import {
 } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
 import * as Notifications from "expo-notifications";
-import { ensureReminderChannelAsync } from "@/lib/services/notification.service";
-import { catchupAndReconcileRecurringReminders } from "@/lib/queries/reminders";
+import {
+  ensureReminderChannelAsync,
+  ACTION_COMPLETE_REMINDER,
+  cancelReminderNotification,
+} from "@/lib/services/notification.service";
+import {
+  catchupAndReconcileRecurringReminders,
+  toggleReminderCompleted,
+} from "@/lib/queries/reminders";
 import {
   registerPushTokenWithServerAsync,
   initPushTokenAuthListener,
@@ -130,27 +137,47 @@ function RootDrawerLayout() {
 
   useEffect(() => {
     ensureReminderChannelAsync().catch(() => {});
-    Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        const data = response?.notification?.request?.content?.data;
-        if (data?.noteId) {
-          router.push({
-            pathname: "/notes/[id]",
-            params: { id: data.noteId as string },
-          });
-        }
-      })
-      .catch(() => {});
 
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      if (data?.noteId) {
+    const handleNotificationResponse = async (
+      response: Notifications.NotificationResponse | null | undefined,
+    ) => {
+      if (!response) return;
+      const actionIdentifier = response.actionIdentifier;
+      const data = response.notification?.request?.content?.data;
+      const noteId = data?.noteId as string | undefined;
+      const reminderId = data?.reminderId as string | undefined;
+
+      // Handle interactive notification action button: "Mark Done"
+      if (actionIdentifier === ACTION_COMPLETE_REMINDER && reminderId) {
+        try {
+          await toggleReminderCompleted(reminderId);
+          await cancelReminderNotification(reminderId);
+        } catch (err) {
+          console.warn(
+            "[RootLayout] Failed to complete reminder from action:",
+            err,
+          );
+        }
+        return;
+      }
+
+      // Default tap or "View Note" button
+      if (noteId) {
         router.push({
           pathname: "/notes/[id]",
-          params: { id: data.noteId as string },
+          params: { id: noteId },
         });
       }
-    });
+    };
+
+    Notifications.getLastNotificationResponseAsync()
+      .then(handleNotificationResponse)
+      .catch(() => {});
+
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(
+        handleNotificationResponse,
+      );
 
     return () => subscription.remove();
   }, []);

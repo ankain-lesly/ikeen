@@ -15,6 +15,9 @@ interface NoteCardItemProps {
   isActive: boolean;
   reminderDueAt?: string | null;
   reminderRepeat?: ReminderRepeat | null;
+  reminderRepeatInterval?: number | null;
+  reminderMaxRepeats?: number | null;
+  reminderRepeatCount?: number;
   onSelect: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
@@ -27,6 +30,9 @@ export const NoteCardItem = memo(
     isActive,
     reminderDueAt,
     reminderRepeat,
+    reminderRepeatInterval,
+    reminderMaxRepeats,
+    reminderRepeatCount,
     onSelect,
     onTogglePin,
     onDeleteNote,
@@ -66,7 +72,13 @@ export const NoteCardItem = memo(
               {formatDate(new Date(note.updatedAt))}
             </span>
             {reminderDueAt && (() => {
-              const display = formatReminderDisplay(reminderDueAt, reminderRepeat ?? "none");
+              const display = formatReminderDisplay(
+                reminderDueAt,
+                reminderRepeat ?? "none",
+                reminderRepeatInterval,
+                reminderMaxRepeats,
+                reminderRepeatCount
+              );
               return (
                 <span
                   className="inline-flex items-center gap-1 text-[9px] font-mono text-[#39ff14] bg-[#39ff14]/10 px-1 py-0.5 rounded"

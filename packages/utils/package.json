@@ -3,61 +3,51 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./constants": {
-      "types": "./dist/constants.d.ts",
-      "require": "./dist/constants.cjs",
-      "import": "./dist/constants.js",
-      "default": "./dist/constants.js"
+      "types": "./src/constants.ts",
+      "import": "./src/constants.ts",
+      "default": "./src/constants.ts"
     },
     "./logger": {
-      "types": "./dist/logger.d.ts",
-      "require": "./dist/logger.cjs",
-      "import": "./dist/logger.js",
-      "default": "./dist/logger.js"
+      "types": "./src/logger.ts",
+      "import": "./src/logger.ts",
+      "default": "./src/logger.ts"
     },
     "./date": {
-      "types": "./dist/date.d.ts",
-      "require": "./dist/date.cjs",
-      "import": "./dist/date.js",
-      "default": "./dist/date.js"
+      "types": "./src/date.ts",
+      "import": "./src/date.ts",
+      "default": "./src/date.ts"
     },
     "./string": {
-      "types": "./dist/string.d.ts",
-      "require": "./dist/string.cjs",
-      "import": "./dist/string.js",
-      "default": "./dist/string.js"
+      "types": "./src/string.ts",
+      "import": "./src/string.ts",
+      "default": "./src/string.ts"
     },
     "./sync": {
-      "types": "./dist/sync.d.ts",
-      "require": "./dist/sync.cjs",
-      "import": "./dist/sync.js",
-      "default": "./dist/sync.js"
+      "types": "./src/sync.ts",
+      "import": "./src/sync.ts",
+      "default": "./src/sync.ts"
     },
     "./scratchpad": {
-      "types": "./dist/scratchpad.d.ts",
-      "require": "./dist/scratchpad.cjs",
-      "import": "./dist/scratchpad.js",
-      "default": "./dist/scratchpad.js"
+      "types": "./src/scratchpad.ts",
+      "import": "./src/scratchpad.ts",
+      "default": "./src/scratchpad.ts"
     },
     "./reminders": {
-      "types": "./dist/reminders.d.ts",
-      "require": "./dist/reminders.cjs",
-      "import": "./dist/reminders.js",
-      "default": "./dist/reminders.js"
+      "types": "./src/reminders.ts",
+      "import": "./src/reminders.ts",
+      "default": "./src/reminders.ts"
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
     "check-types": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:date": "bun src/test-date.ts"

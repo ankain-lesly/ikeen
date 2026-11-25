@@ -4,6 +4,9 @@ import type { Reminder } from '@repo/types';
 
 export const NOTIFICATION_CHANNEL_ID = 'reminders';
 export const NOTIFICATION_SOUND = 'notification.wav';
+export const REMINDER_CATEGORY_ID = 'reminder-actions';
+export const ACTION_COMPLETE_REMINDER = 'COMPLETE_REMINDER';
+export const ACTION_VIEW_NOTE = 'VIEW_NOTE';
 
 // Configure default notification handler for foreground display
 Notifications.setNotificationHandler({
@@ -19,9 +22,36 @@ Notifications.setNotificationHandler({
 });
 
 /**
+ * Configures interactive notification action buttons ("Mark Done" and "View Note").
+ */
+export async function ensureReminderCategoryAsync(): Promise<void> {
+  try {
+    await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
+      {
+        identifier: ACTION_COMPLETE_REMINDER,
+        buttonTitle: 'Mark Done',
+        options: {
+          opensAppToForeground: false,
+        },
+      },
+      {
+        identifier: ACTION_VIEW_NOTE,
+        buttonTitle: 'View Note',
+        options: {
+          opensAppToForeground: true,
+        },
+      },
+    ]);
+  } catch (err) {
+    console.warn('[ReminderService] Failed to set reminder category:', err);
+  }
+}
+
+/**
  * Ensures the Android notification channel is configured with high priority and custom sound.
  */
 export async function ensureReminderChannelAsync(): Promise<void> {
+  await ensureReminderCategoryAsync();
   if (Platform.OS === 'android') {
     try {
       const existing = await Notifications.getNotificationChannelAsync(NOTIFICATION_CHANNEL_ID);
@@ -129,12 +159,69 @@ export async function scheduleReminderNotification(
 
   await ensureReminderChannelAsync();
 
-  const identifier = `reminder-${reminder.id}`;
-
   try {
-    // Cancel any existing notification with this identifier before rescheduling
-    await Notifications.cancelScheduledNotificationAsync(identifier);
+    // Always cancel existing notifications for this reminder before rescheduling
+    await cancelReminderNotification(reminder.id);
 
+    // =========================================================================
+    // Interval Batch Pre-Scheduling (Approach A)
+    // =========================================================================
+    if (
+      reminder.repeat === 'interval' &&
+      reminder.repeatInterval &&
+      reminder.repeatInterval >= 60
+    ) {
+      const maxRepeats = Math.min(100, Math.max(1, reminder.maxRepeats ?? 10));
+      const currentCount = reminder.repeatCount ?? 0;
+      const remainingRepeats = Math.max(0, maxRepeats - currentCount);
+
+      if (remainingRepeats <= 0) {
+        return null; // Sequence exhausted, do not schedule
+      }
+
+      // Pre-schedule safe batch of discrete 1-shot DATE triggers (capped to 15)
+      const batchSize = Math.min(remainingRepeats, 15);
+      const intervalMs = reminder.repeatInterval * 1000;
+      let baseTime = triggerDate.getTime();
+      if (baseTime <= now) {
+        baseTime = now + 2000;
+      }
+
+      for (let i = 0; i < batchSize; i++) {
+        const occurrenceTime = baseTime + (i * intervalMs);
+        const occurrenceNumber = currentCount + i + 1;
+        const batchIdentifier = `reminder-${reminder.id}-${i}`;
+
+        await Notifications.scheduleNotificationAsync({
+          identifier: batchIdentifier,
+          content: {
+            title: noteTitle?.trim() || 'Note Reminder',
+            body: `${reminder.title?.trim() || 'Scheduled interval reminder'} (${occurrenceNumber}/${maxRepeats})`,
+            data: {
+              noteId: reminder.noteId,
+              reminderId: reminder.id,
+              occurrenceIndex: occurrenceNumber,
+              totalOccurrences: maxRepeats,
+            },
+            categoryIdentifier: REMINDER_CATEGORY_ID,
+            sound: NOTIFICATION_SOUND,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: new Date(occurrenceTime),
+            channelId: NOTIFICATION_CHANNEL_ID,
+          },
+        });
+      }
+
+      return `reminder-${reminder.id}-0`;
+    }
+
+    // =========================================================================
+    // Regular Calendar Triggers (Daily, Weekly, Monthly, Yearly, 1-shot Date)
+    // =========================================================================
+    const identifier = `reminder-${reminder.id}`;
     let trigger: Notifications.NotificationTriggerInput;
 
     if (reminder.repeat === 'daily') {
@@ -186,6 +273,7 @@ export async function scheduleReminderNotification(
           noteId: reminder.noteId,
           reminderId: reminder.id,
         },
+        categoryIdentifier: REMINDER_CATEGORY_ID,
         sound: NOTIFICATION_SOUND,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
@@ -200,11 +288,20 @@ export async function scheduleReminderNotification(
 }
 
 /**
- * Cancels a scheduled notification for a reminder.
+ * Cancels a scheduled notification for a reminder (including any batch occurrences).
  */
 export async function cancelReminderNotification(reminderId: string): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(`reminder-${reminderId}`);
+    const prefix = `reminder-${reminderId}`;
+    await Notifications.cancelScheduledNotificationAsync(prefix);
+
+    // Cancel all batch-scheduled occurrences matching this prefix
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const item of scheduled) {
+      if (item.identifier.startsWith(prefix)) {
+        await Notifications.cancelScheduledNotificationAsync(item.identifier);
+      }
+    }
   } catch (err) {
     console.warn('[ReminderService] Failed to cancel notification:', err);
   }
@@ -225,9 +322,12 @@ export async function reconcileScheduledNotifications(
       if (reminder.isCompleted || !!reminder.deletedAt) continue;
 
       const triggerDate = new Date(reminder.dueAt);
-      if (triggerDate.getTime() <= Date.now()) continue;
+      if (triggerDate.getTime() <= Date.now() && reminder.repeat !== 'interval') continue;
 
-      const expectedId = `reminder-${reminder.id}`;
+      const expectedId = reminder.repeat === 'interval'
+        ? `reminder-${reminder.id}-0`
+        : `reminder-${reminder.id}`;
+
       if (!scheduledIds.has(expectedId)) {
         const title = reminder.noteId ? noteTitlesMap.get(reminder.noteId) : undefined;
         await scheduleReminderNotification(reminder, title);

@@ -66,13 +66,20 @@ export const NoteRemindersSection = forwardRef<
   );
 
   const handleSaveReminder = useCallback(
-    async (dueAt: string, repeat: ReminderRepeat) => {
+    async (
+      dueAt: string,
+      repeat: ReminderRepeat,
+      repeatInterval?: number | null,
+      maxRepeats?: number | null,
+    ) => {
       if (!noteId) return;
       try {
         if (editingReminder) {
           await updateReminder(editingReminder.id, {
             dueAt,
             repeat,
+            repeatInterval: repeat === "interval" ? repeatInterval : null,
+            maxRepeats: repeat === "interval" ? maxRepeats : null,
             isCompleted: false,
           });
           toast.success("Reminder updated");
@@ -82,6 +89,8 @@ export const NoteRemindersSection = forwardRef<
             title: noteTitle || "Note Reminder",
             dueAt,
             repeat,
+            repeatInterval: repeat === "interval" ? repeatInterval : null,
+            maxRepeats: repeat === "interval" ? maxRepeats : null,
           });
           toast.success("Reminder set");
         }
@@ -160,6 +169,9 @@ export const NoteRemindersSection = forwardRef<
               const display = formatReminderDisplay(
                 reminder.dueAt,
                 (reminder.repeat as ReminderRepeat) ?? "none",
+                reminder.repeatInterval,
+                reminder.maxRepeats,
+                reminder.repeatCount,
               );
               const isCompleted = reminder.isCompleted;
 
@@ -240,6 +252,8 @@ export const NoteRemindersSection = forwardRef<
           }}
           initialDueAt={editingReminder?.dueAt}
           initialRepeat={editingReminder?.repeat}
+          initialRepeatInterval={editingReminder?.repeatInterval}
+          initialMaxRepeats={editingReminder?.maxRepeats}
           onSave={handleSaveReminder}
           onClear={editingReminder ? handleClearReminder : undefined}
           onComplete={editingReminder ? handleCompleteInSheet : undefined}

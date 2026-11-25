@@ -283,11 +283,18 @@ export const NoteCard = React.memo(function NoteCard({
   }, []);
 
   const handleSaveReminder = useCallback(
-    async (dueAt: string, repeat: ReminderRepeat) => {
+    async (
+      dueAt: string,
+      repeat: ReminderRepeat,
+      repeatInterval?: number | null,
+      maxRepeats?: number | null,
+    ) => {
       if (editingReminder) {
         await updateReminder(editingReminder.id, {
           dueAt,
           repeat,
+          repeatInterval: repeat === "interval" ? repeatInterval : null,
+          maxRepeats: repeat === "interval" ? maxRepeats : null,
           isCompleted: false,
         });
       } else {
@@ -296,6 +303,8 @@ export const NoteCard = React.memo(function NoteCard({
           title: note.title || "",
           dueAt,
           repeat,
+          repeatInterval: repeat === "interval" ? repeatInterval : null,
+          maxRepeats: repeat === "interval" ? maxRepeats : null,
         });
       }
       setEditingReminder(null);
@@ -438,6 +447,9 @@ export const NoteCard = React.memo(function NoteCard({
                   const display = formatReminderDisplay(
                     reminder.dueAt,
                     (reminder.repeat as ReminderRepeat) ?? "none",
+                    reminder.repeatInterval,
+                    reminder.maxRepeats,
+                    reminder.repeatCount,
                   );
                   return (
                     <Pressable
@@ -498,6 +510,8 @@ export const NoteCard = React.memo(function NoteCard({
           }}
           initialDueAt={editingReminder?.dueAt}
           initialRepeat={editingReminder?.repeat}
+          initialRepeatInterval={editingReminder?.repeatInterval}
+          initialMaxRepeats={editingReminder?.maxRepeats}
           onSave={handleSaveReminder}
           onClear={editingReminder ? handleClearReminder : undefined}
           onComplete={editingReminder ? handleCompleteReminder : undefined}
@@ -606,6 +620,9 @@ export const NoteCard = React.memo(function NoteCard({
               const display = formatReminderDisplay(
                 reminder.dueAt,
                 (reminder.repeat as ReminderRepeat) ?? "none",
+                reminder.repeatInterval,
+                reminder.maxRepeats,
+                reminder.repeatCount,
               );
               return (
                 <Pressable
@@ -648,6 +665,8 @@ export const NoteCard = React.memo(function NoteCard({
         }}
         initialDueAt={editingReminder?.dueAt}
         initialRepeat={editingReminder?.repeat}
+        initialRepeatInterval={editingReminder?.repeatInterval}
+        initialMaxRepeats={editingReminder?.maxRepeats}
         onSave={handleSaveReminder}
         onClear={editingReminder ? handleClearReminder : undefined}
         onComplete={editingReminder ? handleCompleteReminder : undefined}
