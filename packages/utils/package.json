@@ -47,6 +47,12 @@
       "require": "./dist/scratchpad.cjs",
       "import": "./dist/scratchpad.js",
       "default": "./dist/scratchpad.js"
+    },
+    "./reminders": {
+      "types": "./dist/reminders.d.ts",
+      "require": "./dist/reminders.cjs",
+      "import": "./dist/reminders.js",
+      "default": "./dist/reminders.js"
     }
   },
   "scripts": {

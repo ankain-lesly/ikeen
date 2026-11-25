@@ -3,6 +3,7 @@ import "../global.css";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
+  AppState,
   StatusBar,
   Text,
   View,
@@ -11,6 +12,7 @@ import {
 import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { ensureReminderChannelAsync } from "@/lib/services/notification.service";
+import { catchupAndReconcileRecurringReminders } from "@/lib/queries/reminders";
 import {
   registerPushTokenWithServerAsync,
   initPushTokenAuthListener,
@@ -111,7 +113,18 @@ function RootDrawerLayout() {
         .finally(() => {
           SplashScreen.hideAsync();
           syncManager.init();
+          catchupAndReconcileRecurringReminders().catch((err) => {
+            console.log("[Reminders] Catchup error:", err);
+          });
         });
+
+      const subscription = AppState.addEventListener("change", (nextState) => {
+        if (nextState === "active") {
+          catchupAndReconcileRecurringReminders().catch(() => {});
+        }
+      });
+
+      return () => subscription.remove();
     }
   }, [success]);
 

@@ -30,6 +30,7 @@ import type { Reminder, ReminderRepeat } from "@repo/types";
 
 import { NotesOptionsDropdown } from "./notes-options-dropdown";
 import { formatTimeAgo } from "@repo/utils/date";
+import { formatReminderDisplay } from "@repo/utils";
 import {
   ListBlockPreview,
   MediaCoverPreview,
@@ -102,34 +103,6 @@ function areNoteCardPropsEqual(
     prev.onSelect === next.onSelect &&
     prev.onLongPressSelect === next.onLongPressSelect
   );
-}
-
-function formatReminderChip(dueAt: string): string {
-  const due = new Date(dueAt);
-  const now = new Date();
-  if (isNaN(due.getTime())) return "Reminder";
-  if (due.getTime() < now.getTime()) return "Overdue";
-
-  const isToday =
-    due.getDate() === now.getDate() &&
-    due.getMonth() === now.getMonth() &&
-    due.getFullYear() === now.getFullYear();
-
-  const tomorrow = new Date();
-  tomorrow.setDate(now.getDate() + 1);
-  const isTomorrow =
-    due.getDate() === tomorrow.getDate() &&
-    due.getMonth() === tomorrow.getMonth() &&
-    due.getFullYear() === tomorrow.getFullYear();
-
-  const timeStr = due.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  if (isToday) return `Tdy ${timeStr}`;
-  if (isTomorrow) return `Tmr ${timeStr}`;
-
-  return `${due.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} ${timeStr}`;
 }
 
 const CardActionBar = React.memo(function CardActionBar({
@@ -461,23 +434,40 @@ export const NoteCard = React.memo(function NoteCard({
 
               {/* Active Reminders */}
               <View className="flex-row flex-wrap gap-0.5">
-                {activeReminders.map((reminder) => (
-                  <Pressable
-                    key={reminder.id}
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit reminder"
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      Haptics.selectionAsync();
-                      handleOpenEditReminder(reminder);
-                    }}
-                    className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
-                    <Bell size={11} color={colors.primary} />
-                    <Text className="text-[10px] font-semibold text-primary">
-                      {formatReminderChip(reminder.dueAt)}
-                    </Text>
-                  </Pressable>
-                ))}
+                {activeReminders.map((reminder) => {
+                  const display = formatReminderDisplay(
+                    reminder.dueAt,
+                    (reminder.repeat as ReminderRepeat) ?? "none",
+                  );
+                  return (
+                    <Pressable
+                      key={reminder.id}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit reminder"
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Haptics.selectionAsync();
+                        handleOpenEditReminder(reminder);
+                      }}
+                      className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
+                      <Bell
+                        size={11}
+                        color={display.isOverdue ? "#ef4444" : colors.primary}
+                      />
+                      <Text
+                        className={`text-[10px] font-semibold ${
+                          display.isOverdue ? "text-red-500" : "text-primary"
+                        }`}>
+                        {display.chipLabel}
+                      </Text>
+
+                      {/* Removed because display.chipLabel covers repeating aspects e.g Dialy 9:00 AM */}
+                      {/* {display.isRepeating ? (
+                    <RotateCw size={10} color={colors.primary} />
+                  ) : null} */}
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
@@ -611,31 +601,41 @@ export const NoteCard = React.memo(function NoteCard({
           ) : null}
 
           {/* Active Reminders */}
-        <View className="flex-row flex-wrap gap-0.5">
-          {activeReminders.map((reminder) => {
-            const isOverdue = new Date(reminder.dueAt).getTime() < Date.now();
-            return (
-              <Pressable
-                key={reminder.id}
-                accessibilityRole="button"
-                accessibilityLabel="Edit reminder"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  Haptics.selectionAsync();
-                  handleOpenEditReminder(reminder);
-                }}
-                className={`flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1`}>
-                <Bell size={11} color={isOverdue ? "#ef4444" : colors.primary} />
-                <Text
-                  className={`text-[10px] font-semibold ${
-                    isOverdue ? "text-red-500" : "text-primary"
-                  }`}>
-                  {formatReminderChip(reminder.dueAt)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+          <View className="flex-row flex-wrap gap-0.5">
+            {activeReminders.map((reminder) => {
+              const display = formatReminderDisplay(
+                reminder.dueAt,
+                (reminder.repeat as ReminderRepeat) ?? "none",
+              );
+              return (
+                <Pressable
+                  key={reminder.id}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit reminder"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Haptics.selectionAsync();
+                    handleOpenEditReminder(reminder);
+                  }}
+                  className="flex-row items-center gap-1.5 self-start px-2 py-0.5 mt-1">
+                  <Bell
+                    size={11}
+                    color={display.isOverdue ? "#ef4444" : colors.primary}
+                  />
+                  <Text
+                    className={`text-[10px] font-semibold ${
+                      display.isOverdue ? "text-red-500" : "text-primary"
+                    }`}>
+                    {display.chipLabel}
+                  </Text>
+                  {/* Removed because display.chipLabel covers repeating aspects e.g Dialy 9:00 AM */}
+                  {/* {display.isRepeating ? (
+                    <RotateCw size={10} color={colors.primary} />
+                  ) : null} */}
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       </View>
 

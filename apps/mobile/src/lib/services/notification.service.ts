@@ -135,6 +135,48 @@ export async function scheduleReminderNotification(
     // Cancel any existing notification with this identifier before rescheduling
     await Notifications.cancelScheduledNotificationAsync(identifier);
 
+    let trigger: Notifications.NotificationTriggerInput;
+
+    if (reminder.repeat === 'daily') {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: rawTriggerDate.getHours(),
+        minute: rawTriggerDate.getMinutes(),
+        channelId: NOTIFICATION_CHANNEL_ID,
+      };
+    } else if (reminder.repeat === 'weekly') {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: rawTriggerDate.getDay() + 1, // 1 is Sunday, 2 is Monday ... 7 is Saturday
+        hour: rawTriggerDate.getHours(),
+        minute: rawTriggerDate.getMinutes(),
+        channelId: NOTIFICATION_CHANNEL_ID,
+      };
+    } else if (reminder.repeat === 'monthly') {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
+        day: rawTriggerDate.getDate(),
+        hour: rawTriggerDate.getHours(),
+        minute: rawTriggerDate.getMinutes(),
+        channelId: NOTIFICATION_CHANNEL_ID,
+      };
+    } else if (reminder.repeat === 'yearly') {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.YEARLY,
+        day: rawTriggerDate.getDate(),
+        month: rawTriggerDate.getMonth(), // 0-indexed month
+        hour: rawTriggerDate.getHours(),
+        minute: rawTriggerDate.getMinutes(),
+        channelId: NOTIFICATION_CHANNEL_ID,
+      };
+    } else {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+        channelId: NOTIFICATION_CHANNEL_ID,
+      };
+    }
+
     await Notifications.scheduleNotificationAsync({
       identifier,
       content: {
@@ -147,11 +189,7 @@ export async function scheduleReminderNotification(
         sound: NOTIFICATION_SOUND,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: triggerDate,
-        channelId: NOTIFICATION_CHANNEL_ID,
-      },
+      trigger,
     });
 
     return identifier;

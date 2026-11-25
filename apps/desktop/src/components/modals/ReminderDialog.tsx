@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Calendar, Clock, Trash2, CheckCircle2, RotateCcw } from "lucide-react";
 import type { Reminder, ReminderRepeat } from "@repo/types";
+import { formatReminderDisplay } from "@repo/utils";
 import {
   getReminderForNote,
   createReminder,
@@ -128,6 +129,13 @@ export function ReminderDialog({
     }
   };
 
+  const previewSummary = (() => {
+    if (!selectedDate || !selectedTime) return null;
+    const date = new Date(`${selectedDate}T${selectedTime}:00`);
+    if (isNaN(date.getTime())) return null;
+    return formatReminderDisplay(date.toISOString(), repeat);
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border p-6 flex flex-col gap-4 text-xs">
@@ -207,6 +215,11 @@ export function ReminderDialog({
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
           </select>
+          {previewSummary && (
+            <p className="text-[10px] text-muted-foreground/90 font-mono pt-0.5">
+              {previewSummary.text}
+            </p>
+          )}
         </div>
 
         {existingReminder && (

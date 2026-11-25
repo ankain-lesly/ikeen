@@ -409,12 +409,22 @@ export function ReminderSheet({
             day: "numeric",
           });
 
-    const repeatStr =
-      repeat === "none"
-        ? "No Repeat"
-        : `Repeats ${repeatDisplayText.toLowerCase()}`;
+    let repeatStr = "Does not repeat";
+    if (repeat === "daily") {
+      repeatStr = `Rings every day at ${timeStr}`;
+    } else if (repeat === "weekly") {
+      const weekday = selectedDate.toLocaleDateString([], { weekday: "long" });
+      repeatStr = `Rings every ${weekday} at ${timeStr}`;
+    } else if (repeat === "monthly") {
+      repeatStr = `Rings monthly on day ${selectedDate.getDate()} at ${timeStr}`;
+    } else if (repeat === "yearly") {
+      repeatStr = `Rings yearly on ${selectedDate.toLocaleDateString([], { month: "short", day: "numeric" })} at ${timeStr}`;
+    }
 
-    return `${dateStr} at ${timeStr} • ${repeatStr}`;
+    if (repeat !== "none") {
+      return `${repeatStr} (First: ${dateStr})`;
+    }
+    return `${dateStr} at ${timeStr} • Does not repeat`;
   };
 
   return (

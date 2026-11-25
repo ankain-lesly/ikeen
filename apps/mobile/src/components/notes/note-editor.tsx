@@ -16,12 +16,10 @@ import {
   ChevronDown,
   ChevronLeft,
   Folder,
-  ListTodo,
   MoreHorizontal,
   Pin,
   Plus,
   Sparkles,
-  Type,
   X,
 } from "lucide-react-native";
 import { OptionSheet, type SheetAction } from "@/components/ui/option-sheet";
@@ -45,13 +43,10 @@ import type {
 } from "@/lib/types/notes";
 import { NotesOptionsDropdown } from "@/components/notes/notes-options-dropdown";
 import {
-  useLiveRemindersForNote,
-  createReminder,
-  updateReminder,
-  deleteReminder,
-} from "@/lib/queries/reminders";
-import { ReminderSheet } from "./reminder-sheet";
-import type { ReminderRepeat } from "@repo/types";
+  NoteRemindersSection,
+  type NoteRemindersSectionHandle,
+} from "./note-reminders-section";
+import { log } from "@repo/utils";
 
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
 import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
@@ -78,51 +73,16 @@ import {
 } from "@/lib/media/pickers";
 import { Card } from "../ui/card";
 import * as Crypto from "expo-crypto";
-import { log } from "@repo/utils";
 import { countWords } from "@repo/utils/string";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { useNoteActions } from "@/hooks/use-note-actions";
+
+import { HeaderGradient } from "@/hooks/use-header-inset";
 
 export interface ScratchpadActions {
   onChangeNote?: () => void;
   onMoveToAllNotes?: () => void;
   onReset?: () => void;
-}
-
-function formatEditorReminderText(dueAt: string, repeat?: ReminderRepeat | null): string {
-  const due = new Date(dueAt);
-  const now = new Date();
-  const isOverdue = due.getTime() < now.getTime();
-
-  const isToday =
-    due.getDate() === now.getDate() &&
-    due.getMonth() === now.getMonth() &&
-    due.getFullYear() === now.getFullYear();
-
-  const tomorrow = new Date();
-  tomorrow.setDate(now.getDate() + 1);
-  const isTomorrow =
-    due.getDate() === tomorrow.getDate() &&
-    due.getMonth() === tomorrow.getMonth() &&
-    due.getFullYear() === tomorrow.getFullYear();
-
-  const timeStr = due.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  const dateLabel = isToday
-    ? "Today"
-    : isTomorrow
-      ? "Tomorrow"
-      : due.toLocaleDateString([], {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        });
-
-  const repeatLabel = repeat && repeat !== "none" ? ` • ${repeat}` : "";
-  return `${isOverdue ? "Overdue: " : ""}${dateLabel} at ${timeStr}${repeatLabel}`;
 }
 
 export interface NoteEditorProps {
@@ -211,54 +171,15 @@ export function NoteEditor({
   const [infoSheetVisible, setInfoSheetVisible] = useState(false);
   const [isMoveFolderSheetVisible, setIsMoveFolderSheetVisible] =
     useState(false);
-  const [isReminderSheetVisible, setIsReminderSheetVisible] = useState(false);
   const [newTagInputVisible, setNewTagInputVisible] = useState(false);
   const [isAudioRecordingOpen, setIsAudioRecordingOpen] = useState(false);
   const [targetAudioBlockId, setTargetAudioBlockId] = useState<string | null>(
     null,
   );
+  const remindersSectionRef = useRef<NoteRemindersSectionHandle>(null);
 
   const { data: currentFolder } = useLiveFolder(note?.folderId || "");
   const { data: liveBlocks } = useLiveNoteBlocks(note.id);
-  const { data: noteReminders = [] } = useLiveRemindersForNote(note?.id);
-  const activeReminder = useMemo(
-    () => noteReminders.find((r) => !r.isCompleted && !r.deletedAt) ?? null,
-    [noteReminders],
-  );
-
-  const handleSaveReminder = async (dueAt: string, repeat: ReminderRepeat) => {
-    if (!note.id) return;
-    try {
-      if (activeReminder) {
-        await updateReminder(activeReminder.id, {
-          dueAt,
-          repeat,
-          isCompleted: false,
-        });
-        toast.success("Reminder updated");
-      } else {
-        await createReminder({
-          noteId: note.id,
-          title: note.title || "Note Reminder",
-          dueAt,
-          repeat,
-        });
-        toast.success("Reminder set");
-      }
-    } catch {
-      toast.error("Failed to set reminder");
-    }
-  };
-
-  const handleClearReminder = useCallback(async () => {
-    if (!activeReminder) return;
-    try {
-      await deleteReminder(activeReminder.id);
-      toast.success("Reminder removed");
-    } catch {
-      toast.error("Failed to remove reminder");
-    }
-  }, [activeReminder]);
 
   // Once any block is created, `createBlock` has already persisted the parent note in SQLite
   const isUnpersistedDraft = isNewDraft && liveBlocks.length === 0;
@@ -516,10 +437,18 @@ export function NoteEditor({
 
   const titleDoubleTapGesture = useDoubleTap(startEditing);
 
+  const headerHeight = 46;
   return (
-    <View className="flex-1 bg-background pt-safe w-full">
+    <View className="flex-1 pt-safe w-full">
       {/* Navigation Bar */}
-      <View className="h-12 flex-row items-center justify-between px-3.5">
+      <View
+        className="flex-row items-center justify-between px-3.5 absolute top-safe w-full z-10"
+        style={{ height: headerHeight }}>
+        <HeaderGradient
+          featherOffset={2}
+          colors={[colors.background, colors.background, "transparent"]}
+          locations={[0.0, 0.35, 1]}
+        />
         {/* Back Button & Title / Folder */}
         <View className="flex-row items-center justify-between gap-2">
           <Pressable
@@ -611,7 +540,7 @@ export function NoteEditor({
               onDeleteSuccess={handleDeleteSuccess}
               onReminder={
                 !isUnpersistedDraft
-                  ? () => setIsReminderSheetVisible(true)
+                  ? () => remindersSectionRef.current?.openAddReminder()
                   : undefined
               }
               onShowInfo={() => setInfoSheetVisible(true)}
@@ -637,7 +566,10 @@ export function NoteEditor({
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="flex-1 rounded-2xl"
-          contentContainerClassName="px-3 pt-4"
+          contentContainerClassName="px-3 pb-32"
+          contentContainerStyle={{
+            paddingTop: 16 + headerHeight,
+          }}
           keyboardShouldPersistTaps="handled">
           {/* Metadata and Title */}
           {!isScratchpad && (
@@ -740,6 +672,7 @@ export function NoteEditor({
 
           {/* Block-Based Content Experience */}
           <BlockContainer
+            liveBlocks={liveBlocks}
             ref={blockContainerRef}
             note={note}
             isEditing={isEditing}
@@ -751,44 +684,12 @@ export function NoteEditor({
             }}
           />
 
-          {/* Active Reminder at bottom of content if available */}
-          {activeReminder ? (
-            <View className="mt-8 mb-6 pt-3 border-t border-border/40">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Edit Reminder"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setIsReminderSheetVisible(true);
-                }}
-                hitSlop={8}
-                className={`flex-row items-center gap-2 self-start px-3 py-1.5 rounded-full border ${
-                  new Date(activeReminder.dueAt).getTime() < Date.now()
-                    ? "bg-red-500/10 border-red-500/25"
-                    : "bg-primary/10 border-primary/20"
-                } active:opacity-70`}>
-                <Bell
-                  size={13}
-                  color={
-                    new Date(activeReminder.dueAt).getTime() < Date.now()
-                      ? "#ef4444"
-                      : colors.primary
-                  }
-                />
-                <Text
-                  className={`text-xs font-semibold ${
-                    new Date(activeReminder.dueAt).getTime() < Date.now()
-                      ? "text-red-500"
-                      : "text-primary"
-                  }`}>
-                  {formatEditorReminderText(
-                    activeReminder.dueAt,
-                    activeReminder.repeat as ReminderRepeat,
-                  )}
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
+          {/* Dedicated Reminders Section */}
+          <NoteRemindersSection
+            ref={remindersSectionRef}
+            noteId={note.id}
+            noteTitle={note.title}
+          />
         </ScrollView>
       </View>
       {/* Accessory / Toolbar depending on mode */}
@@ -839,18 +740,6 @@ export function NoteEditor({
           }
         }}
       />
-      {/* Reminder Sheet */}
-      {note?.id ? (
-        <ReminderSheet
-          isPresented={isReminderSheetVisible}
-          onDismiss={() => setIsReminderSheetVisible(false)}
-          initialDueAt={activeReminder?.dueAt}
-          initialRepeat={activeReminder?.repeat}
-          onSave={handleSaveReminder}
-          onClear={activeReminder ? handleClearReminder : undefined}
-        />
-      ) : null}
-
       {/* Audio Recording Sheet */}
       <AudioRecordingSheet
         visible={isAudioRecordingOpen}

@@ -9,6 +9,7 @@ export default defineConfig({
     constants: 'src/constants.ts',
     sync: 'src/sync.ts',
     scratchpad: 'src/scratchpad.ts',
+    reminders: 'src/reminders.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

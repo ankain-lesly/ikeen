@@ -41,6 +41,7 @@ export type BlockContainerHandle = {
 
 export interface BlockContainerProps {
   note: Note;
+  liveBlocks: NoteBlock[];
   isEditing: boolean;
   onStartEditing: () => void;
   onContentChange?: (t: string) => void;
@@ -140,11 +141,11 @@ const BlockRow = React.memo(function BlockRow({
 
 export const BlockContainer = React.memo(
   forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
-    { note, isEditing, onContentChange, onRequestRecordAudio },
+    { note, isEditing, onContentChange, onRequestRecordAudio, liveBlocks },
     ref,
   ) {
     const colors = useTheme();
-    const { data: liveBlocks, isLoading } = useLiveNoteBlocks(note.id);
+    // const { data: liveBlocks, isLoading } = useLiveNoteBlocks(note.id);
     const contentEditorRef = useRef<MarkdownEditorHandle>(null);
 
     const {
@@ -228,10 +229,10 @@ export const BlockContainer = React.memo(
       [note.id],
     );
 
-    if (isLoading) return null;
+    // if (isLoading) return null;
 
     return (
-      <View className="w-full pb-32 gap-2">
+      <View className="w-full gap-2">
         {isEditing ? (
           <MarkdownEditor
             ref={contentEditorRef}

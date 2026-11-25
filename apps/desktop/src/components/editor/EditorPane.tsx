@@ -7,8 +7,9 @@ import type {
   ListBlock,
   MediaBlock,
   MediaItem,
+  ReminderRepeat,
 } from "@repo/types";
-import { formatDate, isScratchpadNote } from "@repo/utils";
+import { formatDate, isScratchpadNote, formatReminderDisplay } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +55,7 @@ import {
   CheckSquare,
   Image as ImageIcon,
   Type,
+  RotateCcw,
 } from "lucide-react";
 
 interface EditorPaneProps {
@@ -86,6 +88,7 @@ export function EditorPane({
     id: string;
     dueAt: string;
     isCompleted: boolean;
+    repeat: ReminderRepeat;
   } | null>(null);
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
 
@@ -117,7 +120,12 @@ export function EditorPane({
     void getReminderForNote(noteId).then((rem) => {
       setActiveReminder(
         rem && !rem.deletedAt
-          ? { id: rem.id, dueAt: rem.dueAt, isCompleted: rem.isCompleted }
+          ? {
+              id: rem.id,
+              dueAt: rem.dueAt,
+              isCompleted: rem.isCompleted,
+              repeat: rem.repeat as ReminderRepeat,
+            }
           : null
       );
     });
@@ -522,32 +530,38 @@ export function EditorPane({
 
           <Separator orientation="vertical" className="h-4 mx-0.5" />
 
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => setIsReminderDialogOpen(true)}
-                  className={`transition-colors ${
-                    activeReminder && !activeReminder.isCompleted
-                      ? "text-[#39ff14] bg-[#39ff14]/10 hover:bg-[#39ff14]/20"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                </Button>
-              }
-            />
-            <TooltipContent side="bottom" className="text-xs">
-              {activeReminder && !activeReminder.isCompleted
-                ? `Reminder: ${new Date(activeReminder.dueAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : "Set Reminder"}
-            </TooltipContent>
-          </Tooltip>
+          {(() => {
+            const reminderDisplay =
+              activeReminder && !activeReminder.isCompleted
+                ? formatReminderDisplay(activeReminder.dueAt, activeReminder.repeat)
+                : null;
+            return (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setIsReminderDialogOpen(true)}
+                      className={`transition-colors gap-1 ${
+                        reminderDisplay
+                          ? "text-[#39ff14] bg-[#39ff14]/10 hover:bg-[#39ff14]/20 px-1.5"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      {reminderDisplay?.isRepeating ? (
+                        <RotateCcw className="w-2.5 h-2.5 text-[#39ff14]" />
+                      ) : null}
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {reminderDisplay ? reminderDisplay.text : "Set Reminder"}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })()}
 
           <Tooltip>
             <TooltipTrigger

@@ -10,6 +10,31 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## 🔁 Reminders Recurrence Engine & Universal Display Parity — 2026-11-25
+* **Status**: Completed
+* **Scope**: Complete the true recurring reminder alert flow and universal display across Mobile and Desktop. Adds native OS recurring notification triggers (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`), automatic database catchup on app launch and foregrounding, shared date/recurrence calculations in `@repo/utils`, and recurring visual indicators (`RotateCw`/`RotateCcw`) and formatted time previews across note cards, editor toolbars, bottom canvas pills, and reminder dialogs.
+
+- [x] Shared Recurrence Calculation & Formatting (`@repo/utils/reminders.ts`):
+  - [x] Implemented `computeNextDueAt` for single-step recurrence advancement (+1 day, +1 week, +1 month, +1 year).
+  - [x] Implemented `getNextOccurrence` for multi-step catchup forward until `dueAt > now`.
+  - [x] Implemented `formatReminderDisplay` returning unified `{ text, chipLabel, isOverdue, isRepeating, repeatLabel }`.
+  - [x] Exported reminders module via `@repo/utils` entrypoints and rebuilt utils dist.
+- [x] Mobile Native Recurring Notification Triggers (`notification.service.ts`):
+  - [x] Configured native OS alarm triggers: `DAILY` ({ hour, minute }), `WEEKLY` ({ weekday, hour, minute }), `MONTHLY` ({ day, hour, minute }), `YEARLY` ({ day, month, hour, minute }), and `DATE` (1-shot fallback).
+- [x] Mobile Database Catchup Reconciler (`reminders.ts`, `_layout.tsx`):
+  - [x] Added `catchupAndReconcileRecurringReminders()` scanning active recurring reminders where `dueAt <= now && !isCompleted`.
+  - [x] Invoked automatically on initial launch after migrations and subscribed to `AppState.change` foreground events.
+- [x] Mobile UI Display Parity (`note-card.tsx`, `note-editor.tsx`, `reminder-sheet.tsx`):
+  - [x] Note Cards: Integrated `formatReminderDisplay` and `RotateCw` icon in both Grid and List card variants with overdue color differentiation.
+  - [x] Note Editor: Enhanced bottom reminder pill with `[Bell] [RotateCw] text` showing clear recurring cycles (e.g. `Repeats Daily • Next: Today at 09:00`).
+  - [x] Reminder Sheet: Updated `formatScheduledSummary()` with friendly repeat descriptions (e.g. `Rings every day at 09:00 AM (First: Today)`).
+- [x] Desktop UI Display Parity (`NoteCardItem.tsx`, `EditorPane.tsx`, `ReminderDialog.tsx`):
+  - [x] NoteCardItem: Added `reminderRepeat` prop and integrated `formatReminderDisplay` with `RotateCcw` icon.
+  - [x] EditorPane: Tracked `repeat` on `activeReminder` and displayed full recurrence description in the toolbar tooltip.
+  - [x] ReminderDialog: Added live next occurrence preview under repeat dropdown.
+
+---
+
 ## 🔔 Reminders System Remediation & Hardening — 2026-11-22
 * **Status**: Completed
 * **Scope**: End-to-end validation, remediation, and hardening of the Reminders system across Mobile, Desktop, and Backend. Eliminates stale date sync issues, cleans up debug UI artifacts, adds dynamic overdue styling and revalidation, renders active reminders in note editor footer, resolves desktop timezone drift, enables periodic desktop notification dispatch, introduces recurrence cycle progression, and hardens multi-tenant isolation.

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import * as Crypto from 'expo-crypto';
-import { and, asc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, sql, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { computeNextDueAt, getNextOccurrence } from '@repo/utils';
 
 import { db } from '@/db/client';
 import { reminders, notes } from '@/db/schema';
@@ -224,28 +225,38 @@ export async function updateReminder(
   return (updated as Reminder) ?? null;
 }
 
-export function computeNextDueAt(currentDueAt: string, repeat: ReminderRepeat): string {
-  const date = new Date(currentDueAt);
-  if (isNaN(date.getTime())) return new Date().toISOString();
+export { computeNextDueAt, getNextOccurrence };
 
-  const next = new Date(date);
-  switch (repeat) {
-    case 'daily':
-      next.setDate(next.getDate() + 1);
-      break;
-    case 'weekly':
-      next.setDate(next.getDate() + 7);
-      break;
-    case 'monthly':
-      next.setMonth(next.getMonth() + 1);
-      break;
-    case 'yearly':
-      next.setFullYear(next.getFullYear() + 1);
-      break;
-    default:
-      return currentDueAt;
+/**
+ * Scans active recurring reminders where dueAt <= now and !isCompleted,
+ * advancing dueAt to the next future occurrence in DB, rescheduling notification,
+ * and pushing updates to sync outbox.
+ */
+export async function catchupAndReconcileRecurringReminders(): Promise<number> {
+  const now = new Date();
+  const recurringActive = await db
+    .select()
+    .from(reminders)
+    .where(
+      and(
+        isNull(reminders.deletedAt),
+        eq(reminders.isCompleted, false),
+        ne(reminders.repeat, 'none')
+      )
+    );
+
+  let updatedCount = 0;
+  for (const item of recurringActive) {
+    const dueDate = new Date(item.dueAt);
+    if (!isNaN(dueDate.getTime()) && dueDate.getTime() <= now.getTime()) {
+      const nextDueAt = getNextOccurrence(item.dueAt, item.repeat as ReminderRepeat, now);
+      if (nextDueAt !== item.dueAt) {
+        await updateReminder(item.id, { dueAt: nextDueAt });
+        updatedCount++;
+      }
+    }
   }
-  return next.toISOString();
+  return updatedCount;
 }
 
 /**
