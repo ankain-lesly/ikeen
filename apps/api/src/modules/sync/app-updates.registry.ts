@@ -14,6 +14,20 @@ export const DEFAULT_STORE_URL =
 /** Newest first. Index 0 is the current release. */
 export const APP_RELEASES: readonly AppRelease[] = [
   {
+    version: '2.3.0',
+    build: 10,
+    releasedAt: '2026-11-26',
+    title: 'iKeen 2.3.0: External Share Target, Outbox Ledger Parity & Note Editor Agility',
+    notes: [
+      'External Share Target: receive text, web links, images, and files shared from other apps directly into iKeen notes',
+      'Smart Note Ingestion: choose between creating new notes with auto-title extraction or updating existing notes with live search',
+      'Custom Block Insertion: granular controls to insert shared assets as dedicated blocks or append to note bodies',
+      'Sync Outbox Ledger: desktop parity with real-time status filtering, payload JSON inspector, and retry capabilities',
+      'Network Resilience: outbox tasks are protected against connection drops and never marked failed from network timeouts',
+      'Decoupled Note Editor: instant photo capture, audio recording, file attachments, checklist appending, and tagging in View Mode',
+    ],
+  },
+  {
     version: '2.2.0',
     build: 9,
     releasedAt: '2026-11-22',
