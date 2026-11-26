@@ -53,7 +53,7 @@ interface BlockRowProps {
   index: number;
   totalBlocks: number;
   isEditing: boolean;
-  // onStartEditing: () => void;
+  onStartEditing?: () => void;
   onStageUpdate: (blockId: string, updates: UpdateBlockInput) => void;
   onImmediateUpdate: (
     blockId: string,
@@ -74,6 +74,7 @@ const BlockRow = React.memo(function BlockRow({
   index,
   totalBlocks,
   isEditing,
+  onStartEditing,
   onStageUpdate,
   onImmediateUpdate,
   onCommit,
@@ -120,6 +121,7 @@ const BlockRow = React.memo(function BlockRow({
           onStageUpdate={handleStage}
           onImmediateUpdate={handleImmediate}
           onCommit={handleCommit}
+          onStartEditing={onStartEditing}
         />
       ) : block.type === "media" ? (
         <MediaBlock
@@ -141,7 +143,7 @@ const BlockRow = React.memo(function BlockRow({
 
 export const BlockContainer = React.memo(
   forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
-    { note, isEditing, onContentChange, onRequestRecordAudio, liveBlocks },
+    { note, isEditing, onStartEditing, onContentChange, onRequestRecordAudio, liveBlocks },
     ref,
   ) {
     const colors = useTheme();
@@ -253,6 +255,7 @@ export const BlockContainer = React.memo(
             index={index}
             totalBlocks={blocks.length}
             isEditing={isEditing}
+            onStartEditing={onStartEditing}
             onStageUpdate={handleStageUpdate}
             onImmediateUpdate={handleImmediateUpdate}
             onCommit={commitBlock}

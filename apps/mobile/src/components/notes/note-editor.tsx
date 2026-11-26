@@ -343,12 +343,20 @@ export function NoteEditor({
   );
 
   const handleAddTextBlock = useCallback(
-    () => handleAddBlock(createDefaultTextBlockInput(), "text block"),
+    () => {
+      void handleAddBlock(createDefaultTextBlockInput(), "text block");
+     
+      if (!isEditing) setIsEditing(true);
+    },
     [handleAddBlock],
   );
 
   const handleAddCheckboxBlock = useCallback(
-    () => handleAddBlock(createDefaultChecklistBlockInput(), "checkbox block"),
+    () => {
+      void handleAddBlock(createDefaultChecklistBlockInput(), "checkbox block");
+      
+      if (!isEditing) setIsEditing(true);
+    },
     [handleAddBlock],
   );
 
@@ -416,13 +424,17 @@ export function NoteEditor({
       const updatedTags = [...note.tags, trimmed];
       updateNoteState("tags", updatedTags);
       tagInputRef.current?.clear();
+
+      if(!isEditing) setIsEditing(true)
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
+  const handleRemoveTag = async (tagToRemove: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const updatedTags = note.tags.filter((t) => t !== tagToRemove);
     updateNoteState("tags", updatedTags);
+
+      if (!isEditing) setIsEditing(true);
   };
 
   const wordCount = useMemo(
@@ -607,66 +619,53 @@ export function NoteEditor({
 
           {/* Tags (Hidden in scratchpad mode) */}
           {!isScratchpad && (
-            <View className="mb-4">
-              {note.tags.length > 0 || isEditing ? (
-                <View className="flex-row flex-wrap items-center gap-1.5 mb-1">
-                  {note.tags.map((tag) =>
-                    isEditing ? (
-                      <View
-                        key={tag}
-                        className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
-                        <Text className="text-xs font-medium text-text">
-                          #{tag}
-                        </Text>
-                        <Pressable
-                          hitSlop={8}
-                          onPress={() => handleRemoveTag(tag)}>
-                          <X size={12} color={colors.textSecondary} />
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <View
-                        key={tag}
-                        className="flex-row items-center px-2.5 py-1 rounded-xl border border-border bg-background-element">
-                        <Text className="text-xs font-medium text-text">
-                          #{tag}
-                        </Text>
-                      </View>
-                    ),
-                  )}
+            <View className="mb-3">
+              <View className="flex-row flex-wrap items-center gap-1.5 mb-1">
+                {note.tags.map((tag) => (
+                  <View
+                    key={tag}
+                    className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border bg-background-element active:opacity-80">
+                    <Text className="text-xs font-medium text-text">
+                      #{tag}
+                    </Text>
+                    <Pressable
+                      hitSlop={8}
+                      onPress={() => handleRemoveTag(tag)}>
+                      <X size={12} color={colors.textSecondary} />
+                    </Pressable>
+                  </View>
+                ))}
 
-                  {isEditing &&
-                    (newTagInputVisible ? (
-                      <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
-                        <Text className="text-xs text-text-secondary">#</Text>
-                        <TextInput
-                          ref={tagInputRef}
-                          className="text-xs py-0 px-0.5 min-w-10 text-text"
-                          placeholder="tag"
-                          placeholderTextColor={colors.textSecondary}
-                          autoFocus
-                          submitBehavior="submit"
-                          onSubmitEditing={handleAddTag}
-                          onEndEditing={handleAddTag}
-                          returnKeyType="done"
-                          autoCapitalize="none"
-                        />
-                      </View>
-                    ) : (
-                      <Pressable
-                        className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setNewTagInputVisible(true);
-                        }}>
-                        <Plus size={12} color={colors.textSecondary} />
-                        <Text className="text-xs font-medium text-text-secondary">
-                          Tag
-                        </Text>
-                      </Pressable>
-                    ))}
-                </View>
-              ) : null}
+                {newTagInputVisible ? (
+                  <View className="flex-row items-center px-2 h-6.5 rounded-xl border border-primary bg-background-element">
+                    <Text className="text-xs text-text-secondary">#</Text>
+                    <TextInput
+                      ref={tagInputRef}
+                      className="text-xs py-0 px-0.5 min-w-10 text-text"
+                      placeholder="tag"
+                      placeholderTextColor={colors.textSecondary}
+                      autoFocus
+                      submitBehavior="submit"
+                      onSubmitEditing={handleAddTag}
+                      onEndEditing={handleAddTag}
+                      returnKeyType="done"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-dashed border-border bg-background-element active:opacity-70"
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setNewTagInputVisible(true);
+                    }}>
+                    <Plus size={12} color={colors.textSecondary} />
+                    <Text className="text-xs font-medium text-text-secondary">
+                      Tag
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           )}
 
