@@ -46,6 +46,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { CheckForUpdatesMain } from "@/components/check-for-updates";
 import { AppDrawerContent } from "@/components/app-drawer-content";
+import { ShareIntentReceiver } from "@/components/share/share-intent-receiver";
+import {ShareIntentProvider} from "expo-share-intent"
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,29 +74,31 @@ export default function AppProvider() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <KeyboardProvider>
-        <GestureHandlerRootView>
-          <SafeAreaListener
-            onChange={({ insets }) => Uniwind.updateInsets(insets)}>
-            <ThemeProvider value={MyTheme}>
-              <View className="bg-background flex-1">
-                {/* Root App */}
-                <RootDrawerLayout />
-                <Toast config={toastConfig} position="top" topOffset={50} />
-                <StatusBar
-                  barStyle={
-                    scheme === "dark" ? "light-content" : "dark-content"
-                  }
-                />
-                {/* Check Of Updates */}
-                <CheckForUpdatesMain />
-              </View>
-            </ThemeProvider>
-          </SafeAreaListener>
-        </GestureHandlerRootView>
-      </KeyboardProvider>
-    </QueryClientProvider>
+    <ShareIntentProvider>
+      <QueryClientProvider client={queryClient}>
+        <KeyboardProvider>
+          <GestureHandlerRootView>
+            <SafeAreaListener
+              onChange={({ insets }) => Uniwind.updateInsets(insets)}>
+              <ThemeProvider value={MyTheme}>
+                <View className="bg-background flex-1">
+                  {/* Root App */}
+                  <RootDrawerLayout />
+                  <Toast config={toastConfig} position="top" topOffset={50} />
+                  <StatusBar
+                    barStyle={
+                      scheme === "dark" ? "light-content" : "dark-content"
+                    }
+                  />
+                  {/* Check Of Updates */}
+                  <CheckForUpdatesMain />
+                </View>
+              </ThemeProvider>
+            </SafeAreaListener>
+          </GestureHandlerRootView>
+        </KeyboardProvider>
+      </QueryClientProvider>
+    </ShareIntentProvider>
   );
 }
 
@@ -212,27 +216,30 @@ function RootDrawerLayout() {
   }
 
   return (
-    <Drawer
-      drawerContent={AppDrawerContent}
-      screenOptions={{
-        headerShown: false,
-        drawerStyle: {
-          backgroundColor: colors.background,
-          width: 290,
-        },
-        drawerActiveTintColor: colors.primary,
-        drawerInactiveTintColor: colors.textSecondary,
-        drawerType: "slide",
-      }}
-      initialRouteName="index">
-      <Drawer.Screen name="index" />
-      <Drawer.Screen name="agent" />
-      <Drawer.Screen name="search" />
-      <Drawer.Screen name="reminders" />
-      <Drawer.Screen name="notes" />
-      <Drawer.Screen name="folders/[id]" />
-      <Drawer.Screen name="(tabs)" />
-      <Drawer.Screen name="(auth)" />
-    </Drawer>
+    <>
+      <Drawer
+        drawerContent={AppDrawerContent}
+        screenOptions={{
+          headerShown: false,
+          drawerStyle: {
+            backgroundColor: colors.background,
+            width: 290,
+          },
+          drawerActiveTintColor: colors.primary,
+          drawerInactiveTintColor: colors.textSecondary,
+          drawerType: "slide",
+        }}
+        initialRouteName="index">
+        <Drawer.Screen name="index" />
+        <Drawer.Screen name="agent" />
+        <Drawer.Screen name="search" />
+        <Drawer.Screen name="reminders" />
+        <Drawer.Screen name="notes" />
+        <Drawer.Screen name="folders/[id]" />
+        <Drawer.Screen name="(tabs)" />
+        <Drawer.Screen name="(auth)" />
+      </Drawer>
+      <ShareIntentReceiver />
+    </>
   );
 }

@@ -360,13 +360,13 @@ export function ReminderSheet({
     onDismiss();
   };
 
-  const handleComplete = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (onComplete) {
-      await onComplete();
-    }
-    onDismiss();
-  };
+  // const handleComplete = async () => {
+  //   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  //   if (onComplete) {
+  //     await onComplete();
+  //   }
+  //   onDismiss();
+  // };
 
   // Date Dropdown Items
   const dateDropdownItems: DropdownItem[] = useMemo(() => {

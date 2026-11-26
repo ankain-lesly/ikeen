@@ -46,6 +46,17 @@
       "expo-router",
       "expo-sharing",
       [
+        "expo-share-intent",
+        {
+          "ios": {
+            "AppGroup": "group.com.techforgelee.ikeen"
+          },
+          "android": {
+            "packageNames": ["com.techforgelee.ikeen"]
+          }
+        }
+      ],
+      [
         "expo-audio",
         {
           "microphonePermission": "The app accesses your microphone to let you record audio notes."
