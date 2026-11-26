@@ -24,6 +24,10 @@
     "./reminders": {
       "types": "./src/reminders.ts",
       "default": "./src/reminders.ts"
+    },
+    "./shares": {
+      "types": "./src/shares.ts",
+      "default": "./src/shares.ts"
     }
   },
   "scripts": {

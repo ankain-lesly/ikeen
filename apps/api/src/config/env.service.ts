@@ -63,4 +63,8 @@ export class EnvService implements EnvConfig {
     // return `${this.SITE_URL.replace(/\/$/, '')}/docs/mcp`;
     return `${this.SITE_URL.replace(/\/$/, '')}/mcp`;
   }
+
+  getShareUrl(slug: string): string {
+    return `${this.SITE_URL.replace(/\/$/, '')}/s/${slug}`;
+  }
 }

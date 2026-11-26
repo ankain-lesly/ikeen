@@ -7,6 +7,7 @@ import { SyncModule } from './modules/sync/sync.module.js';
 import { AblyModule } from './modules/ably/ably.module.js';
 import { FoldersModule } from './modules/folders/folders.module.js';
 import { NotesModule } from './modules/notes/notes.module.js';
+import { SharesModule } from './modules/shares/shares.module.js';
 import { MediaModule } from './modules/media/media.module.js';
 import { AgentModule } from './modules/agent/agent.module.js';
 import { McpModule } from './modules/mcp/mcp.module.js';
@@ -23,6 +24,7 @@ import { EnvModule } from './config/env.module.js';
     AblyModule,
     FoldersModule,
     NotesModule,
+    SharesModule,
     MediaModule,
     AuthModule,
     SyncModule,
