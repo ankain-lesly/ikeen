@@ -1,6 +1,6 @@
 # iKeen Web Workspace Redesign & Architecture Plan
 
-> **Status**: Phase 2 Complete — Phase 3 Planned & Ready for Approval  
+> **Status**: Phase 3 Complete — Phase 4 Planned & Ready for Approval  
 > **Scope**: `apps/web` (Next.js 16.3.4 App Router, React 19, Tailwind CSS v4, shadcn `base-nova`, TanStack Query v5, Zustand v5) + structured REST block/notes endpoints in `apps/api` (NestJS + Prisma + Vitest).  
 > **Dedicated App Checklist**: [apps/web/CHECKLIST.md](../../apps/web/CHECKLIST.md)
 
@@ -11,8 +11,8 @@
 | **Phase 0** | Architecture Foundation, Route Groups & Legacy Quarantine | `DONE` | `web check-types`, `web lint`, `web build` (baseline), commit |
 | **Phase 1** | Backend REST Block Endpoints & Web API Layer (`lib/api/*.api.ts`) | `DONE` | `api test` (Vitest), `web test` (Bun), `api/web check-types`, `api/web lint`, commit |
 | **Phase 2** | Public Platform & Marketing Landing Page (`sir.studio/capture` flow) | `DONE` | `web check-types`, `web lint`, `web test`, responsive visual audit, commit |
-| **Phase 3** | Core `/app` Workspace Shell, Notes & Folders | `PLANNED` | `web check-types`, `web lint`, `web test`, E2E CRUD + reload check, commit |
-| **Phase 4** | Scratchpad (`/app/scratchpad`), Media Blocks & Workspace Polish | `PENDING` | `web check-types`, `web lint`, `web test`, cross-device scratchpad + media check, commit |
+| **Phase 3** | Core `/app` Workspace Shell, Notes & Folders | `DONE` | `web check-types`, `web lint`, `web test`, E2E CRUD + reload check, commit |
+| **Phase 4** | Scratchpad (`/app/scratchpad`), Media Blocks & Workspace Polish | `PLANNED` | `web check-types`, `web lint`, `web test`, cross-device scratchpad + media check, commit |
 | **Phase 5** | Trash/Restore & Future Integration Readiness (Post-MVP) | `PENDING` | `api test`, `web test`, `check-types`, `lint`, final `web build`, commit |
 
 ---

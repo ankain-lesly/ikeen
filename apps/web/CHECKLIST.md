@@ -76,10 +76,10 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 
 ## Phase 3 — Core `/app` Workspace Shell, Notes & Folders (`app/(workspace)/app/*`)
 
-- [ ] `WorkspaceShell`, `WorkspaceSidebar`, `WorkspaceAuthGate`, `lib/stores/workspace-store.ts`
-- [ ] Routes: `/app` → `/app/notes`, `/app/notes/[id]`, `/app/pinned`, `/app/archive`, `/app/folders`, `/app/folders/[id]`
-- [ ] `NoteEditor` + `BlockCanvas` (`TextBlock` Markdown edit/preview commit-on-blur, `ListBlock` checkbox/bullet/ordered, reorder, delete)
-- [ ] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors)
+- [x] `WorkspaceShell`, `WorkspaceSidebar`, `WorkspaceAuthGate`, `lib/stores/workspace-store.ts`
+- [x] Routes: `/app` → `/app/notes`, `/app/notes/[id]`, `/app/pinned`, `/app/archive`, `/app/folders`, `/app/folders/[id]`
+- [x] `NoteEditor` + `BlockCanvas` (`TextBlock` Markdown edit/preview commit-on-blur, `ListBlock` checkbox/bullet/ordered, reorder, delete)
+- [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 11/11 tests)
 - [ ] **Gate — Manual E2E**: Sign in → Folder CRUD → Note + Block CRUD → Reload persistence
 - [ ] **Gate — Git Commit**: `feat(web): phase 3 - core /app notes and folders workspace`
 

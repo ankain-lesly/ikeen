@@ -6,6 +6,7 @@ import { LogIn, ArrowLeft, FileText } from "lucide-react";
 
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
 import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
+import { WorkspaceShell } from "@/components/workspace/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -77,9 +78,5 @@ export default function WorkspaceLayout({
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {children}
-    </div>
-  );
+  return <WorkspaceShell>{children}</WorkspaceShell>;
 }
