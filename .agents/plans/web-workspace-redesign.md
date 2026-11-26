@@ -255,10 +255,40 @@ Structured in the exact `sir.studio/capture` 9-section cadence (omitting fabrica
 - [ ] Polish `app/(public)/download/page.tsx` (`components/public/download-view.tsx`), `app/(public)/privacy/page.tsx`, and `app/(public)/delete-account/page.tsx` with unified container width, typography scale, and back-to-home navigation.
 
 ### Step 2.4 — Phase 2 Verification Gate (No-Build Fast Loop)
-- [ ] `bun run --filter=@repo/web check-types` (0 errors)
-- [ ] `bun run --filter=@repo/web lint` (0 errors)
-- [ ] `bun --filter=@repo/web run test` (all pass)
-- [ ] Update `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 2 `DONE`, then conclude with Phase 2 git commit.
+- [x] `bun run --filter=@repo/web check-types` (0 errors)
+- [x] `bun run --filter=@repo/web lint` (0 errors)
+- [x] `bun --filter=@repo/web run test` (8/8 pass)
+- [x] Updated `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 2 `DONE`.
+
+---
+
+## Detailed Execution Plan — Phase 3: Core `/app` Workspace Shell, Notes & Folders (`app/(workspace)/app/*`)
+
+**Objective**: Build the official authenticated `/app` workspace strictly focused on note & folder operations (zero Dashboard/MCP chrome), backed 100% by `lib/api/{notes,blocks,folders}.api.ts`.
+
+### Step 3.1 — Workspace Store & Shell
+- [ ] `lib/stores/workspace-store.ts` (Zustand ephemeral UI state: `searchQuery`, `sortBy`, `sortDirection`, `isMobileNavOpen`).
+- [ ] `components/workspace/workspace-sidebar.tsx` & `workspace-shell.tsx`.
+- [ ] Wire `app/(workspace)/app/layout.tsx` to `<WorkspaceShell>` and redirect `app/(workspace)/app/page.tsx` → `/app/notes`.
+
+### Step 3.2 — Notes Listing & Filtering
+- [ ] `lib/workspace/note-filters.ts` + `__tests__/note-filters.test.ts` (Bun unit tests).
+- [ ] `components/workspace/notes/note-card.tsx` & `notes-list-view.tsx`.
+- [ ] Routes: `/app/notes`, `/app/pinned`, `/app/archive`.
+
+### Step 3.3 — Folders Management
+- [ ] `components/workspace/folders/folder-dialog.tsx`.
+- [ ] Routes: `/app/folders` & `/app/folders/[id]`.
+
+### Step 3.4 — Note Editor & Block Canvas
+- [ ] `components/workspace/notes/blocks/{text-block,list-block,block-canvas}.tsx`.
+- [ ] `components/workspace/notes/note-editor.tsx` & `app/(workspace)/app/notes/[id]/page.tsx`.
+
+### Step 3.5 — Phase 3 Verification Gate (No-Build Fast Loop)
+- [ ] `bun --filter=@repo/web run test`
+- [ ] `bun run --filter=@repo/web check-types`
+- [ ] `bun run --filter=@repo/web lint`
+- [ ] Update `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 3 `DONE`.
 
 ---
 

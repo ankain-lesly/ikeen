@@ -70,7 +70,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] Consistent public styling on `/download`, `/privacy`, `/delete-account`
 - [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 8/8 tests)
 - [x] **Gate — Visual Check**: Responsive grid breakpoints (`sm`/`md`/`lg`) & native `<details>` FAQ verified
-- [ ] **Gate — Git Commit**: `feat(web): phase 2 - redesign public marketing platform and landing page`
+- [x] **Gate — Git Commit**: `feat(web): phase 2 - redesign public marketing platform and landing page`
 
 ---
 
