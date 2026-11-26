@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import { DownloadView } from "@/components/public/download-view";
 
 export const metadata: Metadata = {
-  title: "Download iKeen · Android, iOS & Web",
+  title: "Download",
   description:
-    "Get iKeen on your devices. Private, local-first notes with biometric locks and an autonomous AI thinking partner.",
+    "Get iKeen on Android, iOS, Windows Desktop, or open the Web Workspace instantly. Write everything. Keep it yours.",
+  alternates: {
+    canonical: "/download",
+  },
   openGraph: {
-    title: "Download iKeen — Private Notes & AI Thought Partner",
+    title: "Download iKeen — Android, iOS, Desktop & Web",
     description:
-      "Get iKeen on your devices. Write everything. Keep it yours.",
+      "Write everything. Keep it yours. Personal notes, folders, and Scratchpad synced across all your devices.",
+    url: "/download",
   },
 };
 

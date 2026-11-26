@@ -4,7 +4,16 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How iKeen collects, stores, and shares data on Android and iOS.",
+    "How iKeen collects, stores, and protects your notes across Web, Android, iOS, and Desktop.",
+  alternates: {
+    canonical: "/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy · iKeen",
+    description:
+      "How iKeen collects, stores, and protects your notes across Web, Android, iOS, and Desktop.",
+    url: "/privacy",
+  },
 };
 
 const UPDATED = "2 October 2026";

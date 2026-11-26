@@ -1,8 +1,8 @@
 {
-  "name": "iKeen — Personal Notes & AI Workspace",
-  "short_name": "iKeen",
-  "description": "Local-first notes, folders, and an autonomous AI agent with Model Context Protocol (MCP) server.",
-  "start_url": "/",
+  "name": "iKeen — Personal Notes & Thinking Workspace",
+  "short_name": "iKeen Web",
+  "description": "Write everything. Keep it yours. Personal notes, structured blocks, folders, and Scratchpad across Web, Android, iOS, and Desktop.",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",

@@ -6,14 +6,15 @@
 
 ## Phase Progress Tracker
 
-| Phase | Name | Status | Primary Validation Gates (No-Build Fast Loop) |
-| :--- | :--- | :--- | :--- |
-| **Phase 0** | Architecture Foundation, Route Groups & Legacy Quarantine | `DONE` | `web check-types`, `web lint`, `web build` (baseline), commit |
-| **Phase 1** | Backend REST Block Endpoints & Web API Layer (`lib/api/*.api.ts`) | `DONE` | `api test` (Vitest), `web test` (Bun), `api/web check-types`, `api/web lint`, commit |
-| **Phase 2** | Public Platform & Marketing Landing Page (`sir.studio/capture` flow) | `DONE` | `web check-types`, `web lint`, `web test`, responsive visual audit, commit |
-| **Phase 3** | Core `/app` Workspace Shell, Notes & Folders | `DONE` | `web check-types`, `web lint`, `web test`, E2E CRUD + reload check, commit |
-| **Phase 4** | Scratchpad (`/app/scratchpad`), Media Blocks & Workspace Polish | `DONE` | `web check-types`, `web lint`, `web test`, cross-device scratchpad + media check, commit |
-| **Phase 5** | Trash/Restore & Future Integration Readiness (Post-MVP) | `DONE` | `api test` (20/20), `web test` (12/12), `api/web check-types`, `api/web lint`, commit |
+| Phase | Name | Status | Commit(s) | Primary Validation Gates (No-Build Fast Loop) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase 0** | Architecture Foundation, Route Groups & Legacy Quarantine | `DONE` | `fcb6baf` | `web check-types`, `web lint`, `web build` (baseline), commit |
+| **Phase 1** | Backend REST Block Endpoints & Web API Layer (`lib/api/*.api.ts`) | `DONE` | `8fc183b` | `api test` (Vitest), `web test` (Bun), `api/web check-types`, `api/web lint`, commit |
+| **Phase 2** | Public Platform & Marketing Landing Page (`sir.studio/capture` flow) | `DONE` | `796b32f`, `9627182` | `web check-types`, `web lint`, `web test`, responsive visual audit, commit |
+| **Phase 3** | Core `/app` Workspace Shell, Notes & Folders | `DONE` | `e6fba68`, `a55cebd` | `web check-types`, `web lint`, `web test`, E2E CRUD + reload check, commit |
+| **Phase 4** | Scratchpad (`/app/scratchpad`), Media Blocks & Workspace Polish | `DONE` | `4e92a84`, `bd717cd` | `web check-types`, `web lint`, `web test`, cross-device scratchpad + media check, commit |
+| **Phase 5** | Trash/Restore & Future Integration Readiness (Post-MVP) | `DONE` | `f75d155`, `ed632c6` | `api test` (20/20), `web test` (12/12), `api/web check-types`, `api/web lint`, `web build` |
+| **Deploy** | Vercel Monorepo Bun Config & Live Preview Verification | `DONE` | `ae47ad9` | Vercel `dpl_3MZsVKZMpeWtFKUE6nsri9VWhQ5E` (`READY`, 25/25 routes) |
 
 ---
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Geist_Mono } from "next/font/google";
 
 import { Providers } from "@/components/providers/query-provider";
@@ -22,16 +22,47 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = xenv.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+const DEFAULT_TITLE = "iKeen — Personal Notes & Thinking Workspace";
+const DEFAULT_DESCRIPTION =
+  "Write everything. Keep it yours. Personal notes, structured blocks, folders, and a cross-device scratchpad synced across Web, Android, iOS, and Desktop.";
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL(xenv.NEXT_PUBLIC_SITE_URL),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "iKeen — Personal Notes & Thinking Workspace",
+    default: DEFAULT_TITLE,
     template: "%s · iKeen",
   },
-  description:
-    "iKeen is a personal notes and thinking workspace across mobile, desktop, and web. Write everything. Keep it yours.",
+  description: DEFAULT_DESCRIPTION,
   applicationName: "iKeen",
+  category: "productivity",
   manifest: "/site.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  appleWebApp: {
+    capable: true,
+    title: "iKeen",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -50,27 +81,28 @@ export const metadata: Metadata = {
   keywords: [
     "iKeen",
     "personal notes",
-    "workspace notes",
-    "knowledge management",
+    "notes workspace",
+    "block editor",
     "scratchpad",
+    "markdown notes",
     "cross-platform notes",
+    "MCP notes",
   ],
   authors: [{ name: "TechForge" }],
   creator: "Dev Lee",
+  publisher: "TechForge",
   openGraph: {
-    title: "iKeen — Personal Notes & Thinking Workspace",
-    description:
-      "Write everything. Keep it yours. Notes, blocks, folders, and scratchpad synced across mobile, desktop, and web.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     siteName: "iKeen",
     type: "website",
     locale: "en_US",
-    url: xenv.NEXT_PUBLIC_SITE_URL,
+    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "iKeen — Personal Notes & Thinking Workspace",
-    description:
-      "Write everything. Keep it yours. Personal notes and thinking workspace across mobile, desktop, and web.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
   },
 };
 

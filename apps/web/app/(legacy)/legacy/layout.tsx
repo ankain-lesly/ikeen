@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { UserMenu } from "@/components/auth/user-menu";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Legacy Developer Portal",
+    template: "%s · iKeen Legacy",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function LegacyLayout({
   children,

@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Delete your account",
+  title: "Delete Account",
   description:
-    "Request deletion of your iKeen account and the data stored with it.",
+    "Request deletion of your iKeen account and all associated data.",
+  alternates: {
+    canonical: "/delete-account",
+  },
+  openGraph: {
+    title: "Delete Account · iKeen",
+    description:
+      "Request deletion of your iKeen account and all associated data.",
+    url: "/delete-account",
+  },
 };
 
 const DELETE_MAIL = "techforgeastroteam@gmail.com";

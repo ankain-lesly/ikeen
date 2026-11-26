@@ -35,7 +35,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] **Gate — Types**: `bun run --filter=@repo/web check-types` (0 errors)
 - [x] **Gate — Lint**: `bun run --filter=@repo/web lint` (0 errors)
 - [x] **Gate — Build** *(baseline verification)*: `bun run --filter=@repo/web build` (19/19 routes generated)
-- [x] **Gate — Git Commit**: `feat(web): phase 0 - route groups, legacy quarantine, and auth ui decoupling`
+- [x] **Gate — Git Commit**: `fcb6baf` — `feat(web): implement web workspace redesign and architecture plan`
 
 ---
 
@@ -59,7 +59,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] **Gate — Web Tests**: `bun --filter=@repo/web run test` (8/8 schema & query key tests pass)
 - [x] **Gate — Types**: `bun run --filter=@repo/api check-types` & `bun run --filter=@repo/web check-types` (0 errors)
 - [x] **Gate — Lint**: `bun run --filter=@repo/api lint` & `bun run --filter=@repo/web lint` (0 errors)
-- [x] **Gate — Git Commit**: `feat(api,web): phase 1 - rest block endpoints and server-first tanstack api layer`
+- [x] **Gate — Git Commit**: `8fc183b` — `feat(api,web): phase 1 - rest block endpoints and server-first tanstack api layer`
 
 ---
 
@@ -70,7 +70,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] Consistent public styling on `/download`, `/privacy`, `/delete-account`
 - [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 8/8 tests)
 - [x] **Gate — Visual Check**: Responsive grid breakpoints (`sm`/`md`/`lg`) & native `<details>` FAQ verified
-- [x] **Gate — Git Commit**: `feat(web): phase 2 - redesign public marketing platform and landing page`
+- [x] **Gate — Git Commit**: `796b32f`, `9627182` — `feat(web): phase 2 - redesign public marketing platform and landing page`
 
 ---
 
@@ -81,7 +81,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] `NoteEditor` + `BlockCanvas` (`TextBlock` Markdown edit/preview commit-on-blur, `ListBlock` checkbox/bullet/ordered, reorder, delete)
 - [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 11/11 tests)
 - [ ] **Gate — Manual E2E**: Sign in → Folder CRUD → Note + Block CRUD → Reload persistence
-- [x] **Gate — Git Commit**: `feat(web): phase 3 - core /app notes and folders workspace`
+- [x] **Gate — Git Commit**: `e6fba68`, `a55cebd` — `feat(web): phase 3 - core /app notes and folders workspace`
 
 ---
 
@@ -91,7 +91,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] `lib/api/media.api.ts` + `MediaBlock` renderer & upload (`POST /api/v1/media/upload`)
 - [x] Keyboard ergonomics (`⌘K` quick switcher, `⌘N` new note) & responsive sheet UX
 - [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 12/12 tests)
-- [x] **Gate — Git Commit**: `feat(web): phase 4 - scratchpad, media blocks, and workspace polish`
+- [x] **Gate — Git Commit**: `4e92a84`, `bd717cd` — `feat(web): phase 4 - scratchpad, media blocks, and workspace polish`
 
 ---
 
@@ -101,4 +101,12 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] `apps/web`: `/app/trash` route + `useTrashedNotes`, `useRestoreNote`, `usePermanentDeleteNote` hooks + sidebar nav link
 - [x] **Gate — API & Web Tests, Types, Lint**: 20/20 API notes tests, 12/12 Web tests, 0 type/lint errors
 - [x] **Gate — Final Release Build**: `bun run --filter=@repo/web build` (25/25 routes compiled cleanly, exit 0)
-- [x] **Gate — Git Commit**: `feat(api,web): phase 5 - trash recovery and workspace finalization`
+- [x] **Gate — Git Commit**: `f75d155`, `ed632c6` — `feat(api,web): phase 5 - trash recovery and workspace finalization`
+
+---
+
+## Deployment — Vercel Monorepo Bun Setup
+
+- [x] Enabled `sourceFilesOutsideRootDirectory: true` on `ikeen-web` (`prj_2wA4vkcyWCQwZRfjI8x2RHxR1uUf`)
+- [x] Configured `apps/web/vercel.json` for Bun `1.x` monorepo install
+- [x] **Gate — Vercel Preview**: `ae47ad9` → `dpl_3MZsVKZMpeWtFKUE6nsri9VWhQ5E` (`READY`, 25/25 routes)
