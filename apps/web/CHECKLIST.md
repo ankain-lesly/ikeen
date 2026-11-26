@@ -101,4 +101,4 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] `apps/web`: `/app/trash` route + `useTrashedNotes`, `useRestoreNote`, `usePermanentDeleteNote` hooks + sidebar nav link
 - [x] **Gate — API & Web Tests, Types, Lint**: 20/20 API notes tests, 12/12 Web tests, 0 type/lint errors
 - [ ] **Gate — Final Release Build** *(skipped during fast dev loop; run before deployment)*: `bun run --filter=@repo/web build`
-- [ ] **Gate — Git Commit**: `feat(api,web): phase 5 - trash recovery and workspace finalization`
+- [x] **Gate — Git Commit**: `feat(api,web): phase 5 - trash recovery and workspace finalization`
