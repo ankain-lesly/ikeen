@@ -81,7 +81,7 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] `NoteEditor` + `BlockCanvas` (`TextBlock` Markdown edit/preview commit-on-blur, `ListBlock` checkbox/bullet/ordered, reorder, delete)
 - [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 11/11 tests)
 - [ ] **Gate — Manual E2E**: Sign in → Folder CRUD → Note + Block CRUD → Reload persistence
-- [ ] **Gate — Git Commit**: `feat(web): phase 3 - core /app notes and folders workspace`
+- [x] **Gate — Git Commit**: `feat(web): phase 3 - core /app notes and folders workspace`
 
 ---
 
