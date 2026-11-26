@@ -110,6 +110,14 @@ export function QuickSwitcher() {
               </p>
               <button
                 type="button"
+                onClick={() => go("/app/folders")}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-foreground hover:bg-secondary cursor-pointer"
+              >
+                <FolderIcon className="size-3.5 text-primary" />
+                <span>Browse Folders</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => go("/app/scratchpad")}
                 className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-foreground hover:bg-secondary cursor-pointer"
               >

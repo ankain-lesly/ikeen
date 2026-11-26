@@ -261,6 +261,17 @@ describe('NotesService', () => {
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
       });
     });
+
+    it('should apply skip and take when offset and limit are provided', async () => {
+      prisma.note.findMany.mockResolvedValue([]);
+      await service.findAll('u-1', { limit: 20, offset: 40 });
+      expect(prisma.note.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1', deletedAt: null, isArchived: false },
+        orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+        skip: 40,
+        take: 20,
+      });
+    });
   });
 
   describe('findOne', () => {

@@ -48,6 +48,8 @@ export class NotesService {
     return this.prisma.note.findMany({
       where,
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+      ...(filters.offset !== undefined && { skip: filters.offset }),
+      ...(filters.limit !== undefined && { take: filters.limit }),
     });
   }
 

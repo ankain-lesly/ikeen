@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Note } from "@repo/types";
 import { apiClient } from "./api-client";
 import {
@@ -15,6 +20,8 @@ export interface NotesFilter {
   pinnedOnly?: boolean;
   archivedOnly?: boolean;
   includeArchived?: boolean;
+  limit?: number;
+  offset?: number;
 }
 
 export type CreateNotePayload = z.infer<typeof createNoteInputSchema>;
@@ -24,6 +31,8 @@ export const noteKeys = {
   all: ["notes"] as const,
   lists: () => [...noteKeys.all, "list"] as const,
   list: (filters: NotesFilter = {}) => [...noteKeys.lists(), filters] as const,
+  infinite: (pageSize: number) =>
+    [...noteKeys.lists(), "infinite", pageSize] as const,
   trash: () => [...noteKeys.all, "trash"] as const,
   details: () => [...noteKeys.all, "detail"] as const,
   detail: (id: string) => [...noteKeys.details(), id] as const,
@@ -37,6 +46,8 @@ export async function fetchNotesApi(
   if (filters.pinnedOnly) params.pinnedOnly = "true";
   if (filters.archivedOnly) params.archivedOnly = "true";
   if (filters.includeArchived) params.includeArchived = "true";
+  if (filters.limit !== undefined) params.limit = String(filters.limit);
+  if (filters.offset !== undefined) params.offset = String(filters.offset);
 
   const { data } = await apiClient.get("/api/v1/notes", { params });
   return z.array(noteSchema).parse(data);
@@ -71,6 +82,20 @@ export function useNotes(filters: NotesFilter = {}, enabled = true) {
   return useQuery({
     queryKey: noteKeys.list(filters),
     queryFn: () => fetchNotesApi(filters),
+    enabled,
+  });
+}
+
+export function useInfiniteNotes(pageSize = 20, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: noteKeys.infinite(pageSize),
+    queryFn: ({ pageParam }) =>
+      fetchNotesApi({ limit: pageSize, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < pageSize) return undefined;
+      return allPages.reduce((sum, page) => sum + page.length, 0);
+    },
     enabled,
   });
 }

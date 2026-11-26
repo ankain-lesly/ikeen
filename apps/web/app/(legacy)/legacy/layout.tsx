@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { UserMenu } from "@/components/auth/user-menu";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata: Metadata = {
   title: {
@@ -54,6 +55,7 @@ export default function LegacyLayout({
               Workspace
             </Link>
             <div className="h-4 w-px bg-border/60" />
+            <ThemeToggle />
             <UserMenu />
           </nav>
         </div>

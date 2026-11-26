@@ -28,8 +28,11 @@ const DEFAULT_DESCRIPTION =
   "Write everything. Keep it yours. Personal notes, structured blocks, folders, and a cross-device scratchpad synced across Web, Android, iOS, and Desktop.";
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f5ef" },
+  ],
+  colorScheme: "dark light",
   width: "device-width",
   initialScale: 1,
 };
@@ -106,6 +109,8 @@ export const metadata: Metadata = {
   },
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem('ikeen_theme');var t='dark';if(raw){var p=JSON.parse(raw);if(p&&p.state&&(p.state.theme==='light'||p.state.theme==='dark')){t=p.state.theme;}}document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(t);}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
@@ -114,8 +119,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>
           {children}

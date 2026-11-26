@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { FileText, Plus, Search, X } from "lucide-react";
+import { FileText, LayoutGrid, List, Plus, Search, X } from "lucide-react";
 import type { Note } from "@repo/types";
 
 import { useFolders } from "@/lib/api/folders.api";
@@ -43,6 +43,7 @@ interface NotesListViewProps {
   emptyTitle?: string;
   emptyDescription?: string;
   headerAction?: React.ReactNode;
+  filterBar?: React.ReactNode;
 }
 
 export function NotesListView({
@@ -56,6 +57,7 @@ export function NotesListView({
   emptyTitle = "No notes yet",
   emptyDescription = "Create your first note to start writing.",
   headerAction,
+  filterBar,
 }: NotesListViewProps) {
   const router = useRouter();
   const { data: folders = [] } = useFolders();
@@ -64,7 +66,9 @@ export function NotesListView({
   const [searchQuery, setSearchQuery] = React.useState("");
   const sortBy = useWorkspaceStore((s) => s.sortBy);
   const sortDirection = useWorkspaceStore((s) => s.sortDirection);
+  const viewMode = useWorkspaceStore((s) => s.viewMode);
   const setSortBy = useWorkspaceStore((s) => s.setSortBy);
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
 
   const folderMap = React.useMemo(
     () => new Map(folders.map((f) => [f.id, f])),
@@ -93,7 +97,7 @@ export function NotesListView({
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-8 sm:py-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-8 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -122,52 +126,105 @@ export function NotesListView({
         </div>
       </div>
 
-      {/* Search & Sort Bar */}
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search notes or #tags..."
-            className="h-9 pl-9 pr-8 text-xs"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <X className="size-3.5" />
-            </button>
-          )}
-        </div>
+      {/* Inline Filter Bar + Search + Sort + View Mode Toggle */}
+      <div className="space-y-3">
+        {filterBar}
 
-        <Select
-          value={sortBy}
-          onValueChange={(val) => {
-            if (val) setSortBy(val as NoteSortField);
-          }}
-        >
-          <SelectTrigger aria-label="Sort notes" className="h-9 min-w-[180px] text-xs">
-            <SelectValue>{SORT_LABELS[sortBy]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent align="end">
-            <SelectItem value="updatedAt">Sort: Recently updated</SelectItem>
-            <SelectItem value="createdAt">Sort: Date created</SelectItem>
-            <SelectItem value="title">Sort: Title</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search notes or #tags..."
+              className="h-9 pl-9 pr-8 text-xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Select
+              value={sortBy}
+              onValueChange={(val) => {
+                if (val) setSortBy(val as NoteSortField);
+              }}
+            >
+              <SelectTrigger
+                aria-label="Sort notes"
+                className="h-9 min-w-[175px] text-xs"
+              >
+                <SelectValue>{SORT_LABELS[sortBy]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="updatedAt">Sort: Recently updated</SelectItem>
+                <SelectItem value="createdAt">Sort: Date created</SelectItem>
+                <SelectItem value="title">Sort: Title</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Smooth Cards / List View Toggle */}
+            <div
+              role="group"
+              aria-label="Notes layout view"
+              className="inline-flex h-9 items-center rounded-lg border border-border bg-card p-0.5"
+            >
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                title="Cards view"
+                className={`inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-all cursor-pointer ${
+                  viewMode === "cards"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <LayoutGrid className="size-3.5" />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
+                title="List view"
+                className={`inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-all cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="size-3.5" />
+                <span className="hidden sm:inline">List</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Content */}
       {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-20 w-full rounded-xl" />
-          <Skeleton className="h-20 w-full rounded-xl" />
-          <Skeleton className="h-20 w-full rounded-xl" />
-        </div>
+        viewMode === "cards" ? (
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-36 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg" />
+          </div>
+        )
       ) : isError ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <p className="text-sm font-medium text-foreground">
@@ -202,13 +259,25 @@ export function NotesListView({
             </Button>
           )}
         </div>
-      ) : (
-        <div className="space-y-2.5">
+      ) : viewMode === "cards" ? (
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {visibleNotes.map((note) => (
             <NoteCard
               key={note.id}
               note={note}
               folder={note.folderId ? folderMap.get(note.folderId) : undefined}
+              variant="card"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {visibleNotes.map((note) => (
+            <NoteCard
+              key={note.id}
+              note={note}
+              folder={note.folderId ? folderMap.get(note.folderId) : undefined}
+              variant="list"
             />
           ))}
         </div>
