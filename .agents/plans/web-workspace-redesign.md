@@ -1,6 +1,6 @@
 # iKeen Web Workspace Redesign & Architecture Plan
 
-> **Status**: Phase 0 Complete — Phase 1 Planned & Ready for Approval  
+> **Status**: Phase 1 Complete — Phase 2 Planned & Ready for Approval  
 > **Scope**: `apps/web` (Next.js 16.3.4 App Router, React 19, Tailwind CSS v4, shadcn `base-nova`, TanStack Query v5, Zustand v5) + structured REST block/notes endpoints in `apps/api` (NestJS + Prisma + Vitest).  
 > **Dedicated App Checklist**: [apps/web/CHECKLIST.md](../../apps/web/CHECKLIST.md)
 
@@ -9,8 +9,8 @@
 | Phase | Name | Status | Primary Validation Gates (No-Build Fast Loop) |
 | :--- | :--- | :--- | :--- |
 | **Phase 0** | Architecture Foundation, Route Groups & Legacy Quarantine | `DONE` | `web check-types`, `web lint`, `web build` (baseline), commit |
-| **Phase 1** | Backend REST Block Endpoints & Web API Layer (`lib/api/*.api.ts`) | `PLANNED` | `api test` (Vitest), `web test` (Bun), `api/web check-types`, `api/web lint`, commit |
-| **Phase 2** | Public Platform & Marketing Landing Page (`sir.studio/capture` flow) | `PENDING` | `web check-types`, `web lint`, `web test`, responsive visual audit, commit |
+| **Phase 1** | Backend REST Block Endpoints & Web API Layer (`lib/api/*.api.ts`) | `DONE` | `api test` (Vitest), `web test` (Bun), `api/web check-types`, `api/web lint`, commit |
+| **Phase 2** | Public Platform & Marketing Landing Page (`sir.studio/capture` flow) | `PLANNED` | `web check-types`, `web lint`, `web test`, responsive visual audit, commit |
 | **Phase 3** | Core `/app` Workspace Shell, Notes & Folders | `PENDING` | `web check-types`, `web lint`, `web test`, E2E CRUD + reload check, commit |
 | **Phase 4** | Scratchpad (`/app/scratchpad`), Media Blocks & Workspace Polish | `PENDING` | `web check-types`, `web lint`, `web test`, cross-device scratchpad + media check, commit |
 | **Phase 5** | Trash/Restore & Future Integration Readiness (Post-MVP) | `PENDING` | `api test`, `web test`, `check-types`, `lint`, final `web build`, commit |
@@ -194,13 +194,71 @@ Every phase follows a strict, repeatable 6-step workflow before moving forward:
 - [ ] `query-keys.test.ts`: Verifies deterministic key hierarchy (`noteKeys`, `folderKeys`, `authKeys`) for cache invalidation.
 
 ### Step 1.7 — Phase 1 Verification Gate (No-Build Fast Loop)
-- [ ] `bun --filter=@repo/api run test`
-- [ ] `bun --filter=@repo/web run test`
-- [ ] `bun run --filter=@repo/api check-types`
-- [ ] `bun run --filter=@repo/web check-types`
-- [ ] `bun run --filter=@repo/api lint`
-- [ ] `bun run --filter=@repo/web lint`
-- [ ] Update `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 1 `DONE`, then conclude with Phase 1 git commit.
+- [x] `bun --filter=@repo/api run test` (17/17 notes tests pass)
+- [x] `bun --filter=@repo/web run test` (8/8 schema & query-key tests pass)
+- [x] `bun run --filter=@repo/api check-types` (0 errors)
+- [x] `bun run --filter=@repo/web check-types` (0 errors)
+- [x] `bun run --filter=@repo/api lint` (0 errors, 0 warnings)
+- [x] `bun run --filter=@repo/web lint` (0 errors)
+- [x] Updated `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 1 `DONE`.
+
+---
+
+## Detailed Execution Plan — Phase 2: Public Platform & Marketing Landing Page (`app/(public)/*`)
+
+**Objective**: Redesign the public web experience (`/` and `/download`, `/privacy`, `/delete-account`) following the `https://sir.studio/capture` layout flow, typographic scale, and visual rhythm—adapted cleanly to iKeen's brand, palette, and real multi-platform product (Web Workspace, Android/iOS, Desktop, AI/MCP).
+
+### Step 2.1 — Public Shell (`app/(public)/layout.tsx` & `components/public/`)
+- [ ] **Create `components/public/public-header.tsx`**:
+  - Static top bar (`max-w-[1120px]`, `py-5 px-6 sm:px-10`, flex row).
+  - Left: iKeen mark + bold `Space Grotesk` wordmark (`iKeen`).
+  - Center (hidden `< md`): 5 crisp links (`Why iKeen` `#why`, `Platforms` `#platforms`, `How it works` `#how-it-works`, `FAQ` `#faq`, `Download` `/download`).
+  - Right: `<UserMenu />` + primary pill CTA (`Open Workspace` → `/app`).
+- [ ] **Create `components/public/public-footer.tsx`**:
+  - Top hairline rule + 4-column desktop / 2-column mobile grid (`Product`, `Platforms`, `Developers`, `Legal`):
+    - **Product**: `Web Workspace` (`/app`), `Why iKeen` (`/#why`), `How it works` (`/#how-it-works`), `FAQ` (`/#faq`)
+    - **Platforms**: `Download Apps` (`/download`), `Android & iOS` (`/download#mobile`), `Desktop` (`/download#desktop`)
+    - **Developers**: `MCP Showcase` (`/legacy/mcp`), `Developer Dashboard` (`/legacy/dashboard`)
+    - **Legal**: `Privacy Policy` (`/privacy`), `Delete Account` (`/delete-account`)
+  - Bottom copyright row (`© 2026 iKeen · Built by TechForge`).
+- [ ] **Update `app/(public)/layout.tsx`**: Compose `PublicHeader` + `{children}` + `PublicFooter`.
+
+### Step 2.2 — Landing Page Sections (`components/public/landing/` & `app/(public)/page.tsx`)
+Structured in the exact `sir.studio/capture` 9-section cadence (omitting fabricated testimonials/blog):
+- [ ] **`hero-section.tsx`**:
+  - Announcement pill (`New` accent badge + `iKeen Web Workspace is live →` linking to `/app`).
+  - Two-tone stacked display H1 (`Write everything.` in primary ink / `Keep it yours.` in muted ink, `clamp(48px, 8.5vw, 96px)`, `font-heading font-bold tracking-tight leading-[0.95]`).
+  - Bold sub-headline with accent lead phrase + concise paragraph (`max-w-xl`).
+  - Dual pill CTAs: `Open Web Workspace` (`/app`) + `Download Apps` (`/download`).
+  - Composite interactive-looking 3-surface workspace preview frame (Desktop Editor, Mobile Scratchpad, Web Notes Index — built with crisp CSS/UI components, zero placeholder stock photos).
+- [ ] **`friction-section.tsx`** (`#why`):
+  - Full-bleed inverted high-contrast band (`bg-card` / dark contrast surface).
+  - Left-aligned two-tone H2 (`The thought is fast.` / `Your tools are slow.`) + intro copy.
+  - 3 equal rounded workflow cards: (1) *Without iKeen* (dashed muted border), (2) *Capture in iKeen* (solid primary accent focal card), (3) *Organize when ready* (subtle translucent surface).
+- [ ] **`platforms-bento.tsx`** (`#platforms`):
+  - Reusable split `.section-head` (two-tone H2 left, concise context right).
+  - Asymmetric `1.5fr / 1fr` bento grid (`rounded-3xl` cards): **Web Workspace** (`1.5fr`), **Mobile (Android & iOS)** (`1fr`), **Desktop (Windows / Tauri)** (`1.5fr`), **Cross-Device Sync** (`1fr`).
+- [ ] **`ways-in-grid.tsx`** (`#how-it-works`):
+  - Split header + clean `3×2` borderless text-first card grid: *Block-Based Editor*, *Checklists & Lists*, *Instant Scratchpad*, *Folders & Pins*, *Media Attachments*, *Fast Search & Keyboard*.
+- [ ] **`ecosystem-panel.tsx`**:
+  - Rounded full-width panel highlighting real-time multi-device sync across Mobile, Desktop, Web, and AI Agents.
+- [ ] **`trust-pillars.tsx`**:
+  - Unboxed 3-column text grid directly on canvas (*Your notes, your ownership*, *Native on mobile & desktop, instant on web*, *Zero clutter, built for focus*).
+- [ ] **`faq-section.tsx`** (`#faq`):
+  - Two-tone H2 (`Questions, answered.`) + native HTML `<details>` / `<summary>` accordion separated by hairlines with rotating `+` icon.
+- [ ] **`agents-callout.tsx`** (`#agents`):
+  - Distinctive dark monospace/terminal callout panel (`iKeen for agents`) with crisp sharp-cornered console box, copyable MCP config snippet, and link to `/legacy/mcp`.
+- [ ] **`closing-cta.tsx`**:
+  - Centered brand mark, two-tone H2 (`Think clearly.` / `Keep it yours.`), and `Open Web Workspace` / `Download` pills.
+
+### Step 2.3 — Align Public Utility Pages
+- [ ] Polish `app/(public)/download/page.tsx` (`components/public/download-view.tsx`), `app/(public)/privacy/page.tsx`, and `app/(public)/delete-account/page.tsx` with unified container width, typography scale, and back-to-home navigation.
+
+### Step 2.4 — Phase 2 Verification Gate (No-Build Fast Loop)
+- [ ] `bun run --filter=@repo/web check-types` (0 errors)
+- [ ] `bun run --filter=@repo/web lint` (0 errors)
+- [ ] `bun --filter=@repo/web run test` (all pass)
+- [ ] Update `apps/web/CHECKLIST.md` & `.agents/plans/web-workspace-redesign.md` → Phase 2 `DONE`, then conclude with Phase 2 git commit.
 
 ---
 

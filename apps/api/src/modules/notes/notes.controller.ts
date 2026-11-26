@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -16,6 +17,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { NotesService } from './notes.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
+import { ListNotesQueryDto } from './dto/list-notes-query.dto.js';
+import { UpsertBlockDto } from './dto/upsert-block.dto.js';
+import { ReorderBlocksDto } from './dto/reorder-blocks.dto.js';
 
 interface AuthenticatedRequest {
   user: {
@@ -32,9 +36,9 @@ export class NotesController {
   @Get()
   async findAll(
     @Req() req: AuthenticatedRequest,
-    @Query('folderId') folderId?: string,
+    @Query() query: ListNotesQueryDto,
   ) {
-    return this.notesService.findAll(req.user.id, folderId);
+    return this.notesService.findAll(req.user.id, query);
   }
 
   @Get(':id')
@@ -64,5 +68,34 @@ export class NotesController {
   @HttpCode(HttpStatus.OK)
   async softDelete(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.notesService.softDelete(req.user.id, id);
+  }
+
+  @Put(':id/blocks/:blockId')
+  async upsertBlock(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') noteId: string,
+    @Param('blockId') blockId: string,
+    @Body() dto: UpsertBlockDto,
+  ) {
+    return this.notesService.upsertBlock(req.user.id, noteId, blockId, dto);
+  }
+
+  @Delete(':id/blocks/:blockId')
+  @HttpCode(HttpStatus.OK)
+  async softDeleteBlock(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') noteId: string,
+    @Param('blockId') blockId: string,
+  ) {
+    return this.notesService.softDeleteBlock(req.user.id, noteId, blockId);
+  }
+
+  @Patch(':id/blocks/reorder')
+  async reorderBlocks(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') noteId: string,
+    @Body() dto: ReorderBlocksDto,
+  ) {
+    return this.notesService.reorderBlocks(req.user.id, noteId, dto.blockIds);
   }
 }

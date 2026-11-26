@@ -35,31 +35,31 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 - [x] **Gate — Types**: `bun run --filter=@repo/web check-types` (0 errors)
 - [x] **Gate — Lint**: `bun run --filter=@repo/web lint` (0 errors)
 - [x] **Gate — Build** *(baseline verification)*: `bun run --filter=@repo/web build` (19/19 routes generated)
-- [ ] **Gate — Git Commit**: `feat(web): phase 0 - route groups, legacy quarantine, and auth ui decoupling`
+- [x] **Gate — Git Commit**: `feat(web): phase 0 - route groups, legacy quarantine, and auth ui decoupling`
 
 ---
 
 ## Phase 1 — Backend REST Block Endpoints (`apps/api`) & Web API Layer (`lib/api/*.api.ts`)
 
-- [ ] **API DTOs & Validation**: `ListNotesQueryDto`, `UpsertBlockDto`, `ReorderBlocksDto` with strict `class-validator` rules
-- [ ] **API Endpoints**:
-  - [ ] `GET /api/v1/notes` supports `folderId`, `pinnedOnly`, `archivedOnly`, `includeArchived`
-  - [ ] `GET /api/v1/notes/:id` returns `NoteDetail` with active ordered unpacked `blocks: NoteBlock[]`
-  - [ ] `PUT /api/v1/notes/:id/blocks/:blockId` upserts block via `packServerBlockContent` + ownership check + bumps `note.updatedAt`
-  - [ ] `DELETE /api/v1/notes/:id/blocks/:blockId` soft-deletes block (`deletedAt`, `version++`) + bumps `note.updatedAt`
-  - [ ] `PATCH /api/v1/notes/:id/blocks/reorder` updates positions transactionally + bumps `note.updatedAt`
-- [ ] **Web Validation & API Layer**:
-  - [ ] Add `"test": "bun test"` script to `apps/web/package.json`
-  - [ ] `apps/web/lib/api/schemas.ts` (Zod v4 schemas for `Note`, `NoteDetail`, `NoteBlock`, `Folder`, `AuthResponse`, request inputs)
-  - [ ] `apps/web/lib/api/auth.api.ts` (`authKeys`, `useProfile`, `useLogin`, `useRegister`)
-  - [ ] `apps/web/lib/api/notes.api.ts` (`noteKeys`, `useNotes`, `useNote`, `useCreateNote`, `useUpdateNote`, `useDeleteNote`)
-  - [ ] `apps/web/lib/api/blocks.api.ts` (`useUpsertBlock`, `useDeleteBlock`, `useReorderBlocks`)
-  - [ ] `apps/web/lib/api/folders.api.ts` (`folderKeys`, `useFolders`, `useFolder`, `useCreateFolder`, `useUpdateFolder`, `useDeleteFolder`)
-- [ ] **Gate — API Tests**: `bun --filter=@repo/api run test` (all notes/blocks unit tests pass)
-- [ ] **Gate — Web Tests**: `bun --filter=@repo/web run test` (Zod schema + API contract + query key tests pass)
-- [ ] **Gate — Types**: `bun run --filter=@repo/api check-types` & `bun run --filter=@repo/web check-types` (0 errors)
-- [ ] **Gate — Lint**: `bun run --filter=@repo/api lint` & `bun run --filter=@repo/web lint` (0 errors)
-- [ ] **Gate — Git Commit**: `feat(api,web): phase 1 - rest block endpoints and server-first tanstack api layer`
+- [x] **API DTOs & Validation**: `ListNotesQueryDto`, `UpsertBlockDto`, `ReorderBlocksDto` with strict `class-validator` rules
+- [x] **API Endpoints**:
+  - [x] `GET /api/v1/notes` supports `folderId`, `pinnedOnly`, `archivedOnly`, `includeArchived`
+  - [x] `GET /api/v1/notes/:id` returns `NoteDetail` with active ordered unpacked `blocks: NoteBlock[]`
+  - [x] `PUT /api/v1/notes/:id/blocks/:blockId` upserts block via `packServerBlockContent` + ownership check + bumps `note.updatedAt`
+  - [x] `DELETE /api/v1/notes/:id/blocks/:blockId` soft-deletes block (`deletedAt`, `version++`) + bumps `note.updatedAt`
+  - [x] `PATCH /api/v1/notes/:id/blocks/reorder` updates positions transactionally + bumps `note.updatedAt`
+- [x] **Web Validation & API Layer**:
+  - [x] Add `"test": "bun test"` script to `apps/web/package.json`
+  - [x] `apps/web/lib/api/schemas.ts` (Zod v4 schemas for `Note`, `NoteDetail`, `NoteBlock`, `Folder`, `AuthResponse`, request inputs)
+  - [x] `apps/web/lib/api/auth.api.ts` (`authKeys`, `useProfile`, `useLogin`, `useRegister`)
+  - [x] `apps/web/lib/api/notes.api.ts` (`noteKeys`, `useNotes`, `useNote`, `useCreateNote`, `useUpdateNote`, `useDeleteNote`)
+  - [x] `apps/web/lib/api/blocks.api.ts` (`useUpsertBlock`, `useDeleteBlock`, `useReorderBlocks`)
+  - [x] `apps/web/lib/api/folders.api.ts` (`folderKeys`, `useFolders`, `useFolder`, `useCreateFolder`, `useUpdateFolder`, `useDeleteFolder`)
+- [x] **Gate — API Tests**: `bun --filter=@repo/api run test` (17/17 notes tests pass)
+- [x] **Gate — Web Tests**: `bun --filter=@repo/web run test` (8/8 schema & query key tests pass)
+- [x] **Gate — Types**: `bun run --filter=@repo/api check-types` & `bun run --filter=@repo/web check-types` (0 errors)
+- [x] **Gate — Lint**: `bun run --filter=@repo/api lint` & `bun run --filter=@repo/web lint` (0 errors)
+- [x] **Gate — Git Commit**: `feat(api,web): phase 1 - rest block endpoints and server-first tanstack api layer`
 
 ---
 

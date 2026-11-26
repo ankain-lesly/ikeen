@@ -4,13 +4,18 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { NoteMutationPayload } from '@repo/types';
+import type { NoteBlock, NoteMutationPayload } from '@repo/types';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateNoteDto } from './dto/create-note.dto.js';
 import { UpdateNoteDto } from './dto/update-note.dto.js';
+import { ListNotesQueryDto } from './dto/list-notes-query.dto.js';
+import { UpsertBlockDto } from './dto/upsert-block.dto.js';
 import { BlockMutationDto, ReminderMutationDto } from '../sync/dto/sync-push.dto.js';
-import { packServerBlockContent } from './block-content.codec.js';
+import {
+  packServerBlockContent,
+  unpackServerNoteBlock,
+} from './block-content.codec.js';
 
 export type NoteSyncData = NoteMutationPayload;
 
@@ -21,30 +26,53 @@ export class NotesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Retrieves all active (non-deleted) notes for a user, optionally filtered by folderId.
+   * Retrieves all active (non-deleted) notes for a user with optional filters.
+   * Excludes archived notes by default unless `includeArchived` or `archivedOnly` is true.
    */
-  async findAll(userId: string, folderId?: string) {
+  async findAll(userId: string, query?: ListNotesQueryDto | string) {
+    const filters: ListNotesQueryDto =
+      typeof query === 'string' ? { folderId: query } : (query ?? {});
+
+    const where: Prisma.NoteWhereInput = {
+      userId,
+      deletedAt: null,
+      ...(filters.folderId !== undefined && { folderId: filters.folderId }),
+      ...(filters.pinnedOnly && { isPinned: true }),
+      ...(filters.archivedOnly
+        ? { isArchived: true }
+        : !filters.includeArchived
+          ? { isArchived: false }
+          : {}),
+    };
+
     return this.prisma.note.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        ...(folderId !== undefined && { folderId }),
-      },
+      where,
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
     });
   }
 
   /**
-   * Finds a single active note by ID.
+   * Finds a single active note by ID, including unpacked active blocks ordered by position.
    */
   async findOne(userId: string, id: string) {
     const note = await this.prisma.note.findFirst({
       where: { id, userId, deletedAt: null },
+      include: {
+        blocks: {
+          where: { deletedAt: null },
+          orderBy: { position: 'asc' },
+        },
+      },
     });
     if (!note) {
       throw new NotFoundException(`Note with id "${id}" not found.`);
     }
-    return note;
+
+    const { blocks, ...rest } = note;
+    return {
+      ...rest,
+      blocks: (blocks ?? []).map((b) => unpackServerNoteBlock(b)),
+    };
   }
 
   /**
@@ -116,6 +144,189 @@ export class NotesService {
       where: { id },
       data: { deletedAt: new Date(), version: { increment: 1 } },
     });
+  }
+
+  /**
+   * Upserts a single NoteBlock for an owned note using the canonical block codec.
+   * Bumps parent note.updatedAt so list ordering stays accurate across devices.
+   */
+  async upsertBlock(
+    userId: string,
+    noteId: string,
+    blockId: string,
+    dto: UpsertBlockDto,
+  ): Promise<NoteBlock> {
+    const parentNote = await this.prisma.note.findFirst({
+      where: { id: noteId, userId, deletedAt: null },
+    });
+    if (!parentNote) {
+      throw new NotFoundException(`Note with id "${noteId}" not found.`);
+    }
+
+    const existing = await this.prisma.noteBlock.findUnique({
+      where: { id: blockId },
+    });
+    if (existing && existing.noteId !== noteId) {
+      throw new NotFoundException(
+        `Block "${blockId}" does not belong to note "${noteId}".`,
+      );
+    }
+
+    const packedContent = packServerBlockContent(
+      dto.type,
+      dto,
+      existing?.content,
+    );
+    const now = new Date();
+
+    let resolvedPosition = dto.position ?? existing?.position;
+    if (resolvedPosition === undefined) {
+      const activeCount = await this.prisma.noteBlock.count({
+        where: { noteId, deletedAt: null },
+      });
+      resolvedPosition = activeCount;
+    }
+
+    const saved = existing
+      ? await this.prisma.noteBlock.update({
+          where: { id: blockId },
+          data: {
+            type: dto.type,
+            position: resolvedPosition,
+            content: packedContent as unknown as Prisma.InputJsonValue,
+            deletedAt: null,
+            version: { increment: 1 },
+            updatedAt: now,
+          },
+        })
+      : await this.prisma.noteBlock.create({
+          data: {
+            id: blockId,
+            noteId,
+            type: dto.type,
+            position: resolvedPosition,
+            content: packedContent as unknown as Prisma.InputJsonValue,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+        });
+
+    await this.prisma.note.update({
+      where: { id: noteId },
+      data: { updatedAt: now },
+    });
+
+    return unpackServerNoteBlock(saved);
+  }
+
+  /**
+   * Soft-deletes a single NoteBlock using a tombstone so delta-pull propagates to mobile/desktop.
+   */
+  async softDeleteBlock(
+    userId: string,
+    noteId: string,
+    blockId: string,
+  ): Promise<{ id: string; noteId: string; deletedAt: string }> {
+    const parentNote = await this.prisma.note.findFirst({
+      where: { id: noteId, userId, deletedAt: null },
+    });
+    if (!parentNote) {
+      throw new NotFoundException(`Note with id "${noteId}" not found.`);
+    }
+
+    const existing = await this.prisma.noteBlock.findFirst({
+      where: { id: blockId, noteId, deletedAt: null },
+    });
+    if (!existing) {
+      throw new NotFoundException(
+        `Block "${blockId}" not found in note "${noteId}".`,
+      );
+    }
+
+    const now = new Date();
+    await this.prisma.noteBlock.update({
+      where: { id: blockId },
+      data: {
+        deletedAt: now,
+        version: { increment: 1 },
+        updatedAt: now,
+      },
+    });
+
+    await this.prisma.note.update({
+      where: { id: noteId },
+      data: { updatedAt: now },
+    });
+
+    return {
+      id: blockId,
+      noteId,
+      deletedAt: now.toISOString(),
+    };
+  }
+
+  /**
+   * Reorders active blocks for an owned note in a single transaction.
+   */
+  async reorderBlocks(
+    userId: string,
+    noteId: string,
+    blockIds: string[],
+  ): Promise<NoteBlock[]> {
+    const parentNote = await this.prisma.note.findFirst({
+      where: { id: noteId, userId, deletedAt: null },
+    });
+    if (!parentNote) {
+      throw new NotFoundException(`Note with id "${noteId}" not found.`);
+    }
+
+    const activeBlocks = await this.prisma.noteBlock.findMany({
+      where: { noteId, deletedAt: null },
+      orderBy: { position: 'asc' },
+    });
+    const activeById = new Map(activeBlocks.map((b) => [b.id, b]));
+    const now = new Date();
+
+    const orderedIds = [
+      ...blockIds.filter((id) => activeById.has(id)),
+      ...activeBlocks
+        .map((b) => b.id)
+        .filter((id) => !blockIds.includes(id)),
+    ];
+
+    const updates = orderedIds
+      .map((id, index) => {
+        const current = activeById.get(id);
+        if (!current || current.position === index) return null;
+        return this.prisma.noteBlock.update({
+          where: { id },
+          data: {
+            position: index,
+            version: { increment: 1 },
+            updatedAt: now,
+          },
+        });
+      })
+      .filter((op): op is NonNullable<typeof op> => op !== null);
+
+    if (updates.length > 0) {
+      await this.prisma.$transaction([
+        ...updates,
+        this.prisma.note.update({
+          where: { id: noteId },
+          data: { updatedAt: now },
+        }),
+      ]);
+    }
+
+    const refreshed = await this.prisma.noteBlock.findMany({
+      where: { noteId, deletedAt: null },
+      orderBy: { position: 'asc' },
+    });
+
+    return refreshed.map((b) => unpackServerNoteBlock(b));
   }
 
   /**
