@@ -16,19 +16,20 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 
 export function DownloadView() {
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12 sm:py-20 space-y-16">
+    <div className="mx-auto w-full max-w-[1120px] flex-1 px-6 sm:px-10 py-14 sm:py-20 space-y-16">
       {/* Hero */}
       <section className="text-center space-y-4 max-w-2xl mx-auto">
-        <h1 className="text-3xl sm:text-5xl font-heading font-semibold tracking-tight text-foreground">
-          Get iKeen on your devices
+        <h1 className="font-heading text-4xl sm:text-6xl font-bold tracking-[-0.03em] text-foreground">
+          <span>Get iKeen </span>
+          <span className="text-muted-foreground">on your devices.</span>
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          Write everything. Keep it yours. Fast, private notes with folders, biometric protection, and an optional AI thinking partner.
+        <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+          Write everything. Keep it yours. Fast, private notes with folders, scratchpad, and unified blocks across every screen.
         </p>
       </section>
 
       {/* Platform Download Cards - One Single Clean Link Each */}
-      <section aria-labelledby="platforms-heading">
+      <section id="mobile" aria-labelledby="platforms-heading">
         <h2 id="platforms-heading" className="sr-only">Available Platforms</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Android */}
@@ -83,8 +84,8 @@ export function DownloadView() {
             </CardContent>
           </Card>
 
-          {/* Web */}
-          <Card className="border-border bg-card/60 flex flex-col justify-between hover:border-primary/50 transition-all duration-200">
+          {/* Web & Desktop */}
+          <Card id="desktop" className="border-border bg-card/60 flex flex-col justify-between hover:border-primary/50 transition-all duration-200">
             <CardHeader className="space-y-3 pb-4">
               <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <Globe className="size-6" />

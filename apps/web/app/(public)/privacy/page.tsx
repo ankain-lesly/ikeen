@@ -11,9 +11,11 @@ const UPDATED = "2 October 2026";
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-      <p className="text-sm text-zinc-500">Last updated {UPDATED}</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14 sm:py-20">
+      <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+        Last updated {UPDATED}
+      </p>
+      <h1 className="mt-3 font-heading text-3xl sm:text-5xl font-bold tracking-[-0.03em] text-foreground">
         Privacy Policy
       </h1>
       <p className="mt-4 text-zinc-600 dark:text-zinc-400">

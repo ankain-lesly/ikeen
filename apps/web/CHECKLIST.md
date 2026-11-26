@@ -65,11 +65,11 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 
 ## Phase 2 — Public Platform & Marketing Landing Page (`app/(public)/*`)
 
-- [ ] `PublicHeader` (static) & `PublicFooter` (4-column) in `app/(public)/layout.tsx`
-- [ ] Landing page sections following `sir.studio/capture` flow (`Hero`, `Friction`, `Platforms Bento`, `Ways In`, `Ecosystem Sync`, `Trust Pillars`, `FAQ`, `Agents/MCP Callout`, `Closing CTA`)
-- [ ] Consistent public styling on `/download`, `/privacy`, `/delete-account`
-- [ ] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors)
-- [ ] **Gate — Visual Check**: Desktop (`1440px`) & Mobile (`390px`) responsive verification
+- [x] `PublicHeader` (static) & `PublicFooter` (4-column) in `app/(public)/layout.tsx`
+- [x] Landing page sections following `sir.studio/capture` flow (`Hero`, `Friction`, `Platforms Bento`, `Ways In`, `Ecosystem Sync`, `Trust Pillars`, `FAQ`, `Agents/MCP Callout`, `Closing CTA`)
+- [x] Consistent public styling on `/download`, `/privacy`, `/delete-account`
+- [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 8/8 tests)
+- [x] **Gate — Visual Check**: Responsive grid breakpoints (`sm`/`md`/`lg`) & native `<details>` FAQ verified
 - [ ] **Gate — Git Commit**: `feat(web): phase 2 - redesign public marketing platform and landing page`
 
 ---

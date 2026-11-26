@@ -11,8 +11,8 @@ const MAILTO = `mailto:${DELETE_MAIL}?subject=${encodeURIComponent("Delete my iK
 
 export default function DeleteAccountPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14 sm:py-20">
+      <h1 className="font-heading text-3xl sm:text-5xl font-bold tracking-[-0.03em] text-foreground">
         Delete your iKeen account
       </h1>
       <p className="mt-4 text-zinc-600 dark:text-zinc-400">
