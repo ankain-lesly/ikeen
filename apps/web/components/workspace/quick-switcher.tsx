@@ -7,6 +7,7 @@ import { FileText, Folder as FolderIcon, Plus, Search, StickyNote } from "lucide
 
 import { useFolders } from "@/lib/api/folders.api";
 import { useCreateNote, useNotes } from "@/lib/api/notes.api";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +18,8 @@ import { Input } from "@/components/ui/input";
 
 export function QuickSwitcher() {
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
+  const open = useWorkspaceStore((s) => s.isQuickSwitcherOpen);
+  const setOpen = useWorkspaceStore((s) => s.setQuickSwitcherOpen);
   const [query, setQuery] = React.useState("");
 
   const { data: notes = [] } = useNotes({}, open);
@@ -31,7 +33,8 @@ export function QuickSwitcher() {
 
       if (e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        const current = useWorkspaceStore.getState().isQuickSwitcherOpen;
+        setOpen(!current);
       } else if (e.key.toLowerCase() === "n") {
         const tag = (e.target as HTMLElement | null)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -48,7 +51,7 @@ export function QuickSwitcher() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [createNote, router]);
+  }, [createNote, router, setOpen]);
 
   const normalized = query.trim().toLowerCase();
 

@@ -20,9 +20,21 @@ export default function FolderDetailPage() {
   const { data: notes = [], isLoading, isError } = useNotes({ folderId });
   const deleteFolder = useDeleteFolder();
   const [editOpen, setEditOpen] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
 
   function handleDelete() {
     if (!folder) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setConfirmDelete(false);
     deleteFolder.mutate(folder.id, {
       onSuccess: () => {
         toast.success(`Deleted "${folder.name}"`);
@@ -56,13 +68,18 @@ export default function FolderDetailPage() {
                 <span className="hidden sm:inline">Edit</span>
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant={confirmDelete ? "destructive" : "ghost"}
+                size={confirmDelete ? "sm" : "icon"}
                 onClick={handleDelete}
                 aria-label="Delete folder"
-                className="size-8 text-muted-foreground hover:text-destructive"
+                className={
+                  confirmDelete
+                    ? "h-8 gap-1.5 text-xs"
+                    : "size-8 text-muted-foreground hover:text-destructive"
+                }
               >
                 <Trash2 className="size-3.5" />
+                {confirmDelete && <span>Confirm</span>}
               </Button>
             </div>
           ) : null

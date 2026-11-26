@@ -18,6 +18,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const SORT_LABELS: Record<NoteSortField, string> = {
+  updatedAt: "Sort: Recently updated",
+  createdAt: "Sort: Date created",
+  title: "Sort: Title",
+};
 
 interface NotesListViewProps {
   title: string;
@@ -48,10 +61,9 @@ export function NotesListView({
   const { data: folders = [] } = useFolders();
   const createNote = useCreateNote();
 
-  const searchQuery = useWorkspaceStore((s) => s.searchQuery);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const sortBy = useWorkspaceStore((s) => s.sortBy);
   const sortDirection = useWorkspaceStore((s) => s.sortDirection);
-  const setSearchQuery = useWorkspaceStore((s) => s.setSearchQuery);
   const setSortBy = useWorkspaceStore((s) => s.setSortBy);
 
   const folderMap = React.useMemo(
@@ -132,16 +144,21 @@ export function NotesListView({
           )}
         </div>
 
-        <select
-          aria-label="Sort notes"
+        <Select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as NoteSortField)}
-          className="h-9 rounded-md border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary"
+          onValueChange={(val) => {
+            if (val) setSortBy(val as NoteSortField);
+          }}
         >
-          <option value="updatedAt">Sort: Recently updated</option>
-          <option value="createdAt">Sort: Date created</option>
-          <option value="title">Sort: Title</option>
-        </select>
+          <SelectTrigger aria-label="Sort notes" className="h-9 min-w-[180px] text-xs">
+            <SelectValue>{SORT_LABELS[sortBy]}</SelectValue>
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value="updatedAt">Sort: Recently updated</SelectItem>
+            <SelectItem value="createdAt">Sort: Date created</SelectItem>
+            <SelectItem value="title">Sort: Title</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Content */}

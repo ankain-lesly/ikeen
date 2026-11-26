@@ -104,11 +104,51 @@ export function useUpdateNote() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateNotePayload }) =>
       updateNoteApi(id, dto),
+    onMutate: async ({ id, dto }) => {
+      await queryClient.cancelQueries({ queryKey: noteKeys.detail(id) });
+      await queryClient.cancelQueries({ queryKey: noteKeys.lists() });
+
+      const prevDetail = queryClient.getQueryData<NoteDetail>(
+        noteKeys.detail(id),
+      );
+      const prevLists = queryClient.getQueriesData<Note[]>({
+        queryKey: noteKeys.lists(),
+      });
+
+      if (prevDetail) {
+        queryClient.setQueryData<NoteDetail>(noteKeys.detail(id), {
+          ...prevDetail,
+          ...dto,
+        });
+      }
+
+      for (const [key, list] of prevLists) {
+        if (!list) continue;
+        queryClient.setQueryData<Note[]>(
+          key,
+          list.map((n) => (n.id === id ? { ...n, ...dto } : n)),
+        );
+      }
+
+      return { prevDetail, prevLists };
+    },
+    onError: (_err, { id }, ctx) => {
+      if (ctx?.prevDetail) {
+        queryClient.setQueryData(noteKeys.detail(id), ctx.prevDetail);
+      }
+      if (ctx?.prevLists) {
+        for (const [key, list] of ctx.prevLists) {
+          queryClient.setQueryData(key, list);
+        }
+      }
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData<NoteDetail>(
         noteKeys.detail(updated.id),
         (prev) => (prev ? { ...prev, ...updated } : undefined),
       );
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
     },
   });

@@ -183,7 +183,6 @@ export function BlockCanvas({
 
           {block.type === "list" && (
             <ListBlockEditor
-              key={`${block.id}-${block.updatedAt}`}
               block={block}
               onCommit={(patch) =>
                 upsertBlock.mutate(

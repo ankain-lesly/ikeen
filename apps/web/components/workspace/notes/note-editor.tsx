@@ -11,6 +11,13 @@ import { useDeleteNote, useUpdateNote } from "@/lib/api/notes.api";
 import type { NoteDetail } from "@/lib/api/schemas";
 import { BlockCanvas } from "./blocks/block-canvas";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface NoteEditorProps {
   note: NoteDetail;
@@ -106,19 +113,26 @@ export function NoteEditor({
             {updateNote.isPending ? "Saving…" : "Saved"}
           </span>
 
-          <select
-            aria-label="Assign folder"
-            value={note.folderId ?? ""}
-            onChange={(e) => handleFolderChange(e.target.value)}
-            className="h-8 rounded-md border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary"
+          <Select
+            value={note.folderId ?? "__none__"}
+            onValueChange={(val) =>
+              handleFolderChange(!val || val === "__none__" ? "" : val)
+            }
           >
-            <option value="">No folder</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" aria-label="Assign folder" className="text-xs min-w-[120px]">
+              <SelectValue>
+                {folders.find((f) => f.id === note.folderId)?.name ?? "No folder"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="__none__">No folder</SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  {folder.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Button
             variant="ghost"

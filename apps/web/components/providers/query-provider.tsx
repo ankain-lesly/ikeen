@@ -3,6 +3,7 @@
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -15,8 +16,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
             retry: 1,
           },
         },
-      })
+      }),
   );
+
+  // Clear cached user data immediately on sign-out or 401 session expiration
+  React.useEffect(() => {
+    return useAuthStore.subscribe((state, prevState) => {
+      if (prevState.isAuthenticated && !state.isAuthenticated) {
+        queryClient.clear();
+      }
+    });
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -24,7 +34,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <Toaster
         position="top-right"
         toastOptions={{
-          className: "!bg-card !text-foreground !border !border-border !rounded-lg !shadow-xl !text-sm",
+          className:
+            "!bg-card !text-foreground !border !border-border !rounded-lg !shadow-xl !text-sm",
           style: {
             background: "var(--card)",
             color: "var(--foreground)",

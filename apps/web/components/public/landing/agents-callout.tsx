@@ -3,11 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { Check, Copy, Terminal } from "lucide-react";
+import { xenv } from "@/lib/env.client";
+
+const MCP_ENDPOINT = `${xenv.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/mcp`;
 
 const MCP_SNIPPET = `{
   "mcpServers": {
     "ikeen": {
-      "url": "https://api.ikeen.app/mcp",
+      "url": "${MCP_ENDPOINT}",
       "headers": {
         "Authorization": "Bearer YOUR_IKEEN_API_KEY"
       }

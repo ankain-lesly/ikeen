@@ -72,15 +72,12 @@ export function DownloadView() {
               </div>
             </CardHeader>
             <CardContent className="pt-2">
-              <a
-                href="#"
-                // target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              <span
+                aria-disabled="true"
+                className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card/50 px-4 text-xs font-medium text-muted-foreground cursor-not-allowed"
               >
-                <span>Apple App Store</span>
-                <ArrowRight className="size-3.5" />
-              </a>
+                <span>App Store · Coming Soon</span>
+              </span>
             </CardContent>
           </Card>
 

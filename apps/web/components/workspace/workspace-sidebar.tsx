@@ -11,6 +11,7 @@ import {
   Menu,
   Pin,
   Plus,
+  Search,
   StickyNote,
   Trash2,
 } from "lucide-react";
@@ -38,6 +39,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { data: folders = [], isLoading: isFoldersLoading } = useFolders();
   const createNote = useCreateNote();
+  const setQuickSwitcherOpen = useWorkspaceStore((s) => s.setQuickSwitcherOpen);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = React.useState(false);
 
   function handleNewNote() {
@@ -72,8 +74,8 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
 
-      {/* Primary action */}
-      <div className="px-3 pb-3">
+      {/* Primary actions */}
+      <div className="px-3 pb-3 space-y-1.5">
         <Button
           onClick={handleNewNote}
           disabled={createNote.isPending}
@@ -87,6 +89,23 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           )}
           <span>New Note</span>
         </Button>
+
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            setQuickSwitcherOpen(true);
+          }}
+          className="flex w-full items-center justify-between rounded-lg border border-border/70 bg-background/60 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground cursor-pointer"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Search className="size-3.5" />
+            <span>Quick jump…</span>
+          </span>
+          <kbd className="font-mono text-[10px] text-muted-foreground/80">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       {/* Navigation + Folders */}
