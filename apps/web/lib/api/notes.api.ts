@@ -24,6 +24,7 @@ export const noteKeys = {
   all: ["notes"] as const,
   lists: () => [...noteKeys.all, "list"] as const,
   list: (filters: NotesFilter = {}) => [...noteKeys.lists(), filters] as const,
+  trash: () => [...noteKeys.all, "trash"] as const,
   details: () => [...noteKeys.all, "detail"] as const,
   detail: (id: string) => [...noteKeys.details(), id] as const,
 };
@@ -121,6 +122,56 @@ export function useDeleteNote() {
     onSuccess: (_deleted, id) => {
       queryClient.removeQueries({ queryKey: noteKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: noteKeys.trash() });
+    },
+  });
+}
+
+export async function fetchTrashedNotesApi(): Promise<Note[]> {
+  const { data } = await apiClient.get("/api/v1/notes/trash");
+  return z.array(noteSchema).parse(data);
+}
+
+export async function restoreNoteApi(id: string): Promise<Note> {
+  const { data } = await apiClient.post(`/api/v1/notes/${id}/restore`);
+  return noteSchema.parse(data);
+}
+
+export async function permanentDeleteNoteApi(
+  id: string,
+): Promise<{ id: string; deleted: boolean }> {
+  const { data } = await apiClient.delete(`/api/v1/notes/${id}/permanent`);
+  return z.object({ id: z.string(), deleted: z.boolean() }).parse(data);
+}
+
+export function useTrashedNotes(enabled = true) {
+  return useQuery({
+    queryKey: noteKeys.trash(),
+    queryFn: fetchTrashedNotesApi,
+    enabled,
+  });
+}
+
+export function useRestoreNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: restoreNoteApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.trash() });
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
+}
+
+export function usePermanentDeleteNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: permanentDeleteNoteApi,
+    onSuccess: (_res, id) => {
+      queryClient.removeQueries({ queryKey: noteKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: noteKeys.trash() });
     },
   });
 }

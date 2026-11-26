@@ -13,6 +13,7 @@ describe("TanStack Query Key Factories", () => {
       { folderId: "f-1" },
     ]);
     expect(noteKeys.detail("n-42")).toEqual(["notes", "detail", "n-42"]);
+    expect(noteKeys.trash()).toEqual(["notes", "trash"]);
   });
 
   test("folderKeys produce stable hierarchical keys", () => {

@@ -41,6 +41,11 @@ export class NotesController {
     return this.notesService.findAll(req.user.id, query);
   }
 
+  @Get('trash')
+  async findTrashed(@Req() req: AuthenticatedRequest) {
+    return this.notesService.findTrashed(req.user.id);
+  }
+
   @Get(':id')
   async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.notesService.findOne(req.user.id, id);
@@ -55,6 +60,12 @@ export class NotesController {
     return this.notesService.create(req.user.id, dto);
   }
 
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  async restore(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.notesService.restore(req.user.id, id);
+  }
+
   @Patch(':id')
   async update(
     @Req() req: AuthenticatedRequest,
@@ -62,6 +73,15 @@ export class NotesController {
     @Body() dto: UpdateNoteDto,
   ) {
     return this.notesService.update(req.user.id, id, dto);
+  }
+
+  @Delete(':id/permanent')
+  @HttpCode(HttpStatus.OK)
+  async permanentDelete(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.notesService.permanentDelete(req.user.id, id);
   }
 
   @Delete(':id')

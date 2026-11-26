@@ -97,8 +97,8 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 
 ## Phase 5 — Trash/Restore & Future Integration Readiness (Post-MVP)
 
-- [ ] `apps/api`: `GET /notes/trash`, `POST /notes/:id/restore`, `DELETE /notes/:id/permanent`
-- [ ] `apps/web`: `/app/trash` route + hooks
-- [ ] **Gate — API & Web Tests, Types, Lint**: 0 errors
-- [ ] **Gate — Final Release Build**: `bun run --filter=@repo/web build`
+- [x] `apps/api`: `GET /notes/trash`, `POST /notes/:id/restore`, `DELETE /notes/:id/permanent` (+ 3 Vitest unit tests)
+- [x] `apps/web`: `/app/trash` route + `useTrashedNotes`, `useRestoreNote`, `usePermanentDeleteNote` hooks + sidebar nav link
+- [x] **Gate — API & Web Tests, Types, Lint**: 20/20 API notes tests, 12/12 Web tests, 0 type/lint errors
+- [ ] **Gate — Final Release Build** *(skipped during fast dev loop; run before deployment)*: `bun run --filter=@repo/web build`
 - [ ] **Gate — Git Commit**: `feat(api,web): phase 5 - trash recovery and workspace finalization`

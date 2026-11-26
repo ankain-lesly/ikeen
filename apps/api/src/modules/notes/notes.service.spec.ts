@@ -23,6 +23,7 @@ describe('NotesService', () => {
         create: vi.fn(),
         update: vi.fn(),
         upsert: vi.fn(),
+        delete: vi.fn(),
       },
       noteBlock: {
         findUnique: vi.fn(),
@@ -440,6 +441,39 @@ describe('NotesService', () => {
       const reordered = await service.reorderBlocks('u-1', 'n-1', ['b-2', 'b-1']);
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(reordered.map((b) => b.id)).toEqual(['b-2', 'b-1']);
+    });
+  });
+
+  describe('trash & restore', () => {
+    it('should list soft-deleted notes newest first', async () => {
+      prisma.note.findMany.mockResolvedValue([{ id: 'n-del', deletedAt: new Date() }]);
+      const res = await service.findTrashed('u-1');
+      expect(res).toHaveLength(1);
+      expect(prisma.note.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1', deletedAt: { not: null } },
+        orderBy: { deletedAt: 'desc' },
+      });
+    });
+
+    it('should restore a trashed note by clearing deletedAt and incrementing version', async () => {
+      prisma.note.findFirst.mockResolvedValue({ id: 'n-del', userId: 'u-1', deletedAt: new Date() });
+      prisma.note.update.mockResolvedValue({ id: 'n-del', deletedAt: null, version: 2 });
+
+      const restored = await service.restore('u-1', 'n-del');
+      expect(restored.deletedAt).toBeNull();
+      expect(prisma.note.update).toHaveBeenCalledWith({
+        where: { id: 'n-del' },
+        data: { deletedAt: null, version: { increment: 1 } },
+      });
+    });
+
+    it('should permanently delete an owned note', async () => {
+      prisma.note.findFirst.mockResolvedValue({ id: 'n-del', userId: 'u-1' });
+      prisma.note.delete.mockResolvedValue({ id: 'n-del' });
+
+      const res = await service.permanentDelete('u-1', 'n-del');
+      expect(res).toEqual({ id: 'n-del', deleted: true });
+      expect(prisma.note.delete).toHaveBeenCalledWith({ where: { id: 'n-del' } });
     });
   });
 });

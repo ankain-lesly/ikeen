@@ -147,6 +147,54 @@ export class NotesService {
   }
 
   /**
+   * Lists soft-deleted notes in the user's trash, newest deletions first.
+   */
+  async findTrashed(userId: string) {
+    return this.prisma.note.findMany({
+      where: {
+        userId,
+        deletedAt: { not: null },
+      },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
+  /**
+   * Restores a soft-deleted note back to active workspace.
+   */
+  async restore(userId: string, id: string) {
+    const existing = await this.prisma.note.findFirst({
+      where: { id, userId, deletedAt: { not: null } },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Trashed note with id "${id}" not found.`);
+    }
+
+    return this.prisma.note.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        version: { increment: 1 },
+      },
+    });
+  }
+
+  /**
+   * Permanently deletes an owned note (cascades note_blocks & reminders).
+   */
+  async permanentDelete(userId: string, id: string) {
+    const existing = await this.prisma.note.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Note with id "${id}" not found.`);
+    }
+
+    await this.prisma.note.delete({ where: { id } });
+    return { id, deleted: true };
+  }
+
+  /**
    * Upserts a single NoteBlock for an owned note using the canonical block codec.
    * Bumps parent note.updatedAt so list ordering stays accurate across devices.
    */

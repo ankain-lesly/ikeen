@@ -12,6 +12,7 @@ import {
   Pin,
   Plus,
   StickyNote,
+  Trash2,
 } from "lucide-react";
 
 import { useFolders } from "@/lib/api/folders.api";
@@ -29,6 +30,7 @@ const PRIMARY_NAV = [
   { label: "Scratchpad", href: "/app/scratchpad", icon: StickyNote },
   { label: "Pinned", href: "/app/pinned", icon: Pin },
   { label: "Archive", href: "/app/archive", icon: Archive },
+  { label: "Trash", href: "/app/trash", icon: Trash2 },
 ] as const;
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
