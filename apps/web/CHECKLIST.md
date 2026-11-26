@@ -87,10 +87,10 @@ This checklist is the canonical per-phase sign-off ledger for `apps/web`. Every 
 
 ## Phase 4 — Scratchpad, Media Blocks & Workspace Polish
 
-- [ ] `/app/scratchpad` cross-device scratchpad (`SCRATCHPAD_TAG` from `@repo/utils`)
-- [ ] `lib/api/media.api.ts` + `MediaBlock` renderer & upload (`POST /api/v1/media/upload`)
-- [ ] Keyboard ergonomics (`⌘K` quick switcher, `⌘N` new note) & optimistic pin/checkbox toggles
-- [ ] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors)
+- [x] `/app/scratchpad` cross-device scratchpad (`SCRATCHPAD_TAG` from `@repo/utils`)
+- [x] `lib/api/media.api.ts` + `MediaBlock` renderer & upload (`POST /api/v1/media/upload`)
+- [x] Keyboard ergonomics (`⌘K` quick switcher, `⌘N` new note) & responsive sheet UX
+- [x] **Gate — Types, Lint & Tests**: `check-types`, `lint`, `test` (0 errors, 12/12 tests)
 - [ ] **Gate — Git Commit**: `feat(web): phase 4 - scratchpad, media blocks, and workspace polish`
 
 ---

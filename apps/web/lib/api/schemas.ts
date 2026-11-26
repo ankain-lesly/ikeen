@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type {
   Folder,
+  MediaMetadata,
   Note,
   NoteBlock,
   TextBlock,
@@ -58,7 +59,9 @@ export const mediaItemSchema = z.object({
   name: z.string().optional(),
   url: z.string().optional(),
   caption: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z
+    .custom<MediaMetadata>((v) => typeof v === "object" && v !== null)
+    .optional(),
 });
 
 const baseBlockSchema = z.object({
@@ -225,3 +228,21 @@ export const updateFolderInputSchema = z.object({
   pinCode: z.string().max(255).nullable().optional(),
   sortOrder: z.number().int().optional(),
 });
+
+// ============================================================================
+// Media Upload Schema
+// ============================================================================
+
+export const mediaUploadResponseSchema = z.object({
+  ok: z.boolean(),
+  data: z.object({
+    id: z.string().min(1),
+    url: z.string().url(),
+    filename: z.string(),
+    original_filename: z.string(),
+    mime_type: z.string(),
+    size: z.number().nonnegative(),
+  }),
+});
+
+export type MediaUploadResponse = z.infer<typeof mediaUploadResponseSchema>;

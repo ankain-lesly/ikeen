@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/blocks.api";
 import { TextBlockEditor } from "./text-block";
 import { ListBlockEditor } from "./list-block";
+import { MediaBlockEditor } from "./media-block";
 import { Button } from "@/components/ui/button";
 
 interface BlockCanvasProps {
@@ -67,6 +68,21 @@ export function BlockCanvas({
         },
       },
       { onError: () => toast.error("Failed to add list block") },
+    );
+  }
+
+  function handleAddMediaBlock() {
+    const blockId = nanoid();
+    upsertBlock.mutate(
+      {
+        blockId,
+        dto: {
+          type: "media",
+          position: blocks.length,
+          content: [],
+        },
+      },
+      { onError: () => toast.error("Failed to add media block") },
     );
   }
 
@@ -186,34 +202,18 @@ export function BlockCanvas({
           )}
 
           {block.type === "media" && (
-            <div className="flex flex-wrap gap-3 py-1">
-              {block.content.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Empty media block
-                </p>
-              ) : (
-                block.content.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
-                  >
-                    <ImageIcon className="size-3.5 text-primary" />
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        {item.name || item.mediaType}
-                      </a>
-                    ) : (
-                      <span>{item.name || item.mediaType}</span>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
+            <MediaBlockEditor
+              block={block}
+              onCommit={(content) =>
+                upsertBlock.mutate(
+                  {
+                    blockId: block.id,
+                    dto: { type: "media", position: block.position, content },
+                  },
+                  { onError: () => toast.error("Failed to save media block") },
+                )
+              }
+            />
           )}
         </div>
       ))}
@@ -263,6 +263,17 @@ export function BlockCanvas({
         >
           <ListOrdered className="size-3.5" />
           <span>Add Numbered</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddMediaBlock}
+          disabled={upsertBlock.isPending}
+          className="h-8 gap-1.5 text-xs"
+        >
+          <ImageIcon className="size-3.5" />
+          <span>Add Media</span>
         </Button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import {
   authResponseSchema,
   createFolderInputSchema,
   folderSchema,
+  mediaUploadResponseSchema,
   noteBlockSchema,
   noteDetailSchema,
   upsertBlockInputSchema,
@@ -122,5 +123,21 @@ describe("API Zod Schemas", () => {
       accessToken: "jwt-token",
     });
     expect(res.user.email).toBe("dev@ikeen.app");
+  });
+
+  test("validates MediaUploadResponse", () => {
+    const res = mediaUploadResponseSchema.parse({
+      ok: true,
+      data: {
+        id: "m-1",
+        url: "https://cdn.ikeen.app/uploads/photo.png",
+        filename: "photo.png",
+        original_filename: "photo.png",
+        mime_type: "image/png",
+        size: 102400,
+      },
+    });
+    expect(res.ok).toBe(true);
+    expect(res.data.mime_type).toBe("image/png");
   });
 });
