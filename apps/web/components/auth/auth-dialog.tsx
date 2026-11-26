@@ -5,9 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/keys-store";
+import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { loginApi, registerApi } from "@/lib/api/auth-api";
+import { loginApi, registerApi } from "@/lib/api/auth.api";
 
 import {
   Sheet,
@@ -23,7 +23,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 export function AuthDialog() {
   const queryClient = useQueryClient();
-  const { isAuthOpen, closeAuth, authMode } = useKeysStore();
+  const { isAuthOpen, closeAuth, authMode } = useAuthUiStore();
   const { setAuth } = useAuthStore();
 
   const [userMode, setUserMode] = React.useState<"login" | "register" | null>(null);

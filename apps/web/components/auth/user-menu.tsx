@@ -3,7 +3,7 @@
 import * as React from "react";
 import { User, LogOut, Shield, ChevronDown } from "lucide-react";
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
-import { useKeysStore } from "@/lib/stores/keys-store";
+import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
 export function UserMenu() {
   const isHydrated = useAuthHydration();
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { openAuth } = useKeysStore();
+  const { openAuth } = useAuthUiStore();
 
   if (!isHydrated) {
     return <div className="h-7 w-18 rounded-lg bg-muted/30 animate-pulse" />;
