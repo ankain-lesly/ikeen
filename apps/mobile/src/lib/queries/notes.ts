@@ -64,6 +64,7 @@ function buildNotesFiltersAndSort(
       .from(reminders)
       .where(
         and(
+          ownerCondition(reminders.userId, userId),
           isNull(reminders.deletedAt),
           eq(reminders.isCompleted, false),
           isNotNull(reminders.noteId),

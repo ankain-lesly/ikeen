@@ -1,4 +1,4 @@
-import { db, isTauriEnvironment } from '@/db/client';
+import { db } from '@/db/client';
 import { reminders, type ReminderSelect } from '@/db/schema';
 import { eq, and, isNull, asc } from 'drizzle-orm';
 import type { Reminder, CreateReminderInput, UpdateReminderInput } from '@repo/types';
@@ -13,28 +13,15 @@ function mapSelectToReminder(row: ReminderSelect): Reminder {
     title: row.title,
     dueAt: row.dueAt,
     repeat: row.repeat as Reminder['repeat'],
+    repeatInterval: row.repeatInterval ?? null,
+    maxRepeats: row.maxRepeats ?? null,
+    repeatCount: row.repeatCount ?? 0,
     isCompleted: Boolean(row.isCompleted),
     notificationId: row.notificationId ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
   };
-}
-
-export async function scheduleDesktopNotification(title: string, body: string) {
-  if (!isTauriEnvironment()) return;
-  try {
-    const { isPermissionGranted, requestPermission, sendNotification } = await import(
-      '@tauri-apps/plugin-notification'
-    );
-    let granted = await isPermissionGranted();
-    if (!granted) {
-      granted = (await requestPermission()) === 'granted';
-    }
-    if (granted) sendNotification({ title, body });
-  } catch (err) {
-    console.warn('[Reminders:NotificationError]', err);
-  }
 }
 
 export async function getReminderForNote(noteId: string): Promise<Reminder | null> {

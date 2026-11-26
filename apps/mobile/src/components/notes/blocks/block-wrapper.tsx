@@ -89,6 +89,24 @@ export const BlockWrapper = React.memo(function BlockWrapper({
         ...action,
         onPress: wrapAction(action.onPress),
       })),
+      ...(canMoveUp
+        ? [
+            {
+              label: "Move Up",
+              icon: <ArrowUp size={18} color={colors.text} />,
+              onPress: wrapAction(onMoveUp),
+            },
+          ]
+        : []),
+      ...(canMoveDown
+        ? [
+            {
+              label: "Move Down",
+              icon: <ArrowDown size={18} color={colors.text} />,
+              onPress: wrapAction(onMoveDown),
+            },
+          ]
+        : []),
       {
         label: "Duplicate",
         icon: <Copy size={18} color={colors.text} />,

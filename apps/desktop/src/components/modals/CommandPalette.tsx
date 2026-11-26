@@ -18,6 +18,7 @@ import {
   Settings,
   Folder as FolderIcon,
   Tag,
+  StickyNote,
   RefreshCw,
   Archive,
   Trash2,
@@ -116,6 +117,18 @@ export function CommandPalette({
             <span>New Note</span>
             <CommandShortcut>⌘N</CommandShortcut>
           </CommandItem>
+
+          {onSelectFilter && (
+            <CommandItem
+              onSelect={() => {
+                onSelectFilter("scratchpad");
+                onOpenChange(false);
+              }}
+            >
+              <StickyNote className="mr-2 h-4 w-4 text-emerald-400" />
+              <span>Open Scratchpad</span>
+            </CommandItem>
+          )}
 
           {onNewFolder && (
             <CommandItem

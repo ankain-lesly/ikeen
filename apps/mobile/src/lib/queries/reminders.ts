@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import * as Crypto from 'expo-crypto';
-import { and, asc, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, sql, type SQL } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { computeNextDueAt, getNextOccurrence, reconcileIntervalOccurrence } from '@repo/utils';
 
 import { db } from '@/db/client';
 import { reminders, notes } from '@/db/schema';
@@ -9,6 +10,7 @@ import type {
   Reminder,
   CreateReminderInput,
   UpdateReminderInput,
+  ReminderRepeat,
 } from '@/lib/types/reminders';
 import { enqueueOutbox } from '@/lib/sync/outbox';
 import { currentAuthUserId, ownerCondition } from './owner';
@@ -84,6 +86,8 @@ export async function createReminder(
   const now = new Date().toISOString();
   const id = input.id ?? Crypto.randomUUID();
 
+  console.log({input})
+  
   const newReminder: Reminder = {
     id,
     userId,
@@ -91,6 +95,9 @@ export async function createReminder(
     title: input.title ?? '',
     dueAt: input.dueAt,
     repeat: input.repeat ?? 'none',
+    repeatInterval: input.repeatInterval ?? null,
+    maxRepeats: input.maxRepeats ?? null,
+    repeatCount: input.repeatCount ?? 0,
     isCompleted: input.isCompleted ?? false,
     notificationId: null,
     createdAt: now,
@@ -203,7 +210,14 @@ export async function updateReminder(
     if (updated.isCompleted || updated.deletedAt) {
       await cancelReminderNotification(id);
     } else {
-      await scheduleReminderNotification(updated as Reminder, noteTitle);
+      const notificationId = await scheduleReminderNotification(updated as Reminder, noteTitle);
+      if (notificationId && notificationId !== updated.notificationId) {
+        await db
+          .update(reminders)
+          .set({ notificationId })
+          .where(eq(reminders.id, id));
+        updated.notificationId = notificationId;
+      }
     }
 
     await enqueueOutbox('reminders', id, 'upsert', updatedFields);
@@ -216,8 +230,69 @@ export async function updateReminder(
   return (updated as Reminder) ?? null;
 }
 
+export { computeNextDueAt, getNextOccurrence };
+
+/**
+ * Scans active recurring reminders where dueAt <= now and !isCompleted,
+ * advancing dueAt to the next future occurrence in DB, rescheduling notification,
+ * and pushing updates to sync outbox.
+ */
+export async function catchupAndReconcileRecurringReminders(): Promise<number> {
+  const now = new Date();
+  const recurringActive = await db
+    .select()
+    .from(reminders)
+    .where(
+      and(
+        isNull(reminders.deletedAt),
+        eq(reminders.isCompleted, false),
+        ne(reminders.repeat, 'none')
+      )
+    );
+
+  let updatedCount = 0;
+  for (const item of recurringActive) {
+    const dueDate = new Date(item.dueAt);
+    if (!isNaN(dueDate.getTime()) && dueDate.getTime() <= now.getTime()) {
+      if (item.repeat === 'interval' && item.repeatInterval && item.repeatInterval >= 60) {
+        const reconciliation = reconcileIntervalOccurrence(
+          item.dueAt,
+          item.repeatInterval,
+          item.maxRepeats ?? 10,
+          item.repeatCount ?? 0,
+          now
+        );
+        if (reconciliation.isExhausted) {
+          // Maximum repeat iterations reached: complete reminder and cancel OS alarm
+          await updateReminder(item.id, {
+            isCompleted: true,
+            repeatCount: reconciliation.nextCount,
+          });
+          await cancelReminderNotification(item.id);
+          updatedCount++;
+        } else if (reconciliation.nextDueAt !== item.dueAt) {
+          await updateReminder(item.id, {
+            dueAt: reconciliation.nextDueAt,
+            repeatCount: reconciliation.nextCount,
+          });
+          updatedCount++;
+        }
+      } else {
+        const nextDueAt = getNextOccurrence(item.dueAt, item.repeat as ReminderRepeat, now);
+        if (nextDueAt !== item.dueAt) {
+          await updateReminder(item.id, { dueAt: nextDueAt });
+          updatedCount++;
+        }
+      }
+    }
+  }
+  return updatedCount;
+}
+
 /**
  * Toggles a reminder's completion state.
+ * For repeating reminders, completing advances dueAt to the next occurrence,
+ * or marks completed if an interval reminder has reached its maxRepeats limit.
  */
 export async function toggleReminderCompleted(id: string): Promise<boolean> {
   const [existing] = await db
@@ -227,6 +302,42 @@ export async function toggleReminderCompleted(id: string): Promise<boolean> {
     .limit(1);
 
   if (!existing) return false;
+
+  // If recurring and currently uncompleted, advance dueAt to next cycle instead of terminating
+  if (!existing.isCompleted && existing.repeat && existing.repeat !== 'none') {
+    if (existing.repeat === 'interval' && existing.repeatInterval) {
+      const nextCount = (existing.repeatCount ?? 0) + 1;
+      const maxRepeats = existing.maxRepeats ?? 10;
+      if (nextCount >= maxRepeats) {
+        // Reached maximum allowed repeats: finalize as completed
+        await updateReminder(id, {
+          isCompleted: true,
+          repeatCount: nextCount,
+        });
+        await cancelReminderNotification(id);
+        return true;
+      }
+
+      const nextDueAt = computeNextDueAt(
+        existing.dueAt,
+        existing.repeat as ReminderRepeat,
+        existing.repeatInterval
+      );
+      await updateReminder(id, {
+        dueAt: nextDueAt,
+        repeatCount: nextCount,
+        isCompleted: false,
+      });
+      return false;
+    }
+
+    const nextDueAt = computeNextDueAt(existing.dueAt, existing.repeat as ReminderRepeat);
+    await updateReminder(id, {
+      dueAt: nextDueAt,
+      isCompleted: false,
+    });
+    return false;
+  }
 
   const nextCompleted = !existing.isCompleted;
   await updateReminder(id, { isCompleted: nextCompleted });

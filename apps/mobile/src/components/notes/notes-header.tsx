@@ -65,7 +65,7 @@ export function NotesHeader({
   };
 
   return (
-    <View className="border-b border-border/50 bg-background pb-3">
+    <View className="bg-background pb-3">
       {/* Top Header */}
       <View className="flex-row items-center justify-between px-4">
         {/* Title */}

@@ -243,7 +243,7 @@ export async function markOutboxFailed(
 ): Promise<void> {
   if (ids.length === 0) return;
   const now = new Date().toISOString();
-  const category = classifySyncPushFailure(status);
+  const category = classifySyncPushFailure(status, errorMessage);
 
   try {
     if (category === 'transient_no_penalty') {
@@ -293,6 +293,32 @@ export async function markOutboxFailed(
     const message = err instanceof Error ? err.message : String(err);
     log('[Sync:Outbox:Error]', { action: 'markOutboxFailed', error: message });
     console.log('[🚨] [Outbox] Failed to handle outbox failure state:', message);
+  }
+}
+
+/**
+ * Resets all failed outbox items back to pending with 0 retry count and clears lastError.
+ */
+export async function retryFailedOutbox(): Promise<number> {
+  const now = new Date().toISOString();
+  try {
+    const updated = await db
+      .update(syncOutbox)
+      .set({
+        status: 'pending',
+        retryCount: 0,
+        lastError: null,
+        updatedAt: now,
+      })
+      .where(eq(syncOutbox.status, 'failed'))
+      .returning({ id: syncOutbox.id });
+
+    log('[Sync:Outbox:RetryFailed]', { count: updated.length });
+    return updated.length;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[Outbox:retryFailedOutbox:Error]', message);
+    return 0;
   }
 }
 

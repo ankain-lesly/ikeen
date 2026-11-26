@@ -42,6 +42,7 @@ interface NoteMinimalToolbarProps {
   onShare?: () => void;
   isPinned?: boolean;
   onTogglePin?: () => void;
+  onOpenBlockSheet?: () => void;
 }
 
 interface NoteBottomToolBarProps
@@ -120,6 +121,7 @@ export const NoteBottomToolBar = React.memo(function NoteBottomToolBar({
             onShare={onShare}
             isPinned={isPinned}
             onTogglePin={onTogglePin}
+            onOpenBlockSheet={() => setIsBlockSheetOpen(true)}
           />
         )}
       </View>
@@ -330,6 +332,7 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
   onStartEditing,
   wordCount = 0,
   onShare,
+  onOpenBlockSheet,
 }: NoteMinimalToolbarProps) {
   const colors = useTheme();
   const { isVisible } = useKeyboardGradualAnimation();
@@ -338,8 +341,23 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
     <AnimatedEntryView className="absolute bottom-safe-offset-2 flex-1 flex-row items-center justify-between">
       <View
         className={`items-center justify-center w-full${!isVisible ? " pb-safe-offset-2" : ""}`}>
-        <View className="h-12 flex-row items-center justify-between border border-border rounded-full px-4 bg-card/95 shadow-sm gap-2">
-          {/* Left: Word count badge */}
+        <View className="h-12 flex-row items-center justify-between border border-border/70 rounded-full px-3.5 bg-card/95 shadow-sm gap-3">
+          {/* Left: Quick Add '+' trigger */}
+          {onOpenBlockSheet && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add block or attachment"
+              className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center active:opacity-75"
+              onPress={() => {
+                Haptics.selectionAsync();
+                onOpenBlockSheet();
+              }}
+              hitSlop={6}>
+              <Plus size={16} color={colors.primary} />
+            </Pressable>
+          )}
+
+          {/* Center: Word count badge */}
           <Text className="text-xs font-mono text-text-secondary">
             {wordCount} {wordCount === 1 ? "word" : "words"}
           </Text>
@@ -350,7 +368,7 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Share note"
-                className="p-2 rounded-full justify-center items-center active:opacity-70 size-10"
+                className="p-2 rounded-full justify-center items-center active:opacity-70 size-9"
                 onPress={onShare}
                 hitSlop={8}>
                 <Share2 size={16} color={colors.textSecondary} />
@@ -359,13 +377,13 @@ export const NoteMinimalToolbar = React.memo(function NoteMinimalToolbar({
 
             {/* Quick Edit CTA Button */}
             <Pressable
-              className="flex-row items-center gap-2 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
+              className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary active:opacity-90"
               onPress={() => {
                 Haptics.selectionAsync();
                 onStartEditing();
               }}>
               <Pencil size={13} color="#ffffff" />
-              <Text className="text-sm font-semibold text-white">Edit</Text>
+              <Text className="text-xs font-semibold text-white">Edit</Text>
             </Pressable>
           </View>
         </View>

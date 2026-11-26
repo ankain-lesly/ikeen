@@ -3,6 +3,7 @@ import "../global.css";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
+  AppState,
   StatusBar,
   Text,
   View,
@@ -10,7 +11,15 @@ import {
 } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider, router } from "expo-router";
 import * as Notifications from "expo-notifications";
-import { ensureReminderChannelAsync } from "@/lib/services/notification.service";
+import {
+  ensureReminderChannelAsync,
+  ACTION_COMPLETE_REMINDER,
+  cancelReminderNotification,
+} from "@/lib/services/notification.service";
+import {
+  catchupAndReconcileRecurringReminders,
+  toggleReminderCompleted,
+} from "@/lib/queries/reminders";
 import {
   registerPushTokenWithServerAsync,
   initPushTokenAuthListener,
@@ -37,6 +46,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { CheckForUpdatesMain } from "@/components/check-for-updates";
 import { AppDrawerContent } from "@/components/app-drawer-content";
+import { ShareIntentReceiver } from "@/components/share/share-intent-receiver";
+import {ShareIntentProvider} from "expo-share-intent"
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,29 +74,31 @@ export default function AppProvider() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <KeyboardProvider>
-        <GestureHandlerRootView>
-          <SafeAreaListener
-            onChange={({ insets }) => Uniwind.updateInsets(insets)}>
-            <ThemeProvider value={MyTheme}>
-              <View className="bg-background flex-1">
-                {/* Root App */}
-                <RootDrawerLayout />
-                <Toast config={toastConfig} position="top" topOffset={50} />
-                <StatusBar
-                  barStyle={
-                    scheme === "dark" ? "light-content" : "dark-content"
-                  }
-                />
-                {/* Check Of Updates */}
-                <CheckForUpdatesMain />
-              </View>
-            </ThemeProvider>
-          </SafeAreaListener>
-        </GestureHandlerRootView>
-      </KeyboardProvider>
-    </QueryClientProvider>
+    <ShareIntentProvider>
+      <QueryClientProvider client={queryClient}>
+        <KeyboardProvider>
+          <GestureHandlerRootView>
+            <SafeAreaListener
+              onChange={({ insets }) => Uniwind.updateInsets(insets)}>
+              <ThemeProvider value={MyTheme}>
+                <View className="bg-background flex-1">
+                  {/* Root App */}
+                  <RootDrawerLayout />
+                  <Toast config={toastConfig} position="top" topOffset={50} />
+                  <StatusBar
+                    barStyle={
+                      scheme === "dark" ? "light-content" : "dark-content"
+                    }
+                  />
+                  {/* Check Of Updates */}
+                  <CheckForUpdatesMain />
+                </View>
+              </ThemeProvider>
+            </SafeAreaListener>
+          </GestureHandlerRootView>
+        </KeyboardProvider>
+      </QueryClientProvider>
+    </ShareIntentProvider>
   );
 }
 
@@ -111,21 +124,64 @@ function RootDrawerLayout() {
         .finally(() => {
           SplashScreen.hideAsync();
           syncManager.init();
+          catchupAndReconcileRecurringReminders().catch((err) => {
+            console.log("[Reminders] Catchup error:", err);
+          });
         });
+
+      const subscription = AppState.addEventListener("change", (nextState) => {
+        if (nextState === "active") {
+          catchupAndReconcileRecurringReminders().catch(() => {});
+        }
+      });
+
+      return () => subscription.remove();
     }
   }, [success]);
 
   useEffect(() => {
     ensureReminderChannelAsync().catch(() => {});
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      if (data?.noteId) {
+
+    const handleNotificationResponse = async (
+      response: Notifications.NotificationResponse | null | undefined,
+    ) => {
+      if (!response) return;
+      const actionIdentifier = response.actionIdentifier;
+      const data = response.notification?.request?.content?.data;
+      const noteId = data?.noteId as string | undefined;
+      const reminderId = data?.reminderId as string | undefined;
+
+      // Handle interactive notification action button: "Mark Done"
+      if (actionIdentifier === ACTION_COMPLETE_REMINDER && reminderId) {
+        try {
+          await toggleReminderCompleted(reminderId);
+          await cancelReminderNotification(reminderId);
+        } catch (err) {
+          console.warn(
+            "[RootLayout] Failed to complete reminder from action:",
+            err,
+          );
+        }
+        return;
+      }
+
+      // Default tap or "View Note" button
+      if (noteId) {
         router.push({
           pathname: "/notes/[id]",
-          params: { id: data.noteId as string },
+          params: { id: noteId },
         });
       }
-    });
+    };
+
+    Notifications.getLastNotificationResponseAsync()
+      .then(handleNotificationResponse)
+      .catch(() => {});
+
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(
+        handleNotificationResponse,
+      );
 
     return () => subscription.remove();
   }, []);
@@ -160,27 +216,30 @@ function RootDrawerLayout() {
   }
 
   return (
-    <Drawer
-      drawerContent={AppDrawerContent}
-      screenOptions={{
-        headerShown: false,
-        drawerStyle: {
-          backgroundColor: colors.background,
-          width: 290,
-        },
-        drawerActiveTintColor: colors.primary,
-        drawerInactiveTintColor: colors.textSecondary,
-        drawerType: "slide",
-      }}
-      initialRouteName="index">
-      <Drawer.Screen name="index" />
-      <Drawer.Screen name="agent" />
-      <Drawer.Screen name="search" />
-      <Drawer.Screen name="reminders" />
-      <Drawer.Screen name="notes" />
-      <Drawer.Screen name="folders/[id]" />
-      <Drawer.Screen name="(tabs)" />
-      <Drawer.Screen name="(auth)" />
-    </Drawer>
+    <>
+      <Drawer
+        drawerContent={AppDrawerContent}
+        screenOptions={{
+          headerShown: false,
+          drawerStyle: {
+            backgroundColor: colors.background,
+            width: 290,
+          },
+          drawerActiveTintColor: colors.primary,
+          drawerInactiveTintColor: colors.textSecondary,
+          drawerType: "slide",
+        }}
+        initialRouteName="index">
+        <Drawer.Screen name="index" />
+        <Drawer.Screen name="agent" />
+        <Drawer.Screen name="search" />
+        <Drawer.Screen name="reminders" />
+        <Drawer.Screen name="notes" />
+        <Drawer.Screen name="folders/[id]" />
+        <Drawer.Screen name="(tabs)" />
+        <Drawer.Screen name="(auth)" />
+      </Drawer>
+      <ShareIntentReceiver />
+    </>
   );
 }

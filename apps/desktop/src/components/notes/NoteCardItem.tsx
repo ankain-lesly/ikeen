@@ -1,6 +1,6 @@
 import { memo } from "react";
-import type { Note } from "@repo/types";
-import { formatDate } from "@repo/utils";
+import type { Note, ReminderRepeat } from "@repo/types";
+import { formatDate, formatReminderDisplay } from "@repo/utils";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -8,12 +8,16 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Zap, Pin, Trash2, Archive, Copy, Bell } from "lucide-react";
+import { Zap, Pin, Trash2, Archive, Copy, Bell, RotateCcw } from "lucide-react";
 
 interface NoteCardItemProps {
   note: Note;
   isActive: boolean;
   reminderDueAt?: string | null;
+  reminderRepeat?: ReminderRepeat | null;
+  reminderRepeatInterval?: number | null;
+  reminderMaxRepeats?: number | null;
+  reminderRepeatCount?: number;
   onSelect: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
@@ -25,6 +29,10 @@ export const NoteCardItem = memo(
     note,
     isActive,
     reminderDueAt,
+    reminderRepeat,
+    reminderRepeatInterval,
+    reminderMaxRepeats,
+    reminderRepeatCount,
     onSelect,
     onTogglePin,
     onDeleteNote,
@@ -63,17 +71,27 @@ export const NoteCardItem = memo(
             <span className="font-mono text-[9px] text-muted-foreground/70">
               {formatDate(new Date(note.updatedAt))}
             </span>
-            {reminderDueAt && (
-              <span
-                className="inline-flex items-center gap-1 text-[9px] font-mono text-[#39ff14] bg-[#39ff14]/10 px-1 py-0.5 rounded"
-                title={`Reminder: ${new Date(reminderDueAt).toLocaleString()}`}
-              >
-                <Bell className="w-2.5 h-2.5" />
-                <span>
-                  {new Date(reminderDueAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {reminderDueAt && (() => {
+              const display = formatReminderDisplay(
+                reminderDueAt,
+                reminderRepeat ?? "none",
+                reminderRepeatInterval,
+                reminderMaxRepeats,
+                reminderRepeatCount
+              );
+              return (
+                <span
+                  className="inline-flex items-center gap-1 text-[9px] font-mono text-[#39ff14] bg-[#39ff14]/10 px-1 py-0.5 rounded"
+                  title={display.text}
+                >
+                  <Bell className="w-2.5 h-2.5" />
+                  {display.isRepeating && (
+                    <RotateCcw className="w-2.5 h-2.5" />
+                  )}
+                  <span>{display.chipLabel}</span>
                 </span>
-              </span>
-            )}
+              );
+            })()}
             {note.tags.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-hidden font-mono text-[9px] text-muted-foreground/60">
                 {note.tags.slice(0, 3).map((tag) => (

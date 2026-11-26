@@ -10,7 +10,9 @@ For the monorepo release process standard, see [docs/releases/RELEASE_PROCESS.md
 
 | Version | Build | Release Date | Codename / Focus | Status | Documentation |
 | :--- | :---: | :---: | :--- | :---: | :--- |
-| **`2.1.0`** | `8` | 2026-11-15 | **Note Reminders, Push Notifications & Agent Polish** | **Current** | [v2.1.0.md](v2.1.0.md) |
+| **`2.3.0`** | `10` | 2026-11-26 | **External Share Target, Outbox Ledger Parity & Note Editor Agility** | **Current** | [v2.3.0.md](v2.3.0.md) |
+| **`2.2.0`** | `9` | 2026-11-22 | **Distraction-Free Scratchpad & Reminders Hardening** | Supported | [v2.2.0.md](v2.2.0.md) |
+| **`2.1.0`** | `8` | 2026-11-15 | **Note Reminders, Push Notifications & Agent Polish** | Supported | [v2.1.0.md](v2.1.0.md) |
 | **`2.0.1`** | `7` | 2026-10-31 | **Agent Resilience & Media Enhancements** | Supported | [v2.0.1.md](v2.0.1.md) |
 | **`2.0.0`** | `6` | 2026-10-30 | **The Modular Block & Media Era** | Supported | [v2.0.0.md](v2.0.0.md) |
 | **`1.3.0`** | `5` | 2026-10-03 | AI Web Search, Composio Integrations & Account Deletion | Archived | [v1.3.0 in registry](../../../apps/api/src/modules/sync/app-updates.registry.ts#L16-L29) |

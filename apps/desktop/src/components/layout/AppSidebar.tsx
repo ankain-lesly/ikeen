@@ -19,6 +19,7 @@ import {
   FileText,
   Folder as FolderIcon,
   Zap,
+  StickyNote,
   Bell,
   Archive,
   Settings,
@@ -192,6 +193,16 @@ export function AppSidebar({
                 {pinnedNotesCount}
               </span>
             )}
+          </Button>
+
+          <Button
+            variant={activeFilter === "scratchpad" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onFilterChange("scratchpad")}
+            className="w-full justify-start gap-2.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+          >
+            <StickyNote className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="truncate">Scratchpad</span>
           </Button>
 
           <Button

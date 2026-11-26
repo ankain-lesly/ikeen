@@ -8,6 +8,12 @@
 
 ---
 
+## Desktop Reminders Notification Scheduler
+
+- [ ] Implement native background notification scheduling for Desktop (Tauri v2). Replace client-side setInterval polling with a robust OS-level mechanism: either a Rust background thread / system tray daemon in Tauri or server-side push notification dispatch when reminders reach `dueAt` while the window is closed or unfocused.
+
+---
+
 ## Add Background Image
 
 - Add a setting background image to the notes app and optionally for each note setup
@@ -16,7 +22,6 @@
 
 ## Features
 
-- Scratchpad: A single view For dumping unorganized notes ideas. Also Synced. (Architecture. User creates/assigns a specific note only visible as scratchpad)
 - Gallery Nav Link On Agent sidebar when gallery feature is implemented
 
 ---

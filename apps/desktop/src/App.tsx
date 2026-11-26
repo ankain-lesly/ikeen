@@ -19,7 +19,10 @@ import { SettingsDialog } from "@/components/modals/SettingsDialog";
 import { ShortcutsHelpDialog } from "@/components/modals/ShortcutsHelpDialog";
 import { FolderEditDialog } from "@/components/modals/FolderEditDialog";
 import { SyncOutboxDialog } from "@/components/modals/SyncOutboxDialog";
+import { ScratchpadPickerModal } from "@/components/modals/ScratchpadPickerModal";
 import { AuthSheet } from "@/components/auth/AuthSheet";
+import { Button } from "@/components/ui/button";
+import { StickyNote, Plus, FileText } from "lucide-react";
 import { useNotesStore } from "@/stores/use-notes-store";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useSyncStore } from "@/lib/sync/use-sync";
@@ -46,6 +49,8 @@ export default function App() {
     addFolder,
     editFolder,
     removeFolder,
+    createScratchpadNote,
+    assignExistingNoteToScratchpad,
   } = useNotesStore();
 
   // Modals state
@@ -53,6 +58,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState<boolean>(false);
+  const [isScratchpadPickerOpen, setIsScratchpadPickerOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isOutboxOpen, setIsOutboxOpen] = useState<boolean>(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
@@ -350,14 +356,15 @@ export default function App() {
         {/* 2. Workspace Resizable Split: Notes List (32%) + Editor (68%) */}
         <div className="flex-1 h-full min-w-0">
           <ErrorBoundary fallbackTitle="Workspace Layout Error">
-            <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
+            <ResizablePanelGroup
+              orientation="horizontal"
+              className="h-full w-full">
               {/* Notes List Pane */}
               <ResizablePanel
                 id="notes-list"
-              defaultSize="32%"
-              minSize="24%"
-              maxSize="45%"
-              >
+                defaultSize="32%"
+                minSize="24%"
+                maxSize="45%">
                 <NotesListPane
                   notes={notes}
                   activeNoteId={activeNoteId}
@@ -380,14 +387,39 @@ export default function App() {
               <ResizableHandle withHandle />
 
               {/* Editor Workspace Pane */}
-              <ResizablePanel
-                id="editor"
-              defaultSize="68%"
-              minSize="40%"
-              >
+              <ResizablePanel id="editor" defaultSize="68%" minSize="40%">
                 {isLoading && !isInitialized ? (
                   <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
                     Initializing local SQLite database...
+                  </div>
+                ) : activeFilter === "scratchpad" && !activeNote ? (
+                  <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-background">
+                    <div className="w-14 h-14 rounded-2xl bg-[#39ff14]/10 border border-[#39ff14]/25 flex items-center justify-center mb-4">
+                      <StickyNote className="w-7 h-7 text-[#39ff14]" />
+                    </div>
+                    <h2 className="text-xl font-bold tracking-tight text-foreground mb-2">
+                      Personal Workspace
+                    </h2>
+                    <p className="text-xs text-muted-foreground max-w-sm leading-relaxed mb-6">
+                      A quick, distraction-free space for dumping raw thoughts,
+                      outlines, and checklists. Automatically synced across all
+                      your devices without cluttering your main notes feed.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={() => void createScratchpadNote()}
+                        className="bg-[#39ff14] text-black font-semibold text-xs hover:bg-[#32e012]">
+                        <Plus className="w-4 h-4 mr-1.5" />
+                        Create Scratchpad
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsScratchpadPickerOpen(true)}
+                        className="text-xs">
+                        <FileText className="w-4 h-4 mr-1.5 text-muted-foreground" />
+                        Choose Existing Note
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <EditorPane
@@ -461,9 +493,16 @@ export default function App() {
           onOpenAuth={() => setIsAuthOpen(true)}
         />
 
-        <AuthSheet
-          open={isAuthOpen}
-          onOpenChange={setIsAuthOpen}
+        <AuthSheet open={isAuthOpen} onOpenChange={setIsAuthOpen} />
+
+        <ScratchpadPickerModal
+          open={isScratchpadPickerOpen}
+          onOpenChange={setIsScratchpadPickerOpen}
+          notes={notes}
+          currentScratchpadId={activeNoteId}
+          onSelectNote={async (noteId) => {
+            await assignExistingNoteToScratchpad(noteId);
+          }}
         />
       </div>
     </TooltipProvider>

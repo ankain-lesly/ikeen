@@ -41,6 +41,7 @@ export type BlockContainerHandle = {
 
 export interface BlockContainerProps {
   note: Note;
+  liveBlocks: NoteBlock[];
   isEditing: boolean;
   onStartEditing: () => void;
   onContentChange?: (t: string) => void;
@@ -52,7 +53,7 @@ interface BlockRowProps {
   index: number;
   totalBlocks: number;
   isEditing: boolean;
-  // onStartEditing: () => void;
+  onStartEditing?: () => void;
   onStageUpdate: (blockId: string, updates: UpdateBlockInput) => void;
   onImmediateUpdate: (
     blockId: string,
@@ -73,6 +74,7 @@ const BlockRow = React.memo(function BlockRow({
   index,
   totalBlocks,
   isEditing,
+  onStartEditing,
   onStageUpdate,
   onImmediateUpdate,
   onCommit,
@@ -119,6 +121,7 @@ const BlockRow = React.memo(function BlockRow({
           onStageUpdate={handleStage}
           onImmediateUpdate={handleImmediate}
           onCommit={handleCommit}
+          onStartEditing={onStartEditing}
         />
       ) : block.type === "media" ? (
         <MediaBlock
@@ -140,11 +143,11 @@ const BlockRow = React.memo(function BlockRow({
 
 export const BlockContainer = React.memo(
   forwardRef<BlockContainerHandle, BlockContainerProps>(function BlockContainer(
-    { note, isEditing, onContentChange, onRequestRecordAudio },
+    { note, isEditing, onStartEditing, onContentChange, onRequestRecordAudio, liveBlocks },
     ref,
   ) {
     const colors = useTheme();
-    const { data: liveBlocks, isLoading } = useLiveNoteBlocks(note.id);
+    // const { data: liveBlocks, isLoading } = useLiveNoteBlocks(note.id);
     const contentEditorRef = useRef<MarkdownEditorHandle>(null);
 
     const {
@@ -228,10 +231,10 @@ export const BlockContainer = React.memo(
       [note.id],
     );
 
-    if (isLoading) return null;
+    // if (isLoading) return null;
 
     return (
-      <View className="w-full pb-32 gap-2">
+      <View className="w-full gap-2">
         {isEditing ? (
           <MarkdownEditor
             ref={contentEditorRef}
@@ -252,6 +255,7 @@ export const BlockContainer = React.memo(
             index={index}
             totalBlocks={blocks.length}
             isEditing={isEditing}
+            onStartEditing={onStartEditing}
             onStageUpdate={handleStageUpdate}
             onImmediateUpdate={handleImmediateUpdate}
             onCommit={commitBlock}

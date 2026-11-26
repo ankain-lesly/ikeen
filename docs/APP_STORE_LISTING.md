@@ -53,6 +53,26 @@ Notes, folders, tags, and settings stay on the device. They are sent to iKeen on
 iKeen is for people 13 and older. The agent can be wrong. Check anything important before you rely on it.
 ```
 
+### What's New in Version 2.3.0
+```
+What's new in iKeen 2.3:
+• External Share Target: Receive shared text, web links, images, and files directly from other apps into iKeen notes with seamless preview and note search.
+• Custom Block Ingestion: Granular choice to create dedicated separate text/media blocks or append directly into existing note content.
+• Enhanced Sync Outbox: Full desktop parity ledger with interactive status filtering (Pending, In Flight, Failed, Success) and mutation payload inspection.
+• Offline Resilience: Network errors and timeouts no longer mark outbox tasks failed; automatic retry and clear controls.
+• Agility in View Mode: Capture photos, record voice notes, attach files, append checklist items, and manage tags directly from the floating toolbar without opening the keyboard.
+```
+
+### What's New in Version 2.2.0
+```
+What's new in iKeen 2.2:
+• Scratchpad Workspace: A dedicated quick-capture space for rapid idea dumping, draft outlines, and interactive checklists that syncs across devices without cluttering your main notes feed.
+• Enhanced Note Reminders: Overdue reminder detection with prominent visual states and immediate revalidation.
+• Editor Reminder Pills: View and manage scheduled note reminders directly at the bottom of the editor canvas.
+• Cold-Start Deep Linking: Tapping a delivered reminder notification jumps directly to your note even if the app was closed.
+• Stability & Performance: Hardened cloud sync with automatic background lifecycle saving and multi-tenant security isolation.
+```
+
 ### What's New in Version 2.1.0
 ```
 What's new in iKeen 2.1:
@@ -74,6 +94,26 @@ What's new in iKeen 2.1:
 
 ### Full description (limit 4000)
 Use the same body as the Apple description so the two listings do not drift.
+
+### What's New in Version 2.3.0
+```
+What's new in iKeen 2.3:
+• External Share Target: Receive shared text, web links, images, and files directly from other apps into iKeen notes with seamless preview and note search.
+• Custom Block Ingestion: Granular choice to create dedicated separate text/media blocks or append directly into existing note content.
+• Enhanced Sync Outbox: Full desktop parity ledger with interactive status filtering (Pending, In Flight, Failed, Success) and mutation payload inspection.
+• Offline Resilience: Network errors and timeouts no longer mark outbox tasks failed; automatic retry and clear controls.
+• Agility in View Mode: Capture photos, record voice notes, attach files, append checklist items, and manage tags directly from the floating toolbar without opening the keyboard.
+```
+
+### What's New in Version 2.2.0
+```
+What's new in iKeen 2.2:
+• Scratchpad Workspace: A dedicated quick-capture space for rapid idea dumping, draft outlines, and interactive checklists that syncs across devices without cluttering your main notes feed.
+• Enhanced Note Reminders: Overdue reminder detection with prominent visual states and immediate revalidation.
+• Editor Reminder Pills: View and manage scheduled note reminders directly at the bottom of the editor canvas.
+• Cold-Start Deep Linking: Tapping a delivered reminder notification jumps directly to your note even if the app was closed.
+• Stability & Performance: Hardened cloud sync with automatic background lifecycle saving and multi-tenant security isolation.
+```
 
 ### What's New in Version 2.1.0
 ```

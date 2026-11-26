@@ -7,8 +7,9 @@ import type {
   ListBlock,
   MediaBlock,
   MediaItem,
+  Reminder,
 } from "@repo/types";
-import { formatDate } from "@repo/utils";
+import { formatDate, isScratchpadNote, formatReminderDisplay } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +55,7 @@ import {
   CheckSquare,
   Image as ImageIcon,
   Type,
+  RotateCcw,
 } from "lucide-react";
 
 interface EditorPaneProps {
@@ -82,11 +84,7 @@ export function EditorPane({
   const [activeTab, setActiveTab] = useState<string>("edit");
   const [newTagInput, setNewTagInput] = useState<string>("");
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
-  const [activeReminder, setActiveReminder] = useState<{
-    id: string;
-    dueAt: string;
-    isCompleted: boolean;
-  } | null>(null);
+  const [activeReminder, setActiveReminder] = useState<Reminder | null>(null);
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
 
   const currentFolder = note ? folders?.find((f) => f.id === note.folderId) : undefined;
@@ -115,11 +113,7 @@ export function EditorPane({
 
   const refreshNoteReminder = useCallback((noteId: string) => {
     void getReminderForNote(noteId).then((rem) => {
-      setActiveReminder(
-        rem && !rem.deletedAt
-          ? { id: rem.id, dueAt: rem.dueAt, isCompleted: rem.isCompleted }
-          : null
-      );
+      setActiveReminder(rem && !rem.deletedAt ? rem : null);
     });
   }, []);
 
@@ -422,6 +416,12 @@ export function EditorPane({
             </TabsList>
           </Tabs>
 
+          {isScratchpadNote(note) && (
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Scratchpad
+            </span>
+          )}
+
           {folders && folders.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -516,32 +516,44 @@ export function EditorPane({
 
           <Separator orientation="vertical" className="h-4 mx-0.5" />
 
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => setIsReminderDialogOpen(true)}
-                  className={`transition-colors ${
-                    activeReminder && !activeReminder.isCompleted
-                      ? "text-[#39ff14] bg-[#39ff14]/10 hover:bg-[#39ff14]/20"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                </Button>
-              }
-            />
-            <TooltipContent side="bottom" className="text-xs">
-              {activeReminder && !activeReminder.isCompleted
-                ? `Reminder: ${new Date(activeReminder.dueAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : "Set Reminder"}
-            </TooltipContent>
-          </Tooltip>
+          {(() => {
+            const reminderDisplay =
+              activeReminder && !activeReminder.isCompleted
+                ? formatReminderDisplay(
+                    activeReminder.dueAt,
+                    activeReminder.repeat,
+                    activeReminder.repeatInterval,
+                    activeReminder.maxRepeats,
+                    activeReminder.repeatCount
+                  )
+                : null;
+            return (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setIsReminderDialogOpen(true)}
+                      className={`transition-colors gap-1 ${
+                        reminderDisplay
+                          ? "text-[#39ff14] bg-[#39ff14]/10 hover:bg-[#39ff14]/20 px-1.5"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      {reminderDisplay?.isRepeating ? (
+                        <RotateCcw className="w-2.5 h-2.5 text-[#39ff14]" />
+                      ) : null}
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {reminderDisplay ? reminderDisplay.text : "Set Reminder"}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })()}
 
           <Tooltip>
             <TooltipTrigger

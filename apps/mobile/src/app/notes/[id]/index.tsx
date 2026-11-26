@@ -21,7 +21,7 @@ export default function NoteDetailScreen() {
     }
   }, [updatedAt, syncDone, note]);
 
-  // console.log("CONTENT: ", note)
+  // console.log("CONTENT ID: ", note?.id)
   
   if (note) {
     return <NoteEditor key={note.id} note={note} />;

@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const { user, isAuthenticated } = useAuthStore();
 
   const { data: recentNotes = [], isLoading: isRecentLoading } = useLiveNotes({
-    limit: 10,
+    limit: 15,
     pinnedFirst: false,
     withBlocks: true,
   });

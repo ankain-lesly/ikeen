@@ -272,9 +272,21 @@ export class ReminderChangesDto implements ReminderChanges {
   @IsOptional()
   dueAt?: string;
 
-  @IsIn(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'])
+  @IsIn(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom', 'interval'])
   @IsOptional()
   repeat?: ReminderRepeat;
+
+  @IsNumber()
+  @IsOptional()
+  repeatInterval?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  maxRepeats?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  repeatCount?: number;
 
   @IsBoolean()
   @IsOptional()

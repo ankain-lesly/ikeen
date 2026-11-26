@@ -107,6 +107,9 @@ export const BASE_TABLE_STATEMENTS: string[] = [
     title TEXT NOT NULL DEFAULT '',
     due_at TEXT NOT NULL,
     repeat TEXT NOT NULL DEFAULT 'none',
+    repeat_interval INTEGER,
+    max_repeats INTEGER,
+    repeat_count INTEGER NOT NULL DEFAULT 0,
     is_completed INTEGER NOT NULL DEFAULT 0,
     notification_id TEXT,
     created_at TEXT NOT NULL,
@@ -141,6 +144,20 @@ export async function runStartupMigrations(db: QueryExecutor): Promise<void> {
     } catch (err: unknown) {
       console.error('[Desktop Migrations] Core schema migration error:', err, 'for statement:', statement);
       throw err;
+    }
+  }
+
+  // Safe additive migrations for existing tables
+  const additiveMigrations = [
+    'ALTER TABLE reminders ADD COLUMN repeat_interval INTEGER;',
+    'ALTER TABLE reminders ADD COLUMN max_repeats INTEGER;',
+    'ALTER TABLE reminders ADD COLUMN repeat_count INTEGER NOT NULL DEFAULT 0;',
+  ];
+  for (const sql of additiveMigrations) {
+    try {
+      await db.execute(sql);
+    } catch {
+      // Ignore error if column already exists
     }
   }
 }

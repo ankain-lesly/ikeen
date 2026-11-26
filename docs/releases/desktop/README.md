@@ -6,13 +6,22 @@ For general monorepo release policies, refer to [docs/releases/RELEASE_PROCESS.m
 
 ---
 
+## Release History
+
+| Version | Release Date | Codename / Focus | Status | Documentation |
+| :--- | :---: | :--- | :---: | :--- |
+| **`0.2.0`** | 2026-11-22 | **Cross-Platform Scratchpad & Reminders Parity** | **Current** | [v0.2.0.md](v0.2.0.md) |
+| **`0.1.0`** | 2026-11-15 | **Initial Desktop Client Launch (Tauri v2 + React 19)** | Supported | [v0.1.0 in README](README.md) |
+
+---
+
 ## 1. Supported Release Matrix & Targets
 
 The automated release workflow ([`.github/workflows/desktop-release.yml`](../../../.github/workflows/desktop-release.yml)) produces native installers and signed updater bundles across 4 target platforms:
 
 | Platform | Target Architecture | Runner OS | Output Bundles | In-App Updater Target |
 | :--- | :--- | :--- | :--- | :--- |
-| **Windows x64** | `x86_64-pc-windows-msvc` | `windows-latest` | NSIS (`.exe`), WiX (`.msi`) | `iKeen_0.1.0_x64-setup.exe.sig` |
+| **Windows x64** | `x86_64-pc-windows-msvc` | `windows-latest` | NSIS (`.exe`), WiX (`.msi`) | `iKeen_0.2.0_x64-setup.exe.sig` |
 | **macOS Apple Silicon** | `aarch64-apple-darwin` | `macos-latest` | DMG (`.dmg`), App Bundle (`.app`) | `iKeen.app.tar.gz.sig` |
 | **macOS Intel** | `x86_64-apple-darwin` | `macos-13` | DMG (`.dmg`), App Bundle (`.app`) | `iKeen.app.tar.gz.sig` |
 | **Linux x64** | `x86_64-unknown-linux-gnu` | `ubuntu-22.04` | Debian (`.deb`), AppImage (`.AppImage`) | `iKeen.AppImage.tar.gz.sig` |

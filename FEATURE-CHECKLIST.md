@@ -10,6 +10,116 @@ Grouped by todo topic / issue for clearer tracking and context.
 
 ---
 
+## ⏱️ Periodic & Clock Interval Reminders Integration — 2026-11-25
+* **Status**: Completed
+* **Scope**: Enables clock-interval-based recurring reminders (e.g. every minute, 1 hour, 2 hours, 4 hours, or arbitrary custom duration parsed to seconds) without UI templates or presets. Adds dedicated `'interval'` repeat type, native system clock time picker parsing, interval clamping (60s min, 86,400s max), maximum repetition cap (`maxRepeats`, default 10, range 1–100) to protect device battery life, automatic progression & termination reconcilers, and dual-mode (`[Calendar]` vs `[Interval]`) interfaces across Mobile and Desktop.
+
+- [x] Shared Data Architecture & Calculations (`@repo/types`, `@repo/utils`):
+  - [x] Added `'interval'` to `ReminderRepeat` union in `@repo/types/reminders.ts`.
+  - [x] Added `repeatInterval` (number | null), `maxRepeats` (number | null), and `repeatCount` (number) to `Reminder` and `CreateReminderInput`/`UpdateReminderInput`.
+  - [x] Implemented `parseClockToSeconds(hours, minutes)` with strict 60s minimum (iOS `UNTimeIntervalNotificationTrigger` invariant) and 86,400s (24h) maximum clamping.
+  - [x] Implemented `formatIntervalSeconds(seconds)` producing human-readable duration strings (e.g. `1 min`, `1 hr`, `2 hrs 30 mins`).
+  - [x] Implemented `reconcileIntervalOccurrence(dueAt, repeatInterval, maxRepeats, repeatCount, now)` calculating future timestamps and sequence exhaustion (`isExhausted = repeatCount >= maxRepeats`).
+  - [x] Updated `computeNextDueAt` and `formatReminderDisplay` to support `interval` recurrence and chips.
+- [x] Multi-Platform Database Schemas & Migrations (`Mobile SQLite`, `Desktop SQLite`, `Prisma Postgres`):
+  - [x] Mobile Drizzle: Updated `apps/mobile/src/db/schema.ts` with `repeat: interval`, `repeatInterval`, `maxRepeats`, `repeatCount`.
+  - [x] Desktop Drizzle: Updated `apps/desktop/src/db/schema.ts` with matching columns and `runStartupMigrations` additive migration statements.
+  - [x] Backend Prisma: Updated `apps/api/prisma/schema.prisma` with `ReminderRepeat.interval`, `repeatInterval`, `maxRepeats`, `repeatCount`.
+  - [x] Backend DTO & Tools: Updated `SyncPushDto` validation and AI Agent tool schemas (`reminders.tool-definitions.ts`).
+- [x] Mobile Native Notification & Reconciler (`notification.service.ts`, `reminders.ts`):
+  - [x] Added `TIME_INTERVAL` trigger branch with `{ seconds: reminder.repeatInterval, repeats: true }` when `repeatCount < maxRepeats`.
+  - [x] Hardened `catchupAndReconcileRecurringReminders` to advance interval timestamps and mark `isCompleted = true` upon reaching `maxRepeats`.
+  - [x] Updated `toggleReminderCompleted` to advance interval count or complete once exhausted.
+- [x] Mobile UI Parity (`reminder-sheet.tsx`, `note-reminders-section.tsx`, `note-card.tsx`):
+  - [x] Segmented mode switcher: Toggle between `[ Calendar ]` and `[ Interval (Periodic) ]`.
+  - [x] Interval clock picker: Native time picker (`HH:MM`) parsing directly into seconds via `parseClockToSeconds`.
+  - [x] Max repeats stepper: Range 1–100 with minus/plus controls and developer explanation notes.
+  - [x] Encapsulated `note-reminders-section.tsx` and `note-card.tsx` passing interval fields through `formatReminderDisplay` and `ReminderSheet`.
+- [x] Desktop Parity (`ReminderDialog.tsx`, `EditorPane.tsx`, `NoteCardItem.tsx`):
+  - [x] Segmented mode switcher: `[ Calendar ]` vs `[ Interval (Periodic) ]`.
+  - [x] Interval duration time picker (`type="time"`) and max repeats number input.
+  - [x] Updated `formatReminderDisplay` integrations across cards and editor toolbar.
+- [x] End-to-End Verification & Type Checking:
+  - [x] `@repo/types`: 0 errors (Passed)
+  - [x] `@repo/utils`: 0 errors (Passed)
+  - [x] `@repo/mobile`: 0 errors (Passed)
+  - [x] `@repo/desktop`: 0 errors (Passed)
+  - [x] `@repo/api`: 0 errors (Passed)
+
+---
+
+## 🔁 Reminders Recurrence Engine & Universal Display Parity — 2026-11-25
+* **Status**: Completed
+* **Scope**: Complete the true recurring reminder alert flow and universal display across Mobile and Desktop. Adds native OS recurring notification triggers (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`), automatic database catchup on app launch and foregrounding, shared date/recurrence calculations in `@repo/utils`, and recurring visual indicators (`RotateCw`/`RotateCcw`) and formatted time previews across note cards, editor toolbars, bottom canvas pills, and reminder dialogs.
+
+- [x] Shared Recurrence Calculation & Formatting (`@repo/utils/reminders.ts`):
+  - [x] Implemented `computeNextDueAt` for single-step recurrence advancement (+1 day, +1 week, +1 month, +1 year).
+  - [x] Implemented `getNextOccurrence` for multi-step catchup forward until `dueAt > now`.
+  - [x] Implemented `formatReminderDisplay` returning unified `{ text, chipLabel, isOverdue, isRepeating, repeatLabel }`.
+  - [x] Exported reminders module via `@repo/utils` entrypoints and rebuilt utils dist.
+- [x] Mobile Native Recurring Notification Triggers (`notification.service.ts`):
+  - [x] Configured native OS alarm triggers: `DAILY` ({ hour, minute }), `WEEKLY` ({ weekday, hour, minute }), `MONTHLY` ({ day, hour, minute }), `YEARLY` ({ day, month, hour, minute }), and `DATE` (1-shot fallback).
+- [x] Mobile Database Catchup Reconciler (`reminders.ts`, `_layout.tsx`):
+  - [x] Added `catchupAndReconcileRecurringReminders()` scanning active recurring reminders where `dueAt <= now && !isCompleted`.
+  - [x] Invoked automatically on initial launch after migrations and subscribed to `AppState.change` foreground events.
+- [x] Mobile UI Display Parity (`note-card.tsx`, `note-editor.tsx`, `reminder-sheet.tsx`):
+  - [x] Note Cards: Integrated `formatReminderDisplay` and `RotateCw` icon in both Grid and List card variants with overdue color differentiation.
+  - [x] Note Editor: Extracted dedicated `NoteRemindersSection` (`note-reminders-section.tsx`) to prevent overloading `NoteEditor`. Renders all non-deleted reminders for the note with interactive completion toggles, overdue/repeat visual cues, add reminder trigger, and self-encapsulated `ReminderSheet`.
+  - [x] Reminder Sheet: Updated `formatScheduledSummary()` with friendly repeat descriptions (e.g. `Rings every day at 09:00 AM (First: Today)`).
+- [x] Desktop UI Display Parity (`NoteCardItem.tsx`, `EditorPane.tsx`, `ReminderDialog.tsx`):
+  - [x] NoteCardItem: Added `reminderRepeat` prop and integrated `formatReminderDisplay` with `RotateCcw` icon.
+  - [x] EditorPane: Tracked `repeat` on `activeReminder` and displayed full recurrence description in the toolbar tooltip.
+  - [x] ReminderDialog: Added live next occurrence preview under repeat dropdown.
+
+---
+
+## 🔔 Reminders System Remediation & Hardening — 2026-11-22
+* **Status**: Completed
+* **Scope**: End-to-end validation, remediation, and hardening of the Reminders system across Mobile, Desktop, and Backend. Eliminates stale date sync issues, cleans up debug UI artifacts, adds dynamic overdue styling and revalidation, renders active reminders in note editor footer, resolves desktop timezone drift, enables periodic desktop notification dispatch, introduces recurrence cycle progression, and hardens multi-tenant isolation.
+
+- [x] Mobile UI & UX Hardening (`reminder-sheet.tsx`, `note-card.tsx`, `note-editor.tsx`):
+  - [x] Removed commented-out redundant `useEffect` and cleaned up debug `backgroundColor: "red"` / `padding: 5` on `RNHostView`.
+  - [x] Overdue visual state & reactive revalidation: Added `bg-red-500/10 border-red-500/25 text-red-500` chip styling when `new Date(dueAt).getTime() < Date.now()`; updating overdue reminders to future dates revalidates styling back to primary theme.
+  - [x] Active reminder footer in editor: Added bottom reminder pill in `NoteEditor` below note content/blocks with formatted time & repeat interval; tapping opens `ReminderSheet`.
+  - [x] Cold-start notification deep-linking: Added `Notifications.getLastNotificationResponseAsync()` in `apps/mobile/src/app/_layout.tsx` to handle direct taps from system tray when the app is killed.
+- [x] Mobile Query & Recurrence Logic (`reminders.ts`, `notes.ts`):
+  - [x] Recurrence progression (`computeNextDueAt`): Completing a recurring reminder automatically rolls `dueAt` forward (+1 day, +1 week, +1 month, +1 year) and reschedules native notifications.
+  - [x] Synced notification ID persistence: Updated `updateReminder` to persist scheduled notification IDs directly in SQLite.
+  - [x] Multi-tenant isolation: Scoped `options.remindersOnly` subquery with `ownerCondition(reminders.userId, userId)`.
+- [x] Desktop Parity & Timezone Drift Repair (`ReminderDialog.tsx`):
+  - [x] Timezone drift fix: Replaced `toISOString().split('T')[0]` with `formatLocalDateInput(d)` using local calendar components (`getFullYear()`, `getMonth() + 1`, `getDate()`) to prevent ±1 day shifts in non-UTC timezones.
+  - [x] Cleaned up legacy ad-hoc polling logic; tracked native Tauri background notification scheduler in `TODO.md`.
+- [x] Backend Multi-Tenant Security (`notes.service.ts`):
+  - [x] Added strict ownership verification in `upsertReminderWithLww` (`if (existing && existing.userId !== userId) return { applied: false, reminderId: r.id }`).
+
+---
+* **Status**: Completed
+* **Scope**: Dedicated distraction-free workspace for rapid idea dumping, draft outlines, and interactive checklists. Leverages canonical cross-device tag (`tags: ["scratchpad"]`) and archived isolation (`isArchived: true`) so that scratchpad notes never clutter the active notes feed while retaining 100% of SQLite persistence and bi-directional cloud sync across Mobile and Desktop.
+
+- [x] Shared Scratchpad Utilities (`@repo/utils`): Canonical `SCRATCHPAD_TAG`, `isScratchpadNote`, `formatScratchpadTags`, and `removeScratchpadTag`.
+- [x] Mobile State & Reactive Resolver (`settings-store.ts`, `useLiveScratchpadNote`):
+  - [x] Persistent `scratchpadNoteId` in `AsyncStorage` via `useSettingsStore`.
+  - [x] Cross-device discovery via `useLiveScratchpadNote` resolving tagged notes without duplicate creation.
+  - [x] Actions: `createScratchpad`, `assignExistingNote`, `detachScratchpad`, `resetScratchpad`.
+- [x] Mobile UI Surfaces (`scratchpad.tsx`, `scratchpad-editor.tsx`, `scratchpad-note-picker-sheet.tsx`):
+  - [x] Mobile drawer navigation link to `/scratchpad` with `StickyNote` icon.
+  - [x] Uninitialized setup hero card with "Create Scratchpad Note" and "Choose Existing Note" actions.
+  - [x] Streamlined block editor dedicated to content, titles, and 1-tap checklist and section additions.
+  - [x] Options menu sheet to change note, move note to All Notes, or reset scratchpad.
+- [x] Desktop State & UI Integration (`use-notes-store.ts`, `AppSidebar.tsx`, `ScratchpadPickerModal.tsx`, `App.tsx`):
+  - [x] Desktop sidebar navigation item for Scratchpad (`activeFilter === 'scratchpad'`).
+  - [x] Uninitialized setup pane with primary creation and note picker triggers.
+  - [x] Command Palette quick action to jump to Scratchpad.
+  - [x] Header badge in `EditorPane` highlighting scratchpad note status.
+- [x] Hardening & Remediation (`/keen-review`):
+  - [x] Fixed `listNotes` in `apps/desktop/src/lib/queries/notes.ts` to respect `filter.includeArchived`.
+  - [x] Scoped desktop `NotesListPane` to `[target]` under `activeFilter === 'scratchpad'` in `use-notes-store.ts`.
+  - [x] Debounced mobile content updates (500ms) with explicit `flushContent()` on unmount/actions in `scratchpad-editor.tsx`.
+  - [x] Eliminated live-query state-mirror feedback loops by rehydrating only on `note.id` transitions.
+- [x] Task Backlog Cleanup (`TODO.md`): Removed resolved scratchpad task from active items.
+
+---
+
 ## 🛡️ User Privacy & Account Deletion Compliance — 2026-11-15
 * **Status**: Completed
 * **Scope**: In-app user account deletion surface integration satisfying Apple App Store & Google Play privacy compliance requirements.

@@ -40,6 +40,9 @@ describe('SyncService', () => {
       note: {
         findMany: vi.fn(),
       },
+      reminder: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     ablyService = {

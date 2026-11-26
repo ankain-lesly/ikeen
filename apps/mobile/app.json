@@ -3,9 +3,9 @@
     "name": "iKeen",
     "slug": "ikeen",
     "description": "iKeen is your personal thought partner—helping you brainstorm, organize, and connect ideas as an extension of your mind. Notes, folders, Chats, Agents and ideas are connected to your workspace.",
-    "version": "2.1.0",
+    "version": "2.3.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon-logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "ikeen",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -46,6 +46,17 @@
       "expo-router",
       "expo-sharing",
       [
+        "expo-share-intent",
+        {
+          "ios": {
+            "AppGroup": "group.com.techforgelee.ikeen"
+          },
+          "android": {
+            "packageNames": ["com.techforgelee.ikeen"]
+          }
+        }
+      ],
+      [
         "expo-audio",
         {
           "microphonePermission": "The app accesses your microphone to let you record audio notes."
@@ -74,10 +85,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#008040",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/splash.png"
+          // "imageWidth": 76
         }
       ]
+      //  "expo-status-bar",
     ],
     "experiments": {
       "typedRoutes": true,

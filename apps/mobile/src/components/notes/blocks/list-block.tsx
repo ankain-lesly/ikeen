@@ -65,6 +65,7 @@ export interface ListBlockProps {
   onStageUpdate: (updates: ListBlockUpdateInput) => void;
   onImmediateUpdate: (updates: ListBlockUpdateInput) => void;
   onCommit: () => void;
+  onStartEditing?: () => void;
 }
 
 export const ListBlock = React.memo(function ListBlock({
@@ -73,6 +74,7 @@ export const ListBlock = React.memo(function ListBlock({
   onStageUpdate,
   onImmediateUpdate,
   onCommit,
+  onStartEditing,
 }: ListBlockProps) {
   const colors = useTheme();
   const inputRefs = useRef<Record<string, MarkdownEditorHandle | null>>({});
@@ -206,6 +208,7 @@ export const ListBlock = React.memo(function ListBlock({
   );
 
   const handleAddItem = useCallback(() => {
+    onStartEditing?.();
     const {
       items: cur,
       isCheckboxList: isCb,
@@ -223,7 +226,7 @@ export const ListBlock = React.memo(function ListBlock({
       content: [...cur.slice(0, insertAt), newItem, ...cur.slice(insertAt)],
     });
     focusItem(newItem.id);
-  }, [focusItem]);
+  }, [focusItem, onStartEditing]);
 
   const handleDeleteItem = useCallback((itemId: string) => {
     const { items: cur, onImmediateUpdate: commit } = stateRef.current;
@@ -313,16 +316,14 @@ export const ListBlock = React.memo(function ListBlock({
       <Animated.View layout={LIST_LAYOUT} className="gap-2">
         {renderGroup(activeItems)}
 
-        {isEditing && (
-          <Pressable
-            onPress={handleAddItem}
-            className="flex-row items-center gap-2 py-1.5 px-2 rounded-lg self-start active:opacity-60">
-            <Plus size={20} color={colors.textSecondary} />
-            <Text className="text-sm font-semibold text-text-secondary">
-              List item
-            </Text>
-          </Pressable>
-        )}
+        <Pressable
+          onPress={handleAddItem}
+          className="flex-row items-center gap-2 py-1.5 px-2 rounded-lg self-start active:opacity-60">
+          <Plus size={18} color={colors.textSecondary} />
+          <Text className="text-sm font-medium text-text-secondary">
+            Add item
+          </Text>
+        </Pressable>
       </Animated.View>
 
       {isCheckboxList && checkedItems.length > 0 && (
