@@ -5,8 +5,8 @@ import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Check, Terminal, Laptop, Code2, Sparkles } from "lucide-react";
 import { xenv } from "@/lib/env.client";
-import { useKeysStore, type ClientGuideTab } from "@/lib/stores/legacy/keys-store";
-import { fetchKeysApi } from "@/lib/api/legacy/keys-api";
+import { useKeysStore, type ClientGuideTab } from "@/lib/stores/keys-store";
+import { fetchKeysApi } from "@/lib/api/keys.api";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

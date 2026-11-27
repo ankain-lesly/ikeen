@@ -12,7 +12,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
+import { useKeysStore } from "@/lib/stores/keys-store";
 import {
   Sheet,
   SheetContent,

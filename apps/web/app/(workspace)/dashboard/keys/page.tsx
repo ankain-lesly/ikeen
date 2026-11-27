@@ -3,8 +3,8 @@
 import * as React from "react";
 import { Plus, Key, Shield, Zap } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
-import { ApiKeysList } from "@/components/legacy/dashboard/api-keys-list";
+import { useKeysStore } from "@/lib/stores/keys-store";
+import { ApiKeysList } from "@/components/dashboard/api-keys-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

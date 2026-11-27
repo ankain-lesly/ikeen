@@ -11,7 +11,7 @@ import {
   Cpu,
 } from "lucide-react";
 
-import { fetchMcpToolsApi, type McpToolItem } from "@/lib/api/legacy/mcp-api";
+import { fetchMcpToolsApi, type McpToolItem } from "@/lib/api/mcp.api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

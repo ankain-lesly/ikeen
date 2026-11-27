@@ -5,8 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { KeyRound, Sparkles } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
-import { createKeyApi } from "@/lib/api/legacy/keys-api";
+import { useKeysStore } from "@/lib/stores/keys-store";
+import { createKeyApi } from "@/lib/api/keys.api";
 
 import {
   Sheet,

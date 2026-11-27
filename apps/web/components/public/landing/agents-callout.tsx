@@ -56,7 +56,7 @@ export function AgentsCallout() {
 
           <div className="pt-1">
             <Link
-              href="/legacy/mcp"
+              href="/mcp"
               className="font-mono text-sm font-semibold text-primary underline underline-offset-4 hover:opacity-80"
             >
               Explore MCP Showcase →

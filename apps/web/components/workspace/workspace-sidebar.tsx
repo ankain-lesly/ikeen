@@ -9,6 +9,7 @@ import {
   ChevronsUpDown,
   FileText,
   Folder as FolderIcon,
+  LayoutDashboard,
   LogOut,
   Menu,
   Moon,
@@ -67,6 +68,12 @@ const TOP_NAV_ITEMS = [
     href: "/app/trash",
     icon: Trash2,
     match: (p: string) => p.startsWith("/app/trash"),
+  },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    match: (p: string) => p.startsWith("/dashboard"),
   },
 ] as const;
 

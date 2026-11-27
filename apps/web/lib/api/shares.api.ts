@@ -109,54 +109,17 @@ export const shareKeys = {
 };
 
 // ============================================================================
-// Owner API Calls & Hooks
+// Owner Share Hooks
 // ============================================================================
-
-export async function fetchNoteShareApi(
-  noteId: string,
-): Promise<NoteShare | null> {
-  const { data } = await apiClient.get(`/api/v1/notes/${noteId}/share`);
-  if (data === null || data === "") return null;
-  return noteShareSchema.parse(data);
-}
-
-export async function upsertNoteShareApi(
-  noteId: string,
-  dto: CreateSharePayload = {},
-): Promise<NoteShare> {
-  const payload = createShareInputSchema.parse(dto);
-  const { data } = await apiClient.post(
-    `/api/v1/notes/${noteId}/share`,
-    payload,
-  );
-  return noteShareSchema.parse(data);
-}
-
-export async function updateNoteShareApi(
-  noteId: string,
-  dto: UpdateSharePayload,
-): Promise<NoteShare> {
-  const payload = updateShareInputSchema.parse(dto);
-  const { data } = await apiClient.patch(
-    `/api/v1/notes/${noteId}/share`,
-    payload,
-  );
-  return noteShareSchema.parse(data);
-}
-
-export async function revokeNoteShareApi(
-  noteId: string,
-): Promise<{ revoked: true; noteId: string }> {
-  const { data } = await apiClient.delete(`/api/v1/notes/${noteId}/share`);
-  return z
-    .object({ revoked: z.literal(true), noteId: z.string() })
-    .parse(data);
-}
 
 export function useNoteShare(noteId: string, enabled = true) {
   return useQuery({
     queryKey: shareKeys.detail(noteId),
-    queryFn: () => fetchNoteShareApi(noteId),
+    queryFn: async (): Promise<NoteShare | null> => {
+      const { data } = await apiClient.get(`/api/v1/notes/${noteId}/share`);
+      if (data === null || data === "") return null;
+      return noteShareSchema.parse(data);
+    },
     enabled: Boolean(noteId) && enabled,
   });
 }
@@ -164,7 +127,14 @@ export function useNoteShare(noteId: string, enabled = true) {
 export function useUpsertShare(noteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto?: CreateSharePayload) => upsertNoteShareApi(noteId, dto),
+    mutationFn: async (dto: CreateSharePayload = {}): Promise<NoteShare> => {
+      const payload = createShareInputSchema.parse(dto);
+      const { data } = await apiClient.post(
+        `/api/v1/notes/${noteId}/share`,
+        payload,
+      );
+      return noteShareSchema.parse(data);
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData(shareKeys.detail(noteId), updated);
     },
@@ -174,7 +144,14 @@ export function useUpsertShare(noteId: string) {
 export function useUpdateShare(noteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: UpdateSharePayload) => updateNoteShareApi(noteId, dto),
+    mutationFn: async (dto: UpdateSharePayload): Promise<NoteShare> => {
+      const payload = updateShareInputSchema.parse(dto);
+      const { data } = await apiClient.patch(
+        `/api/v1/notes/${noteId}/share`,
+        payload,
+      );
+      return noteShareSchema.parse(data);
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData(shareKeys.detail(noteId), updated);
     },
@@ -184,7 +161,12 @@ export function useUpdateShare(noteId: string) {
 export function useRevokeShare(noteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => revokeNoteShareApi(noteId),
+    mutationFn: async (): Promise<{ revoked: true; noteId: string }> => {
+      const { data } = await apiClient.delete(`/api/v1/notes/${noteId}/share`);
+      return z
+        .object({ revoked: z.literal(true), noteId: z.string() })
+        .parse(data);
+    },
     onSuccess: () => {
       queryClient.setQueryData(shareKeys.detail(noteId), null);
     },
@@ -192,7 +174,7 @@ export function useRevokeShare(noteId: string) {
 }
 
 // ============================================================================
-// Public Reader & Fork APIs
+// Public Reader (SSR + Client Hooks) & Fork Hook
 // ============================================================================
 
 export type PublicShareResult =
@@ -247,44 +229,6 @@ export async function fetchPublicShareServer(
   }
 }
 
-export async function fetchPublicShareClient(
-  slug: string,
-  shareToken?: string,
-): Promise<PublicSharedNote> {
-  const { data } = await apiClient.get(
-    `/api/v1/public/shares/${encodeURIComponent(slug)}`,
-    {
-      headers: shareToken ? { "X-Share-Token": shareToken } : undefined,
-    },
-  );
-  return publicSharedNoteSchema.parse(data);
-}
-
-export async function unlockPublicShareApi(
-  slug: string,
-  password: string,
-): Promise<UnlockShareResponse> {
-  const { data } = await apiClient.post(
-    `/api/v1/public/shares/${encodeURIComponent(slug)}/unlock`,
-    { password },
-  );
-  return unlockShareResponseSchema.parse(data);
-}
-
-export async function forkPublicShareApi(
-  slug: string,
-  shareToken?: string,
-): Promise<ForkShareResponse> {
-  const { data } = await apiClient.post(
-    `/api/v1/public/shares/${encodeURIComponent(slug)}/fork`,
-    undefined,
-    {
-      headers: shareToken ? { "X-Share-Token": shareToken } : undefined,
-    },
-  );
-  return forkShareResponseSchema.parse(data);
-}
-
 export function usePublicShare(
   slug: string,
   shareToken?: string,
@@ -292,7 +236,15 @@ export function usePublicShare(
 ) {
   return useQuery({
     queryKey: shareKeys.publicDetail(slug, shareToken),
-    queryFn: () => fetchPublicShareClient(slug, shareToken),
+    queryFn: async (): Promise<PublicSharedNote> => {
+      const { data } = await apiClient.get(
+        `/api/v1/public/shares/${encodeURIComponent(slug)}`,
+        {
+          headers: shareToken ? { "X-Share-Token": shareToken } : undefined,
+        },
+      );
+      return publicSharedNoteSchema.parse(data);
+    },
     enabled: Boolean(slug) && Boolean(shareToken) && enabled,
     retry: false,
   });
@@ -300,15 +252,35 @@ export function usePublicShare(
 
 export function useUnlockPublicShare(slug: string) {
   return useMutation({
-    mutationFn: (password: string) => unlockPublicShareApi(slug, password),
+    mutationFn: async (password: string): Promise<UnlockShareResponse> => {
+      const { data } = await apiClient.post(
+        `/api/v1/public/shares/${encodeURIComponent(slug)}/unlock`,
+        { password },
+      );
+      return unlockShareResponseSchema.parse(data);
+    },
   });
 }
 
 export function useForkShare() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ slug, shareToken }: { slug: string; shareToken?: string }) =>
-      forkPublicShareApi(slug, shareToken),
+    mutationFn: async ({
+      slug,
+      shareToken,
+    }: {
+      slug: string;
+      shareToken?: string;
+    }): Promise<ForkShareResponse> => {
+      const { data } = await apiClient.post(
+        `/api/v1/public/shares/${encodeURIComponent(slug)}/fork`,
+        undefined,
+        {
+          headers: shareToken ? { "X-Share-Token": shareToken } : undefined,
+        },
+      );
+      return forkShareResponseSchema.parse(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
     },
