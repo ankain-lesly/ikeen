@@ -33,7 +33,7 @@ import {
   useUpdateShare,
   useUpsertShare,
   type ShareExpiryPreset,
-} from "@/lib/api/shares-api";
+} from "@/lib/api/shares.api";
 
 interface ShareNoteSheetProps {
   noteId: string;

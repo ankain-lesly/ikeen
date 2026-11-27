@@ -15,51 +15,24 @@ export type SoftDeleteBlockResponse = z.infer<
   typeof softDeleteBlockResponseSchema
 >;
 
-export async function upsertBlockApi(
-  noteId: string,
-  blockId: string,
-  dto: UpsertBlockPayload,
-): Promise<NoteBlock> {
-  const payload = upsertBlockInputSchema.parse(dto);
-  const { data } = await apiClient.put(
-    `/api/v1/notes/${noteId}/blocks/${blockId}`,
-    payload,
-  );
-  return noteBlockSchema.parse(data);
-}
-
-export async function deleteBlockApi(
-  noteId: string,
-  blockId: string,
-): Promise<SoftDeleteBlockResponse> {
-  const { data } = await apiClient.delete(
-    `/api/v1/notes/${noteId}/blocks/${blockId}`,
-  );
-  return softDeleteBlockResponseSchema.parse(data);
-}
-
-export async function reorderBlocksApi(
-  noteId: string,
-  blockIds: string[],
-): Promise<NoteBlock[]> {
-  const { data } = await apiClient.patch(
-    `/api/v1/notes/${noteId}/blocks/reorder`,
-    { blockIds },
-  );
-  return z.array(noteBlockSchema).parse(data);
-}
-
 export function useUpsertBlock(noteId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       blockId,
       dto,
     }: {
       blockId: string;
       dto: UpsertBlockPayload;
-    }) => upsertBlockApi(noteId, blockId, dto),
+    }): Promise<NoteBlock> => {
+      const payload = upsertBlockInputSchema.parse(dto);
+      const { data } = await apiClient.put(
+        `/api/v1/notes/${noteId}/blocks/${blockId}`,
+        payload,
+      );
+      return noteBlockSchema.parse(data);
+    },
     onMutate: async ({ blockId, dto }) => {
       await queryClient.cancelQueries({ queryKey: noteKeys.detail(noteId) });
       const prevDetail = queryClient.getQueryData<NoteDetail>(
@@ -77,7 +50,8 @@ export function useUpsertBlock(noteId: string) {
             createdAt: now,
           }),
           type: dto.type,
-          position: dto.position ?? existing?.position ?? prevDetail.blocks.length,
+          position:
+            dto.position ?? existing?.position ?? prevDetail.blocks.length,
           ...(dto.listType ? { listType: dto.listType } : {}),
           ...(dto.header !== undefined
             ? { header: dto.header ?? undefined }
@@ -132,7 +106,12 @@ export function useDeleteBlock(noteId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (blockId: string) => deleteBlockApi(noteId, blockId),
+    mutationFn: async (blockId: string): Promise<SoftDeleteBlockResponse> => {
+      const { data } = await apiClient.delete(
+        `/api/v1/notes/${noteId}/blocks/${blockId}`,
+      );
+      return softDeleteBlockResponseSchema.parse(data);
+    },
     onSuccess: ({ id, deletedAt }) => {
       queryClient.setQueryData<NoteDetail>(noteKeys.detail(noteId), (prev) => {
         if (!prev) return prev;
@@ -151,7 +130,13 @@ export function useReorderBlocks(noteId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (blockIds: string[]) => reorderBlocksApi(noteId, blockIds),
+    mutationFn: async (blockIds: string[]): Promise<NoteBlock[]> => {
+      const { data } = await apiClient.patch(
+        `/api/v1/notes/${noteId}/blocks/reorder`,
+        { blockIds },
+      );
+      return z.array(noteBlockSchema).parse(data);
+    },
     onSuccess: (orderedBlocks) => {
       queryClient.setQueryData<NoteDetail>(noteKeys.detail(noteId), (prev) =>
         prev ? { ...prev, blocks: orderedBlocks } : prev,

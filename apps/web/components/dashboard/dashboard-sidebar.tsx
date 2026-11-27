@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
+  ArrowLeft,
   LayoutDashboard,
   KeyRound,
   Cpu,
+  FileText,
   Radio,
   Plus,
   LogOut,
@@ -21,9 +23,9 @@ import {
 } from "lucide-react";
 
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
-import { fetchKeysApi } from "@/lib/api/legacy/keys-api";
-import { fetchMcpToolsApi } from "@/lib/api/legacy/mcp-api";
+import { useKeysStore } from "@/lib/stores/keys-store";
+import { fetchKeysApi } from "@/lib/api/keys.api";
+import { fetchMcpToolsApi } from "@/lib/api/mcp.api";
 import { xenv } from "@/lib/env.client";
 
 import { Button } from "@/components/ui/button";
@@ -46,7 +48,7 @@ export interface NavItem {
 
 export function useDashboardNavItems(): NavItem[] {
   const isHydrated = useAuthHydration();
-  const { isAuthenticated , user} = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const { data: keys = [] } = useQuery({
     queryKey: ["api-keys"],
@@ -64,32 +66,32 @@ export function useDashboardNavItems(): NavItem[] {
   const items: NavItem[] = [
     {
       label: "Overview",
-      href: "/legacy/dashboard",
+      href: "/dashboard",
       icon: LayoutDashboard,
-      match: (p) => p === "/legacy/dashboard" || p === "/legacy/dashboard/",
+      match: (p) => p === "/dashboard" || p === "/dashboard/",
     },
     {
       label: "API Keys",
-      href: "/legacy/dashboard/keys",
+      href: "/dashboard/keys",
       icon: KeyRound,
       badge: keys.length > 0 ? keys.length : null,
-      match: (p) => p.startsWith("/legacy/dashboard/keys") || p.startsWith("/legacy/dashboard/api-keys"),
+      match: (p) => p.startsWith("/dashboard/keys") || p.startsWith("/dashboard/api-keys"),
     },
     {
       label: "MCP Tools & Config",
-      href: "/legacy/dashboard/mcps",
+      href: "/dashboard/mcps",
       icon: Cpu,
       badge: toolsBadge,
-      match: (p) => p.startsWith("/legacy/dashboard/mcps"),
+      match: (p) => p.startsWith("/dashboard/mcps"),
     },
   ];
 
   if (user?.type === "admin") {
     items.push({
       label: "Audit Logs",
-      href: "/legacy/dashboard/audit",
+      href: "/dashboard/audit",
       icon: Shield,
-      match: (p) => p.startsWith("/legacy/dashboard/audit"),
+      match: (p) => p.startsWith("/dashboard/audit"),
     });
   }
 
@@ -122,22 +124,33 @@ export function DashboardSidebarContent({ onNavClick }: SidebarContentProps) {
     <div className="flex h-full flex-col justify-between p-4 sm:p-5">
       {/* Top Brand & Navigation */}
       <div className="space-y-6">
-        {/* Brand / Context */}
-        <div className="flex items-center justify-between pb-3 border-b border-border/50">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+        {/* Brand / Context with Back Arrow to Notes App */}
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              title="Back to Notes App"
+              render={
+                <Link href="/app/notes" onClick={onNavClick} aria-label="Back to Notes App">
+                  <ArrowLeft className="size-3.5" />
+                </Link>
+              }
+            />
+            <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
               <Layers className="size-4" />
             </div>
-            <div>
-              <span className="font-heading font-semibold text-sm tracking-tight text-foreground block">
+            <div className="min-w-0">
+              <span className="font-heading font-semibold text-sm tracking-tight text-foreground block truncate">
                 Developer Console
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground block">
+              <span className="text-[10px] font-mono text-muted-foreground block truncate">
                 MCP Protocol v2026-07-28
               </span>
             </div>
           </div>
-          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary bg-primary/5">
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary bg-primary/5 shrink-0">
             Live
           </Badge>
         </div>
@@ -158,7 +171,7 @@ export function DashboardSidebarContent({ onNavClick }: SidebarContentProps) {
         {/* Nav Links */}
         <div className="space-y-1">
           <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider px-2 pb-1">
-            Workspace
+            Dashboard
           </p>
           <nav className="space-y-1">
             {navItems.map((item) => {
@@ -194,6 +207,18 @@ export function DashboardSidebarContent({ onNavClick }: SidebarContentProps) {
               );
             })}
           </nav>
+
+          {/* Switch back to Notes App */}
+          <div className="pt-3 mt-3 border-t border-border/50">
+            <Link
+              href="/app/notes"
+              onClick={onNavClick}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+            >
+              <FileText className="size-4 text-primary" />
+              <span>Notes App</span>
+            </Link>
+          </div>
         </div>
 
         {/* Server Endpoint Widget */}
@@ -259,18 +284,18 @@ export function DashboardSidebarContent({ onNavClick }: SidebarContentProps) {
 }
 
 /**
- * Desktop Left Sidebar (Fixed / Sticky)
+ * Desktop Left Sidebar (Full-height sticky)
  */
 export function DashboardSidebar() {
   return (
-    <aside className="w-64 border-r border-border bg-card/40 flex flex-col shrink-0 hidden md:flex sticky top-[53px] h-[calc(100vh-53px)]">
+    <aside className="w-64 border-r border-border bg-card/40 flex-col shrink-0 hidden md:flex sticky top-0 h-screen">
       <DashboardSidebarContent />
     </aside>
   );
 }
 
 /**
- * Mobile Navigation Bar (Sticky top on mobile with Sheet drawer)
+ * Mobile Navigation Bar (Sticky top on mobile with Sheet drawer + Back to Notes App)
  */
 export function DashboardMobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -281,7 +306,7 @@ export function DashboardMobileNav() {
   const CurrentIcon = currentItem?.icon || LayoutDashboard;
 
   return (
-    <div className="md:hidden sticky top-[53px] z-30 border-b border-border bg-card/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
+    <div className="md:hidden sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
@@ -299,6 +324,18 @@ export function DashboardMobileNav() {
             <DashboardSidebarContent onNavClick={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-8 text-muted-foreground hover:text-foreground"
+          title="Back to Notes App"
+          render={
+            <Link href="/app/notes" aria-label="Back to Notes App">
+              <ArrowLeft className="size-4" />
+            </Link>
+          }
+        />
 
         <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
           <CurrentIcon className="size-3.5 text-primary" />

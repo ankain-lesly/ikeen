@@ -42,7 +42,7 @@ import {
   SEVERITY_LABELS,
   RESOURCE_TYPES,
   useAuditLogsQuery,
-} from "@/lib/api/audit-api";
+} from "@/lib/api/audit.api";
 import { formatDate, formatTimeAgo } from "@repo/utils/date";
 import { Stack } from "expo-router";
 import { BottomSheet } from "@expo/ui";

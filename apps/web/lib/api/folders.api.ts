@@ -19,42 +19,13 @@ export const folderKeys = {
   detail: (id: string) => [...folderKeys.details(), id] as const,
 };
 
-export async function fetchFoldersApi(): Promise<Folder[]> {
-  const { data } = await apiClient.get("/api/v1/folders");
-  return z.array(folderSchema).parse(data);
-}
-
-export async function fetchFolderApi(id: string): Promise<Folder> {
-  const { data } = await apiClient.get(`/api/v1/folders/${id}`);
-  return folderSchema.parse(data);
-}
-
-export async function createFolderApi(
-  dto: CreateFolderPayload,
-): Promise<Folder> {
-  const payload = createFolderInputSchema.parse(dto);
-  const { data } = await apiClient.post("/api/v1/folders", payload);
-  return folderSchema.parse(data);
-}
-
-export async function updateFolderApi(
-  id: string,
-  dto: UpdateFolderPayload,
-): Promise<Folder> {
-  const payload = updateFolderInputSchema.parse(dto);
-  const { data } = await apiClient.patch(`/api/v1/folders/${id}`, payload);
-  return folderSchema.parse(data);
-}
-
-export async function deleteFolderApi(id: string): Promise<Folder> {
-  const { data } = await apiClient.delete(`/api/v1/folders/${id}`);
-  return folderSchema.parse(data);
-}
-
 export function useFolders(enabled = true) {
   return useQuery({
     queryKey: folderKeys.lists(),
-    queryFn: fetchFoldersApi,
+    queryFn: async (): Promise<Folder[]> => {
+      const { data } = await apiClient.get("/api/v1/folders");
+      return z.array(folderSchema).parse(data);
+    },
     enabled,
   });
 }
@@ -62,7 +33,10 @@ export function useFolders(enabled = true) {
 export function useFolder(id: string | undefined, enabled = true) {
   return useQuery({
     queryKey: folderKeys.detail(id ?? ""),
-    queryFn: () => fetchFolderApi(id!),
+    queryFn: async (): Promise<Folder> => {
+      const { data } = await apiClient.get(`/api/v1/folders/${id}`);
+      return folderSchema.parse(data);
+    },
     enabled: Boolean(id) && enabled,
   });
 }
@@ -71,7 +45,11 @@ export function useCreateFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createFolderApi,
+    mutationFn: async (dto: CreateFolderPayload): Promise<Folder> => {
+      const payload = createFolderInputSchema.parse(dto);
+      const { data } = await apiClient.post("/api/v1/folders", payload);
+      return folderSchema.parse(data);
+    },
     onSuccess: (created) => {
       queryClient.setQueryData<Folder>(folderKeys.detail(created.id), created);
       queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
@@ -83,8 +61,17 @@ export function useUpdateFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdateFolderPayload }) =>
-      updateFolderApi(id, dto),
+    mutationFn: async ({
+      id,
+      dto,
+    }: {
+      id: string;
+      dto: UpdateFolderPayload;
+    }): Promise<Folder> => {
+      const payload = updateFolderInputSchema.parse(dto);
+      const { data } = await apiClient.patch(`/api/v1/folders/${id}`, payload);
+      return folderSchema.parse(data);
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData<Folder>(folderKeys.detail(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
@@ -96,7 +83,10 @@ export function useDeleteFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteFolderApi,
+    mutationFn: async (id: string): Promise<Folder> => {
+      const { data } = await apiClient.delete(`/api/v1/folders/${id}`);
+      return folderSchema.parse(data);
+    },
     onSuccess: (_deleted, id) => {
       queryClient.removeQueries({ queryKey: folderKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: folderKeys.lists() });

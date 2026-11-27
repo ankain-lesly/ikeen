@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { FileText, Folder as FolderIcon, Plus, Search, StickyNote } from "lucide-react";
+import { FileText, Folder as FolderIcon, LayoutDashboard, Plus, Search, StickyNote } from "lucide-react";
 
 import { useFolders } from "@/lib/api/folders.api";
 import { useCreateNote, useNotes } from "@/lib/api/notes.api";
@@ -140,6 +140,14 @@ export function QuickSwitcher() {
               >
                 <Plus className="size-3.5 text-primary" />
                 <span>Create New Note</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("/dashboard")}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-foreground hover:bg-secondary cursor-pointer"
+              >
+                <LayoutDashboard className="size-3.5 text-primary" />
+                <span>Developer Dashboard</span>
               </button>
             </div>
 

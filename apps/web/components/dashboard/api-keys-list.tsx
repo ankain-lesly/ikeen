@@ -17,11 +17,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
+import { useKeysStore } from "@/lib/stores/keys-store";
 import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
 import { useRouter } from "next/navigation";
-import { fetchKeysApi, revokeKeyApi, type ApiKeyItem } from "@/lib/api/legacy/keys-api";
+import { fetchKeysApi, revokeKeyApi, type ApiKeyItem } from "@/lib/api/keys.api";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +91,7 @@ export function ApiKeysList() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     } else {
-      router.push("/legacy/dashboard/mcps#mcp-client-guides");
+      router.push("/dashboard/mcps#mcp-client-guides");
     }
   }
 

@@ -39,9 +39,7 @@ export const noteKeys = {
   detail: (id: string) => [...noteKeys.details(), id] as const,
 };
 
-export async function fetchNotesApi(
-  filters: NotesFilter = {},
-): Promise<NoteListItem[]> {
+function buildNotesParams(filters: NotesFilter): Record<string, string> {
   const params: Record<string, string> = {};
   if (filters.folderId !== undefined) params.folderId = filters.folderId;
   if (filters.pinnedOnly) params.pinnedOnly = "true";
@@ -49,40 +47,18 @@ export async function fetchNotesApi(
   if (filters.includeArchived) params.includeArchived = "true";
   if (filters.limit !== undefined) params.limit = String(filters.limit);
   if (filters.offset !== undefined) params.offset = String(filters.offset);
-
-  const { data } = await apiClient.get("/api/v1/notes", { params });
-  return z.array(noteSchema).parse(data);
-}
-
-export async function fetchNoteApi(id: string): Promise<NoteDetail> {
-  const { data } = await apiClient.get(`/api/v1/notes/${id}`);
-  return noteDetailSchema.parse(data);
-}
-
-export async function createNoteApi(dto: CreateNotePayload): Promise<Note> {
-  const payload = createNoteInputSchema.parse(dto);
-  const { data } = await apiClient.post("/api/v1/notes", payload);
-  return noteSchema.parse(data);
-}
-
-export async function updateNoteApi(
-  id: string,
-  dto: UpdateNotePayload,
-): Promise<Note> {
-  const payload = updateNoteInputSchema.parse(dto);
-  const { data } = await apiClient.patch(`/api/v1/notes/${id}`, payload);
-  return noteSchema.parse(data);
-}
-
-export async function deleteNoteApi(id: string): Promise<Note> {
-  const { data } = await apiClient.delete(`/api/v1/notes/${id}`);
-  return noteSchema.parse(data);
+  return params;
 }
 
 export function useNotes(filters: NotesFilter = {}, enabled = true) {
   return useQuery({
     queryKey: noteKeys.list(filters),
-    queryFn: () => fetchNotesApi(filters),
+    queryFn: async (): Promise<NoteListItem[]> => {
+      const { data } = await apiClient.get("/api/v1/notes", {
+        params: buildNotesParams(filters),
+      });
+      return z.array(noteSchema).parse(data);
+    },
     enabled,
   });
 }
@@ -90,8 +66,12 @@ export function useNotes(filters: NotesFilter = {}, enabled = true) {
 export function useInfiniteNotes(pageSize = 20, enabled = true) {
   return useInfiniteQuery({
     queryKey: noteKeys.infinite(pageSize),
-    queryFn: ({ pageParam }) =>
-      fetchNotesApi({ limit: pageSize, offset: pageParam }),
+    queryFn: async ({ pageParam }): Promise<NoteListItem[]> => {
+      const { data } = await apiClient.get("/api/v1/notes", {
+        params: buildNotesParams({ limit: pageSize, offset: pageParam }),
+      });
+      return z.array(noteSchema).parse(data);
+    },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < pageSize) return undefined;
@@ -104,7 +84,10 @@ export function useInfiniteNotes(pageSize = 20, enabled = true) {
 export function useNote(id: string | undefined, enabled = true) {
   return useQuery({
     queryKey: noteKeys.detail(id ?? ""),
-    queryFn: () => fetchNoteApi(id!),
+    queryFn: async (): Promise<NoteDetail> => {
+      const { data } = await apiClient.get(`/api/v1/notes/${id}`);
+      return noteDetailSchema.parse(data);
+    },
     enabled: Boolean(id) && enabled,
   });
 }
@@ -113,7 +96,11 @@ export function useCreateNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createNoteApi,
+    mutationFn: async (dto: CreateNotePayload): Promise<Note> => {
+      const payload = createNoteInputSchema.parse(dto);
+      const { data } = await apiClient.post("/api/v1/notes", payload);
+      return noteSchema.parse(data);
+    },
     onSuccess: (created) => {
       queryClient.setQueryData<NoteDetail>(noteKeys.detail(created.id), {
         ...created,
@@ -128,8 +115,17 @@ export function useUpdateNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdateNotePayload }) =>
-      updateNoteApi(id, dto),
+    mutationFn: async ({
+      id,
+      dto,
+    }: {
+      id: string;
+      dto: UpdateNotePayload;
+    }): Promise<Note> => {
+      const payload = updateNoteInputSchema.parse(dto);
+      const { data } = await apiClient.patch(`/api/v1/notes/${id}`, payload);
+      return noteSchema.parse(data);
+    },
     onMutate: async ({ id, dto }) => {
       await queryClient.cancelQueries({ queryKey: noteKeys.detail(id) });
       await queryClient.cancelQueries({ queryKey: noteKeys.lists() });
@@ -184,7 +180,10 @@ export function useDeleteNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteNoteApi,
+    mutationFn: async (id: string): Promise<Note> => {
+      const { data } = await apiClient.delete(`/api/v1/notes/${id}`);
+      return noteSchema.parse(data);
+    },
     onSuccess: (_deleted, id) => {
       queryClient.removeQueries({ queryKey: noteKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
@@ -193,27 +192,13 @@ export function useDeleteNote() {
   });
 }
 
-export async function fetchTrashedNotesApi(): Promise<Note[]> {
-  const { data } = await apiClient.get("/api/v1/notes/trash");
-  return z.array(noteSchema).parse(data);
-}
-
-export async function restoreNoteApi(id: string): Promise<Note> {
-  const { data } = await apiClient.post(`/api/v1/notes/${id}/restore`);
-  return noteSchema.parse(data);
-}
-
-export async function permanentDeleteNoteApi(
-  id: string,
-): Promise<{ id: string; deleted: boolean }> {
-  const { data } = await apiClient.delete(`/api/v1/notes/${id}/permanent`);
-  return z.object({ id: z.string(), deleted: z.boolean() }).parse(data);
-}
-
 export function useTrashedNotes(enabled = true) {
   return useQuery({
     queryKey: noteKeys.trash(),
-    queryFn: fetchTrashedNotesApi,
+    queryFn: async (): Promise<Note[]> => {
+      const { data } = await apiClient.get("/api/v1/notes/trash");
+      return z.array(noteSchema).parse(data);
+    },
     enabled,
   });
 }
@@ -222,7 +207,10 @@ export function useRestoreNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: restoreNoteApi,
+    mutationFn: async (id: string): Promise<Note> => {
+      const { data } = await apiClient.post(`/api/v1/notes/${id}/restore`);
+      return noteSchema.parse(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: noteKeys.trash() });
       queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
@@ -234,7 +222,12 @@ export function usePermanentDeleteNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: permanentDeleteNoteApi,
+    mutationFn: async (
+      id: string,
+    ): Promise<{ id: string; deleted: boolean }> => {
+      const { data } = await apiClient.delete(`/api/v1/notes/${id}/permanent`);
+      return z.object({ id: z.string(), deleted: z.boolean() }).parse(data);
+    },
     onSuccess: (_res, id) => {
       queryClient.removeQueries({ queryKey: noteKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: noteKeys.trash() });

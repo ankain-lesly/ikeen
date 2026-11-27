@@ -87,31 +87,6 @@ export const AUDIT_QUERY_KEYS = {
     [...AUDIT_QUERY_KEYS.all, filters] as const,
 };
 
-export async function fetchAuditLogsApi(
-  filters: AuditLogFilters = {},
-  token?: string | null,
-): Promise<AuditLogsResponse> {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    params.set(key, String(value));
-  });
-
-  const response = await apiClient.get<AuditLogsResponse>(
-    `/audit-logs?${params.toString()}`,
-    { token },
-  );
-  return response;
-}
-
-/**
- * Infinite-scroll audit log query.
- *
- * Mirrors the web app's `useQuery` pattern in
- * `apps/web/app/dashboard/audit/page.tsx`, but uses `useInfiniteQuery` so the
- * mobile list can page forward with a scroll-to-end trigger instead of a
- * manual "Load more" button. Gated by admin role + auth token.
- */
 export function useAuditLogsQuery(
   filters: Omit<AuditLogFilters, 'page'> = {},
   enabled = true,
@@ -121,8 +96,20 @@ export function useAuditLogsQuery(
   return useInfiniteQuery({
     queryKey: AUDIT_QUERY_KEYS.list(filters),
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      fetchAuditLogsApi({ ...filters, page: pageParam, limit: PAGE_SIZE }, token),
+    queryFn: async ({ pageParam }): Promise<AuditLogsResponse> => {
+      const params = new URLSearchParams();
+      Object.entries({ ...filters, page: pageParam, limit: PAGE_SIZE }).forEach(
+        ([key, value]) => {
+          if (value === undefined || value === null || value === '') return;
+          params.set(key, String(value));
+        },
+      );
+
+      return apiClient.get<AuditLogsResponse>(
+        `/audit-logs?${params.toString()}`,
+        { token },
+      );
+    },
     getNextPageParam: (lastPage) =>
       lastPage.meta.page < lastPage.meta.totalPages
         ? lastPage.meta.page + 1

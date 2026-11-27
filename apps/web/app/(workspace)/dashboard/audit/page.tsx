@@ -21,7 +21,7 @@ import {
   type AuditLogsResponse,
   type AuditLogFilters,
   type AuditSeverity,
-} from "@/lib/api/legacy/audit-api";
+} from "@/lib/api/audit.api";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 import { Button } from "@/components/ui/button";

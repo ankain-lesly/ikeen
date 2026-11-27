@@ -7,9 +7,9 @@ import { ArrowRight, Key, Sparkles, LogIn } from "lucide-react";
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
 import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
 
-import { DashboardHeader } from "@/components/legacy/dashboard/dashboard-header";
-import { ResearchTools } from "@/components/legacy/dashboard/research-tools";
-import { McpGuides } from "@/components/legacy/dashboard/mcp-guides";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { ResearchTools } from "@/components/dashboard/research-tools";
+import { McpGuides } from "@/components/dashboard/mcp-guides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +53,7 @@ export default function PublicMcpShowcasePage() {
               <Button
                 size="default"
                 render={
-                  <Link href="/legacy/dashboard" className="flex items-center gap-2 font-medium">
+                  <Link href="/dashboard" className="flex items-center gap-2 font-medium">
                     <Key className="size-4" />
                     <span>Go to Dashboard</span>
                     <ArrowRight className="size-4" />
@@ -76,7 +76,7 @@ export default function PublicMcpShowcasePage() {
                 variant="outline"
                 size="default"
                 render={
-                  <Link href="/legacy/dashboard/keys" className="flex items-center gap-1.5 text-xs">
+                  <Link href="/dashboard/keys" className="flex items-center gap-1.5 text-xs">
                     <span>Manage Keys</span>
                   </Link>
                 }

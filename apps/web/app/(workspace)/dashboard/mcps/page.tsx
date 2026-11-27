@@ -5,8 +5,8 @@ import toast from "react-hot-toast";
 import { Copy, Check, Radio, Terminal, Cpu } from "lucide-react";
 
 import { xenv } from "@/lib/env.client";
-import { McpGuides } from "@/components/legacy/dashboard/mcp-guides";
-import { ResearchTools } from "@/components/legacy/dashboard/research-tools";
+import { McpGuides } from "@/components/dashboard/mcp-guides";
+import { ResearchTools } from "@/components/dashboard/research-tools";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 

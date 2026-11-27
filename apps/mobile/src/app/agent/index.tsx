@@ -17,7 +17,7 @@ import { Plus, WifiOff } from "lucide-react-native";
 import DrawerLeft from "@/assets/svg/drawer-left.svg";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuthStore } from "@/lib/auth/auth-store";
-import { agentApi } from "@/lib/api/agent-api";
+import { agentApi } from "@/lib/api/agent.api";
 import { useAgentSession } from "@/hooks/use-agent-session";
 import {
   ChatMessageList,

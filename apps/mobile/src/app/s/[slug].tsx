@@ -28,7 +28,7 @@ import {
   useForkPublicShare,
   usePublicShare,
   useUnlockPublicShare,
-} from "@/lib/api/shares-api";
+} from "@/lib/api/shares.api";
 
 export default function SharedNoteScreen() {
   const colors = useTheme();

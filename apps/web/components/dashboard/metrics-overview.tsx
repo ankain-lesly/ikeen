@@ -4,8 +4,8 @@ import * as React from "react";
 import { Key, Wrench, Activity, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { fetchKeysApi } from "@/lib/api/legacy/keys-api";
-import { fetchMcpToolsApi } from "@/lib/api/legacy/mcp-api";
+import { fetchKeysApi } from "@/lib/api/keys.api";
+import { fetchMcpToolsApi } from "@/lib/api/mcp.api";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 interface MetricsOverviewProps {

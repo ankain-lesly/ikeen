@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { agentApi } from '@/lib/api/agent-api';
+import { agentApi } from '@/lib/api/agent.api';
 import { useAuthStore } from '@/lib/auth/auth-store';
 import { toast } from '@/lib/toast';
 import type { ChatConversationSummary, ChatConversationDetail } from '@repo/types';

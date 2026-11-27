@@ -19,12 +19,12 @@ import {
 } from "lucide-react";
 
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { useKeysStore } from "@/lib/stores/legacy/keys-store";
-import { fetchKeysApi } from "@/lib/api/legacy/keys-api";
-import { fetchMcpToolsApi } from "@/lib/api/legacy/mcp-api";
+import { useKeysStore } from "@/lib/stores/keys-store";
+import { fetchKeysApi } from "@/lib/api/keys.api";
+import { fetchMcpToolsApi } from "@/lib/api/mcp.api";
 import { xenv } from "@/lib/env.client";
 
-import { MetricsOverview } from "@/components/legacy/dashboard/metrics-overview";
+import { MetricsOverview } from "@/components/dashboard/metrics-overview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -96,7 +96,7 @@ export default function DashboardOverviewPage() {
               variant="outline"
               size="sm"
               render={
-                <Link href="/legacy/dashboard/keys" className="flex items-center gap-1.5 text-xs">
+                <Link href="/dashboard/keys" className="flex items-center gap-1.5 text-xs">
                   <span>Manage Keys</span>
                   <ArrowRight className="size-3.5 text-muted-foreground" />
                 </Link>
@@ -132,7 +132,7 @@ export default function DashboardOverviewPage() {
               </p>
             </div>
             <Link
-              href="/legacy/dashboard/keys"
+              href="/dashboard/keys"
               className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
             >
               <span>View all</span>
@@ -234,7 +234,7 @@ export default function DashboardOverviewPage() {
               </p>
             </div>
             <Link
-              href="/legacy/dashboard/mcps"
+              href="/dashboard/mcps"
               className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
             >
               <span>Workbench</span>
@@ -279,7 +279,7 @@ export default function DashboardOverviewPage() {
                 variant="outline"
                 size="sm"
                 render={
-                  <Link href="/legacy/dashboard/mcps" className="w-full flex items-center justify-center gap-1.5 text-xs">
+                  <Link href="/dashboard/mcps" className="w-full flex items-center justify-center gap-1.5 text-xs">
                     <span>Configure Claude & Cursor Clients</span>
                     <ArrowRight className="size-3.5 text-primary" />
                   </Link>
