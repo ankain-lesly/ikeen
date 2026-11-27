@@ -9,6 +9,8 @@
     "scheme": "ikeen",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.techforgelee.ikeen",
+      "associatedDomains": ["applinks:ikeen.leslychuo.me"],
       "icon": "./assets/expo.icon",
       "infoPlist": {
         "NSCameraUsageDescription": "iKeen needs access to your camera to take photos and attach them directly to your notes.",
@@ -36,7 +38,21 @@
         "android.permission.SCHEDULE_EXACT_ALARM"
       ],
       "predictiveBackGestureEnabled": false,
-      "package": "com.techforgelee.ikeen"
+      "package": "com.techforgelee.ikeen",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "ikeen.leslychuo.me",
+              "pathPrefix": "/s/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",

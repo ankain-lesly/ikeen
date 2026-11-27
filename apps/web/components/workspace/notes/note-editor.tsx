@@ -10,6 +10,7 @@ import { useFolders } from "@/lib/api/folders.api";
 import { useDeleteNote, useUpdateNote } from "@/lib/api/notes.api";
 import type { NoteDetail } from "@/lib/api/schemas";
 import { BlockCanvas } from "./blocks/block-canvas";
+import { ShareNoteSheet } from "./share-note-sheet";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -163,6 +164,13 @@ export function NoteEditor({
           >
             <Archive className="size-3.5" />
           </Button>
+
+          <ShareNoteSheet
+            noteId={note.id}
+            isLockedFolder={Boolean(
+              folders.find((f) => f.id === note.folderId)?.isLocked,
+            )}
+          />
 
           {extraActions}
 

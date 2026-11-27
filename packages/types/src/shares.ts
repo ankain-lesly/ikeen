@@ -38,6 +38,7 @@ export interface PublicShareAuthor {
 export interface PublicSharedNote {
   slug: string;
   title: string;
+  content: string;
   tags: string[];
   updatedAt: string;
   author: PublicShareAuthor;

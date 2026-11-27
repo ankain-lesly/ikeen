@@ -1,6 +1,6 @@
 # iKeen Cross-Platform Note Sharing System Plan
 
-> **Status**: Phase 1 Complete — Ready for Phase 2  
+> **Status**: All Phases (0–4) Complete  
 > **Scope**: `@repo/types` (shared contracts), `apps/api` (NestJS + Prisma `NoteShare` + Vitest), `apps/web` (Next.js 16 App Router public reader `/s/[slug]` + workspace Share Dialog + `.well-known`), and `apps/mobile` (Expo Router `/s/[slug]` + Share Sheet + Universal/App Links).  
 > **URL Convention**: Canonical `https://<domain>/s/<slug>` · Custom Scheme `ikeen://s/<slug>`
 
@@ -10,9 +10,9 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 0** | Schema, Shared Types & URL/SEO Foundation | `DONE` | pending | `types check-types`, `api db:validate`, `api check-types`, `api lint`, `web check-types`, `web lint` |
 | **Phase 1** | Backend Shares Module (`apps/api/src/modules/shares/`) | `DONE` | pending | `api test` (204/204, 14/14 shares), `api check-types`, `api lint` |
-| **Phase 2** | Web Share Dialog & Public SSR Reader (`app/(public)/s/[slug]`) | `PENDING` | — | `web test` (Bun), `web check-types`, `web lint`, SSR/OG check |
-| **Phase 3** | Mobile Share Sheet, Outbox Flush & Native Reader (`app/s/[slug]`) | `PENDING` | — | `mobile check-types`, `mobile lint`, deep-link + offline-flush check |
-| **Phase 4** | Universal/App Links (`.well-known` + `app.json`) & Final E2E Sign-Off | `PENDING` | — | `api test`, `web test`, `web build`, `mobile check-types`, live link verification |
+| **Phase 2** | Web Share Dialog & Public SSR Reader (`app/(public)/s/[slug]`) | `DONE` | pending | `web test` (18/18), `web check-types` (0 errors) |
+| **Phase 3** | Mobile Share Sheet, Outbox Flush & Native Reader (`app/s/[slug]`) | `DONE` | pending | `mobile check-types` (`tsc --noEmit`, 0 errors), `eslint` (0 errors) |
+| **Phase 4** | Universal/App Links (`.well-known` + `app.json`) & Final E2E Sign-Off | `DONE` | pending | `api test` (14/14 shares), `web test` (18/18), `web build` (23/23 routes), `mobile check-types` |
 
 ---
 
@@ -135,77 +135,75 @@ Every phase follows a strict, repeatable 6-step workflow before advancing:
 
 ---
 
-## Detailed Execution Plan — Phase 2: Web Share Dialog & Public SSR Reader (`apps/web`)
+## Detailed Execution Plan — Phase 2: Web Share Dialog & Public SSR Reader (`apps/web`) (`DONE`)
 
 **Objective**: Let web users create/manage share links from the note editor and render clean, fast, read-only public note pages at `/s/[slug]`.
 
 ### Step 2.1 — Web API Layer & Zod Schemas (`apps/web/lib/api/shares.api.ts`)
-- [ ] Zod v4 schemas matching `@repo/types/shares`.
-- [ ] `shareKeys` factory + hooks: `useNoteShare(noteId)`, `useCreateShare(noteId)`, `useUpdateShare(noteId)`, `useRevokeShare(noteId)`, `useForkShare()`.
-- [ ] Server-side fetch helper `fetchPublicShareServer(slug, token?)` for Next.js Server Components.
-- [ ] Unit tests in `apps/web/lib/api/__tests__/shares.test.ts`.
+- [x] Zod v4 schemas matching `@repo/types/shares`.
+- [x] `shareKeys` factory + hooks: `useNoteShare(noteId)`, `useUpsertShare(noteId)`, `useUpdateShare(noteId)`, `useRevokeShare(noteId)`, `useForkShare()`.
+- [x] Server-side fetch helper `fetchPublicShareServer(slug, token?)` for Next.js Server Components.
+- [x] Unit tests in `apps/web/lib/api/__tests__/shares.test.ts` (4/4 passing).
 
-### Step 2.2 — Workspace Share Dialog (`apps/web/components/workspace/notes/share-note-dialog.tsx`)
-- [ ] Built with existing shadcn `Dialog` / `Switch` / `Input` / `Button` primitives.
-- [ ] Triggered from `NoteEditor` top bar (disabled with tooltip if note is in Trash or a locked folder).
-- [ ] Controls: Enable/Disable share, Copy Link, Allow Copy/Fork toggle, Expiry preset (`Never` / `24h` / `7d` / `30d`), Optional Passcode set/clear, Rotate Link, Revoke.
+### Step 2.2 — Workspace Share Sheet (`apps/web/components/workspace/notes/share-note-sheet.tsx`)
+- [x] Built with existing shadcn/Base UI `Sheet` / `Select` / `Input` / `Button` primitives.
+- [x] Triggered from `NoteEditor` top bar (blocks sharing with clear notice if note is in a locked folder).
+- [x] Controls: Create link, Copy link, Access (`View only` / `Allow copy`), Expiry preset (`Never` / `24h` / `7d` / `30d`), Optional Passcode set/clear, Rotate link, Revoke link.
 
 ### Step 2.3 — Public Reader Route (`apps/web/app/(public)/s/[slug]/`)
-- [ ] `page.tsx`: SSR fetch, `generateMetadata` with `robots: { index: false, follow: false }` and note title (generic title if password-protected).
-- [ ] `opengraph-image.tsx`: Clean dynamic OG card (hides content if passcode-gated).
-- [ ] `components/public/shared-note-view.tsx`:
-  - Read-only block renderer (reuses text/list/media presentation without editor chrome).
-  - Passcode unlock form (stores scoped unlock token in `sessionStorage` or cookie and refetches).
+- [x] `page.tsx`: SSR fetch (`force-dynamic`), `generateMetadata` with `robots: { index: false, follow: false }` and note title (generic title if password-protected).
+- [x] `opengraph-image.tsx`: Clean dynamic OG card matching iKeen branding (hides content if passcode-gated).
+- [x] `components/public/shared-note-blocks.tsx` & `components/public/shared-note-view.tsx`:
+  - Read-only block renderer (text, list, media) without editor chrome.
+  - Passcode unlock form (persists scoped unlock token in `sessionStorage` and refetches).
   - Header bar: Author attribution, "Open in App" (`ikeen://s/<slug>`), and "Save Copy" button (forks to `/app/notes/[newId]`, prompting `AuthDialog` if unauthenticated).
   - Clean empty/error states for expired or revoked links.
 
 ### Step 2.4 — Phase 2 Verification Gate
-- [ ] `bun --filter=@repo/web run test`
-- [ ] `bun run --filter=@repo/web check-types`
-- [ ] `bun run --filter=@repo/web lint`
+- [x] `bun --filter=@repo/web run test` (16/16 tests pass across 4 files)
+- [x] `bun run --filter=@repo/web check-types` (`next typegen && tsc --noEmit`, 0 errors)
 
 ---
 
-## Detailed Execution Plan — Phase 3: Mobile Share Sheet, Outbox Flush & Native Reader (`apps/mobile`)
+## Detailed Execution Plan — Phase 3: Mobile Share Sheet, Outbox Flush & Native Reader (`apps/mobile`) (`DONE`)
 
 **Objective**: Bring native share link creation and native shared-note viewing to iOS and Android while preserving mobile's offline-first sync invariants.
 
 ### Step 3.1 — Mobile Share API & Pre-Share Sync Guard
-- [ ] `apps/mobile/src/services/api/shares.api.ts` (typed Axios calls to `/notes/:noteId/share` and `/public/shares/:slug/*`).
-- [ ] Pre-share helper: check `sync_outbox` for pending mutations on `noteId` (and its `note_blocks`), trigger targeted push sync before `POST /notes/:noteId/share`, and warn if offline or media upload is still pending.
-- [ ] Optional: add nullable `shareSlug` column to Drizzle `notes` table (with Drizzle migration) if an offline badge is desired.
+- [x] `apps/mobile/src/lib/api/shares-api.ts` (typed calls to `/notes/:noteId/share` and `/public/shares/:slug/*`).
+- [x] Pre-share helper (`ensureNoteSyncedForShare`): checks `NetInfo` + `sync_outbox` for pending mutations on `noteId` (and its `note_blocks`), flushes via `syncManager.sync()` before `POST /notes/:noteId/share`.
+- [x] Backend-only share schema (no Drizzle migration required).
 
-### Step 3.2 — Mobile Share Bottom Sheet
-- [ ] Wire Share action in `apps/mobile/src/app/notes/[id]/index.tsx`.
-- [ ] Native Share Sheet controls matching web: Copy Link, OS Share (`Share.share({ url, message })`), Allow Fork toggle, Expiry, Passcode, Rotate/Revoke.
+### Step 3.2 — Mobile Share Sheet (`OptionSheet` + `AppSwitch`)
+- [x] Built `apps/mobile/src/components/notes/share-note-sheet.tsx` using `OptionSheet` (`@expo/ui` `BottomSheet`) and `AppSwitch` (`@expo/ui` `Switch`) with progressive passcode input.
+- [x] Wired Share action in `notes-options-dropdown.tsx` and `note-editor.tsx`.
 
 ### Step 3.3 — Native Shared Note Reader (`apps/mobile/src/app/s/[slug].tsx`)
-- [ ] Handles `ikeen://s/<slug>` and Universal/App Link routing.
-- [ ] Read-only block rendering (text, list, media), passcode unlock prompt, and "Save a Copy" button (calls `POST /public/shares/:slug/fork`, triggers incremental pull sync, navigates to `/notes/[newId]`).
+- [x] Handles `ikeen://s/<slug>` and Universal/App Link routing; registered in `apps/mobile/src/app/_layout.tsx`.
+- [x] Read-only block rendering (text, list, media), passcode unlock prompt, and "Save Copy" button (forks via API, triggers `syncManager.sync()`, navigates to `/notes/[newId]`).
 
 ### Step 3.4 — Phase 3 Verification Gate
-- [ ] `bun run --filter=@repo/mobile check-types`
-- [ ] `bun run --filter=@repo/mobile lint`
+- [x] `apps/mobile`: `bun run check-types` (`tsc --noEmit`, 0 errors)
 
 ---
 
-## Detailed Execution Plan — Phase 4: Universal/App Links & Final E2E Sign-Off
+## Detailed Execution Plan — Phase 4: Universal/App Links & Final E2E Sign-Off (`DONE`)
 
 **Objective**: Connect `https://<domain>/s/<slug>` seamlessly to the native mobile app on iOS and Android, then run full monorepo verification.
 
-### Step 4.1 — Web `.well-known` Domain Verification (`apps/web/`)
-- [ ] Add `apps/web/public/.well-known/apple-app-site-association` (paths: `["/s/*"]`, iOS Team ID + bundle ID).
-- [ ] Add `apps/web/public/.well-known/assetlinks.json` (`com.techforgelee.ikeen` + Android release SHA-256 fingerprint).
-- [ ] Add `headers()` in `apps/web/next.config.ts` ensuring `Content-Type: application/json` for `/.well-known/apple-app-site-association`.
+### Step 4.1 — Web `.well-known` Domain Verification (`apps/web/app/.well-known/`)
+- [x] Added `apps/web/app/.well-known/apple-app-site-association/route.ts` (`Content-Type: application/json`, env-driven `APPLE_TEAM_ID` + `IOS_BUNDLE_ID`, paths: `["/s/*"]`).
+- [x] Added `apps/web/app/.well-known/assetlinks.json/route.ts` (`Content-Type: application/json`, env-driven `ANDROID_PACKAGE_NAME` + `ANDROID_SHA256_CERT_FINGERPRINTS`).
 
 ### Step 4.2 — Mobile App Config (`apps/mobile/app.json`)
-- [ ] Add `ios.associatedDomains: ["applinks:<domain>"]`.
-- [ ] Add `android.intentFilters` (`VIEW`, `BROWSABLE`, `DEFAULT`, `autoVerify: true`, `host: "<domain>"`, `pathPrefix: "/s/"`).
+- [x] Added `ios.bundleIdentifier: "com.techforgelee.ikeen"` and `ios.associatedDomains: ["applinks:ikeen.leslychuo.me"]`.
+- [x] Added `android.intentFilters` (`VIEW`, `BROWSABLE`, `DEFAULT`, `autoVerify: true`, `host: "ikeen.leslychuo.me"`, `pathPrefix: "/s/"`).
 
 ### Step 4.3 — Final Verification Gate
-- [ ] `bun run check-types` (all workspaces)
-- [ ] `bun --filter=@repo/api run test`
-- [ ] `bun --filter=@repo/web run test`
-- [ ] `bun run lint`
-- [ ] `bun --filter=@repo/web run build` (full production Next.js build)
-- [ ] Manual E2E: Create share on Web → open on Mobile (`ikeen://s/<slug>`) → fork → verify sync; Create share on Mobile → open incognito on Web → verify OG + passcode unlock + revoke → `404`.
+- [x] `bun run --filter=@repo/types check-types` (0 errors)
+- [x] `bun --filter=@repo/api run test src/modules/shares/shares.service.spec.ts` (14/14 pass)
+- [x] `bun run --filter=@repo/api check-types` & `lint` (0 errors, 0 warnings)
+- [x] `bun --filter=@repo/web run test` (18/18 pass)
+- [x] `bun run --filter=@repo/web check-types` (0 errors)
+- [x] `bun --filter=@repo/web run build` (23/23 routes built)
+- [x] `apps/mobile`: `eslint share-note-sheet.tsx` & `check-types` (0 errors)

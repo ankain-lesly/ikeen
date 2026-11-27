@@ -265,6 +265,7 @@ export class SharesService {
     return {
       slug: share.slug,
       title: share.note.title,
+      content: share.note.content,
       tags: share.note.tags,
       updatedAt: share.note.updatedAt.toISOString(),
       author: {

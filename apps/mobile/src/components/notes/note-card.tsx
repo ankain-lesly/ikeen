@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Share, Text, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import * as Haptics from "@/lib/haptics";
 import {
@@ -26,6 +27,9 @@ import {
   deleteReminder,
 } from "@/lib/queries/reminders";
 import { ReminderSheet } from "./reminder-sheet";
+import { ShareNoteSheet } from "./share-note-sheet";
+import { formatNoteWithBlocks } from "@/lib/queries/note-blocks";
+import { toast } from "@/lib/toast";
 import type { Reminder, ReminderRepeat } from "@repo/types";
 
 import { NotesOptionsDropdown } from "./notes-options-dropdown";
@@ -115,6 +119,7 @@ const CardActionBar = React.memo(function CardActionBar({
   setIsMenuOpen,
   hasReminder = false,
   onReminder,
+  onShareLink,
   variant = "in-flow",
 }: {
   note: NoteWithBlocks;
@@ -126,6 +131,7 @@ const CardActionBar = React.memo(function CardActionBar({
   setIsMenuOpen: (v: boolean) => void;
   hasReminder?: boolean;
   onReminder?: () => void;
+  onShareLink?: () => void;
   variant?: "in-flow" | "floating";
 }) {
   const isFloating = variant === "floating";
@@ -191,6 +197,7 @@ const CardActionBar = React.memo(function CardActionBar({
               isExpanded={isMenuOpen}
               setIsExpanded={setIsMenuOpen}
               onReminder={onReminder}
+              onShareLink={onShareLink}
               note={note}
               iconStyle={{
                 size: 16,
@@ -270,6 +277,31 @@ export const NoteCard = React.memo(function NoteCard({
   );
 
   const [isReminderSheetOpen, setIsReminderSheetOpen] = useState(false);
+  const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
+
+  const handleShareCardText = useCallback(async () => {
+    const body = formatNoteWithBlocks(note.content, note.blocks ?? []);
+    const formatted = [note.title?.trim(), body.trim()]
+      .filter(Boolean)
+      .join("\n\n");
+    try {
+      await Share.share({
+        title: note.title || "Untitled Note",
+        message: formatted || note.title || "Untitled Note",
+      });
+    } catch {
+      // Ignored
+    }
+  }, [note.title, note.content, note.blocks]);
+
+  const handleCopyCardText = useCallback(async () => {
+    const body = formatNoteWithBlocks(note.content, note.blocks ?? []);
+    const formatted = [note.title?.trim(), body.trim()]
+      .filter(Boolean)
+      .join("\n\n");
+    await Clipboard.setStringAsync(formatted || note.title || "");
+    toast.success("Note copied");
+  }, [note.title, note.content, note.blocks]);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
 
   const handleOpenEditReminder = useCallback((reminder: Reminder) => {
@@ -395,6 +427,7 @@ export const NoteCard = React.memo(function NoteCard({
                 setIsMenuOpen={setIsMenuOpen}
                 hasReminder={activeReminders.length > 0}
                 onReminder={handleOpenNewReminder}
+                onShareLink={() => setIsShareSheetOpen(true)}
                 variant="in-flow"
               />
 
@@ -516,6 +549,14 @@ export const NoteCard = React.memo(function NoteCard({
           onClear={editingReminder ? handleClearReminder : undefined}
           onComplete={editingReminder ? handleCompleteReminder : undefined}
         />
+        <ShareNoteSheet
+          noteId={note.id}
+          noteTitle={note.title}
+          onShareText={handleShareCardText}
+          onCopyText={handleCopyCardText}
+          isPresented={isShareSheetOpen}
+          onDismiss={() => setIsShareSheetOpen(false)}
+        />
       </Pressable>
     );
   }
@@ -554,6 +595,7 @@ export const NoteCard = React.memo(function NoteCard({
               setIsMenuOpen={setIsMenuOpen}
               hasReminder={activeReminders.length > 0}
               onReminder={handleOpenNewReminder}
+              onShareLink={() => setIsShareSheetOpen(true)}
               variant="floating"
             />
           </View>
@@ -572,6 +614,7 @@ export const NoteCard = React.memo(function NoteCard({
               setIsMenuOpen={setIsMenuOpen}
               hasReminder={activeReminders.length > 0}
               onReminder={handleOpenNewReminder}
+              onShareLink={() => setIsShareSheetOpen(true)}
               variant="in-flow"
             />
           )}
@@ -670,6 +713,14 @@ export const NoteCard = React.memo(function NoteCard({
         onSave={handleSaveReminder}
         onClear={editingReminder ? handleClearReminder : undefined}
         onComplete={editingReminder ? handleCompleteReminder : undefined}
+      />
+      <ShareNoteSheet
+        noteId={note.id}
+        noteTitle={note.title}
+        onShareText={handleShareCardText}
+        onCopyText={handleCopyCardText}
+        isPresented={isShareSheetOpen}
+        onDismiss={() => setIsShareSheetOpen(false)}
       />
     </Pressable>
   );
