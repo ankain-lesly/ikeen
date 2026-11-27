@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { Note } from "@repo/types";
-import { filterAndSortNotes } from "../note-filters";
+import {
+  filterAndSortNotes,
+  getNoteCoverImage,
+  stripMarkdown,
+} from "../note-filters";
 
 const makeNote = (overrides: Partial<Note>): Note => ({
   id: "n-1",
@@ -77,5 +81,29 @@ describe("filterAndSortNotes", () => {
       pinnedFirst: false,
     });
     expect(res.map((n) => n.id)).toEqual(["n-1", "n-2", "n-3"]);
+  });
+});
+
+describe("stripMarkdown & getNoteCoverImage", () => {
+  test("strips markdown headers, bold, links, and inline code", () => {
+    expect(
+      stripMarkdown("# Tauri v2 Desktop\n**Fast** `SQLite` [docs](https://a.com)"),
+    ).toBe("Tauri v2 Desktop Fast SQLite docs");
+  });
+
+  test("prefers server coverImageUrl and falls back to markdown image", () => {
+    expect(
+      getNoteCoverImage({
+        coverImageUrl: "https://cdn.ikeen.app/first.png",
+        content: "![alt](https://cdn.ikeen.app/other.png)",
+      }),
+    ).toBe("https://cdn.ikeen.app/first.png");
+
+    expect(
+      getNoteCoverImage({
+        coverImageUrl: null,
+        content: "Intro ![hero](https://cdn.ikeen.app/md.jpg) end",
+      }),
+    ).toBe("https://cdn.ikeen.app/md.jpg");
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -31,9 +32,13 @@ export function PublicHeader() {
           href="/"
           className="flex items-center gap-2.5 font-heading text-lg font-bold tracking-tight text-foreground"
         >
-          <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary text-sm font-bold text-primary-foreground">
-            iK
-          </span>
+          <Image
+            src="/icon.png"
+            alt="iKeen"
+            width={32}
+            height={32}
+            className="size-8 rounded-[9px]"
+          />
           <span>iKeen</span>
         </Link>
 

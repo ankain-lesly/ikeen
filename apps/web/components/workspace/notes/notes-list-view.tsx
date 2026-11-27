@@ -4,8 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { FileText, LayoutGrid, List, Plus, Search, X } from "lucide-react";
-import type { Note } from "@repo/types";
-
+import type { NoteListItem } from "@/lib/api/schemas";
 import { useFolders } from "@/lib/api/folders.api";
 import { useCreateNote } from "@/lib/api/notes.api";
 import {
@@ -14,6 +13,7 @@ import {
 } from "@/lib/stores/workspace-store";
 import { filterAndSortNotes } from "@/lib/workspace/note-filters";
 import { NoteCard } from "./note-card";
+import { MasonryGrid } from "@/components/ui/masonry-grid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +35,7 @@ const SORT_LABELS: Record<NoteSortField, string> = {
 interface NotesListViewProps {
   title: string;
   subtitle?: string;
-  notes: Note[];
+  notes: NoteListItem[];
   isLoading: boolean;
   isError?: boolean;
   folderId?: string | null;
@@ -213,10 +213,15 @@ export function NotesListView({
       {/* Content */}
       {isLoading ? (
         viewMode === "cards" ? (
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
+          <div className="columns-2 gap-2.5 sm:gap-3.5 lg:columns-3">
+            {["h-28", "h-44", "h-32", "h-40", "h-24", "h-36"].map(
+              (height, idx) => (
+                <Skeleton
+                  key={idx}
+                  className={`${height} mb-2.5 sm:mb-3.5 w-full break-inside-avoid rounded-xl sm:rounded-2xl`}
+                />
+              ),
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -260,18 +265,19 @@ export function NotesListView({
           )}
         </div>
       ) : viewMode === "cards" ? (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          {visibleNotes.map((note) => (
+        <MasonryGrid
+          items={visibleNotes}
+          keyExtractor={(note) => note.id}
+          renderItem={(note) => (
             <NoteCard
-              key={note.id}
               note={note}
               folder={note.folderId ? folderMap.get(note.folderId) : undefined}
               variant="card"
             />
-          ))}
-        </div>
+          )}
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 divide-y divide-border/50">
           {visibleNotes.map((note) => (
             <NoteCard
               key={note.id}

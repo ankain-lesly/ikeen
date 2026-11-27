@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { UserMenu } from "@/components/auth/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -28,7 +29,13 @@ export default function LegacyLayout({
               href="/"
               className="text-sm font-heading font-medium tracking-tight flex items-center gap-2"
             >
-              <span className="size-2 rounded-full bg-primary" />
+              <Image
+                src="/icon.png"
+                alt="iKeen"
+                width={20}
+                height={20}
+                className="size-5 rounded"
+              />
               <span>iKeen</span>
             </Link>
             <span className="text-[11px] font-mono text-muted-foreground border-l border-border pl-3">

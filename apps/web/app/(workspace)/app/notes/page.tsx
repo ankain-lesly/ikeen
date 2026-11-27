@@ -58,7 +58,7 @@ export default function AllNotesPage() {
         <div
           role="tablist"
           aria-label="Filter notes"
-          className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1"
+          className="inline-flex items-center gap-1 p-1"
         >
           {FILTER_TABS.map((tab) => {
             const Icon = tab.icon;
@@ -72,7 +72,7 @@ export default function AllNotesPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   active
-                    ? "bg-primary/15 text-primary font-semibold"
+                    ? "text-primary font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >

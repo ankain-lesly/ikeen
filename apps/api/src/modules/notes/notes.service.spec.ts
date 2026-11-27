@@ -225,12 +225,21 @@ describe('NotesService', () => {
   });
 
   describe('findAll', () => {
+    const mediaInclude = {
+      blocks: {
+        where: { deletedAt: null, type: 'media' },
+        orderBy: { position: 'asc' },
+        take: 1,
+      },
+    };
+
     it('should exclude archived notes by default', async () => {
       prisma.note.findMany.mockResolvedValue([]);
       await service.findAll('u-1');
       expect(prisma.note.findMany).toHaveBeenCalledWith({
         where: { userId: 'u-1', deletedAt: null, isArchived: false },
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+        include: mediaInclude,
       });
     });
 
@@ -250,6 +259,7 @@ describe('NotesService', () => {
           isArchived: true,
         },
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+        include: mediaInclude,
       });
     });
 
@@ -259,6 +269,7 @@ describe('NotesService', () => {
       expect(prisma.note.findMany).toHaveBeenCalledWith({
         where: { userId: 'u-1', deletedAt: null },
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+        include: mediaInclude,
       });
     });
 
@@ -270,7 +281,36 @@ describe('NotesService', () => {
         orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
         skip: 40,
         take: 20,
+        include: mediaInclude,
       });
+    });
+
+    it('should attach coverImageUrl from first media block image', async () => {
+      const now = new Date('2026-11-27T00:00:00.000Z');
+      prisma.note.findMany.mockResolvedValue([
+        {
+          id: 'n-img',
+          userId: 'u-1',
+          title: 'Photo Note',
+          blocks: [
+            {
+              id: 'b-m1',
+              noteId: 'n-img',
+              type: 'media',
+              position: 0,
+              content: [
+                { id: 'm-1', mediaType: 'image', url: 'https://cdn.ikeen.app/cover.png' },
+              ],
+              createdAt: now,
+              updatedAt: now,
+              deletedAt: null,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.findAll('u-1');
+      expect(result[0]?.coverImageUrl).toBe('https://cdn.ikeen.app/cover.png');
     });
   });
 

@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { LogIn, ArrowLeft, FileText } from "lucide-react";
+import { LogIn, ArrowLeft } from "lucide-react";
 
 import { useAuthStore, useAuthHydration } from "@/lib/stores/auth-store";
 import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
@@ -41,8 +42,14 @@ export default function WorkspaceLayout({
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
         <div className="max-w-sm w-full rounded-xl border border-border bg-card p-6 text-center space-y-5">
-          <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto">
-            <FileText className="size-6" />
+          <div className="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto overflow-hidden">
+            <Image
+              src="/icon.png"
+              alt="iKeen"
+              width={36}
+              height={36}
+              className="size-9 rounded-lg"
+            />
           </div>
           <div className="space-y-1.5">
             <h1 className="text-lg font-heading font-semibold tracking-tight text-foreground">

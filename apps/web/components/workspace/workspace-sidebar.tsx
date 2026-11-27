@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -221,8 +222,34 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Top Actions & Primary Navigation */}
+      {/* Top Brand Header (matching legacy sidebar) + Primary Action & Nav */}
       <div className="shrink-0 space-y-4 p-4 pb-3 border-b border-border/50">
+        <div className="flex items-center justify-between pb-3 border-b border-border/50">
+          <Link
+            href="/app/notes"
+            onClick={onNavClick}
+            className="flex items-center gap-2.5"
+          >
+            <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0">
+              <Image
+                src="/icon.png"
+                alt="iKeen"
+                width={22}
+                height={22}
+                className="size-5.5 rounded"
+              />
+            </div>
+            <div>
+              <span className="font-heading font-semibold text-sm tracking-tight text-foreground block">
+                iKeen Workspace
+              </span>
+              <span className="text-[10px] font-mono text-muted-foreground block">
+                Notes &amp; Scratchpad
+              </span>
+            </div>
+          </Link>
+        </div>
+
         <Button
           onClick={handleNewNote}
           disabled={createNote.isPending}
@@ -344,11 +371,11 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 }
 
 /**
- * Desktop Left Sidebar (Sticky beneath WorkspaceHeader, matching legacy dashboard)
+ * Desktop Left Sidebar (Full-height sticky column)
  */
 export function WorkspaceSidebar() {
   return (
-    <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col border-r border-border bg-card/40 sticky top-[53px] h-[calc(100vh-53px)]">
+    <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col border-r border-border bg-card/40 sticky top-0 h-screen">
       <SidebarContent />
     </aside>
   );

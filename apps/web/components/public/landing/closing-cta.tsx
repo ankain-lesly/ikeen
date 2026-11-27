@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -5,9 +6,13 @@ export function ClosingCta() {
   return (
     <section className="mx-auto w-full max-w-[1120px] px-6 pt-4 pb-24 sm:px-10 sm:pb-28">
       <div className="flex flex-col items-center text-center">
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary font-heading text-2xl font-bold text-primary-foreground">
-          iK
-        </div>
+        <Image
+          src="/icon.png"
+          alt="iKeen"
+          width={64}
+          height={64}
+          className="size-16 rounded-2xl shadow-md"
+        />
 
         <h2 className="mt-6 font-heading text-[clamp(2.5rem,6.5vw,4.25rem)] font-bold leading-[0.98] tracking-[-0.03em]">
           <span className="block text-foreground">Think clearly.</span>

@@ -13,6 +13,7 @@ import {
   noteSchema,
   updateNoteInputSchema,
   type NoteDetail,
+  type NoteListItem,
 } from "./schemas";
 
 export interface NotesFilter {
@@ -40,7 +41,7 @@ export const noteKeys = {
 
 export async function fetchNotesApi(
   filters: NotesFilter = {},
-): Promise<Note[]> {
+): Promise<NoteListItem[]> {
   const params: Record<string, string> = {};
   if (filters.folderId !== undefined) params.folderId = filters.folderId;
   if (filters.pinnedOnly) params.pinnedOnly = "true";

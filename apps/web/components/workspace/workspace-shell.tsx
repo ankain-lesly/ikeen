@@ -7,13 +7,17 @@ import { QuickSwitcher } from "./quick-switcher";
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <WorkspaceHeader />
-      <div className="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-53px)]">
-        <WorkspaceSidebar />
+    <div className="min-h-screen flex bg-background text-foreground">
+      {/* Full-height sticky desktop sidebar */}
+      <WorkspaceSidebar />
+
+      {/* Right column: header + mobile nav + scrollable content */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <WorkspaceHeader />
         <WorkspaceMobileNav />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
+
       <QuickSwitcher />
     </div>
   );

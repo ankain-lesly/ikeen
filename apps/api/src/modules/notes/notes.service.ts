@@ -45,11 +45,36 @@ export class NotesService {
           : {}),
     };
 
-    return this.prisma.note.findMany({
+    const notes = await this.prisma.note.findMany({
       where,
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
       ...(filters.offset !== undefined && { skip: filters.offset }),
       ...(filters.limit !== undefined && { take: filters.limit }),
+      include: {
+        blocks: {
+          where: { deletedAt: null, type: 'media' },
+          orderBy: { position: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    return notes.map(({ blocks, ...note }) => {
+      let coverImageUrl: string | null = null;
+      const firstMediaBlock = blocks?.[0];
+      if (firstMediaBlock) {
+        const unpacked = unpackServerNoteBlock(firstMediaBlock);
+        if (unpacked.type === 'media') {
+          const firstImage = unpacked.content.find(
+            (item) => item.mediaType === 'image' && typeof item.url === 'string' && item.url.length > 0,
+          );
+          coverImageUrl = firstImage?.url ?? null;
+        }
+      }
+      return {
+        ...note,
+        coverImageUrl,
+      };
     });
   }
 

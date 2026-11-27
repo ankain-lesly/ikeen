@@ -133,7 +133,11 @@ export const softDeleteBlockResponseSchema = z.object({
 // Note Schemas
 // ============================================================================
 
-export const noteSchema: z.ZodType<Note> = z.object({
+export interface NoteListItem extends Note {
+  coverImageUrl?: string | null;
+}
+
+export const noteSchema: z.ZodType<NoteListItem> = z.object({
   id: z.string().min(1),
   title: z.string(),
   folderId: z.string().nullable().optional(),
@@ -147,6 +151,7 @@ export const noteSchema: z.ZodType<Note> = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   deletedAt: z.string().nullable().optional(),
+  coverImageUrl: z.string().nullable().optional(),
 });
 
 export interface NoteDetail extends Note {

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -31,30 +32,38 @@ export function WorkspaceHeader() {
 
   return (
     <header className="sticky top-0 z-40 h-[53px] w-full border-b border-border bg-card/60 backdrop-blur-md">
-      <div className="flex h-full w-full items-center justify-between gap-4 px-4 sm:px-5">
+      <div className="flex h-full w-full items-center justify-between gap-4 px-4 sm:px-6">
+        {/* Mobile-only brand mark (desktop shows brand in full-height sidebar) */}
         <Link
           href="/app/notes"
-          className="flex items-center gap-2 font-heading text-sm font-bold tracking-tight text-foreground"
+          className="flex md:hidden items-center gap-2 font-heading text-sm font-bold tracking-tight text-foreground"
         >
-          <span className="flex size-6 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
-            iK
-          </span>
+          <Image
+            src="/icon.png"
+            alt="iKeen"
+            width={24}
+            height={24}
+            className="size-6 rounded-md"
+          />
           <span>iKeen</span>
         </Link>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setQuickSwitcherOpen(true)}
-            className="hidden sm:flex items-center gap-2.5 rounded-lg border border-border/70 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground cursor-pointer"
-          >
+        {/* Desktop Quick Jump bar on left */}
+        <button
+          type="button"
+          onClick={() => setQuickSwitcherOpen(true)}
+          className="hidden md:flex items-center justify-between gap-6 w-64 rounded-lg border border-border/70 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground cursor-pointer"
+        >
+          <span className="inline-flex items-center gap-2">
             <Search className="size-3.5" />
             <span>Quick jump…</span>
-            <kbd className="font-mono text-[10px] text-muted-foreground/80">
-              ⌘K
-            </kbd>
-          </button>
+          </span>
+          <kbd className="font-mono text-[10px] text-muted-foreground/80">
+            ⌘K
+          </kbd>
+        </button>
 
+        <div className="flex items-center gap-2">
           <Button
             onClick={handleNewNote}
             disabled={createNote.isPending}
