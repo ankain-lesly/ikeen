@@ -49,6 +49,7 @@ import {
 import { log } from "@repo/utils";
 
 import { MoveToFolderSheet } from "@/components/notes/move-to-folder-sheet";
+import { ShareNoteSheet } from "@/components/notes/share-note-sheet";
 import { AudioRecordingSheet } from "@/components/notes/audio-recording-sheet";
 import { GestureDetector } from "react-native-gesture-handler";
 import { KeyboardGradualAnimation } from "@/components/keyboard-gradual-animation";
@@ -102,6 +103,7 @@ export function NoteEditor({
   const colors = useTheme();
   const { user } = useAuthStore();
   const [isScratchpadOptionsOpen, setIsScratchpadOptionsOpen] = useState(false);
+  const [isShareSheetVisible, setIsShareSheetVisible] = useState(false);
 
   // Local note state
   const [note, setNote] = useState({
@@ -557,6 +559,7 @@ export function NoteEditor({
               }
               onShowInfo={() => setInfoSheetVisible(true)}
               onMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+              onShareLink={() => setIsShareSheetVisible(true)}
             />
           ) : (
             // {/* Scratchpad Options Sheet Trigger */}
@@ -700,7 +703,7 @@ export function NoteEditor({
         onDismiss={handleDoneEditing}
         wordCount={wordCount}
         onStartEditing={startEditing}
-        onShare={handleShare}
+        onShare={isScratchpad ? handleShare : () => setIsShareSheetVisible(true)}
         isPinned={note.isPinned}
         onTogglePin={handleTogglePin}
         onAddTextBlock={handleAddTextBlock}
@@ -720,6 +723,16 @@ export function NoteEditor({
         folderName={currentFolder?.name}
         onClose={() => setInfoSheetVisible(false)}
         onOpenMoveToFolder={() => setIsMoveFolderSheetVisible(true)}
+      />
+      {/* Share Note Sheet */}
+      <ShareNoteSheet
+        noteId={note.id}
+        noteTitle={note.title}
+        onShareText={actions.handleShareNote}
+        onCopyText={actions.handleCopyNote}
+        isLockedFolder={Boolean(currentFolder?.isLocked)}
+        isPresented={isShareSheetVisible}
+        onDismiss={() => setIsShareSheetVisible(false)}
       />
       {/* Move to Folder Selector Sheet */}
       <MoveToFolderSheet

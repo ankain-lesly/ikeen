@@ -120,3 +120,28 @@ textarea {
   outline-color: var(--primary);
 }
 
+/* Progressive enhancement: native left-to-right CSS Masonry where supported */
+@supports (display: grid-lanes) {
+  .masonry-grid {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+
+  @media (min-width: 640px) {
+    .masonry-grid {
+      gap: 0.875rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .masonry-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .masonry-item {
+    margin-bottom: 0;
+  }
+}
+

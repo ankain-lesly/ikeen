@@ -73,6 +73,7 @@ model User {
   chatConversations   ChatConversation[]
   chatMemories        ChatMemory[]
   apiKeys             ApiKey[]
+  noteShares          NoteShare[]
   @@map("users")
 }
 
@@ -357,11 +358,41 @@ model Note {
   folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
   blocks     NoteBlock[]
   reminders  Reminder[]
+  share      NoteShare?
 
   @@index([userId, updatedAt])
   @@index([userId, deletedAt])
   @@index([userId, folderId])
   @@map("notes")
+}
+
+// =====================================
+// NOTE SHARING
+// =====================================
+
+enum ShareAccess {
+  view
+  copy
+}
+
+model NoteShare {
+  id           String      @id @default(uuid())
+  noteId       String      @unique
+  createdById  String
+  slug         String      @unique @db.VarChar(24)
+  isActive     Boolean     @default(true)
+  access       ShareAccess @default(view)
+  passwordHash String?     @db.VarChar(255)
+  expiresAt    DateTime?
+  viewCount    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  note      Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([slug, isActive])
+  @@map("note_shares")
 }
 
 // =====================================

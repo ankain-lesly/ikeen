@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Alert, Share } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import * as Haptics from "@/lib/haptics";
 import { toast } from "@/lib/toast";
 import {
@@ -121,13 +122,25 @@ export function useNoteActions({
 
   const handleShareNote = useCallback(async () => {
     try {
+      const formatted = [title?.trim(), content?.trim()]
+        .filter(Boolean)
+        .join("\n\n");
       await Share.share({
-        title,
-        message: `${title}\n\n${content}`,
+        title: title || "Untitled Note",
+        message: formatted || title || "Untitled Note",
       });
     } catch {
       // Ignored
     }
+  }, [title, content]);
+
+  const handleCopyNote = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const formatted = [title?.trim(), content?.trim()]
+      .filter(Boolean)
+      .join("\n\n");
+    await Clipboard.setStringAsync(formatted || title || "");
+    toast.success("Note copied");
   }, [title, content]);
 
   return {
@@ -137,5 +150,6 @@ export function useNoteActions({
     handleHardDelete,
     handleRestoreNote,
     handleShareNote,
+    handleCopyNote,
   };
 }

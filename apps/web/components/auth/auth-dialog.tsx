@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
-import { useKeysStore } from "@/lib/stores/keys-store";
-import { useAuthStore } from "@/lib/stores/auth-store";
-import { loginApi, registerApi } from "@/lib/api/auth-api";
+import { useAuthUiStore } from "@/lib/stores/auth-ui-store";
+import { useLogin, useRegister } from "@/lib/api/auth.api";
 
 import {
   Sheet,
@@ -22,47 +20,15 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 
 export function AuthDialog() {
-  const queryClient = useQueryClient();
-  const { isAuthOpen, closeAuth, authMode } = useKeysStore();
-  const { setAuth } = useAuthStore();
+  const { isAuthOpen, closeAuth, authMode } = useAuthUiStore();
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
 
   const [userMode, setUserMode] = React.useState<"login" | "register" | null>(null);
   const mode = userMode ?? authMode;
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-
-  const loginMutation = useMutation({
-    mutationFn: loginApi,
-    onSuccess: (data) => {
-      setAuth(data.user, data.accessToken);
-      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
-      toast.success(`Welcome back, ${data.user.firstName || data.user.email}!`);
-      closeAuth();
-      resetForm();
-    },
-    onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = axiosErr.response?.data?.message || axiosErr.message || "Failed to sign in";
-      toast.error(msg);
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: registerApi,
-    onSuccess: (data) => {
-      setAuth(data.user, data.accessToken);
-      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
-      toast.success("Account created successfully!");
-      closeAuth();
-      resetForm();
-    },
-    onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = axiosErr.response?.data?.message || axiosErr.message || "Failed to create account";
-      toast.error(msg);
-    },
-  });
 
   function resetForm() {
     setName("");
@@ -79,7 +45,20 @@ export function AuthDialog() {
     }
 
     if (mode === "login") {
-      loginMutation.mutate({ email: email.trim(), password });
+      loginMutation.mutate(
+        { email: email.trim(), password },
+        {
+          onSuccess: (data) => {
+            toast.success(`Welcome back, ${data.user.firstName || data.user.email}!`);
+            closeAuth();
+            resetForm();
+          },
+          onError: (err: unknown) => {
+            const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+            toast.error(axiosErr.response?.data?.message || axiosErr.message || "Failed to sign in");
+          },
+        },
+      );
     } else {
       if (!name.trim()) {
         toast.error("Please enter your name");
@@ -89,7 +68,20 @@ export function AuthDialog() {
         toast.error("Password must be at least 6 characters long");
         return;
       }
-      registerMutation.mutate({ name: name.trim(), email: email.trim(), password });
+      registerMutation.mutate(
+        { name: name.trim(), email: email.trim(), password },
+        {
+          onSuccess: () => {
+            toast.success("Account created successfully!");
+            closeAuth();
+            resetForm();
+          },
+          onError: (err: unknown) => {
+            const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+            toast.error(axiosErr.response?.data?.message || axiosErr.message || "Failed to create account");
+          },
+        },
+      );
     }
   }
 

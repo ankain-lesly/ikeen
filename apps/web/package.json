@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "bun test",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@repo/types": "workspace:*",
+    "@repo/utils": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
     "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",

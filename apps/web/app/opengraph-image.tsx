@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "iKeen — Personal Notes & AI Workspace";
+export const alt = "iKeen — Write everything. Keep it yours.";
 export const size = {
   width: 1200,
   height: 630,
@@ -27,8 +27,8 @@ export default function OpenGraphImage() {
         <div
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px)",
-            backgroundSize: "42px 42px",
+              "linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px)",
+            backgroundSize: "44px 44px",
             display: "flex",
             inset: 0,
             position: "absolute",
@@ -36,28 +36,54 @@ export default function OpenGraphImage() {
         />
         <div
           style={{
-            color: "#39FF14",
+            alignItems: "center",
             display: "flex",
-            fontSize: 28,
-            fontWeight: 500,
-            letterSpacing: -0.5,
+            gap: 16,
           }}
         >
-          ikeen / notes &amp; mcp workspace
+          <div
+            style={{
+              alignItems: "center",
+              background: "#39FF14",
+              borderRadius: 12,
+              color: "#071006",
+              display: "flex",
+              fontSize: 22,
+              fontWeight: 800,
+              height: 44,
+              justifyContent: "center",
+              width: 44,
+            }}
+          >
+            iK
+          </div>
+          <div
+            style={{
+              color: "#F2F5EF",
+              display: "flex",
+              fontSize: 28,
+              fontWeight: 700,
+              letterSpacing: -0.5,
+            }}
+          >
+            iKeen Workspace
+          </div>
         </div>
+
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            fontSize: 90,
-            fontWeight: 600,
-            letterSpacing: -5,
+            fontSize: 92,
+            fontWeight: 700,
+            letterSpacing: -4.5,
             lineHeight: 0.95,
           }}
         >
           <span>Write everything.</span>
           <span style={{ color: "#39FF14" }}>Keep it yours.</span>
         </div>
+
         <div
           style={{
             color: "#92998F",
@@ -67,7 +93,7 @@ export default function OpenGraphImage() {
             textTransform: "uppercase",
           }}
         >
-          Local-First Notes / Autonomous AI Agent / MCP Server
+          Web Workspace · Android · iOS · Desktop · Scratchpad
         </div>
       </div>
     ),

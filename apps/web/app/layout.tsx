@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 
 import { Providers } from "@/components/providers/query-provider";
-import { UserMenu } from "@/components/auth/user-menu";
 import { AuthDialog } from "@/components/auth/auth-dialog";
-import {xenv} from "@/lib/env.client";
+import { xenv } from "@/lib/env.client";
 
 import "./globals.css";
 
@@ -24,16 +22,50 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = xenv.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+const DEFAULT_TITLE = "iKeen — Personal Notes & Thinking Workspace";
+const DEFAULT_DESCRIPTION =
+  "Write everything. Keep it yours. Personal notes, structured blocks, folders, and a cross-device scratchpad synced across Web, Android, iOS, and Desktop.";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f5ef" },
+  ],
+  colorScheme: "dark light",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL(xenv.NEXT_PUBLIC_SITE_URL),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "iKeen — Personal Notes & AI Workspace",
+    default: DEFAULT_TITLE,
     template: "%s · iKeen",
   },
-  description:
-    "iKeen is a personal notes and thinking workspace — local-first notes, folders, and an autonomous AI agent with Model Context Protocol (MCP) server. Write everything. Keep it yours.",
+  description: DEFAULT_DESCRIPTION,
   applicationName: "iKeen",
+  category: "productivity",
   manifest: "/site.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  appleWebApp: {
+    capable: true,
+    title: "iKeen",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -42,40 +74,42 @@ export const metadata: Metadata = {
       { url: "/icon.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/favicon/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      {
+        url: "/favicon/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
   },
   keywords: [
     "iKeen",
     "personal notes",
-    "local-first notes",
-    "Model Context Protocol",
-    "MCP",
-    "AI agent",
-    "Claude Desktop",
-    "Cursor AI",
-    "knowledge management",
-    "developer notes",
+    "notes workspace",
+    "block editor",
+    "scratchpad",
+    "markdown notes",
+    "cross-platform notes",
+    "MCP notes",
   ],
   authors: [{ name: "TechForge" }],
   creator: "Dev Lee",
+  publisher: "TechForge",
   openGraph: {
-    title: "iKeen — Personal Notes & AI Workspace",
-    description:
-      "Write everything. Keep it yours. Local-first notes with folders, autonomous AI agent, and Model Context Protocol (MCP) tools.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     siteName: "iKeen",
     type: "website",
     locale: "en_US",
-    url: xenv.NEXT_PUBLIC_SITE_URL,
+    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "iKeen — Personal Notes & AI Workspace",
-    description:
-      "Write everything. Keep it yours. Local-first notes with MCP tools and autonomous AI agent capabilities.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
   },
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem('ikeen_theme');var t='dark';if(raw){var p=JSON.parse(raw);if(p&&p.state&&(p.state.theme==='light'||p.state.theme==='dark')){t=p.state.theme;}}document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(t);}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -85,63 +119,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}>
+      suppressHydrationWarning
+      className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>
-          <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-40">
-            <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-3.5">
-              <Link
-                href="/"
-                className="text-base font-heading font-medium tracking-tight flex items-center gap-2">
-                <span className="size-2 rounded-full bg-primary animate-pulse" />
-                <span>iKeen</span>
-              </Link>
-              <nav className="flex items-center gap-4 text-sm">
-                <Link
-                  href="/mcp"
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  MCP Showcase
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  Dashboard
-                </Link>
-                <Link
-                  href="/download"
-                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
-                  Download
-                </Link>
-                <Link
-                  href="/privacy"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
-                  Privacy
-                </Link>
-                <div className="h-4 w-px bg-border/60" />
-                <UserMenu />
-              </nav>
-            </div>
-          </header>
           {children}
-          <footer className="mt-auto border-t border-border bg-card/40">
-            <div className="mx-auto flex w-full max-w-6xl justify-between items-center px-4 sm:px-6 py-4 text-xs text-muted-foreground">
-              <span>© {new Date().getFullYear()} iKeen Research MCP</span>
-              <div className="flex items-center gap-4">
-                <Link href="/download" className="hover:text-foreground">
-                  Download App
-                </Link>
-                <Link href="/mcp" className="hover:text-foreground">
-                  MCP Showcase
-                </Link>
-                <Link href="/dashboard" className="hover:text-foreground">
-                  Dashboard
-                </Link>
-                <Link href="/privacy" className="hover:text-foreground">
-                  Privacy Policy
-                </Link>
-              </div>
-            </div>
-          </footer>
           <AuthDialog />
         </Providers>
       </body>

@@ -235,6 +235,7 @@ function RootDrawerLayout() {
         <Drawer.Screen name="search" />
         <Drawer.Screen name="reminders" />
         <Drawer.Screen name="notes" />
+        <Drawer.Screen name="s/[slug]" options={{ swipeEnabled: false }} />
         <Drawer.Screen name="folders/[id]" />
         <Drawer.Screen name="(tabs)" />
         <Drawer.Screen name="(auth)" />

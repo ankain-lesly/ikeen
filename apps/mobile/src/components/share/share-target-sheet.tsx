@@ -17,7 +17,7 @@ import {
   createDefaultTextBlockInput,
 } from "@/components/notes/blocks/block-factories";
 import { saveAssetToSandbox } from "@/lib/media/file-system";
-import type { MediaItem, NoteBlock, NoteWithBlocks } from "@/lib/types/notes";
+import type { MediaItem, NoteBlock, NoteSelect as Note, NoteWithBlocks } from "@/lib/types/notes";
 import type { ShareIntent, ShareIntentFile } from "expo-share-intent";
 import { Host } from "@expo/ui/jetpack-compose";
 import { Switch } from "@expo/ui";
@@ -90,20 +90,20 @@ export function ShareTargetSheet({
   const [noteTitle, setNoteTitle] = useState(initialTitle);
 
   // Live notes list for search picker
-  const { data: notes = [] } = useLiveNotes({
-    includeArchived: false,
+  const { data: notes = [], isLoading } = useLiveNotes({
+    includeArchived: true,
     includeDeleted: false,
-    withBlocks: true,
+    withBlocks: false,
   });
 
   const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return notes;
-    return notes.filter(
-      (n) =>
-        n.title.toLowerCase().includes(q) ||
-        (n.content && n.content.toLowerCase().includes(q)),
-    );
+    return notes.filter((n) => {
+      const title = (n.title || "Untitled note").toLowerCase();
+      const content = (n.content || "").toLowerCase();
+      return title.includes(q) || content.includes(q);
+    });
   }, [notes, search]);
 
   const handleFinish = useCallback(
@@ -199,7 +199,7 @@ export function ShareTargetSheet({
   };
 
   // ACTION 2: Append or Add Block to Existing Note
-  const handleSelectExistingNote = async (targetNote: NoteWithBlocks) => {
+  const handleSelectExistingNote = async (targetNote: Note | NoteWithBlocks) => {
     if (!shareIntent || isSubmitting) return;
     setIsSubmitting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -462,13 +462,18 @@ export function ShareTargetSheet({
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
               contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
-              style={{ maxHeight: 280 }}
+              style={{ maxHeight: 300 }}
               ListEmptyComponent={
                 <View className="py-8 items-center justify-center">
-                  <Text className="text-xs text-text-secondary">
-                    No matching notes found
-                  </Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Text className="text-xs text-text-secondary">
+                      No matching notes found
+                    </Text>
+                  )}
                 </View>
               }
               renderItem={({ item }) => (

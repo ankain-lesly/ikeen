@@ -51,6 +51,7 @@ type NotesOptionsDropdownProps = {
   onReminder?: () => void;
   onMoveToFolder?: () => void;
   onShowInfo?: () => void;
+  onShareLink?: () => void;
 };
 
 export function NotesOptionsDropdown({
@@ -68,6 +69,7 @@ export function NotesOptionsDropdown({
   onReminder,
   onMoveToFolder,
   onShowInfo,
+  onShareLink,
 }: NotesOptionsDropdownProps) {
   const colors = useTheme();
 
@@ -99,6 +101,7 @@ export function NotesOptionsDropdown({
         onReminder={onReminder}
         onMoveToFolder={onMoveToFolder}
         onShowInfo={onShowInfo}
+        onShareLink={onShareLink}
       />
     );
   }
@@ -189,7 +192,11 @@ export function NotesOptionsDropdown({
               <DropdownMenuItem
                 onClick={() => {
                   dropdown.close();
-                  actions.handleShareNote();
+                  if (onShareLink) {
+                    onShareLink();
+                  } else {
+                    actions.handleShareNote();
+                  }
                 }}>
                 <DropdownMenuItem.LeadingIcon>
                   <RNHostView matchContents>
@@ -298,6 +305,7 @@ function NotesOptionsSheet({
   onReminder,
   onMoveToFolder,
   onShowInfo,
+  onShareLink,
 }: {
   note: NotesOptionsDropdownProps["note"];
   actions: ReturnType<typeof useNoteActions>;
@@ -307,6 +315,7 @@ function NotesOptionsSheet({
   onReminder?: () => void;
   onMoveToFolder?: () => void;
   onShowInfo?: () => void;
+  onShareLink?: () => void;
 }) {
   const colors = useTheme();
   const sheet = useNoteOptionsDropdown();
@@ -360,7 +369,11 @@ function NotesOptionsSheet({
       icon: <Share2 size={20} color={colors.textSecondary} />,
       onPress: () => {
         sheet.close();
-        actions.handleShareNote();
+        if (onShareLink) {
+          onShareLink();
+        } else {
+          actions.handleShareNote();
+        }
       },
       color: colors.text,
       visible: !isDeleted,
