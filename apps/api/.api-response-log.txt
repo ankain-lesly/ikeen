@@ -1,0 +1,1451 @@
+# API Response Log:
+
+---
+
+Dev Lee@DESKTOP-17BVPFN MINGW64 ~/Documents/@DevLee/mobile/ikeen/apps/api (dev)
+$ bun start:dev
+$ nest start --exec bun --watch
+
+ Info  Rspack is building your sources...
+
+Rspack 2.2.7 compiled successfully in 35.82 s
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [NestFactory] Starting Nest application...
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [ComposioService] Composio sessions enabled
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [AblyService] Ably Realtime initialized successfully
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] EnvModule dependencies initialized +2ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] PassportModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [WebResearchService] Tavily web research enabled
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] PrismaModule dependencies initialized +5ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] AppModule dependencies initialized +3ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] JwtModule dependencies initialized +2ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [AgentService] Ikeen AgentService initialized with tool registry
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] AblyModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] RemindersModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] MediaModule dependencies initialized +4ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] AuditModule dependencies initialized +2ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] McpModule dependencies initialized +1ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] FoldersModule dependencies initialized +1ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] NotesModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] SyncModule dependencies initialized +0ms
+[Nest] 1820  - 26/11/2026, 08:32:35     LOG [InstanceLoader] AgentModule dependencies initialized +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] AppController {/api/v1}: +1430ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/, GET} route +8ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] AuditController {/api/v1/audit-logs}: +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/audit-logs, GET} route +2ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] AuditController {/api/v1/api/v1/audit-logs}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/api/v1/audit-logs, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] RealtimeController {/api/v1/realtime}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/realtime/status, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/realtime/trigger/:userId, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/realtime/ping/:userId, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/realtime/trigger/:userId, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] FoldersController {/api/v1/folders}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/folders, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/folders, POST} route +7ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, PATCH} route +2ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, DELETE} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] NotesController {/api/v1/notes}: +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/trash, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/restore, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, PATCH} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/permanent, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/:blockId, PUT} route +3ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/:blockId, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/reorder, PATCH} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] MediaController {/api/v1/media}: +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/media/upload, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/media/user, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] AuthController {/api/v1/auth}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/register, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/me, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] ApiKeyController {/api/v1/auth/api-keys}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys, POST} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys/:id, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] SyncController {/api/v1/sync}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/sync/updates, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/sync/push, POST} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/sync/pull, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/sync/realtime-auth, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notifications/push-token, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notifications/push-token, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/notifications/test, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] AgentController {/api/v1/agent}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/agent/status, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/agent/chat, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations/:id, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations/:id, DELETE} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpWellKnownController {/api/v1/.well-known}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/.well-known/oauth-protected-resource, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/.well-known/oauth-protected-resource/mcp, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpWellKnownController {/api/v1/api/v1/.well-known}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/.well-known/oauth-protected-resource, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/.well-known/oauth-protected-resource/mcp, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpInfoController {/api/v1/mcp}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/mcp/tools, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/mcp/prompts, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/mcp/info, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpInfoController {/api/v1/api/v1/mcp}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/mcp/tools, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/mcp/prompts, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/mcp/info, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpController {/api/v1/mcp}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/mcp, POST} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/mcp, GET} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RoutesResolver] McpController {/api/v1/api/v1/mcp}: +0ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/mcp, POST} route +1ms
+[Nest] 1820  - 26/11/2026, 08:32:37     LOG [RouterExplorer] Mapped {/api/v1/mcp, GET} route +0ms
+[Nest] 1820  - 26/11/2026, 08:32:38     LOG [PrismaService] Database connection successfully established.
+[Nest] 1820  - 26/11/2026, 08:32:38     LOG [NestApplication] Nest application successfully started +9ms
+[Nest] 1820  - 26/11/2026, 08:34:13    WARN [HTTP] POST /mcp 400 +4312ms - ::1
+[Nest] 1820  - 26/11/2026, 08:34:13     LOG [HTTP] POST /mcp 200 +382ms - ::1
+[Nest] 1820  - 26/11/2026, 08:34:13    WARN [HTTP] GET /mcp 405 +9ms - ::1
+[Nest] 1820  - 26/11/2026, 08:34:13     LOG [HTTP] POST /mcp 202 +12ms - ::1
+[Nest] 1820  - 26/11/2026, 08:34:13     LOG [HTTP] GET /.well-known/oauth-protected-resource/mcp 200 +2ms - ::1
+[Nest] 1820  - 26/11/2026, 08:34:13     LOG [HTTP] POST /mcp 200 +42ms - ::1
+[Nest] 1820  - 26/11/2026, 08:35:16    WARN [HTTP] GET /api/v1/folders 401 +20ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:08     LOG [AuthService] [Auth:Login:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 email=leeleslychuo@gmail.com
+[Nest] 1820  - 26/11/2026, 08:36:08     LOG [HTTP] POST /api/v1/auth/login 200 +1666ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:10     LOG [HTTP] GET /api/v1/folders 200 +1188ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:11     LOG [HTTP] GET /api/v1/notes 200 +1923ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:46     LOG [HTTP] GET /api/v1/notes?includeArchived=true 200 +435ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:56     LOG [HTTP] GET /api/v1/notes?pinnedOnly=true 200 +216ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:56     LOG [HTTP] GET /api/v1/folders 304 +514ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:36:58     LOG [HTTP] GET /api/v1/notes?archivedOnly=true 200 +25ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:37:06     LOG [HTTP] GET /api/v1/notes/trash 200 +47ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:37:15     LOG [HTTP] GET /api/v1/notes 304 +26ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:37:53     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809 200 +2133ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:37:55     LOG [HTTP] GET /api/v1/folders 304 +12ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:24     LOG [HTTP] GET /api/v1/notes 304 +133ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:25     LOG [HTTP] POST /api/v1/notes 201 +295ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:25     LOG [HTTP] GET /api/v1/notes 200 +16ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:26     LOG [HTTP] GET /api/v1/folders 304 +24ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:44     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d 200 +169ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:38:48     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d 200 +22ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:08     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/_rkZgkjhjirjY2kOzwPYf 200 +347ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:19     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/_rkZgkjhjirjY2kOzwPYf 200 +169ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:25     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +38ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:33     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +30ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:41     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +77ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:47     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +47ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:39:54     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +12ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:05     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +96ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:14     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d 200 +18ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:17     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d 200 +19ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:25     LOG [HTTP] GET /api/v1/folders/project-re 200 +28ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:25     LOG [HTTP] GET /api/v1/notes?folderId=project-re 200 +234ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:25     LOG [HTTP] GET /api/v1/folders 304 +389ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:35     LOG [HTTP] GET /api/v1/notes/quick-tips-note 200 +51ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:42     LOG [HTTP] GET /api/v1/notes 200 +18ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:52     LOG [HTTP] GET /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d 200 +63ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:40:59     LOG [HTTP] PUT /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/fbj6XlPKA7hqwLg9H8Wpp 200 +46ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:41:05     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/reorder 200 +77ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:41:07     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/blocks/reorder 200 +16ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:45:14     LOG [HTTP] GET /api/v1/folders 304 +166ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:45:14     LOG [HTTP] GET /api/v1/notes 200 +186ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:45:25     LOG [HTTP] GET /api/v1/folders 304 +229ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 08:45:25     LOG [HTTP] GET /api/v1/notes 304 +300ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 09:00:24     LOG [HTTP] POST /mcp 200 +395ms - ::1
+[Nest] 1820  - 26/11/2026, 09:00:25     LOG [HTTP] POST /mcp 200 +26ms - ::1
+[Nest] 1820  - 26/11/2026, 09:00:27     LOG [HTTP] POST /mcp 200 +11ms - ::1
+[Nest] 1820  - 26/11/2026, 09:00:28     LOG [HTTP] POST /mcp 200 +12ms - ::1
+[Nest] 1820  - 26/11/2026, 09:02:15     LOG [HTTP] POST /mcp 200 +123ms - ::1
+[Nest] 1820  - 26/11/2026, 09:12:57     LOG [HTTP] POST /mcp 200 +117ms - ::1
+[Nest] 1820  - 26/11/2026, 09:23:58     LOG [HTTP] POST /mcp 200 +111ms - ::1
+[Nest] 1820  - 26/11/2026, 09:27:24     LOG [HTTP] POST /mcp 200 +105ms - ::1
+[Nest] 1820  - 26/11/2026, 09:39:18     LOG [HTTP] POST /mcp 200 +829ms - ::1
+[Nest] 1820  - 26/11/2026, 09:39:48     LOG [HTTP] GET /api/v1/folders 304 +13398ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 09:39:49     LOG [HTTP] GET /api/v1/notes 304 +11154ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 09:58:32     LOG [HTTP] POST /mcp 200 +481ms - ::1
+[Nest] 1820  - 26/11/2026, 09:59:57     LOG [HTTP] POST /mcp 200 +144ms - ::1
+[Nest] 1820  - 26/11/2026, 10:05:14     LOG [HTTP] GET /api/v1/folders 304 +1213ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:05:15     LOG [HTTP] GET /api/v1/notes 304 +2488ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:06:14     LOG [HTTP] GET /api/v1/folders 304 +210ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:13:25     LOG [HTTP] GET /api/v1/mcp/tools 200 +4219ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:13:27     LOG [HTTP] GET /api/v1/auth/api-keys 200 +6469ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:13:38     LOG [HTTP] GET /api/v1/folders 304 +810ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:13:38     LOG [HTTP] GET /api/v1/notes 304 +693ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:13:54     LOG [HTTP] POST /mcp 200 +353ms - ::1
+[Nest] 1820  - 26/11/2026, 10:14:23     LOG [HTTP] GET /api/v1/mcp/tools 304 +103ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:14:24     LOG [HTTP] GET /api/v1/auth/api-keys 200 +807ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:14:35     LOG [HTTP] GET /api/v1/notes 304 +477ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:14:35     LOG [HTTP] GET /api/v1/folders 304 +595ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:19:22     LOG [HTTP] POST /mcp 200 +207ms - ::1
+[Nest] 1820  - 26/11/2026, 10:19:33     LOG [HTTP] GET /api/v1/notes 304 +1946ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:19:33     LOG [HTTP] GET /api/v1/folders 304 +2524ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:21:59     LOG [HTTP] GET /api/v1/folders 304 +543ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:21:59     LOG [HTTP] GET /api/v1/notes 304 +841ms - ::ffff:127.0.0.1
+
+ Info  Rspack is building your sources...
+
+[Nest] 1820  - 26/11/2026, 10:34:21     LOG [HTTP] POST /mcp 200 +10139ms - ::1
+ERROR: Not found
+ERROR: Not found
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: taskkill /pid 11376 /T /F
+ERROR: Not found
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:925:11)
+    at execSync (node:child_process:997:15)
+    at treeKillSync (file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@nestjs+cli@12.0.3+becd53167bcb4874/node_modules/@nestjs/cli/lib/utils/tree-kill.js:4:9)
+    at file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@nestjs+cli@12.0.3+becd53167bcb4874/node_modules/@nestjs/cli/actions/start.action.js:86:17
+    at Watching.handler (file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@nestjs+cli@12.0.3+becd53167bcb4874/node_modules/@nestjs/cli/lib/compiler/rspack-compiler.js:101:21)
+    at file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@rspack+core@2.2.7+dcea513fa271d095/node_modules/@rspack/core/dist/index.js:12243:34
+    at done (file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@rspack+core@2.2.7+dcea513fa271d095/node_modules/@rspack/core/dist/index.js:714:42)
+    at next (file:///C:/Users/Dev%20Lee/Documents/@DevLee/mobile/ikeen/node_modules/.bun/@rspack+core@2.2.7+dcea513fa271d095/node_modules/@rspack/core/dist/index.js:739:68) {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    Buffer(0) [Uint8Array] [],
+    Buffer(19) [Uint8Array] [
+       69,  82,  82,  79, 82,  58,
+       32,  78, 111, 116, 32, 102,
+      111, 117, 110, 100, 13,  13,
+       10
+    ]
+  ],
+  pid: 20788,
+  stdout: Buffer(0) [Uint8Array] [],
+  stderr: Buffer(19) [Uint8Array] [
+     69,  82,  82,  79, 82,  58,
+     32,  78, 111, 116, 32, 102,
+    111, 117, 110, 100, 13,  13,
+     10
+  ]
+}
+
+Node.js v24.13.0
+error: script "start:dev" exited with code 1
+
+Dev Lee@DESKTOP-17BVPFN MINGW64 ~/Documents/@DevLee/mobile/ikeen/apps/api (dev)
+$  [Nest] 1820  - 26/11/2026, 10:57:20    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +13029ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:57:24    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +430ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:57:24     LOG [HTTP] GET /api/v1/folders 304 +609ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:57:25     LOG [HTTP] GET /api/v1/notes 304 +1521ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:59:41    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +444ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 10:59:42    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +9ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:00:27    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +1016ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:00:28    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +12ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:03:46    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +152ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:04:20    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +190ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:06:48    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +403ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:06:54    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +83ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:06:55    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +6ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:08:12    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +89ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:13:45    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +222ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:20:40     LOG [HTTP] GET /api/v1/notes 304 +1161ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:20:40    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +1844ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:20:40     LOG [HTTP] GET /api/v1/folders 304 +1134ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:20:44    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +19ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:23:33     LOG [HTTP] GET /api/v1/folders 304 +164ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:23:33     LOG [HTTP] GET /api/v1/notes 304 +224ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:23:33    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +264ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:24:48     LOG [HTTP] GET /api/v1/folders 304 +243ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:24:48     LOG [HTTP] GET /api/v1/notes 304 +314ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:36:30     LOG [HTTP] GET /api/v1/folders 304 +158ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 11:36:30     LOG [HTTP] GET /api/v1/notes 304 +177ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 14:39:49     LOG [HTTP] POST /mcp 200 +19227ms - ::1
+[Nest] 1820  - 26/11/2026, 14:41:03     LOG [HTTP] GET /api/v1/folders 304 +212ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 14:41:03     LOG [HTTP] GET /api/v1/notes 304 +430ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 14:44:08     LOG [HTTP] GET /api/v1/folders 304 +153ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 14:44:08     LOG [HTTP] GET /api/v1/notes 304 +294ms - ::ffff:127.0.0.1
+[Nest] 1820  - 26/11/2026, 14:44:15    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +4ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:14:54    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +4398ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:14:54     LOG [HTTP] GET /api/v1/folders 304 +4540ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:14:55     LOG [HTTP] GET /api/v1/notes 304 +5032ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:14:56    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +104ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:14:59    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +17ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:00    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +3ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:31     LOG [HTTP] GET /api/v1/notes 304 +2431ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:31     LOG [HTTP] GET /api/v1/folders 304 +2634ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:31    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +2735ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:32    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +3ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:50    WARN [HTTP] GET /api/v1/notes?limit=20&offset=0 400 +657ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:15:52     LOG [HTTP] GET /api/v1/notes 304 +1331ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:16:01    WARN [HTTP] GET /api/v1/notes?limit=20&offset=20 400 +13ms - ::ffff:127.0.0.1
+[Nest] 1820  - 27/11/2026, 06:16:02     LOG [HTTP] GET /api/v1/notes 304 +644ms - ::ffff:127.0.0.1
+^C
+
+
+Dev Lee@DESKTOP-17BVPFN MINGW64 ~/Documents/@DevLee/mobile/ikeen/apps/api (dev)
+$ bun start:dev
+$ nest start --exec bun --watch
+
+ Info  Rspack is building your sources...
+
+Rspack 2.2.7 compiled successfully in 82.89 s
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [NestFactory] Starting Nest application...
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [ComposioService] Composio sessions enabled
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [AblyService] Ably Realtime initialized successfully
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] EnvModule dependencies initialized +18ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] PassportModule dependencies initialized +1ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [WebResearchService] Tavily web research enabled
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] PrismaModule dependencies initialized +10ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] AppModule dependencies initialized +3ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] JwtModule dependencies initialized +3ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [AgentService] Ikeen AgentService initialized with tool registry
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] AblyModule dependencies initialized +1ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] RemindersModule dependencies initialized +0ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] MediaModule dependencies initialized +7ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] AuditModule dependencies initialized +9ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 14244  - 27/11/2026, 06:33:48     LOG [InstanceLoader] McpModule dependencies initialized +3ms
+[Nest] 14244  - 27/11/2026, 06:33:49     LOG [InstanceLoader] FoldersModule dependencies initialized +1ms
+[Nest] 14244  - 27/11/2026, 06:33:49     LOG [InstanceLoader] NotesModule dependencies initialized +2ms
+[Nest] 14244  - 27/11/2026, 06:33:49     LOG [InstanceLoader] SharesModule dependencies initialized +1ms
+[Nest] 14244  - 27/11/2026, 06:33:49     LOG [InstanceLoader] SyncModule dependencies initialized +0ms
+[Nest] 14244  - 27/11/2026, 06:33:49     LOG [InstanceLoader] AgentModule dependencies initialized +1ms
+2026-11-27T05:33:50.109Z - 🚀 Upgrade available! Your @composio/core version (0.22.0) is behind. Latest version: 0.32.0.
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] AppController {/api/v1}: +3626ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/, GET} route +11ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] AuditController {/api/v1/audit-logs}: +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/audit-logs, GET} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] AuditController {/api/v1/api/v1/audit-logs}: +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/api/v1/audit-logs, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] RealtimeController {/api/v1/realtime}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/realtime/status, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/realtime/trigger/:userId, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/realtime/ping/:userId, GET} route +25ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/realtime/trigger/:userId, POST} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] FoldersController {/api/v1/folders}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/folders, GET} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/folders, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, PATCH} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/folders/:id, DELETE} route +3ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] NotesController {/api/v1/notes}: +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes, GET} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/trash, GET} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/restore, POST} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, PATCH} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/permanent, DELETE} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id, DELETE} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/:blockId, PUT} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/:blockId, DELETE} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:id/blocks/reorder, PATCH} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] NoteSharesController {/api/v1/notes}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:noteId/share, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:noteId/share, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:noteId/share, PATCH} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notes/:noteId/share, DELETE} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] PublicSharesController {/api/v1/public/shares}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/public/shares/:slug, GET} route +4ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/public/shares/:slug/unlock, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/public/shares/:slug/fork, POST} route +3ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] MediaController {/api/v1/media}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/media/upload, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/media/user, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] AuthController {/api/v1/auth}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/register, POST} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/me, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] ApiKeyController {/api/v1/auth/api-keys}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/auth/api-keys/:id, DELETE} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] SyncController {/api/v1/sync}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/sync/updates, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/sync/push, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/sync/pull, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/sync/realtime-auth, GET} route +6ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notifications/push-token, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notifications/push-token, DELETE} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/notifications/test, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] AgentController {/api/v1/agent}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/agent/status, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/agent/chat, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations/:id, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/agent/conversations/:id, DELETE} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpWellKnownController {/api/v1/.well-known}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/.well-known/oauth-protected-resource, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/.well-known/oauth-protected-resource/mcp, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpWellKnownController {/api/v1/api/v1/.well-known}: +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/.well-known/oauth-protected-resource, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/.well-known/oauth-protected-resource/mcp, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpInfoController {/api/v1/mcp}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/mcp/tools, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/mcp/prompts, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/mcp/info, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpInfoController {/api/v1/api/v1/mcp}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/mcp/tools, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/mcp/prompts, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/mcp/info, GET} route +3ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpController {/api/v1/mcp}: +3ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/mcp, POST} route +2ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/mcp, GET} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RoutesResolver] McpController {/api/v1/api/v1/mcp}: +0ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/mcp, POST} route +1ms
+[Nest] 14244  - 27/11/2026, 06:33:52     LOG [RouterExplorer] Mapped {/api/v1/mcp, GET} route +0ms
+[Nest] 14244  - 27/11/2026, 06:33:53     LOG [PrismaService] Database connection successfully established.
+[Nest] 14244  - 27/11/2026, 06:33:53     LOG [NestApplication] Nest application successfully started +15ms
+[Nest] 14244  - 27/11/2026, 06:41:37     LOG [HTTP] GET /api/v1/folders 304 +1367ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 06:41:39     LOG [HTTP] GET /api/v1/notes?limit=20&offset=0 200 +3916ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 06:41:39     LOG [HTTP] GET /api/v1/notes 200 +3822ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:14:52     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 200 +134ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:15:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:15:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +12456ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:15:14     LOG [HTTP] GET /api/v1/auth/me 200 +21953ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:15:14     LOG [HTTP] GET /api/v1/folders 304 +17053ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:15:14   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=6 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:15:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:15:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +6ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:15:22   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=44 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:15:26   ERROR [SyncService] [Sync:Push:Error] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68:
+Invalid `tx.syncLog.create()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14549:26
+
+  14546  /**
+  14547 * Records a processed mutation in sync_logs for idempotency and auditing.
+  14548 */ async recordSyncLog(userId, entity, mutation, tx = this.prisma) {
+→ 14549      await tx.syncLog.create(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 7372 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+[Nest] 14244  - 27/11/2026, 07:15:27   ERROR [SyncService] PrismaClientKnownRequestError:
+Invalid `tx.syncLog.create()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14549:26
+
+  14546  /**
+  14547 * Records a processed mutation in sync_logs for idempotency and auditing.
+  14548 */ async recordSyncLog(userId, entity, mutation, tx = this.prisma) {
+→ 14549      await tx.syncLog.create(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 7372 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 7372
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 07:15:27   ERROR [ExceptionsHandler] PrismaClientKnownRequestError:
+Invalid `tx.syncLog.create()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14549:26
+
+  14546  /**
+  14547 * Records a processed mutation in sync_logs for idempotency and auditing.
+  14548 */ async recordSyncLog(userId, entity, mutation, tx = this.prisma) {
+→ 14549      await tx.syncLog.create(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 7372 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 7372
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 07:15:27   ERROR [HTTP] POST /api/v1/sync/push 500 +12679ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:15:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:15:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2226ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:16:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:16:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +489ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:16:38   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:16:38     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +85ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:17:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:17:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +420ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:17:45     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +2978ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:00   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=6 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:18:03   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=44 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:18:05   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=45 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:18:06   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=46 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:18:06   ERROR [SyncService] [Sync:Push:Error] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68:
+Invalid `tx.syncLog.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14536:46
+
+  14533  /**
+  14534 * Checks if a mutation has already been recorded in sync_logs (idempotency check).
+  14535 */ async isMutationProcessed(userId, mutationId, tx = this.prisma) {
+→ 14536      const existingLog = await tx.syncLog.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 5059 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+[Nest] 14244  - 27/11/2026, 07:18:06   ERROR [SyncService] PrismaClientKnownRequestError:
+Invalid `tx.syncLog.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14536:46
+
+  14533  /**
+  14534 * Checks if a mutation has already been recorded in sync_logs (idempotency check).
+  14535 */ async isMutationProcessed(userId, mutationId, tx = this.prisma) {
+→ 14536      const existingLog = await tx.syncLog.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 5059 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 5059
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 07:18:06   ERROR [ExceptionsHandler] PrismaClientKnownRequestError:
+Invalid `tx.syncLog.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:14536:46
+
+  14533  /**
+  14534 * Checks if a mutation has already been recorded in sync_logs (idempotency check).
+  14535 */ async isMutationProcessed(userId, mutationId, tx = this.prisma) {
+→ 14536      const existingLog = await tx.syncLog.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 5059 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 5059
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 07:18:06   ERROR [HTTP] POST /api/v1/sync/push 500 +5508ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:06     LOG [HTTP] POST /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 201 +214ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:18:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +10ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:38   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:18:38     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +110ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:55     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +291ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:18:57     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +1002ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:03     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +555ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:08     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +15ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:09   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:19:09     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +7ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:15     LOG [HTTP] GET /api/v1/auth/me 304 +333ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:17     LOG [HTTP] GET /api/v1/auth/me 304 +84ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:30     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +129ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:19:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:40     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +14ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:46     LOG [HTTP] GET /api/v1/auth/me 304 +11ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:48     LOG [HTTP] GET /api/v1/auth/me 304 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:19:56   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=6 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:19:58   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=44 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:19:59   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=45 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:19:59   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=46 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:20:00   DEBUG [NotesService] [LWW:Note:Applied] id=note-1794129493343-x4k9oi7 action=upsert version=7 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:20:00   DEBUG [NotesService] [LWW:Note:Applied] id=da935dda-b107-4418-9062-1c3cced24a16 action=upsert version=4 isExisting=false
+[Nest] 14244  - 27/11/2026, 07:20:00   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=47 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:20:02     LOG [SyncService] [Sync:Push:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 touched=[notes] duration=5606ms
+[Nest] 14244  - 27/11/2026, 07:20:02     LOG [HTTP] POST /api/v1/sync/push 200 +5625ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:02     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +262ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:05   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=2 note_blocks=1
+[Nest] 14244  - 27/11/2026, 07:20:05   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=72 isExisting=true
+[Nest] 14244  - 27/11/2026, 07:20:05   DEBUG [NotesService] [LWW:Note:Applied] id=fa20c4b8-c9a6-4a1b-8761-abce2cb4fceb action=upsert version=3 isExisting=false
+[Nest] 14244  - 27/11/2026, 07:20:07   DEBUG [NotesService] [LWW:NoteBlock:Applied] id=7ddfb180-f2ed-45ae-a442-173c5a65afdd action=upsert version=1 isExisting=false
+[Nest] 14244  - 27/11/2026, 07:20:07     LOG [SyncService] [Sync:Push:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 touched=[notes, note_blocks] duration=1682ms
+[Nest] 14244  - 27/11/2026, 07:20:07     LOG [HTTP] POST /api/v1/sync/push 200 +4730ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:07   DEBUG [AblyService] Published realtime event "sync:invalidate" on channel "user:6a4f4cf0-53d0-4dd7-9808-855c10e16c68" for user "6a4f4cf0-53d0-4dd7-9808-855c10e16c68"
+[Nest] 14244  - 27/11/2026, 07:20:07   DEBUG [AblyService] Published realtime event "sync:invalidate" on channel "user:6a4f4cf0-53d0-4dd7-9808-855c10e16c68" for user "6a4f4cf0-53d0-4dd7-9808-855c10e16c68"
+[Nest] 14244  - 27/11/2026, 07:20:07   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-10T18:45:59.011Z limit=250
+[Nest] 14244  - 27/11/2026, 07:20:09     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=5 note_blocks=3
+[Nest] 14244  - 27/11/2026, 07:20:09     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-10T18%3A45%3A59.011Z 200 +1792ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:20:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +13ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:20:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +100ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:43     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +99ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:20:50     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +84ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:21:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:21:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +63ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:21:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:21:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +152ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:22:11     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +122ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:22:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:22:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:22:19     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +32ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:22:46   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:22:46     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +76ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:17   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:23:17     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +138ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:48     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +158ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:23:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +155ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:53     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +29ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:55     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +16ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:57     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +12ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:23:59     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:24:00     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +13ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:24:19   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:24:19     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +135ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:24:50   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:24:50     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +91ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:25:22   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:25:22     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1128ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:25:53   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:25:53     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +106ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:26:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:26:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +114ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:26:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:26:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +68ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:27:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:27:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +89ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:27:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:27:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +196ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:28:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:28:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +136ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:29:00   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:29:00     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +408ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:29:18     LOG [HTTP] GET /api/v1/folders 304 +3260ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:29:32   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:29:32     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +354ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:30:03   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:30:03     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +350ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:30:35   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:30:35     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +267ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:31:07   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:31:07     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1270ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:31:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:31:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +340ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:32:10   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:32:10     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +63ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:32:41   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:32:41     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +164ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:33:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:33:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +472ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:33:38     LOG [HTTP] GET /api/v1/notes 200 +2796ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:33:45   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:33:45     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:34:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:34:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +63ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:34:47   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:34:47     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +436ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:35:18   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:35:18     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +80ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:35:50   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:35:50     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +66ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:36:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:36:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +401ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:36:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:36:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +112ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:37:23   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:37:23     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +81ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:37:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:37:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +362ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:38:27   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:38:27     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +91ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:38:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:38:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +293ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:39:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:39:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +80ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:00   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:40:00     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +154ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:02     LOG [HTTP] GET /api/v1/auth/me 304 +81ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:10     LOG [HTTP] GET /api/v1/auth/me 304 +5ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:24     LOG [HTTP] GET /api/v1/auth/me 304 +147ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:30     LOG [HTTP] GET /api/v1/auth/me 304 +23ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:32     LOG [HTTP] GET /api/v1/auth/me 304 +14ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:40:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:47     LOG [HTTP] GET /api/v1/auth/me 304 +184ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:49     LOG [HTTP] GET /api/v1/auth/me 304 +5ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:52     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:40:54     LOG [HTTP] GET /api/v1/auth/me 304 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:41:02     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:41:04   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:41:04     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:41:22     LOG [HTTP] GET /api/v1/auth/me 304 +81ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:41:23     LOG [HTTP] GET /api/v1/auth/me 304 +39ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:41:35   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:41:35     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +198ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:42:06   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:42:06     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +74ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:42:38   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:42:38     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +101ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:43:09   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:43:09     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +115ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:43:40   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:43:40     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +179ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:44:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +122ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:23     LOG [HTTP] GET /api/v1/auth/me 304 +763ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:24     LOG [HTTP] GET /api/v1/auth/me 304 +17ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:38     LOG [HTTP] GET /api/v1/folders 304 +2256ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:44:38     LOG [HTTP] GET /api/v1/notes 304 +2676ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:44:38     LOG [HTTP] GET /api/v1/notes?limit=20&offset=0 200 +2837ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:44:39     LOG [HTTP] GET /api/v1/auth/me 304 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:44:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:44:52     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:05     LOG [HTTP] GET /api/v1/auth/me 304 +117ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:14   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:45:14     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:19     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:31     LOG [HTTP] GET /api/v1/auth/me 304 +149ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:43     LOG [HTTP] GET /api/v1/auth/me 304 +242ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:45:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:45:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +6ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:09     LOG [HTTP] GET /api/v1/auth/me 304 +245ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:11     LOG [HTTP] GET /api/v1/auth/me 304 +6ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:16   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:46:16     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:23     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:23     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 304 +19ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:24     LOG [HTTP] GET /api/v1/auth/me 304 +40ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:24     LOG [HTTP] GET /api/v1/auth/me 304 +14ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:36     LOG [HTTP] GET /api/v1/auth/me 304 +117ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:38     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:38     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:46:46   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:46:46     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:47:16     LOG [HTTP] GET /api/v1/auth/me 304 +946ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:47:17   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:47:17     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:47:21     LOG [HTTP] GET /api/v1/auth/me 304 +5ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:47:25     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:47:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:47:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +648ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:48:20   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:48:20     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +77ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:48:24     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +615ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:48:35   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:20:07.655Z limit=250
+[Nest] 14244  - 27/11/2026, 07:48:36     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:48:36     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A20%3A07.655Z 200 +851ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:48:45   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:48:35.934Z limit=250
+[Nest] 14244  - 27/11/2026, 07:48:45     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:48:45     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A48%3A35.934Z 200 +162ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:48:51   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:48:51     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +25ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:49:22     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +525ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:49:23   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:49:23     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +64ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:49:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:49:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +757ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:00     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +567ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:02     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +42ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:03     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +15ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:05     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +78ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:50:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +73ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:50:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:50:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +62ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:51:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:51:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +122ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:00   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:52:00     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1153ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:38     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 304 +52ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:38     LOG [HTTP] GET /api/v1/auth/me 304 +102ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:39   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:48:45.419Z limit=250
+[Nest] 14244  - 27/11/2026, 07:52:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:52:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +367ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:39     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:52:39     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A48%3A45.419Z 200 +438ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:44     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +29ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:52:54   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:52:54     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +35ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:53:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:53:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +122ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:53:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:53:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +255ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:53:54     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +256ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:54:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:54:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +54ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:54:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:54:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +145ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:54:51   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:52:39.169Z limit=250
+[Nest] 14244  - 27/11/2026, 07:54:51     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:54:51     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A52%3A39.169Z 200 +249ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:54:56   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:54:51.615Z limit=250
+[Nest] 14244  - 27/11/2026, 07:54:56     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:54:56     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A54%3A51.615Z 200 +117ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:55:09   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:55:09     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +203ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:55:30   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:54:56.009Z limit=250
+[Nest] 14244  - 27/11/2026, 07:55:30     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 07:55:30     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A54%3A56.009Z 200 +170ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:55:40   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:55:40     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +221ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:56:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:56:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +94ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:56:43   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:56:43     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +219ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:57:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:57:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +80ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:57:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:57:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +60ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:58:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:58:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +111ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:58:46   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:58:46     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +94ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:59:24     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809 200 +3283ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:59:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:59:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3711ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:59:26     LOG [HTTP] GET /api/v1/folders 304 +17ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:59:30     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +105ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:59:45     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +2675ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:59:49     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +51ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 07:59:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 07:59:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +7ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 07:59:55     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +117ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:00:20     LOG [HTTP] GET /api/v1/auth/me 304 +952ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:00:23     LOG [HTTP] GET /api/v1/auth/me 304 +12ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:00:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:00:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +64ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:00:29     LOG [HTTP] GET /api/v1/auth/me 304 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:04   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:01:04     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +6406ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:04     LOG [HTTP] GET /api/v1/auth/me 304 +4841ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:29     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 304 +19ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:29     LOG [HTTP] GET /api/v1/auth/me 304 +418ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:32     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:35   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:01:35     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +5ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:01:50     LOG [HTTP] GET /api/v1/auth/me 304 +106ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:02:06   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:02:06     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +436ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:02:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:02:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1061ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:03:12   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:03:12     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1899ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:03:46   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:03:46     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2326ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:03:46     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +4028ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:04:18   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:04:18     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1661ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:04:49   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:04:49     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +281ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:05:20   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:05:20     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +325ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:01     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 304 +12ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:26   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T06:55:30.035Z limit=250
+[Nest] 14244  - 27/11/2026, 08:06:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:06:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +23456ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:26     LOG [HTTP] GET /api/v1/auth/me 304 +24270ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:26     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +12494ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:28     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 08:06:28     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T06%3A55%3A30.035Z 200 +25758ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:06:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +95ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:42     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +442ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:06:59   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:06:59     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +941ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:07:23   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:07:23     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +96ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:07:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:07:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +296ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:08:18   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:08:18     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +340ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:08:49     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +422ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:08:53     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +109ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:08:56   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:08:56     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +46ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:09:03     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +31ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:09:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:09:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +66ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:09:59   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:09:59     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +59ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:10:00     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +103ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:10:06     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +186ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 08:10:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:10:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +81ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:11:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:11:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +778ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:11:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:11:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +993ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:12:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:12:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +86ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:12:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:12:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +273ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:13:07   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:13:07     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +143ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:13:24     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +133ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:13:24     LOG [HTTP] GET /api/v1/auth/me 304 +109ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:13:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:13:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +109ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:14:10   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:14:10     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +88ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:14:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:14:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +179ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:15:02     LOG [HTTP] GET /api/v1/auth/me 304 +131ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:15:04     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+
+ Info  Rspack is building your sources...
+
+[Nest] 14244  - 27/11/2026, 08:15:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:15:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +8ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:15:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:15:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1144ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:16:18   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:16:18     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2092ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:16:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:16:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2447ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:17:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:17:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +420ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:17:56   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:17:56     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +117ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:18:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:18:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1738ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:18:51   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T07:06:26.081Z limit=250
+[Nest] 14244  - 27/11/2026, 08:19:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:19:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1752ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:19:03     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 08:19:03     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T07%3A06%3A26.081Z 200 +12542ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:19:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:19:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1755ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:20:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:20:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +473ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:24:38     LOG [HTTP] GET /api/v1/sync/updates?platform=android&currentVersion=2.3.0 304 +1244ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:25:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +21872ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:01   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T07:18:51.604Z limit=250
+[Nest] 14244  - 27/11/2026, 08:25:04     LOG [HTTP] GET /api/v1/auth/me 304 +25079ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:05     LOG [HTTP] GET /api/v1/auth/me 304 +551ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:06     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +22534ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:11     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +3385ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:13     LOG [HTTP] GET /api/v1/auth/me 304 +1644ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:25:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +23ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:18     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 08:25:18     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T07%3A18%3A51.604Z 200 +37554ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:25:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:25:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1869ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:26:02   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:26:02     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2842ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:26:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:26:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2685ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:27:47   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:27:47     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +16008ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:28:12   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:28:12     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +617ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:29:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:29:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +17063ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:29:16     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +9199ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:29:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:29:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +11ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:30:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:30:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +32028ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:30:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:30:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +9ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:31:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:31:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2834ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:31:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:31:43     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +463ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:32:16   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:32:16     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1098ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:32:49   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:32:49     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1609ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:33:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:33:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +452ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:33:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:33:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +564ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:34:25   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:34:25     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1307ms - ::ffff:192.168.40.29
+ERROR in ./src/modules/shares/shares.service.ts:268:7
+  × TS2353: Object literal may only specify known properties, and 'content' does not exist in type 'PublicSharedNote'.
+  │     266 |       slug: share.slug,
+  │     267 |       title: share.note.title,
+  │   > 268 |       content: share.note.content,
+  │         |       ^^^^^^^
+  │     269 |       tags: share.note.tags,
+  │     270 |       updatedAt: share.note.updatedAt.toISOString(),
+  │     271 |       author: {
+
+
+Rspack 2.2.7 compiled with 1 error in 1145.30 s
+[Nest] 14244  - 27/11/2026, 08:34:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:34:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +601ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:35:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:35:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +219ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:36:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:36:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +650ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:36:35   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:36:35     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +831ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:37:07   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:37:07     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +265ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:37:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:37:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3243ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:38:20   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:38:20     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1254ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:38:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:38:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +933ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:39:27   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:39:27     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +784ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:39:58   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:39:58     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +381ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:40:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:40:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +105ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:41:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:41:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +292ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:41:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:41:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +67ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:42:04   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:42:04     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +331ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:42:23     LOG [HTTP] GET /api/v1/auth/me 304 +2397ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:42:23     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +2789ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:42:24     LOG [HTTP] GET /api/v1/auth/me 304 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:42:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:42:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +254ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:43:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:43:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +268ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:43:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:43:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +182ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:44:10   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:44:10     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +235ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:44:15     LOG [HTTP] GET /api/v1/auth/me 304 +58ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:44:15     LOG [HTTP] GET /api/v1/auth/me 304 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:44:41   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:44:41     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +208ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:45:12   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:45:12     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +77ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:45:45   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:45:45     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +415ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:46:16   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:46:16     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +160ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:46:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:46:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +215ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:47:19   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:47:19     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +168ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:47:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:47:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +190ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:48:23   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:48:23     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +249ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:48:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:48:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +490ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:49:12     LOG [HTTP] GET /api/v1/auth/me 304 +3460ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:49:19     LOG [HTTP] GET /api/v1/auth/me 304 +7ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:49:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:49:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:50:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:50:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3399ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:50:07     LOG [HTTP] GET /api/v1/auth/me 304 +1036ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:50:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:50:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +595ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:51:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:51:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +98ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:51:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:51:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +499ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:52:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:52:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +678ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:52:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:52:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +5154ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:53:02     LOG [HTTP] GET /api/v1/auth/me 304 +773ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:53:07     LOG [HTTP] GET /api/v1/auth/me 304 +521ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:53:18   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:53:18     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +460ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:55:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:55:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +100754ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:55:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:55:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +60641ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:55:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:55:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +20255ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:55:30     LOG [HTTP] GET /api/v1/auth/me 304 +1199ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:55:49   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:55:49     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +326ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:56:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:56:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +446ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:56:54   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:56:54     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +694ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:57:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:57:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +302ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:57:56   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:57:56     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +238ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:58:00     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +1513ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:58:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:58:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +199ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:58:46     LOG [HTTP] GET /api/v1/auth/me 304 +224ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:58:46     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +788ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:58:48     LOG [HTTP] GET /api/v1/auth/me 304 +125ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:59:00   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:59:00     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +230ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 08:59:31   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 08:59:31     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +130ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:00:02   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:00:02     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +183ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:00:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:00:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +286ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:01:01     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 304 +252ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:01:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:01:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +37ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:01:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:01:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +161ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:02:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:02:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +179ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:02:40   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:02:40     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +574ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:03:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:03:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +454ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:03:47   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:03:47     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4025ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:04:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:04:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +5875ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:04:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:04:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1680ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:05:05   DEBUG [SyncService] [Sync:Pull:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 since=2026-11-27T07:25:01.489Z limit=250
+[Nest] 14244  - 27/11/2026, 09:05:12     LOG [SyncService] [Sync:Pull:Success] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=0 note_blocks=0
+[Nest] 14244  - 27/11/2026, 09:05:12     LOG [HTTP] GET /api/v1/sync/pull?since=2026-11-27T07%3A25%3A01.489Z 200 +7347ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:05:20   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=1 note_blocks=0
+[Nest] 14244  - 27/11/2026, 09:05:31   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:05:31     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1272ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:05:31     LOG [HTTP] GET /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/share 200 +6975ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:05:55   ERROR [SyncService] [Sync:Push:Error] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68:
+Invalid `prismaClient.note.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:10821:50
+
+  10818 * Strictly reads entity properties from `n.changes`.
+  10819 */ async upsertWithLww(userId, n, prismaClient = this.prisma) {
+  10820      const clientUpdatedAt = new Date(n.updatedAt);
+→ 10821      const existing = await prismaClient.note.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 6712 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+[Nest] 14244  - 27/11/2026, 09:06:00   ERROR [SyncService] PrismaClientKnownRequestError:
+Invalid `prismaClient.note.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:10821:50
+
+  10818 * Strictly reads entity properties from `n.changes`.
+  10819 */ async upsertWithLww(userId, n, prismaClient = this.prisma) {
+  10820      const clientUpdatedAt = new Date(n.updatedAt);
+→ 10821      const existing = await prismaClient.note.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 6712 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'Note',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 6712
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 09:06:00   ERROR [ExceptionsHandler] PrismaClientKnownRequestError:
+Invalid `prismaClient.note.findUnique()` invocation in
+C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\apps\api\dist\main.js:10821:50
+
+  10818 * Strictly reads entity properties from `n.changes`.
+  10819 */ async upsertWithLww(userId, n, prismaClient = this.prisma) {
+  10820      const clientUpdatedAt = new Date(n.updatedAt);
+→ 10821      const existing = await prismaClient.note.findUnique(
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 6712 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'Note',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 6712
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 09:06:00   ERROR [HTTP] POST /api/v1/sync/push 500 +45736ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:06:03   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:06:03     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +395ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:06:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:06:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +128ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:07:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:07:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +126ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:07:34     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809 304 +708ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:07:34     LOG [HTTP] GET /api/v1/notes?limit=20&offset=0 304 +857ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:07:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:07:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:07:38     LOG [HTTP] GET /api/v1/folders 304 +707ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:07:44     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +205ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:07:51     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +2779ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:08:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:08:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +196ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:08:39   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:08:39     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +258ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:09:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:09:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +4535ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:09:47   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:09:47     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +871ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:10:08     LOG [HTTP] POST /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/share 201 +13810ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:10:20   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:10:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2341ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:10:58   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:10:58     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +408ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:11:03     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +15176ms - ::1
+[Nest] 14244  - 27/11/2026, 09:11:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:11:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +98ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:12:00   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:12:00     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +164ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:12:32   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:12:32     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +75ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:12:46     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/share 200 +192ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:12:53     LOG [HTTP] PATCH /api/v1/notes/39f6f7c0-6db9-4775-ad75-1668b7b77f2d/share 200 +329ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:13:04   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:13:04     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +276ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:13:18     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +570ms - ::1
+[Nest] 14244  - 27/11/2026, 09:13:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:13:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +93ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:14:06   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:14:06     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +74ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:14:18     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +404ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 09:14:37   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:14:37     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +120ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:15:09   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:15:09     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +268ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:15:41   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:15:41     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +74ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:15:54    WARN [HTTP] POST /api/v1/auth/login 401 +1632ms - ::1
+[Nest] 14244  - 27/11/2026, 09:16:07     LOG [AuthService] [Auth:Register:Success] userId=687dc751-6e19-4a68-b70b-c599b4a15016 email=letechcg@gmail.com username=letechcg_1597
+[Nest] 14244  - 27/11/2026, 09:16:07     LOG [HTTP] POST /api/v1/auth/register 201 +3428ms - ::1
+[Nest] 14244  - 27/11/2026, 09:16:12   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:16:12     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +53ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:16:27    WARN [HTTP] POST /api/v1/public/shares/g08rLyW7GxX0/fork 403 +430ms - ::1
+[Nest] 14244  - 27/11/2026, 09:16:43   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:16:43     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +123ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:17:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:17:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +64ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:17:46   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:17:46     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +60ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:18:17   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:18:17     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +63ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:18:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:18:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +76ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:19:19   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:19:19     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +115ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:19:50   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:19:50     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +72ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:20:22   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:20:22     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +93ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:20:53   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:20:53     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +257ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:21:25   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:21:25     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +296ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:21:59   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:21:59     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1653ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:22:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:22:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +85ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:23:02   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:23:02     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +145ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:23:33   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:23:33     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +238ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:24:05   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:24:05     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +95ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:24:37   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:24:37     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1131ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:25:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:25:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2407ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:25:43   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:25:43     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +766ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:26:15   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:26:15     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +219ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:27:17   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:27:17     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +31461ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:27:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:27:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:27:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:27:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +145ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:28:29   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:28:29     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +325ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:29:02   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:29:02     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +420ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:29:35   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:29:35     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1430ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:30:08   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:30:08     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1293ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:30:41   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:30:41     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +809ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:31:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:31:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1046ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:31:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:31:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +622ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:32:16   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:32:16     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1119ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:32:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:32:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1173ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:33:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:33:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1857ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:33:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:33:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +2076ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:34:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:34:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +123ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:34:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:34:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +806ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:35:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:35:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +314ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:36:03   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:36:03     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +663ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:36:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:36:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +83ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:37:06   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:37:06     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +238ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:37:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:37:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3555ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:38:13     LOG [HTTP] POST /mcp 200 +15409ms - ::1
+[Nest] 14244  - 27/11/2026, 09:38:19   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:38:19     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1982ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:38:50   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:38:50     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +194ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:39:22   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:39:22     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +220ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:39:53   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:39:53     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +100ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:40:24   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:40:24     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +226ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:40:56   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:40:56     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +60ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:41:28   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:41:28     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +83ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:41:59   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:41:59     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +91ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:42:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:42:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +57ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:43:01   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:43:01     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +86ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:43:32   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:43:32     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +90ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:44:03   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:44:03     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +451ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:44:34   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:44:34     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +173ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:45:06   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:45:06     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +61ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:45:37   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:45:37     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +84ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:46:09   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:46:09     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +521ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:46:40   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:46:40     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +117ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:47:11   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:47:11     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +87ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:47:42   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:47:42     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +62ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:48:13   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:48:13     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +190ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:48:13     LOG [HTTP] POST /mcp 200 +138ms - ::1
+[Nest] 14244  - 27/11/2026, 09:48:44   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:48:44     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +183ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:49:16   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:49:16     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +1052ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:49:37    WARN [HTTP] POST /api/v1/public/shares/g08rLyW7GxX0/fork 403 +1796ms - ::1
+[Nest] 14244  - 27/11/2026, 09:49:48   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:49:48     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +64ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:50:19   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:50:19     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +93ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:50:23    WARN [HTTP] POST /api/v1/public/shares/g08rLyW7GxX0/fork 403 +453ms - ::1
+[Nest] 14244  - 27/11/2026, 09:50:29     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +1416ms - ::1
+[Nest] 14244  - 27/11/2026, 09:50:39     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +1392ms - ::1
+[Nest] 14244  - 27/11/2026, 09:50:45     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +220ms - ::1
+[Nest] 14244  - 27/11/2026, 09:50:50   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:50:50     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:51:21   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:51:21     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +130ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:51:52   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:51:52     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +63ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:52:23   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:52:23     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +123ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:52:55   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:52:55     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +344ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:53:26   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:53:26     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +95ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:53:57   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:53:57     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +59ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:54:25     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +623ms - ::1
+[Nest] 14244  - 27/11/2026, 09:54:25     LOG [HTTP] GET /api/v1/public/shares/g08rLyW7GxX0 200 +1875ms - ::1
+[Nest] 14244  - 27/11/2026, 09:54:30   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:54:30     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +375ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:55:02   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:55:02     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +830ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:55:36   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:55:36     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +3187ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:56:07   DEBUG [AblyService] [Ably:Auth:TokenCreated] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68
+[Nest] 14244  - 27/11/2026, 09:56:07     LOG [HTTP] GET /api/v1/sync/realtime-auth 200 +268ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:56:34   DEBUG [SyncService] [Sync:Push:Received] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68 folders=0 notes=1 note_blocks=0
+[Nest] 14244  - 27/11/2026, 09:56:47   DEBUG [NotesService] [LWW:Note:Applied] id=28e0c8f6-0d24-4168-ba36-62f7bedb8809 action=upsert version=73 isExisting=true
+[Nest] 14244  - 27/11/2026, 09:56:49   ERROR [SyncService] [Sync:Push:Error] userId=6a4f4cf0-53d0-4dd7-9808-855c10e16c68:
+Invalid `prisma.syncLog.create()` invocation:
+
+
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 10660 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+[Nest] 14244  - 27/11/2026, 09:56:50   ERROR [SyncService] PrismaClientKnownRequestError:
+Invalid `prisma.syncLog.create()` invocation:
+
+
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 10660 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 10660
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 09:56:50   ERROR [ExceptionsHandler] PrismaClientKnownRequestError:
+Invalid `prisma.syncLog.create()` invocation:
+
+
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 10660 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'SyncLog',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 10660
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 09:56:50   ERROR [HTTP] POST /api/v1/sync/push 500 +24251ms - ::ffff:192.168.40.29
+[Nest] 14244  - 27/11/2026, 09:59:49    WARN [HTTP] POST /api/v1/public/shares/g08rLyW7GxX0/fork 403 +1880ms - ::1
+[Nest] 14244  - 27/11/2026, 10:00:13     LOG [HTTP] PATCH /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +4040ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 10:00:50   ERROR [ExceptionsHandler] PrismaClientKnownRequestError:
+Invalid `prisma.noteBlock.createMany()` invocation:
+
+
+Transaction API error: A query cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 23154 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at handleRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:8649)
+    at handleAndLogRequestError (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7932)
+    at request (C:\Users\Dev Lee\Documents\@DevLee\mobile\ikeen\node_modules\.bun\@prisma+client@7.10.0+b2ebfdef8adccb15\node_modules\@prisma\client\runtime\client.js:65:7639)
+    at processTicksAndRejections (native:7:39) {
+  code: 'P2028',
+  meta: {
+    modelName: 'NoteBlock',
+    operation: 'query',
+    timeout: 5000,
+    timeTaken: 23154
+  },
+  clientVersion: '7.10.0'
+}
+[Nest] 14244  - 27/11/2026, 10:00:55     LOG [HTTP] POST /api/v1/public/shares/g08rLyW7GxX0/fork 201 +2455ms - ::1
+[Nest] 14244  - 27/11/2026, 10:01:40     LOG [HTTP] GET /api/v1/notes/fd7d33b8-6f3c-4546-9513-7bdba6718c55 200 +7819ms - ::1
+[Nest] 14244  - 27/11/2026, 10:01:44     LOG [HTTP] GET /api/v1/notes?limit=20&offset=0 200 +11342ms - ::1
+[Nest] 14244  - 27/11/2026, 10:01:44     LOG [HTTP] GET /api/v1/folders 200 +2638ms - ::1
+[Nest] 14244  - 27/11/2026, 10:02:38     LOG [HTTP] POST /mcp 200 +2638ms - ::1
+[Nest] 14244  - 27/11/2026, 10:11:39     LOG [HTTP] GET /api/v1/mcp/tools 304 +7298ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 10:11:53     LOG [HTTP] GET /api/v1/mcp/tools 304 +6ms - ::ffff:127.0.0.1
+[Nest] 14244  - 27/11/2026, 10:24:34     LOG [HTTP] GET /api/v1/notes/28e0c8f6-0d24-4168-ba36-62f7bedb8809/share 200 +10796ms - ::ffff:127.0.0.1

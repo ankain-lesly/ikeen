@@ -17,10 +17,10 @@ const env = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
 
   // Set Vercel env vars (for /.well-known/*):
-  APPLE_TEAM_ID: process.envAPPLE_TEAM_ID,
-  IOS_BUNDLE_ID: process.envIOS_BUNDLE_ID,
-  ANDROID_PACKAGE_NAME: process.envANDROID_PACKAGE_NAME,
-  ANDROID_SHA256_CERT_FINGERPRINTS: process.envANDROID_SHA256_CERT_FINGERPRINTS,
+  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
+  IOS_BUNDLE_ID: process.env.IOS_BUNDLE_ID,
+  ANDROID_PACKAGE_NAME: process.env.ANDROID_PACKAGE_NAME,
+  ANDROID_SHA256_CERT_FINGERPRINTS: process.env.ANDROID_SHA256_CERT_FINGERPRINTS,
 });
 
 export const isProd = env.NODE_ENV === "production";
